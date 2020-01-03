@@ -33,10 +33,24 @@ f_tmpxml = tempfile.NamedTemporaryFile(delete=False)
 def parse_robot(info):
     for line in info:
         f_tmpxml.write(line[0])
+        #print line[0]
     f_tmpxml.close()
     return f_tmpxml.name
 
 def inventory_robot(tmpxml_name):
+    #result = ExecutionResult('/tmp/output.xml')
+    # TODO: WATO-Parameter "discovery_suite_level" steuert, auf welcher Ebene Services erkannt werden sollen.
+    result = ExecutionResult(tmpxml_name)
+    for s in result.suite.suites:
+        # each Suite name is a check, no default parameters (yet)
+        yield s.name, None
+        # print s.name
+    # delete the tempfile
+    os.remove(tmpxml_name)
+
+def check_robot(item, params, tmpxml_name):
+    warn, crit = params
+
     #result = ExecutionResult('/tmp/output.xml')
     result = ExecutionResult(tmpxml_name)
     for s in result.suite.suites:
@@ -46,33 +60,12 @@ def inventory_robot(tmpxml_name):
     # delete the tempfile
     os.remove(tmpxml_name)
 
-def check_robot(item, params, info):
-    warn, crit = params
-    for line in info:
-        if line[0] == item:
-            power = saveint(line[1])
-            # Some "RPS SpA" systems are not RFC conform in this value.
-            # The values can get negative but should never be.
-            if power < 0:
-                power *= -1
-            perfdata = [("power", power, warn, crit, 0)]
-            infotext = "power: %dW (warn/crit at %dW/%dW)" % \
-                (power, warn, crit)
-
-            if power <= crit:
-                return (2, infotext, perfdata)
-            elif power <= warn:
-                return (1, infotext, perfdata)
-            return (0, infotext, perfdata)
-
-    return (3, "Phase %s not found in SNMP output" % item)
-
 
 #check_info = {}
 check_info['robot'] = {
     "parse_function": parse_robot,
     "inventory_function": inventory_robot,
     "check_function": check_robot,
-    "service_description": "Robot robot",
+    "service_description": "Robot",
 }
 
