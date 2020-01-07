@@ -31,32 +31,7 @@ from pprint import pprint
 
 f_tmpxml = tempfile.NamedTemporaryFile(delete=False)
 
-# Erstellt mit Hilfe des Visitors eine Liste
-# ! Filter!
-# ! discovery_suite_level!
-# ! suite_level_depth!
-# ! Detailgrad (Suite/Test/Keyword)
-def parse_robot(info):
-    for line in info:
-        # CMK uses line arrays
-        # f_tmpxml.write(line[0])
-        f_tmpxml.write(line)
-#        print line[0]
-    f_tmpxml.close()
-    return f_tmpxml.name
-
-
-def inventory_robot(tmpxml_name):
-    #result = ExecutionResult('/tmp/output.xml')
-    # TODO: WATO-Parameter "discovery_suite_level" steuert, auf welcher Ebene Services erkannt werden sollen.
-    result = ExecutionResult(tmpxml_name)
-    for s in result.suite.suites:
-        # each Suite name is a check, no default parameters (yet)
-        yield s.name, None
-        # print s.name
-    # delete the tempfile
-    os.remove(tmpxml_name)
-
+# Classes for robot result objects ==================================
 class RFObject(object):
     def __init__(self, name, status, starttime, endtime, elapsedtime):
         self.name = name
@@ -65,7 +40,6 @@ class RFObject(object):
         self.endtime = endtime
         self.elapsedtime = elapsedtime
 
-#testdata = ["PASS", "teststarttime", "testendtime", "testelapsedtime"]
 class RFSuite(RFObject):
     def __init__(self, name, status, starttime, endtime, elapsedtime, children):
         self.name = name
@@ -97,7 +71,6 @@ class RFSuite(RFObject):
     def tests(self, tests):
         self.children = tests
 
-
 class RFTest(RFObject):
     def __init__(self, name, status, starttime, endtime, elapsedtime):
         self.name = name
@@ -106,18 +79,15 @@ class RFTest(RFObject):
         self.endtime = endtime
         self.elapsedtime = elapsedtime
 
-
-
-#result = rf.ExecutionResult(xmlname)
-#result.visit(rf.SuiteMetrics())
-parsed = []
+# Visitor Class for Robot Result =======================================
 class SuiteMetrics(ResultVisitor):
     def __init__(self, discovery_suite_level):
         self.discovery_suite_level = discovery_suite_level
         self.data = []
 
     def visit_suite(self, suite, level=0):
-        print "Level %d: Suite %s (%s)" % (level, str(suite.name), str(suite.status))
+        sep = 4*level*"-"
+        print sep + "Level %d: Suite %s (%s)" % (level, str(suite.name), str(suite.status))
         subsuitecount = len(suite.suites)
         if subsuitecount:
             subsuites = []
@@ -125,25 +95,42 @@ class SuiteMetrics(ResultVisitor):
                 level+=1
                 subsuites.append(self.visit_suite(subsuite, level))
                 level-=1
-
-            if level == 0:
-                self.data.append(RFSuite(suite.name, suite.status, suite.starttime, suite.endtime, suite.elapsedtime, subsuites))
-            else:
-                return RFSuite(suite.name, suite.status, suite.starttime, suite.endtime, suite.elapsedtime, subsuites)
+            test_object = RFSuite(suite.name, suite.status, suite.starttime, suite.endtime, suite.elapsedtime, subsuites)
         else:
             tests = []
             for subtest in suite.tests:
                 tests.append(self.visit_test(subtest))
-            return RFSuite(suite.name, suite.status, suite.starttime, suite.endtime, suite.elapsedtime, tests)
+            test_object = RFSuite(suite.name, suite.status, suite.starttime, suite.endtime, suite.elapsedtime, tests)
+
+        if level == self.discovery_suite_level:
+            self.data.append(test_object)
+        else:
+            return test_object
 
     def visit_test(self,test):
-        print "Test %s %s" % (test.name, test.status)
         return RFTest(test.name, test.status, test.starttime, test.endtime, test.elapsedtime)
 
 
-class KeywordMetrics(ResultVisitor):
-    pass
+def parse_robot(info):
+    for line in info:
+        # CMK uses line arrays
+        # f_tmpxml.write(line[0])
+        f_tmpxml.write(line)
+#        print line[0]
+    f_tmpxml.close()
+    return f_tmpxml.name
 
+
+def inventory_robot(tmpxml_name):
+    #result = ExecutionResult('/tmp/output.xml')
+    # TODO: WATO-Parameter "discovery_suite_level" steuert, auf welcher Ebene Services erkannt werden sollen.
+    result = ExecutionResult(tmpxml_name)
+    for s in result.suite.suites:
+        # each Suite name is a check, no default parameters (yet)
+        yield s.name, None
+        # print s.name
+    # delete the tempfile
+    os.remove(tmpxml_name)
 
 
 def check_robot(item, params, tmpxml_name):
