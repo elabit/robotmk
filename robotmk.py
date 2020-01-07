@@ -1,6 +1,7 @@
 #!/usr/bin/python
 
 #check_info = {}
+# f_tmpxml.write(line[0])
 
 # -*- encoding: utf-8; py-indent-offset: 4 -*-
 # +------------------------------------------------------------------+
@@ -57,19 +58,11 @@ def inventory_robot(parsed):
         # print s.name
 
 
-def check_robot(item, params, tmpxml_name):
+def check_robot(item, params, parsed):
 
-    warn, crit = params
-
-    #result = ExecutionResult('/tmp/output.xml')
-    result = ExecutionResult(tmpxml_name)
-    for s in result.suite.suites:
-        # each Suite name is a check, no default parameters (yet)
-        yield s.name, None
-        # print s.name
-    # delete the tempfile
-    os.remove(tmpxml_name)
-
+    for suite in parsed:
+        if suite.name == item:
+            return suite.nagios_status, suite.status
 
 check_info['robot'] = {
     "parse_function": parse_robot,
@@ -78,18 +71,23 @@ check_info['robot'] = {
     "service_description": "Robot",
 }
 
-
-
-
-
 # Classes for robot result objects ==================================
 class RFObject(object):
+    RF_STATE2NAGIOS = {
+        'PASS'  : 0,
+        'FAIL'  : 2
+    }
+
     def __init__(self, name, status, starttime, endtime, elapsedtime):
         self.name = name
         self.status = status
         self.starttime = starttime
         self.endtime = endtime
         self.elapsedtime = elapsedtime
+
+    @property
+    def nagios_status(self):
+        return self.RF_STATE2NAGIOS[self.status]
 
 class RFSuite(RFObject):
     def __init__(self, name, status, starttime, endtime, elapsedtime, children):
