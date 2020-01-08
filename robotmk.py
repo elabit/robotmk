@@ -52,7 +52,7 @@ inventory_robot_rules = []
 def parse_robot(info):
     settings = host_extra_conf_merged(host_name(), inventory_robot_rules)
     discovery_suite_level = settings.get("discovery_suite_level", 0)
-    print "Discovery suite level: %s" % str(discovery_suite_level)
+#    print "Discovery suite level: %s" % str(discovery_suite_level)
 
     with tempfile.NamedTemporaryFile(delete=False) as f_tmpxml:
         for line in info:
@@ -62,7 +62,8 @@ def parse_robot(info):
     # delete the tempfile
     os.remove(f_tmpxml.name)
 
-    suite_metrics = SuiteMetrics(0)
+    suite_metrics = SuiteMetrics(int(discovery_suite_level))
+    #suite_metrics = SuiteMetrics(0)
     result.visit(suite_metrics)
     return suite_metrics.data
 
