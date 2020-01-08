@@ -50,20 +50,24 @@ from pprint import pprint
 inventory_robot_rules = []
 
 def parse_robot(info):
+# debug
     settings = host_extra_conf_merged(host_name(), inventory_robot_rules)
     discovery_suite_level = settings.get("discovery_suite_level", 0)
+
 #    print "Discovery suite level: %s" % str(discovery_suite_level)
 
     with tempfile.NamedTemporaryFile(delete=False) as f_tmpxml:
         for line in info:
+# debug
             f_tmpxml.write(line[0])
-            #f_tmpxml.write(line)
+#            f_tmpxml.write(line)
     result = ExecutionResult(f_tmpxml.name)
     # delete the tempfile
     os.remove(f_tmpxml.name)
 
-    suite_metrics = SuiteMetrics(int(discovery_suite_level))
-    #suite_metrics = SuiteMetrics(0)
+# debug
+#    suite_metrics = SuiteMetrics(int(discovery_suite_level))
+    suite_metrics = SuiteMetrics(0)
     result.visit(suite_metrics)
     return suite_metrics.data
 
@@ -78,18 +82,41 @@ def check_robot(item, params, parsed):
     for suite in parsed:
         if suite.name == item:
             # iteriere ab hier durch den ganzen Baum
-            rc = suite.nagios_status
-            return rc, suite.status
-#            return msg_iterator(suite)
-
-# Suite Mkdemo PASS
-# +-- Suite A-Tests PASS
-# +---- Suite A-suite1 PASS
+            rc = suite.nagios_stateid
+            #return rc, suite.status
+            return eval_state(suite)
 
 # item = suite/test
-#def msg_iterator(item, msg=[]):
+def eval_state(item, count=0):
+#    print count * 4 * "=" + " " + item.name
+    item_states = []
+    item_messages = []
+    item_perfdata = []
+    if hasattr(item, 'children'):
+        for subitem in item.children:
+            state, msg, perfdata = eval_state(subitem, count+1)
+            item_states.append(state)
+            item_messages.extend(msg)
+            item_perfdata.extend(perfdata)
+        if count == 0:
+            # Hier wird die Rekursion wieder verlassen.
+            # FIXME: Vergleiche nun subitem.status mit dem max(item_states): Fuehrt eine Thresholdueberschreitung zu einem anderen Status?
+
+            # In den Worst state soll auch der Status der Suite selbst eingehen
+            item_states.append(item.nagios_stateid)
+            worst_nagios_state = max(item_states)
+            output = "Robot Suite %s ran in %s seconds\n" % (item.name, item.elapsedtime/1000) + ", ".join(item_messages)
+            return worst_nagios_state, output, item_perfdata
+        else:
+            #return max(item_states), item_messages, item_perfdata
+            return max(item_states), ["Suite %s: %s\n" % (item.name, ", ".join(item_messages))], item_perfdata
+
+    else:
+        # FIXME eval thresholds! Filter by name!
+        return item.nagios_stateid, [ item.name + ": " + item.nagios_status ], [item.nagios_perfdata]
+
 #    level=0
-#    msg.append([item.nagios_status, item.sta)
+#    msg.append([item.nagios_stateid, item.sta)
 #
 #    if all([ isinstance(c, RFSuite) for c in item.children ]):
 #        msg.extend(msg_iterator(item.children))
@@ -101,15 +128,20 @@ check_info['robot'] = {
     "inventory_function": inventory_robot,
     "check_function": check_robot,
     "service_description": "Robot",
-    "group": "robotmk"
+    "group": "robotmk",
+    "has_perfdata": True
 }
 
 
 # Classes for robot result objects ==================================
 class RFObject(object):
-    RF_STATE2NAGIOS = {
+    RF_STATE2NAGIOSID = {
         'PASS'  : 0,
         'FAIL'  : 2
+    }
+    RF_STATE2NAGIOSSTATUS = {
+        'PASS'  : 'OK',
+        'FAIL'  : 'CRIT'
     }
 
     def __init__(self, name, status, starttime, endtime, elapsedtime):
@@ -120,8 +152,16 @@ class RFObject(object):
         self.elapsedtime = elapsedtime
 
     @property
+    def nagios_stateid(self):
+        return self.RF_STATE2NAGIOSID[self.status]
+
+    @property
     def nagios_status(self):
-        return self.RF_STATE2NAGIOS[self.status]
+        return self.RF_STATE2NAGIOSSTATUS[self.status]
+
+    @property
+    def nagios_perfdata(self):
+        return ( self.name, self.elapsedtime)
 
     def recurse_result(self, depth=None, msg=[]):
         for c in self.children:

@@ -14,7 +14,7 @@ content = file.readlines()
 parsed = rf.parse_robot(content)
 
 ipdb.set_trace(context=5)
-rf.inventory_robot(parsed)
-
+#rf.inventory_robot(parsed)
+state, msg, perfdata = rf.check_robot("Mkdemo", [], parsed)
 print "Debugger ended."
 
