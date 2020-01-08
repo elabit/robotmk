@@ -28,25 +28,41 @@
 # to the Free Software Foundation, Inc., 51 Franklin St,  Fifth Floor,
 # Boston, MA 02110-1301 USA.
 
+# Output of agent (unparsed result file content of "output.xml" from RF)
+#<<<robot:sep(0)>>>
+#<?xml version="1.0" encoding="UTF-8"?>
+#<robot rpa="false" generated="20200103 16:14:32.944" generator="Robot 3.1.2 (Python 2.7.15+ on linux2)">
+#<suite source="/home/elabit/Downloads/red/workspace/mkdemo" id="s1" name="Mkdemo">
+#<suite source="/home/elabit/Downloads/red/workspace/mkdemo/A-Tests" id="s1-s1" name="A-Tests">
+#<suite source="/home/elabit/Downloads/red/workspace/mkdemo/A-Tests/A-suite1.robot" id="s1-s1-s1" name="A-suite1">
+#<test id="s1-s1-s1-t1" name="test-A-1-1">
+#...
+
 from robot.api import ExecutionResult, ResultVisitor
 import tempfile
 import os
 from pprint import pprint
 
-f_tmpxml = tempfile.NamedTemporaryFile(delete=False)
+
+#factory_settings["robotmk_default_values"] = {
+#    discovery_suite_level: 0,
+#}
+inventory_robot_rules = []
 
 def parse_robot(info):
-    for line in info:
-        # CMK uses line arrays
-        f_tmpxml.write(line[0])
-        #f_tmpxml.write(line)
-        #print line[0]
-    f_tmpxml.close()
+    settings = host_extra_conf_merged(host_name(), inventory_robot_rules)
+    discovery_suite_level = settings.get("discovery_suite_level", 0)
+    print "Discovery suite level: %s" % str(discovery_suite_level)
+
+    with tempfile.NamedTemporaryFile(delete=False) as f_tmpxml:
+        for line in info:
+            f_tmpxml.write(line[0])
+            #f_tmpxml.write(line)
     result = ExecutionResult(f_tmpxml.name)
     # delete the tempfile
     os.remove(f_tmpxml.name)
 
-    suite_metrics = SuiteMetrics(2)
+    suite_metrics = SuiteMetrics(0)
     result.visit(suite_metrics)
     return suite_metrics.data
 
@@ -57,19 +73,36 @@ def inventory_robot(parsed):
         yield suite.name, None
         # print s.name
 
-
 def check_robot(item, params, parsed):
-
     for suite in parsed:
         if suite.name == item:
-            return suite.nagios_status, suite.status
+            # iteriere ab hier durch den ganzen Baum
+            rc = suite.nagios_status
+            return rc, suite.status
+#            return msg_iterator(suite)
 
+# Suite Mkdemo PASS
+# +-- Suite A-Tests PASS
+# +---- Suite A-suite1 PASS
+
+# item = suite/test
+#def msg_iterator(item, msg=[]):
+#    level=0
+#    msg.append([item.nagios_status, item.sta)
+#
+#    if all([ isinstance(c, RFSuite) for c in item.children ]):
+#        msg.extend(msg_iterator(item.children))
+#    return msg
+
+# !! robot = Section-Name!
 check_info['robot'] = {
     "parse_function": parse_robot,
     "inventory_function": inventory_robot,
     "check_function": check_robot,
     "service_description": "Robot",
+    "group": "robotmk"
 }
+
 
 # Classes for robot result objects ==================================
 class RFObject(object):
@@ -88,6 +121,13 @@ class RFObject(object):
     @property
     def nagios_status(self):
         return self.RF_STATE2NAGIOS[self.status]
+
+    def recurse_result(self, depth=None, msg=[]):
+        for c in self.children:
+            depth+=1
+            #msg.extend(c)
+            depth-=1
+        return msg
 
 class RFSuite(RFObject):
     def __init__(self, name, status, starttime, endtime, elapsedtime, children):
