@@ -1,6 +1,6 @@
 #!/usr/bin/python
 
-#check_info = {}
+check_info = {}
 # f_tmpxml.write(line[0])
 
 # -*- encoding: utf-8; py-indent-offset: 4 -*-
@@ -51,23 +51,23 @@ inventory_robot_rules = []
 
 def parse_robot(info):
 # debug
-    settings = host_extra_conf_merged(host_name(), inventory_robot_rules)
-    discovery_suite_level = settings.get("discovery_suite_level", 0)
+#    settings = host_extra_conf_merged(host_name(), inventory_robot_rules)
+#    discovery_suite_level = settings.get("discovery_suite_level", 0)
 
 #    print "Discovery suite level: %s" % str(discovery_suite_level)
 
     with tempfile.NamedTemporaryFile(delete=False) as f_tmpxml:
         for line in info:
 # debug
-            f_tmpxml.write(line[0])
-#            f_tmpxml.write(line)
+#            f_tmpxml.write(line[0])
+            f_tmpxml.write(line)
     result = ExecutionResult(f_tmpxml.name)
     # delete the tempfile
     os.remove(f_tmpxml.name)
 
 # debug
 #    suite_metrics = SuiteMetrics(int(discovery_suite_level))
-    suite_metrics = SuiteMetrics(0)
+    suite_metrics = SuiteMetrics(2)
     result.visit(suite_metrics)
     return suite_metrics.data
 
@@ -129,7 +129,8 @@ check_info['robot'] = {
     "check_function": check_robot,
     "service_description": "Robot",
     "group": "robotmk",
-    "has_perfdata": True
+    # FIXME
+    "has_perfdata": False
 }
 
 
