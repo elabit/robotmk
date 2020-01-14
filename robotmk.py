@@ -1,8 +1,5 @@
 #!/usr/bin/python
 
-check_info = {}
-# f_tmpxml.write(line[0])
-
 # -*- encoding: utf-8; py-indent-offset: 4 -*-
 # +------------------------------------------------------------------+
 # |             ____ _               _        __  __ _  __           |
@@ -49,25 +46,23 @@ from pprint import pprint
 #}
 inventory_robot_rules = []
 
+def xml_writeline(f_tmpxml, line):
+    f_tmpxml.write(line[0])
+
+
 def parse_robot(info):
-# debug
-#    settings = host_extra_conf_merged(host_name(), inventory_robot_rules)
-#    discovery_suite_level = settings.get("discovery_suite_level", 0)
-
-#    print "Discovery suite level: %s" % str(discovery_suite_level)
-
+    settings = host_extra_conf_merged(host_name(), inventory_robot_rules)
+    discovery_suite_level = settings.get("discovery_suite_level", 0)
+    #    print "Discovery suite level: %s" % str(discovery_suite_level)
     with tempfile.NamedTemporaryFile(delete=False) as f_tmpxml:
         for line in info:
-# debug
-#            f_tmpxml.write(line[0])
-            f_tmpxml.write(line)
+            xml_writeline(f_tmpxml, line)
+            
     result = ExecutionResult(f_tmpxml.name)
     # delete the tempfile
     os.remove(f_tmpxml.name)
 
-# debug
-#    suite_metrics = SuiteMetrics(int(discovery_suite_level))
-    suite_metrics = SuiteMetrics(2)
+    suite_metrics = SuiteMetrics(int(discovery_suite_level))
     result.visit(suite_metrics)
     return suite_metrics.data
 
@@ -122,16 +117,7 @@ def eval_state(item, count=0):
 #        msg.extend(msg_iterator(item.children))
 #    return msg
 
-# !! robot = Section-Name!
-check_info['robot'] = {
-    "parse_function": parse_robot,
-    "inventory_function": inventory_robot,
-    "check_function": check_robot,
-    "service_description": "Robot",
-    "group": "robotmk",
-    # FIXME
-    "has_perfdata": False
-}
+
 
 
 # Classes for robot result objects ==================================
@@ -233,5 +219,49 @@ class SuiteMetrics(ResultVisitor):
     def visit_test(self,test):
         return RFTest(test.name, test.status, test.starttime, test.endtime, test.elapsedtime)
 
+if __name__ == "__main__":    
+    global check_info
+    check_info = {}
 
+# !! robot = Section-Name!
+check_info['robot'] = {
+    "parse_function": parse_robot,
+    "inventory_function": inventory_robot,
+    "check_function": check_robot,
+    "service_description": "Robot",
+    "group": "robotmk",
+    # FIXME
+    "has_perfdata": False
+}
+
+if __name__ == "__main__":
+    #import ipdb
+    #ipdb.set_trace(context=5)
+    global inventory_robot_rules 
+    inventory_robot_rules = [
+        {'condition': {}, 'value': {'discovery_suite_level': '0'}},
+    ]
+    global host_extra_conf_merged
+    def host_extra_conf_merged(hostname, inventory_robot_rules):
+        return inventory_robot_rules[0]['value']
+
+    # When Debugging, we have no line list
+    global xml_writeline
+    def xml_writeline(f_tmpxml, line):
+        f_tmpxml.write(line)
+
+
+    global host_name
+    def host_name():
+        return "foo"
+
+    xml = 'multisuites_wo_header'
+    file = open(xml, "r")
+    content = file.readlines()
+    parsed = parse_robot(content)
+
+    #ipdb.set_trace(context=5)
+    #rf.inventory_robot(parsed)
+    state, msg, perfdata = check_robot("Mkdemo", [], parsed)
+    print "Debugger ended."
 
