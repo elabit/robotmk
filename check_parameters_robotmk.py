@@ -21,7 +21,7 @@ from cmk.gui.plugins.wato import (
 
 def _valuespec_inventory_robot_rules():
     return Dictionary(
-        title=_("Robot Framework Test Discovery"),
+        title=_("Robot Framework Service Discovery"),
         elements=[
             ( "discovery_suite_level",
                 DropdownChoice(
