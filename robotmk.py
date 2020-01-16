@@ -47,30 +47,31 @@ from pprint import pprint
 inventory_robot_rules = []
 
 def parse_robot(info):
-    settings = host_extra_conf_merged(host_name(), inventory_robot_rules)
-    discovery_suite_level = settings.get("discovery_suite_level", 0)
-    #    print "Discovery suite level: %s" % str(discovery_suite_level)
     with tempfile.NamedTemporaryFile(delete=False) as f_tmpxml:
         for line in info:
             xml_writeline(f_tmpxml, line)
-            
-    result = ExecutionResult(f_tmpxml.name)
+
+    # RF result object        
+    robot_result = ExecutionResult(f_tmpxml.name)
     # delete the tempfile
     os.remove(f_tmpxml.name)
+    return robot_result
 
-    suite_metrics = RobotMetricsVisitor(int(discovery_suite_level))
-    result.visit(suite_metrics)
-    return suite_metrics.data
-
-
-def inventory_robot(parsed):
-    for suite in parsed:
-        # each Suite name is a check, no default parameters (yet)
+def inventory_robot(robot_result):
+    settings = host_extra_conf_merged(host_name(), inventory_robot_rules)
+    discovery_suite_level = settings.get("discovery_suite_level", 0)
+    visitor = RobotMetricsVisitor(int(discovery_suite_level))
+    robot_result.visit(visitor)
+    for suite in visitor.data:
+        # print suite.name
         yield suite.name, None
-        # print s.name
 
-def check_robot(item, params, parsed):
-    for suite in parsed:
+def check_robot(item, params, robot_result):
+    settings = host_extra_conf_merged(host_name(), inventory_robot_rules)
+    discovery_suite_level = settings.get("discovery_suite_level", 0)
+    visitor = RobotMetricsVisitor(int(discovery_suite_level))
+    robot_result.visit(visitor)
+    for suite in visitor.data:
         if suite.name == item:
             # iteriere ab hier durch den ganzen Baum
             rc = suite.nagios_stateid
@@ -80,6 +81,7 @@ def check_robot(item, params, parsed):
 # gets overwritten by __init__ when debugging
 def xml_writeline(f_tmpxml, line):
     f_tmpxml.write(line[0])
+
 
 # item = suite/test
 def eval_state(item, count=0):
@@ -256,7 +258,7 @@ if __name__ == "__main__":
     parsed = parse_robot(content)
 
     #ipdb.set_trace(context=5)
-    #rf.inventory_robot(parsed)
+    inventory = inventory_robot(parsed)
     state, msg, perfdata = check_robot("Mkdemo", [], parsed)
     print "Debugger ended."
 
