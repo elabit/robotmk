@@ -46,10 +46,6 @@ from pprint import pprint
 #}
 inventory_robot_rules = []
 
-def xml_writeline(f_tmpxml, line):
-    f_tmpxml.write(line[0])
-
-
 def parse_robot(info):
     settings = host_extra_conf_merged(host_name(), inventory_robot_rules)
     discovery_suite_level = settings.get("discovery_suite_level", 0)
@@ -62,7 +58,7 @@ def parse_robot(info):
     # delete the tempfile
     os.remove(f_tmpxml.name)
 
-    suite_metrics = SuiteMetrics(int(discovery_suite_level))
+    suite_metrics = RobotMetricsVisitor(int(discovery_suite_level))
     result.visit(suite_metrics)
     return suite_metrics.data
 
@@ -80,6 +76,10 @@ def check_robot(item, params, parsed):
             rc = suite.nagios_stateid
             #return rc, suite.status
             return eval_state(suite)
+
+# gets overwritten by __init__ when debugging
+def xml_writeline(f_tmpxml, line):
+    f_tmpxml.write(line[0])
 
 # item = suite/test
 def eval_state(item, count=0):
@@ -110,17 +110,9 @@ def eval_state(item, count=0):
         # FIXME eval thresholds! Filter by name!
         return item.nagios_stateid, [ item.name + ": " + item.nagios_status ], [item.nagios_perfdata]
 
-#    level=0
-#    msg.append([item.nagios_stateid, item.sta)
-#
-#    if all([ isinstance(c, RFSuite) for c in item.children ]):
-#        msg.extend(msg_iterator(item.children))
-#    return msg
-
-
-
-
-# Classes for robot result objects ==================================
+# ==============================================================================
+# Classes for robot result objects =============================================
+# ==============================================================================
 class RFObject(object):
     RF_STATE2NAGIOSID = {
         'PASS'  : 0,
@@ -131,12 +123,14 @@ class RFObject(object):
         'FAIL'  : 'CRIT'
     }
 
-    def __init__(self, name, status, starttime, endtime, elapsedtime):
+    def __init__(self, name, status, starttime, endtime, elapsedtime, branches=[]):
         self.name = name
         self.status = status
         self.starttime = starttime
         self.endtime = endtime
         self.elapsedtime = elapsedtime
+        # FIXME assert branches type
+        self.branches = branches
 
     @property
     def nagios_stateid(self):
@@ -150,74 +144,75 @@ class RFObject(object):
     def nagios_perfdata(self):
         return ( self.name, self.elapsedtime)
 
-    def recurse_result(self, depth=None, msg=[]):
-        for c in self.children:
-            depth+=1
-            #msg.extend(c)
-            depth-=1
-        return msg
-
 class RFSuite(RFObject):
-    def __init__(self, name, status, starttime, endtime, elapsedtime, children):
-        self.name = name
-        self.status = status
-        self.starttime = starttime
-        self.endtime = endtime
-        self.elapsedtime = elapsedtime
-        self.children = children
-
-    @property
-    def suites(self):
-        if all([ isinstance(c, RFSuite) for c in self.children ]):
-            return self.children
-        else:
-            return []
-
-    @property
-    def tests(self):
-        if all([ isinstance(c, RFTest) for c in self.children ]):
-            return self.children
-        else:
-            return []
+    def __init__(self, name, status, starttime, endtime, elapsedtime, branches=[]):
+        super(RFSuite, self).__init__(name, status, starttime, endtime, elapsedtime, branches)
 
 class RFTest(RFObject):
-    def __init__(self, name, status, starttime, endtime, elapsedtime):
-        self.name = name
-        self.status = status
-        self.starttime = starttime
-        self.endtime = endtime
-        self.elapsedtime = elapsedtime
+    def __init__(self, name, status, starttime, endtime, elapsedtime, branches=[]):
+        super(RFTest, self).__init__(name, status, starttime, endtime, elapsedtime, branches)
 
-# Visitor Class for Robot Result =======================================
-class SuiteMetrics(ResultVisitor):
+class RFKeyword(RFObject):
+    def __init__(self, name, status, starttime, endtime, elapsedtime, branches=[]):
+        super(RFKeyword, self).__init__(name, status, starttime, endtime, elapsedtime, branches)
+  
+# ==============================================================================
+# Visitor Class for Robot Result ===============================================
+# ==============================================================================
+class RobotMetricsVisitor(ResultVisitor):
     def __init__(self, discovery_suite_level=0):
         self.discovery_suite_level = discovery_suite_level
         self.data = []
 
     def visit_suite(self, suite, level=0):
-        sep = 4*level*"-"
-        #print sep + "Level %d: Suite %s (%s)" % (level, str(suite.name), str(suite.status))
-        subsuitecount = len(suite.suites)
-        if subsuitecount:
-            subsuites = []
-            for subsuite in suite.suites:
-                level+=1
-                subsuites.append(self.visit_suite(subsuite, level))
-                level-=1
-            test_object = RFSuite(suite.name, suite.status, suite.starttime, suite.endtime, suite.elapsedtime, subsuites)
+        count_suites = len(suite.suites)
+        # Subsuites
+        if count_suites:
+            level += 1
+            subnodes = [ self.visit_suite(subsuite, level) for subsuite in suite.suites ]
+            level -= 1
+            subobjects = RFSuite(suite.name, suite.status, suite.starttime, suite.endtime, suite.elapsedtime, subnodes)
+        # Testcases
         else:
-            tests = []
-            for subtest in suite.tests:
-                tests.append(self.visit_test(subtest))
-            test_object = RFSuite(suite.name, suite.status, suite.starttime, suite.endtime, suite.elapsedtime, tests)
+            level += 1
+            subnodes = [ self.visit_test(test, level) for test in suite.tests ]
+            level -= 1
+            subobjects = RFSuite(suite.name, suite.status, suite.starttime, suite.endtime, suite.elapsedtime, subnodes)
 
         if level == self.discovery_suite_level:
-            self.data.append(test_object)
+            self.data.append(subobjects)
         else:
-            return test_object
+            return subobjects
 
-    def visit_test(self,test):
-        return RFTest(test.name, test.status, test.starttime, test.endtime, test.elapsedtime)
+    def visit_test(self, test, level):
+        count_keywords = len(test.keywords)
+        subnodes = ()
+        # A test can only contain Keywords
+        if count_keywords:
+            level += 1
+            subnodes = [ self.visit_keyword(keyword, level) for keyword in test.keywords ]
+            level -= 1
+
+        test_node = RFTest(test.name, test.status, test.starttime, test.endtime, test.elapsedtime, subnodes)
+        if level == self.discovery_suite_level:
+            self.data.append(test_node)
+        else:
+            return test_node
+
+    def visit_keyword(self, keyword, level):
+        count_keywords = len(keyword.keywords)
+        subnodes = ()
+        if count_keywords:
+            level += 1
+            subnodes = [ self.visit_keyword(keyword, level) for keyword in keyword.keywords ]
+            level -= 1
+      
+        keyword_node = RFKeyword(keyword.name, keyword.status, keyword.starttime, keyword.endtime, keyword.elapsedtime, subnodes)
+        if level == self.discovery_suite_level:
+            self.data.append(keyword_node)
+        else:
+            return keyword_node
+      
 
 if __name__ == "__main__":    
     global check_info
