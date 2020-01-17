@@ -35,6 +35,8 @@
 #<test id="s1-s1-s1-t1" name="test-A-1-1">
 #...
 
+# 's1-s3-s2-t1-k1'
+
 from robot.api import ExecutionResult, ResultVisitor
 import tempfile
 import os
@@ -69,6 +71,13 @@ def inventory_robot(robot_result):
 def check_robot(item, params, robot_result):
     settings = host_extra_conf_merged(host_name(), inventory_robot_rules)
     discovery_suite_level = settings.get("discovery_suite_level", 0)
+    check_depth_suites = settings.get("check_depth_suites", {})
+    check_depth_keywords = settings.get("check_depth_keywords", {})
+    perfdata_creation_for = settings.get("perfdata_creation_for", [])
+    suite_runtime_thresholds = settings.get("suite_runtime_thresholds", {})
+    test_runtime_thresholds = settings.get("test_runtime_thresholds", {})
+    keyword_runtime_thresholds = settings.get("keyword_runtime_thresholds", {})
+
     visitor = RobotMetricsVisitor(int(discovery_suite_level))
     robot_result.visit(visitor)
     for suite in visitor.data:
@@ -76,41 +85,59 @@ def check_robot(item, params, robot_result):
             # iteriere ab hier durch den ganzen Baum
             rc = suite.nagios_stateid
             #return rc, suite.status
+            perf = suite.nagios_perfdata_recursive()
             return eval_state(suite)
 
 # gets overwritten by __init__ when debugging
 def xml_writeline(f_tmpxml, line):
     f_tmpxml.write(line[0])
 
+# ----------------------------+--------+-------+----------+
+#                             | output | rc    | perfdata |
+# check_depth_suites          |   x    |       |          |
+# check_depth_keywords        |   x    |       |          |
+# perfdata_creation_for       |        |       |   x      |
+# suite_runtime_thresholds    |   x    |  x    |          |
+# test_runtime_thresholds     |   x    |  x    |          |
+# keyword_runtime_thresholds  |   x    |  x    |          |
+# 
 
-# item = suite/test
-def eval_state(item, count=0):
-#    print count * 4 * "=" + " " + item.name
-    item_states = []
-    item_messages = []
-    item_perfdata = []
-    if hasattr(item, 'children'):
-        for subitem in item.children:
-            state, msg, perfdata = eval_state(subitem, count+1)
-            item_states.append(state)
-            item_messages.extend(msg)
-            item_perfdata.extend(perfdata)
-        if count == 0:
-            # Hier wird die Rekursion wieder verlassen.
-            # FIXME: Vergleiche nun subitem.status mit dem max(item_states): Fuehrt eine Thresholdueberschreitung zu einem anderen Status?
+# -> perfdata 
+# -> status
+# -> output
 
-            # In den Worst state soll auch der Status der Suite selbst eingehen
-            item_states.append(item.nagios_stateid)
-            worst_nagios_state = max(item_states)
-            output = "Robot Suite %s ran in %s seconds\n" % (item.name, item.elapsedtime/1000) + ", ".join(item_messages)
-            return worst_nagios_state, output, item_perfdata
-        else:
-            #return max(item_states), item_messages, item_perfdata
-            return max(item_states), ["Suite %s: %s\n" % (item.name, ", ".join(item_messages))], item_perfdata
+# # item = suite/test
+def eval_state(item):
+    pass
 
-    else:
-        # FIXME eval thresholds! Filter by name!
-        return item.nagios_stateid, [ item.name + ": " + item.nagios_status ], [item.nagios_perfdata]
+# # item = suite/test
+# def eval_state(item, count=0):
+# #    print count * 4 * "=" + " " + item.name
+#     item_states = []
+#     item_messages = []
+#     item_perfdata = []
+#     if hasattr(item, 'children'):
+#         for subitem in item.children:
+#             state, msg, perfdata = eval_state(subitem, count+1)
+#             item_states.append(state)
+#             item_messages.extend(msg)
+#             item_perfdata.extend(perfdata)
+#         if count == 0:
+#             # Hier wird die Rekursion wieder verlassen.
+#             # FIXME: Vergleiche nun subitem.status mit dem max(item_states): Fuehrt eine Thresholdueberschreitung zu einem anderen Status?
+
+#             # In den Worst state soll auch der Status der Suite selbst eingehen
+#             item_states.append(item.nagios_stateid)
+#             worst_nagios_state = max(item_states)
+#             output = "Robot Suite %s ran in %s seconds\n" % (item.name, item.elapsedtime/1000) + ", ".join(item_messages)
+#             return worst_nagios_state, output, item_perfdata
+#         else:
+#             #return max(item_states), item_messages, item_perfdata
+#             return max(item_states), ["Suite %s: %s\n" % (item.name, ", ".join(item_messages))], item_perfdata
+
+#     else:
+#         # FIXME eval thresholds! Filter by name!
+#         return item.nagios_stateid, [ item.name + ": " + item.nagios_status ], [item.nagios_perfdata]
 
 # ==============================================================================
 # Classes for robot result objects =============================================
@@ -125,7 +152,10 @@ class RFObject(object):
         'FAIL'  : 'CRIT'
     }
 
-    def __init__(self, name, status, starttime, endtime, elapsedtime, branches=[]):
+    def __init__(self, level, level_relative, name, status, starttime, endtime, elapsedtime, branches=[]):
+        self.level = level
+        # level_relative begins at disceovery level, count separately for suites/tests/keywords
+        self.level_relative = level_relative
         self.name = name
         self.status = status
         self.starttime = starttime
@@ -146,17 +176,28 @@ class RFObject(object):
     def nagios_perfdata(self):
         return ( self.name, self.elapsedtime)
 
+    def nagios_perfdata_recursive(self):
+        print "===" + self.name
+        my_perfdata = [( self.name, self.elapsedtime) ] 
+
+        my_perfdata_branches = []
+        for sublist in [ subel.nagios_perfdata_recursive() for subel in self.branches ]:
+            for subitem in sublist: 
+                my_perfdata_branches.append(subitem)  
+            
+        return my_perfdata + my_perfdata_branches
+
 class RFSuite(RFObject):
-    def __init__(self, name, status, starttime, endtime, elapsedtime, branches=[]):
-        super(RFSuite, self).__init__(name, status, starttime, endtime, elapsedtime, branches)
+    def __init__(self, level, level_relative, name, status, starttime, endtime, elapsedtime, branches=[]):
+        super(RFSuite, self).__init__(level, level_relative, name, status, starttime, endtime, elapsedtime, branches)
 
 class RFTest(RFObject):
-    def __init__(self, name, status, starttime, endtime, elapsedtime, branches=[]):
-        super(RFTest, self).__init__(name, status, starttime, endtime, elapsedtime, branches)
+    def __init__(self, level, level_relative, name, status, starttime, endtime, elapsedtime, branches=[]):
+        super(RFTest, self).__init__(level, level_relative, name, status, starttime, endtime, elapsedtime, branches)
 
 class RFKeyword(RFObject):
-    def __init__(self, name, status, starttime, endtime, elapsedtime, branches=[]):
-        super(RFKeyword, self).__init__(name, status, starttime, endtime, elapsedtime, branches)
+    def __init__(self, level, level_relative, name, status, starttime, endtime, elapsedtime, branches=[]):
+        super(RFKeyword, self).__init__(level, level_relative, name, status, starttime, endtime, elapsedtime, branches)
   
 # ==============================================================================
 # Visitor Class for Robot Result ===============================================
@@ -170,16 +211,12 @@ class RobotMetricsVisitor(ResultVisitor):
         count_suites = len(suite.suites)
         # Subsuites
         if count_suites:
-            level += 1
-            subnodes = [ self.visit_suite(subsuite, level) for subsuite in suite.suites ]
-            level -= 1
-            subobjects = RFSuite(suite.name, suite.status, suite.starttime, suite.endtime, suite.elapsedtime, subnodes)
+            subnodes = [ self.visit_suite(subsuite, level+1) for subsuite in suite.suites ]
+            subobjects = RFSuite(level, level - self.discovery_suite_level, suite.name, suite.status, suite.starttime, suite.endtime, suite.elapsedtime, subnodes)
         # Testcases
         else:
-            level += 1
-            subnodes = [ self.visit_test(test, level) for test in suite.tests ]
-            level -= 1
-            subobjects = RFSuite(suite.name, suite.status, suite.starttime, suite.endtime, suite.elapsedtime, subnodes)
+            subnodes = [ self.visit_test(test, level+1) for test in suite.tests ]
+            subobjects = RFSuite(level, level - self.discovery_suite_level, suite.name, suite.status, suite.starttime, suite.endtime, suite.elapsedtime, subnodes)
 
         if level == self.discovery_suite_level:
             self.data.append(subobjects)
@@ -191,25 +228,20 @@ class RobotMetricsVisitor(ResultVisitor):
         subnodes = ()
         # A test can only contain Keywords
         if count_keywords:
-            level += 1
-            subnodes = [ self.visit_keyword(keyword, level) for keyword in test.keywords ]
-            level -= 1
+            subnodes = [ self.visit_keyword(keyword, level+1, 0) for keyword in test.keywords ]
 
-        test_node = RFTest(test.name, test.status, test.starttime, test.endtime, test.elapsedtime, subnodes)
+        test_node = RFTest(level, 9999, test.name, test.status, test.starttime, test.endtime, test.elapsedtime, subnodes)
         if level == self.discovery_suite_level:
             self.data.append(test_node)
         else:
             return test_node
 
-    def visit_keyword(self, keyword, level):
+    def visit_keyword(self, keyword, level, level_relative):
         count_keywords = len(keyword.keywords)
         subnodes = ()
         if count_keywords:
-            level += 1
-            subnodes = [ self.visit_keyword(keyword, level) for keyword in keyword.keywords ]
-            level -= 1
-      
-        keyword_node = RFKeyword(keyword.name, keyword.status, keyword.starttime, keyword.endtime, keyword.elapsedtime, subnodes)
+            subnodes = [ self.visit_keyword(keyword, level+1, level_relative+1) for keyword in keyword.keywords ]
+        keyword_node = RFKeyword(level, level_relative, keyword.name, keyword.status, keyword.starttime, keyword.endtime, keyword.elapsedtime, subnodes)
         if level == self.discovery_suite_level:
             self.data.append(keyword_node)
         else:
@@ -236,7 +268,28 @@ if __name__ == "__main__":
     #ipdb.set_trace(context=5)
     global inventory_robot_rules 
     inventory_robot_rules = [
-        {'condition': {}, 'value': {'discovery_suite_level': '0'}},
+        {'condition': {}, 'value': {
+            'discovery_suite_level': '2',
+            'check_depth_suites': {
+                'Mkdemo' : 1,
+                'A-Suite1' : 1
+            },
+            'check_depth_keywords': {
+                'Builtin.Sleep' : 1,
+                'Foobar' : 2
+            },
+            'perfdata_creation_for': [ 'Mkdemo', 'A-suite1' ],
+            'suite_runtime_thresholds' : {
+                'Mkdemo'  : 60,
+                '^.-suite.$'  : 120
+            },
+            'test_runtime_thresholds' : {
+                '^test-.*'  : 60,
+            },
+            'keyword_runtime_thresholds' : {
+                '^BuiltIn.*'  : 60,
+            },
+        }}
     ]
     global host_extra_conf_merged
     def host_extra_conf_merged(hostname, inventory_robot_rules):
@@ -259,6 +312,7 @@ if __name__ == "__main__":
 
     #ipdb.set_trace(context=5)
     inventory = inventory_robot(parsed)
-    state, msg, perfdata = check_robot("Mkdemo", [], parsed)
+    # state, msg, perfdata = check_robot("Mkdemo", [], parsed)
+    state, msg, perfdata = check_robot("A-suite1", [], parsed)
     print "Debugger ended."
 
