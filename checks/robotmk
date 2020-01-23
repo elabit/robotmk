@@ -42,19 +42,8 @@ import os
 import re
 from pprint import pprint
 
-###################
-#factory_settings["robotmk_default_values"] = {
-#    discovery_suite_level: 0,
-#}
-#inventory_robot_rules = []
-
 iam = "robotmk"
 
-# info = [
-# [line1],
-# [line2],
-# ...
-# ]
 def parse_robot(info):
     with tempfile.NamedTemporaryFile(delete=False) as f_tmpxml:
         for line in info:
@@ -325,56 +314,6 @@ if __name__ == "__main__":
     global inventory_robotmk_rules
     inventory_robotmk_rules = eval(open('test/fixtures/inventory_rules/ruleset1.py').read())
 
-    # inventory_robotmk_rules = [
-    #     {'condition': {}, 'value': {
-    #         'discovery_suite_level': '0',
-    #         'check_depth': {
-    #             # -1 = UNZULÄSSIG
-    #             # 0 = nur diese Ebene
-    #             # 1 = suite + Ebene darunter
-    #             'check_depth_suites': {
-    #                 'Mkdemo' : 1,
-    #                 'A-Suite1' : 1
-    #             },
-    #             # -2 = keine keywords
-    #             # -1 = voll
-    #             # 0 = nur diese Ebene
-    #             # 1 = nur diese + darunter
-    #             'check_depth_keywords': {
-    #                 'Builtin.Sleep' : 1,
-    #                 'Foobar' : 2
-    #             },
-    #         },
-    #         'runtime_thresholds': {
-    #             'runtime_thresholds_suites': {
-    #                 '^Mk.*': 2,
-    #                 'A-Suite1' : 1
-    #             },
-    #             'runtime_thresholds_tests': {
-    #                 'test.*' : 1,
-    #             },                                
-    #             'runtime_thresholds_keywords': {
-    #                 'Builtin.*' : 1,
-    #                 'Foob*' : 2
-    #             },                
-    #         },        
-    #         # 'perfdata_for': [ '^Mkde.*' ],
-    #         'perfdata_for': [ '^A-Tes.*', '^C-sui.*' ],
-    #         # 'perfdata_for': [ '^Mkde.*', 'A-su.*' ],
-    #         'suite_runtime_thresholds' : {
-    #             'Mkdemo'  : 60,
-    #             '^.-suite.$'  : 120
-    #         },
-    #         'test_runtime_thresholds' : {
-    #             '^test-.*'  : 60,
-    #         },
-    #         'keyword_runtime_thresholds' : {
-    #             '^BuiltIn.*'  : 60,
-    #         },
-    #     }}
-    # ]
-
-
     global host_extra_conf_merged
     def host_extra_conf_merged(hostname, inventory_robotmk_rules):
         return inventory_robotmk_rules[0]['value']
@@ -384,12 +323,11 @@ if __name__ == "__main__":
     def host_name():
         return "localhost"
 
+    # ipdb.set_trace(context=5)
     datafile = 'test/fixtures/mk_output/outputagent.json'
     # mk_output = list of lists
     mk_output = eval(open(datafile, 'r').read())
     parsed = parse_robot(mk_output)
-
-    #ipdb.set_trace(context=5)
     inventory = inventory_robot(parsed)
     state, msg, perfdata = check_robot("Mkdemo", [], parsed)
     # state, msg, perfdata = check_robot("A-Tes.*", [], parsed)
