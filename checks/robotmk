@@ -1,5 +1,4 @@
 #!/usr/bin/python
-
 # -*- encoding: utf-8; py-indent-offset: 4 -*-
 # +------------------------------------------------------------------+
 # |             ____ _               _        __  __ _  __           |
@@ -43,16 +42,23 @@ import os
 import re
 from pprint import pprint
 
-
+###################
 #factory_settings["robotmk_default_values"] = {
 #    discovery_suite_level: 0,
 #}
-inventory_robot_rules = []
+#inventory_robot_rules = []
 
+iam = "robotmk"
+
+# info = [
+# [line1],
+# [line2],
+# ...
+# ]
 def parse_robot(info):
     with tempfile.NamedTemporaryFile(delete=False) as f_tmpxml:
         for line in info:
-            xml_writeline(f_tmpxml, line)
+            f_tmpxml.write(line[0]+'\n')
 
     # RF result object        
     robot_result = ExecutionResult(f_tmpxml.name)
@@ -60,8 +66,9 @@ def parse_robot(info):
     os.remove(f_tmpxml.name)
     return robot_result
 
+# robot_result = executionresult.Result instance
 def inventory_robot(robot_result):
-    settings = host_extra_conf_merged(host_name(), inventory_robot_rules)
+    settings = host_extra_conf_merged(host_name(), eval("inventory_"+iam+"_rules"))
     discovery_suite_level = settings.get("discovery_suite_level", 0)
     visitor = RobotMetricsVisitor(int(discovery_suite_level))
     robot_result.visit(visitor)
@@ -70,10 +77,9 @@ def inventory_robot(robot_result):
         yield suite.name, None
 
 def check_robot(item, params, robot_result):
-    settings = host_extra_conf_merged(host_name(), inventory_robot_rules)
+    settings = host_extra_conf_merged(host_name(), eval("inventory_"+iam+"_rules"))
     discovery_suite_level = settings.get("discovery_suite_level", 0)
-    check_depth_suites = settings.get("check_depth_suites", {})
-    check_depth_keywords = settings.get("check_depth_keywords", {})
+    check_depth = settings.get("check_depth", {})
     perfdata_for = settings.get("perfdata_for", [])
     suite_runtime_thresholds = settings.get("suite_runtime_thresholds", {})
     test_runtime_thresholds = settings.get("test_runtime_thresholds", {})
@@ -84,15 +90,17 @@ def check_robot(item, params, robot_result):
     for suite in visitor.data:
         if suite.name == item:
             rc = suite.nagios_stateid
-            #nagios_status, output = suite.nagios_status_recursive()
+            nagios_status, output = suite.nagios_status_recursive(
+                check_depth,
+                suite_runtime_thresholds,
+                test_runtime_thresholds,
+                keyword_runtime_thresholds
+            )
             perf = suite.nagios_perfdata_recursive(perfdata_for, False)
 
             # return eval_state(suite)
             return 0, "foo", "bar"
 
-# gets overwritten by __init__ when debugging
-def xml_writeline(f_tmpxml, line):
-    f_tmpxml.write(line[0])
 
 # ----------------------------+--------+-------+----------+
 #                             | output | rc    | perfdata |
@@ -110,36 +118,9 @@ def xml_writeline(f_tmpxml, line):
 
 # # item = suite/test
 def eval_state(item):
-    pass
+    print "this is state!"
 
-# # item = suite/test
-# def eval_state(item, count=0):
-# #    print count * 4 * "=" + " " + item.name
-#     item_states = []
-#     item_messages = []
-#     item_perfdata = []
-#     if hasattr(item, 'children'):
-#         for subitem in item.children:
-#             state, msg, perfdata = eval_state(subitem, count+1)
-#             item_states.append(state)
-#             item_messages.extend(msg)
-#             item_perfdata.extend(perfdata)
-#         if count == 0:
-#             # Hier wird die Rekursion wieder verlassen.
-#             # FIXME: Vergleiche nun subitem.status mit dem max(item_states): Fuehrt eine Thresholdueberschreitung zu einem anderen Status?
 
-#             # In den Worst state soll auch der Status der Suite selbst eingehen
-#             item_states.append(item.nagios_stateid)
-#             worst_nagios_state = max(item_states)
-#             output = "Robot Suite %s ran in %s seconds\n" % (item.name, item.elapsedtime/1000) + ", ".join(item_messages)
-#             return worst_nagios_state, output, item_perfdata
-#         else:
-#             #return max(item_states), item_messages, item_perfdata
-#             return max(item_states), ["Suite %s: %s\n" % (item.name, ", ".join(item_messages))], item_perfdata
-
-#     else:
-#         # FIXME eval thresholds! Filter by name!
-#         return item.nagios_stateid, [ item.name + ": " + item.nagios_status ], [item.nagios_perfdata]
 
 # ==============================================================================
 # Classes for robot result objects =============================================
@@ -180,9 +161,50 @@ class RFObject(object):
         return ( self.name, self.elapsedtime)
 
     # returns status and RC of this node and subnodes
-    def nagios_status_recursive(self):
-        pass
-    
+    def nagios_status_recursive(self, check_depth, suite_runtime_thresholds,
+        test_runtime_thresholds,keyword_runtime_thresholds):
+        # later !check_depth_dict_key = check_depth[self.check_depth_dict_key]
+        # s1/s1/s1: Suite Mkdemo: PASS (ran in 45 seconds) 
+        # s1/s1/s1: Suite Mkdemo: WARN (ran in 66 seconds, runtime exceeded: warn at 45)
+        # s1/s1/s1: Suite Mkdemo: FAILED (ran in 45 seconds, failed tests: foobar, bazfoo, barbar)
+        # - text_runtime
+        # - text_warn
+        # - text_failed
+
+        my_rc, my_out = self.nagios_stateid, "foo"
+        # for subitem in self.children:
+        return my_rc, my_out
+
+# # item = suite/test
+# def eval_state(item, count=0):
+# #    print count * 4 * "=" + " " + item.name
+#     item_states = []
+#     item_messages = []
+#     item_perfdata = []
+#     if hasattr(item, 'children'):
+#         for subitem in item.children:
+#             state, msg, perfdata = eval_state(subitem, count+1)
+#             item_states.append(state)
+#             item_messages.extend(msg)
+#             item_perfdata.extend(perfdata)
+#         if count == 0:
+#             # Hier wird die Rekursion wieder verlassen.
+#             # FIXME: Vergleiche nun subitem.status mit dem max(item_states): Fuehrt eine Thresholdueberschreitung zu einem anderen Status?
+
+#             # In den Worst state soll auch der Status der Suite selbst eingehen
+#             item_states.append(item.nagios_stateid)
+#             worst_nagios_state = max(item_states)
+#             output = "Robot Suite %s ran in %s seconds\n" % (item.name, item.elapsedtime/1000) + ", ".join(item_messages)
+#             return worst_nagios_state, output, item_perfdata
+#         else:
+#             #return max(item_states), item_messages, item_perfdata
+#             return max(item_states), ["Suite %s: %s\n" % (item.name, ", ".join(item_messages))], item_perfdata
+
+#     else:
+#         # FIXME eval thresholds! Filter by name!
+#         return item.nagios_stateid, [ item.name + ": " + item.nagios_status ], [item.nagios_perfdata]
+
+
     # returns performance data of this node and subnodes
     # subperfdata = regex matched for parent element, also create perfdata for this 
     def nagios_perfdata_recursive(self, perfdata_for, want_sub_perfdata=False):
@@ -206,13 +228,32 @@ class RFSuite(RFObject):
     def __init__(self, id, level, level_relative, name, status, starttime, endtime, elapsedtime, branches=[]):
         super(RFSuite, self).__init__(id, level, level_relative, name, status, starttime, endtime, elapsedtime, branches)
 
+    def __str__(self):
+        return "Suite " + self.name
+
+    # which key in dict check_depth is holding the values for suites
+    @property
+    def check_depth_dict_key(self):
+        return "check_depth_suites"
+
 class RFTest(RFObject):
     def __init__(self, id, level, level_relative, name, status, starttime, endtime, elapsedtime, branches=[]):
         super(RFTest, self).__init__(id, level, level_relative, name, status, starttime, endtime, elapsedtime, branches)
 
+    def __str__(self):
+        return "Test " + self.name
+
 class RFKeyword(RFObject):
     def __init__(self, id, level, level_relative, name, status, starttime, endtime, elapsedtime, branches=[]):
         super(RFKeyword, self).__init__(id, level, level_relative, name, status, starttime, endtime, elapsedtime, branches)
+
+    def __str__(self):
+        return "Keyword " + self.name
+
+    # which key in dict check_depth is holding the values for keywords
+    @property
+    def check_depth_dict_key(self):
+        return "check_depth_keywords"
   
 # ==============================================================================
 # Visitor Class for Robot Result ===============================================
@@ -268,7 +309,7 @@ if __name__ == "__main__":
     check_info = {}
 
 # !! robot = Section-Name!
-check_info['robot'] = {
+check_info['robotmk'] = {
     "parse_function": parse_robot,
     "inventory_function": inventory_robot,
     "check_function": check_robot,
@@ -281,51 +322,72 @@ check_info['robot'] = {
 if __name__ == "__main__":
     #import ipdb
     #ipdb.set_trace(context=5)
-    global inventory_robot_rules 
-    inventory_robot_rules = [
-        {'condition': {}, 'value': {
-            'discovery_suite_level': '0',
-            'check_depth_suites': {
-                'Mkdemo' : 1,
-                'A-Suite1' : 1
-            },
-            'check_depth_keywords': {
-                'Builtin.Sleep' : 1,
-                'Foobar' : 2
-            },
-            # 'perfdata_for': [ '^Mkde.*' ],
-            'perfdata_for': [ '^A-Tes.*', '^C-sui.*' ],
-            # 'perfdata_for': [ '^Mkde.*', 'A-su.*' ],
-            'suite_runtime_thresholds' : {
-                'Mkdemo'  : 60,
-                '^.-suite.$'  : 120
-            },
-            'test_runtime_thresholds' : {
-                '^test-.*'  : 60,
-            },
-            'keyword_runtime_thresholds' : {
-                '^BuiltIn.*'  : 60,
-            },
-        }}
-    ]
-    global host_extra_conf_merged
-    def host_extra_conf_merged(hostname, inventory_robot_rules):
-        return inventory_robot_rules[0]['value']
+    global inventory_robotmk_rules
+    inventory_robotmk_rules = eval(open('test/fixtures/inventory_rules/ruleset1.py').read())
 
-    # When Debugging, we have no line list
-    global xml_writeline
-    def xml_writeline(f_tmpxml, line):
-        f_tmpxml.write(line)
+    # inventory_robotmk_rules = [
+    #     {'condition': {}, 'value': {
+    #         'discovery_suite_level': '0',
+    #         'check_depth': {
+    #             # -1 = UNZULÄSSIG
+    #             # 0 = nur diese Ebene
+    #             # 1 = suite + Ebene darunter
+    #             'check_depth_suites': {
+    #                 'Mkdemo' : 1,
+    #                 'A-Suite1' : 1
+    #             },
+    #             # -2 = keine keywords
+    #             # -1 = voll
+    #             # 0 = nur diese Ebene
+    #             # 1 = nur diese + darunter
+    #             'check_depth_keywords': {
+    #                 'Builtin.Sleep' : 1,
+    #                 'Foobar' : 2
+    #             },
+    #         },
+    #         'runtime_thresholds': {
+    #             'runtime_thresholds_suites': {
+    #                 '^Mk.*': 2,
+    #                 'A-Suite1' : 1
+    #             },
+    #             'runtime_thresholds_tests': {
+    #                 'test.*' : 1,
+    #             },                                
+    #             'runtime_thresholds_keywords': {
+    #                 'Builtin.*' : 1,
+    #                 'Foob*' : 2
+    #             },                
+    #         },        
+    #         # 'perfdata_for': [ '^Mkde.*' ],
+    #         'perfdata_for': [ '^A-Tes.*', '^C-sui.*' ],
+    #         # 'perfdata_for': [ '^Mkde.*', 'A-su.*' ],
+    #         'suite_runtime_thresholds' : {
+    #             'Mkdemo'  : 60,
+    #             '^.-suite.$'  : 120
+    #         },
+    #         'test_runtime_thresholds' : {
+    #             '^test-.*'  : 60,
+    #         },
+    #         'keyword_runtime_thresholds' : {
+    #             '^BuiltIn.*'  : 60,
+    #         },
+    #     }}
+    # ]
+
+
+    global host_extra_conf_merged
+    def host_extra_conf_merged(hostname, inventory_robotmk_rules):
+        return inventory_robotmk_rules[0]['value']
 
 
     global host_name
     def host_name():
-        return "foo"
+        return "localhost"
 
-    xml = 'multisuites_wo_header'
-    file = open(xml, "r")
-    content = file.readlines()
-    parsed = parse_robot(content)
+    datafile = 'test/fixtures/mk_output/outputagent.json'
+    # mk_output = list of lists
+    mk_output = eval(open(datafile, 'r').read())
+    parsed = parse_robot(mk_output)
 
     #ipdb.set_trace(context=5)
     inventory = inventory_robot(parsed)

@@ -1,0 +1,1 @@
+pip install -e /python-pytest-check_mk/
