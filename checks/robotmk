@@ -70,21 +70,24 @@ def inventory_robot(robot_result):
 
 def check_robot(item, params, robot_result):
     settings = host_extra_conf_merged(host_name(), eval("inventory_"+iam+"_rules"))
-    discovery_suite_level = settings.get("discovery_suite_level", 0)
+    discovery_suite_level = int(settings.get("discovery_suite_level", 0))
     # output_depth = params.get("output_depth", {})
     # perfdata_creation = params.get("perfdata_creation", [])
     # runtime_threshold = params.get("runtime_threshold", {})
 
-    visitor = RobotMetricsVisitor(int(discovery_suite_level))
+    visitor = RobotMetricsVisitor(discovery_suite_level)
     robot_result.visit(visitor)
     for suite in visitor.data:
         if suite.name == item:
             rc = suite.nagios_stateid
-            # nagios_status, output = suite.nagios_status_recursive(params)
-            perf = suite.nagios_perfdata_recursive(params['perfdata_creation'], False)
-
+            nagios_result = suite.nagios_result_recursive(params, discovery_suite_level)
+            if params.get('perfdata_creation'):
+                perf = suite.nagios_perfdata_recursive(params['perfdata_creation'], False)
+            else:   
+                perf = []
+            output = '\n'.join([ i[1] for i in nagios_result])
             # return eval_state(suite)
-            return 0, "foo", perf
+            return rc, output, perf
 
 
 # ----------------------------+--------+-------+----------+
@@ -146,7 +149,9 @@ class RFObject(object):
         return ( self.name, self.elapsedtime)
 
     # returns status and RC of this node and subnodes
-    def nagios_status_recursive(self, params):
+    # od_ = output_depth
+    # rt_ = runtime_threshold
+    def nagios_result_recursive(self, params, discovery_suite_level, depth_limit=None ):
         # later !output_depth_dict_key = output_depth[self.output_depth_dict_key]
         # s1/s1/s1: Suite Mkdemo: PASS (ran in 45 seconds) 
         # s1/s1/s1: Suite Mkdemo: WARN (ran in 66 seconds, runtime exceeded: warn at 45)
@@ -154,10 +159,43 @@ class RFObject(object):
         # - text_runtime
         # - text_warn
         # - text_failed
+        # LINE1: Overall State
+        # LINE2: Detail Output 
+        output_depth = params.get('output_depth', []).get(self.output_depth_dict_key, [])
 
-        my_rc, my_out = self.nagios_stateid, "foo"
-        # for subitem in self.children:
-        return my_rc, my_out
+        for item in output_depth:
+            (pattern, depth) = item
+            if re.match(pattern, self.name):
+                # this is the limit for the underlying layer
+                depth_limit = int(depth) - 1
+            else: 
+                depth_limit = None
+
+
+        # TODO: runtime evaluation
+        my_rc = self.nagios_stateid
+        runtime_str = "%s s" % self.elapsedtime
+        padding = (len(self.id) - ((discovery_suite_level+1) * 3)) * "-"
+        # my_out = "%s - %s: %s (%s)" % (self.id, str(self), self.status, runtime_str)
+        my_out = "%s %s %s: %s (%s)" % (padding, str(self), self.name, self.status, runtime_str)
+        # list of tuples
+        my_result_branches = []
+
+        if depth_limit != 0: 
+            # list of tuples
+            sublists = [ subel.nagios_result_recursive(params, discovery_suite_level, depth_limit) for subel in self.branches ]
+            for sublist in sublists: 
+                for subitem in sublist: 
+                    my_result_branches.append(subitem)  
+        # In the end, duplicate the first line for short_output
+        if self.level_relative == 0 and str(self) == "Suite": 
+            my_out_firstline = my_out + " FIXME: add. info - failed tests: foo, bar, baz"
+            my_result_firstline = [(my_rc, my_out_firstline)]
+        else:
+            my_result_firstline = []
+            
+        my_result = [(my_rc, my_out)]
+        return my_result_firstline + my_result + my_result_branches
 
     # returns performance data of this node and subnodes
     # subperfdata = regex matched for parent element, also create perfdata for this 
@@ -216,7 +254,7 @@ class RFSuite(RFObject):
         super(RFSuite, self).__init__(id, level, level_relative, name, status, starttime, endtime, elapsedtime, branches)
 
     def __str__(self):
-        return "Suite " + self.name
+        return "Suite"
 
     @property
     def output_depth_dict_key(self):
@@ -233,8 +271,13 @@ class RFTest(RFObject):
         super(RFTest, self).__init__(id, level, level_relative, name, status, starttime, endtime, elapsedtime, branches)
 
     def __str__(self):
-        return "Test " + self.name
+        return "Test"
 
+    # not really needed, 'cause tests cannot be nested, hence there is no depth. 
+    # This is only to suppress nasty warnings. 
+    @property
+    def output_depth_dict_key(self):
+        return "output_depth_tests"
     @property
     def runtime_threshold_dict_key(self):
         return "runtime_threshold_tests"
@@ -247,7 +290,7 @@ class RFKeyword(RFObject):
         super(RFKeyword, self).__init__(id, level, level_relative, name, status, starttime, endtime, elapsedtime, branches)
 
     def __str__(self):
-        return "Keyword " + self.name
+        return "Keyword"
 
     # which key in dict output_depth is holding the values for keywords
     @property
@@ -350,7 +393,8 @@ if __name__ == "__main__":
     parsed = parse_robot(mk_output)
     inventory = inventory_robot(parsed)
     state, msg, perfdata = check_robot("Mkdemo", params, parsed)
-    # state, msg, perfdata = check_robot("A-Tes.*", [], parsed)
-    # state, msg, perfdata = check_robot("A-suite1", [], parsed)
+    # state, msg, perfdata = check_robot("A-Suites", params, parsed)
+    # state, msg, perfdata = check_robot("A-suite1", params, parsed)
+    # state, msg, perfdata = check_robot("A-Tes.*", params, parsed)
     print "Debugger ended."
 

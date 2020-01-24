@@ -28,7 +28,8 @@ def test_check_mk(checks, monkeypatch):
     monkeypatch.setattr(checks.module, "host_extra_conf_merged", mock_host_extra_conf_merged)
     item = 'Mkdemo'
     result = checks['robotmk'].check_mk(item, params, mk_output) 
-    assert result[0:2]== (OK, "foo")
+    # assert result[0:2]== (OK, "foo")
+    assert result[0]== (OK)
 
 
 # def test_settings(checks):
