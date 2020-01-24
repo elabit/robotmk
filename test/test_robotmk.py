@@ -6,6 +6,8 @@ test_for = 'robotmk'
 datafile = 'test/fixtures/mk_output/outputagent.json'
 mk_output = eval(open(datafile, 'r').read())
 
+paramfile = 'test/fixtures/check_params/params.py'
+params = eval(open(paramfile, 'r').read())
 
 mock_inventory_robotmk_rules = eval(open('test/fixtures/inventory_rules/ruleset1.py').read())
 
@@ -25,8 +27,8 @@ def test_check_mk(checks, monkeypatch):
     
     monkeypatch.setattr(checks.module, "host_extra_conf_merged", mock_host_extra_conf_merged)
     item = 'Mkdemo'
-    params = None
-    assert checks['robotmk'].check_mk(item, params, mk_output) == (OK, "foo", "bar")
+    result = checks['robotmk'].check_mk(item, params, mk_output) 
+    assert result[0:2]== (OK, "foo")
 
 
 # def test_settings(checks):

@@ -44,6 +44,9 @@ from pprint import pprint
 
 iam = "robotmk"
 
+# GRIFFEL WEG!! MUSS SEIN!
+inventory_robotmk_rules = []
+
 def parse_robot(info):
     with tempfile.NamedTemporaryFile(delete=False) as f_tmpxml:
         for line in info:
@@ -68,34 +71,27 @@ def inventory_robot(robot_result):
 def check_robot(item, params, robot_result):
     settings = host_extra_conf_merged(host_name(), eval("inventory_"+iam+"_rules"))
     discovery_suite_level = settings.get("discovery_suite_level", 0)
-    check_depth = settings.get("check_depth", {})
-    perfdata_for = settings.get("perfdata_for", [])
-    suite_runtime_thresholds = settings.get("suite_runtime_thresholds", {})
-    test_runtime_thresholds = settings.get("test_runtime_thresholds", {})
-    keyword_runtime_thresholds = settings.get("keyword_runtime_thresholds", {})
+    # output_depth = params.get("output_depth", {})
+    # perfdata_creation = params.get("perfdata_creation", [])
+    # runtime_threshold = params.get("runtime_threshold", {})
 
     visitor = RobotMetricsVisitor(int(discovery_suite_level))
     robot_result.visit(visitor)
     for suite in visitor.data:
         if suite.name == item:
             rc = suite.nagios_stateid
-            nagios_status, output = suite.nagios_status_recursive(
-                check_depth,
-                suite_runtime_thresholds,
-                test_runtime_thresholds,
-                keyword_runtime_thresholds
-            )
-            perf = suite.nagios_perfdata_recursive(perfdata_for, False)
+            # nagios_status, output = suite.nagios_status_recursive(params)
+            perf = suite.nagios_perfdata_recursive(params['perfdata_creation'], False)
 
             # return eval_state(suite)
-            return 0, "foo", "bar"
+            return 0, "foo", perf
 
 
 # ----------------------------+--------+-------+----------+
 #                             | output | rc    | perfdata |
-# check_depth_suites          |   x    |       |          |
-# check_depth_keywords        |   x    |       |          |
-# perfdata_for       |        |       |   x      |
+# output_depth_suites          |   x    |       |          |
+# output_depth_keywords        |   x    |       |          |
+# perfdata_creation       |        |       |   x      |
 # suite_runtime_thresholds    |   x    |  x    |          |
 # test_runtime_thresholds     |   x    |  x    |          |
 # keyword_runtime_thresholds  |   x    |  x    |          |
@@ -150,9 +146,8 @@ class RFObject(object):
         return ( self.name, self.elapsedtime)
 
     # returns status and RC of this node and subnodes
-    def nagios_status_recursive(self, check_depth, suite_runtime_thresholds,
-        test_runtime_thresholds,keyword_runtime_thresholds):
-        # later !check_depth_dict_key = check_depth[self.check_depth_dict_key]
+    def nagios_status_recursive(self, params):
+        # later !output_depth_dict_key = output_depth[self.output_depth_dict_key]
         # s1/s1/s1: Suite Mkdemo: PASS (ran in 45 seconds) 
         # s1/s1/s1: Suite Mkdemo: WARN (ran in 66 seconds, runtime exceeded: warn at 45)
         # s1/s1/s1: Suite Mkdemo: FAILED (ran in 45 seconds, failed tests: foobar, bazfoo, barbar)
@@ -163,6 +158,28 @@ class RFObject(object):
         my_rc, my_out = self.nagios_stateid, "foo"
         # for subitem in self.children:
         return my_rc, my_out
+
+    # returns performance data of this node and subnodes
+    # subperfdata = regex matched for parent element, also create perfdata for this 
+    def nagios_perfdata_recursive(self, perfdata_creation, want_sub_perfdata=False):
+        my_perfdata, my_perfdata_branches = [],[]
+        # if this element matches, we want perfdata from direct subitems
+        patterns = perfdata_creation.get(self.perfdata_creation_dict_key,[])
+        
+        if any(re.match(pattern, self.name) for pattern in patterns): 
+            want_sub_perfdata = True
+            my_perfdata = [( self.id + "_" + self.name, self.elapsedtime) ] 
+        elif want_sub_perfdata:
+            want_sub_perfdata = False
+            my_perfdata = [( self.id + "_" + self.name, self.elapsedtime) ] 
+        # now need to flatten the nested list on each level
+        my_perfdata_branches = []
+        for sublist in [ subel.nagios_perfdata_recursive(perfdata_creation,want_sub_perfdata) for subel in self.branches ]:
+            for subitem in sublist: 
+                my_perfdata_branches.append(subitem)  
+            
+        return my_perfdata + my_perfdata_branches
+
 
 # # item = suite/test
 # def eval_state(item, count=0):
@@ -188,30 +205,11 @@ class RFObject(object):
 #         else:
 #             #return max(item_states), item_messages, item_perfdata
 #             return max(item_states), ["Suite %s: %s\n" % (item.name, ", ".join(item_messages))], item_perfdata
-
 #     else:
 #         # FIXME eval thresholds! Filter by name!
 #         return item.nagios_stateid, [ item.name + ": " + item.nagios_status ], [item.nagios_perfdata]
 
 
-    # returns performance data of this node and subnodes
-    # subperfdata = regex matched for parent element, also create perfdata for this 
-    def nagios_perfdata_recursive(self, perfdata_for, want_sub_perfdata=False):
-        my_perfdata, my_perfdata_branches = [],[]
-        # if this element matches, we want perfdata from direct subitems
-        if any(re.match(pattern, self.name) for pattern in perfdata_for): 
-            want_sub_perfdata = True
-            my_perfdata = [( self.id + "_" + self.name, self.elapsedtime) ] 
-        elif want_sub_perfdata:
-            want_sub_perfdata = False
-            my_perfdata = [( self.id + "_" + self.name, self.elapsedtime) ] 
-        # now need to flatten the nested list on each level
-        my_perfdata_branches = []
-        for sublist in [ subel.nagios_perfdata_recursive(perfdata_for,want_sub_perfdata) for subel in self.branches ]:
-            for subitem in sublist: 
-                my_perfdata_branches.append(subitem)  
-            
-        return my_perfdata + my_perfdata_branches
 
 class RFSuite(RFObject):
     def __init__(self, id, level, level_relative, name, status, starttime, endtime, elapsedtime, branches=[]):
@@ -220,10 +218,15 @@ class RFSuite(RFObject):
     def __str__(self):
         return "Suite " + self.name
 
-    # which key in dict check_depth is holding the values for suites
     @property
-    def check_depth_dict_key(self):
-        return "check_depth_suites"
+    def output_depth_dict_key(self):
+        return "output_depth_suites"
+    @property
+    def runtime_threshold_dict_key(self):
+        return "runtime_threshold_suites"
+    @property
+    def perfdata_creation_dict_key(self):
+        return "perfdata_creation_suites"
 
 class RFTest(RFObject):
     def __init__(self, id, level, level_relative, name, status, starttime, endtime, elapsedtime, branches=[]):
@@ -232,6 +235,13 @@ class RFTest(RFObject):
     def __str__(self):
         return "Test " + self.name
 
+    @property
+    def runtime_threshold_dict_key(self):
+        return "runtime_threshold_tests"
+    @property
+    def perfdata_creation_dict_key(self):
+        return "perfdata_creation_tests"        
+
 class RFKeyword(RFObject):
     def __init__(self, id, level, level_relative, name, status, starttime, endtime, elapsedtime, branches=[]):
         super(RFKeyword, self).__init__(id, level, level_relative, name, status, starttime, endtime, elapsedtime, branches)
@@ -239,10 +249,16 @@ class RFKeyword(RFObject):
     def __str__(self):
         return "Keyword " + self.name
 
-    # which key in dict check_depth is holding the values for keywords
+    # which key in dict output_depth is holding the values for keywords
     @property
-    def check_depth_dict_key(self):
-        return "check_depth_keywords"
+    def output_depth_dict_key(self):
+        return "output_depth_keywords"
+    @property
+    def runtime_threshold_dict_key(self):
+        return "runtime_threshold_keywords"
+    @property
+    def perfdata_creation_dict_key(self):
+        return "perfdata_creation_keywords"
   
 # ==============================================================================
 # Visitor Class for Robot Result ===============================================
@@ -305,7 +321,7 @@ check_info['robotmk'] = {
     "service_description": "Robot",
     "group": "robotmk",
     # FIXME
-    "has_perfdata": False
+    "has_perfdata": True
 }
 
 if __name__ == "__main__":
@@ -323,13 +339,17 @@ if __name__ == "__main__":
     def host_name():
         return "localhost"
 
+    paramfile = 'test/fixtures/check_params/params.py'
+    params = eval(open(paramfile, 'r').read())
+
     # ipdb.set_trace(context=5)
-    datafile = 'test/fixtures/mk_output/outputagent.json'
+    # datafile = 'test/fixtures/mk_output/outputagent.json'
+    datafile = 'test/fixtures/mk_output/outputagent_long.json'
     # mk_output = list of lists
     mk_output = eval(open(datafile, 'r').read())
     parsed = parse_robot(mk_output)
     inventory = inventory_robot(parsed)
-    state, msg, perfdata = check_robot("Mkdemo", [], parsed)
+    state, msg, perfdata = check_robot("Mkdemo", params, parsed)
     # state, msg, perfdata = check_robot("A-Tes.*", [], parsed)
     # state, msg, perfdata = check_robot("A-suite1", [], parsed)
     print "Debugger ended."
