@@ -69,11 +69,10 @@ def inventory_robot(robot_result):
         yield suite.name, None
 
 def check_robot(item, params, robot_result):
+    if params == None: 
+        params = {}
     settings = host_extra_conf_merged(host_name(), eval("inventory_"+iam+"_rules"))
     discovery_suite_level = int(settings.get("discovery_suite_level", 0))
-    # output_depth = params.get("output_depth", {})
-    # perfdata_creation = params.get("perfdata_creation", [])
-    # runtime_threshold = params.get("runtime_threshold", {})
 
     visitor = RobotMetricsVisitor(discovery_suite_level)
     robot_result.visit(visitor)
@@ -86,29 +85,7 @@ def check_robot(item, params, robot_result):
             else:   
                 perf = []
             output = '\n'.join([ i[1] for i in nagios_result])
-            # return eval_state(suite)
             return rc, output, perf
-
-
-# ----------------------------+--------+-------+----------+
-#                             | output | rc    | perfdata |
-# output_depth_suites          |   x    |       |          |
-# output_depth_keywords        |   x    |       |          |
-# perfdata_creation       |        |       |   x      |
-# suite_runtime_thresholds    |   x    |  x    |          |
-# test_runtime_thresholds     |   x    |  x    |          |
-# keyword_runtime_thresholds  |   x    |  x    |          |
-# 
-
-# -> perfdata 
-# -> status
-# -> output
-
-# # item = suite/test
-def eval_state(item):
-    print "this is state!"
-
-
 
 # ==============================================================================
 # Classes for robot result objects =============================================
@@ -149,19 +126,8 @@ class RFObject(object):
         return ( self.name, self.elapsedtime)
 
     # returns status and RC of this node and subnodes
-    # od_ = output_depth
-    # rt_ = runtime_threshold
     def nagios_result_recursive(self, params, discovery_suite_level, depth_limit=None ):
-        # later !output_depth_dict_key = output_depth[self.output_depth_dict_key]
-        # s1/s1/s1: Suite Mkdemo: PASS (ran in 45 seconds) 
-        # s1/s1/s1: Suite Mkdemo: WARN (ran in 66 seconds, runtime exceeded: warn at 45)
-        # s1/s1/s1: Suite Mkdemo: FAILED (ran in 45 seconds, failed tests: foobar, bazfoo, barbar)
-        # - text_runtime
-        # - text_warn
-        # - text_failed
-        # LINE1: Overall State
-        # LINE2: Detail Output 
-        output_depth = params.get('output_depth', []).get(self.output_depth_dict_key, [])
+        output_depth = params.get('output_depth', {}).get(self.output_depth_dict_key, [])
 
         for item in output_depth:
             (pattern, depth) = item
@@ -217,35 +183,6 @@ class RFObject(object):
                 my_perfdata_branches.append(subitem)  
             
         return my_perfdata + my_perfdata_branches
-
-
-# # item = suite/test
-# def eval_state(item, count=0):
-# #    print count * 4 * "=" + " " + item.name
-#     item_states = []
-#     item_messages = []
-#     item_perfdata = []
-#     if hasattr(item, 'children'):
-#         for subitem in item.children:
-#             state, msg, perfdata = eval_state(subitem, count+1)
-#             item_states.append(state)
-#             item_messages.extend(msg)
-#             item_perfdata.extend(perfdata)
-#         if count == 0:
-#             # Hier wird die Rekursion wieder verlassen.
-#             # FIXME: Vergleiche nun subitem.status mit dem max(item_states): Fuehrt eine Thresholdueberschreitung zu einem anderen Status?
-
-#             # In den Worst state soll auch der Status der Suite selbst eingehen
-#             item_states.append(item.nagios_stateid)
-#             worst_nagios_state = max(item_states)
-#             output = "Robot Suite %s ran in %s seconds\n" % (item.name, item.elapsedtime/1000) + ", ".join(item_messages)
-#             return worst_nagios_state, output, item_perfdata
-#         else:
-#             #return max(item_states), item_messages, item_perfdata
-#             return max(item_states), ["Suite %s: %s\n" % (item.name, ", ".join(item_messages))], item_perfdata
-#     else:
-#         # FIXME eval thresholds! Filter by name!
-#         return item.nagios_stateid, [ item.name + ": " + item.nagios_status ], [item.nagios_perfdata]
 
 
 
@@ -383,8 +320,10 @@ if __name__ == "__main__":
         return "localhost"
 
     paramfile = 'test/fixtures/check_params/params.py'
-    params = eval(open(paramfile, 'r').read())
-
+    try: 
+        params = eval(open(paramfile, 'r').read())
+    except: 
+        params = None
     # ipdb.set_trace(context=5)
     # datafile = 'test/fixtures/mk_output/outputagent.json'
     datafile = 'test/fixtures/mk_output/outputagent_long.json'

@@ -7,8 +7,10 @@ datafile = 'test/fixtures/mk_output/outputagent.json'
 mk_output = eval(open(datafile, 'r').read())
 
 paramfile = 'test/fixtures/check_params/params.py'
-params = eval(open(paramfile, 'r').read())
-
+try: 
+    params = eval(open(paramfile, 'r').read())
+except: 
+    params = None
 mock_inventory_robotmk_rules = eval(open('test/fixtures/inventory_rules/ruleset1.py').read())
 
 def test_check_info(checks):
