@@ -1,3 +1,8 @@
 .pytest_cache/
 __pycache__
 id_rsa*
+check_parameters_fhem.py
+check_parameters_fileinfo-groups.py
+check_parameters_multipath.py
+check_parameters_vpn_tunnel.py
+checks/multipath
