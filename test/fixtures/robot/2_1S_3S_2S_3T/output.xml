@@ -1,0 +1,253 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<robot rpa="false" generated="20200202 13:22:09.030" generator="Robot 3.1.2 (Python 2.7.13 on linux2)">
+<suite source="/workspaces/robotmk/test/fixtures/robot/2_1S_3S_2S_3T" id="s1" name="2 1S 3S 2S 3T">
+<suite source="/workspaces/robotmk/test/fixtures/robot/2_1S_3S_2S_3T/Subsuite1" id="s1-s1" name="Subsuite1">
+<suite source="/workspaces/robotmk/test/fixtures/robot/2_1S_3S_2S_3T/Subsuite1/1_simpletest.robot" id="s1-s1-s1" name="1 Simpletest">
+<test id="s1-s1-s1-t1" name="Sleep the first time for 1 sec">
+<kw name="Sleep" library="BuiltIn">
+<doc>Pauses the test executed for the given time.</doc>
+<arguments>
+<arg>1</arg>
+</arguments>
+<msg timestamp="20200202 13:22:10.115" level="INFO">Slept 1 second</msg>
+<status status="PASS" endtime="20200202 13:22:10.116" starttime="20200202 13:22:09.113"></status>
+</kw>
+<status status="PASS" endtime="20200202 13:22:10.116" critical="yes" starttime="20200202 13:22:09.110"></status>
+</test>
+<test id="s1-s1-s1-t2" name="Sleep the second time for 1 sec">
+<kw name="Sleep" library="BuiltIn">
+<doc>Pauses the test executed for the given time.</doc>
+<arguments>
+<arg>1</arg>
+</arguments>
+<msg timestamp="20200202 13:22:11.122" level="INFO">Slept 1 second</msg>
+<status status="PASS" endtime="20200202 13:22:11.122" starttime="20200202 13:22:10.119"></status>
+</kw>
+<status status="PASS" endtime="20200202 13:22:11.123" critical="yes" starttime="20200202 13:22:10.117"></status>
+</test>
+<test id="s1-s1-s1-t3" name="Sleep the third time for 1 sec">
+<kw name="Sleep" library="BuiltIn">
+<doc>Pauses the test executed for the given time.</doc>
+<arguments>
+<arg>1</arg>
+</arguments>
+<msg timestamp="20200202 13:22:12.132" level="INFO">Slept 1 second</msg>
+<status status="PASS" endtime="20200202 13:22:12.133" starttime="20200202 13:22:11.128"></status>
+</kw>
+<status status="PASS" endtime="20200202 13:22:12.133" critical="yes" starttime="20200202 13:22:11.125"></status>
+</test>
+<status status="PASS" endtime="20200202 13:22:12.134" starttime="20200202 13:22:09.100"></status>
+</suite>
+<suite source="/workspaces/robotmk/test/fixtures/robot/2_1S_3S_2S_3T/Subsuite1/2_simpletest.robot" id="s1-s1-s2" name="2 Simpletest">
+<test id="s1-s1-s2-t1" name="Sleep the first time for 1 sec">
+<kw name="Sleep" library="BuiltIn">
+<doc>Pauses the test executed for the given time.</doc>
+<arguments>
+<arg>1</arg>
+</arguments>
+<msg timestamp="20200202 13:22:13.161" level="INFO">Slept 1 second</msg>
+<status status="PASS" endtime="20200202 13:22:13.162" starttime="20200202 13:22:12.158"></status>
+</kw>
+<status status="PASS" endtime="20200202 13:22:13.162" critical="yes" starttime="20200202 13:22:12.155"></status>
+</test>
+<test id="s1-s1-s2-t2" name="Sleep the second time for 1 sec">
+<kw name="Sleep" library="BuiltIn">
+<doc>Pauses the test executed for the given time.</doc>
+<arguments>
+<arg>1</arg>
+</arguments>
+<msg timestamp="20200202 13:22:14.174" level="INFO">Slept 1 second</msg>
+<status status="PASS" endtime="20200202 13:22:14.174" starttime="20200202 13:22:13.170"></status>
+</kw>
+<status status="PASS" endtime="20200202 13:22:14.175" critical="yes" starttime="20200202 13:22:13.165"></status>
+</test>
+<test id="s1-s1-s2-t3" name="Sleep the third time for 1 sec">
+<kw name="Sleep" library="BuiltIn">
+<doc>Pauses the test executed for the given time.</doc>
+<arguments>
+<arg>1</arg>
+</arguments>
+<msg timestamp="20200202 13:22:15.183" level="INFO">Slept 1 second</msg>
+<status status="PASS" endtime="20200202 13:22:15.183" starttime="20200202 13:22:14.179"></status>
+</kw>
+<status status="PASS" endtime="20200202 13:22:15.184" critical="yes" starttime="20200202 13:22:14.175"></status>
+</test>
+<status status="PASS" endtime="20200202 13:22:15.187" starttime="20200202 13:22:12.136"></status>
+</suite>
+<status status="PASS" endtime="20200202 13:22:15.208" starttime="20200202 13:22:09.079"></status>
+</suite>
+<suite source="/workspaces/robotmk/test/fixtures/robot/2_1S_3S_2S_3T/Subsuite2" id="s1-s2" name="Subsuite2">
+<suite source="/workspaces/robotmk/test/fixtures/robot/2_1S_3S_2S_3T/Subsuite2/1_simpletest.robot" id="s1-s2-s1" name="1 Simpletest">
+<test id="s1-s2-s1-t1" name="Sleep the first time for 1 sec">
+<kw name="Sleep" library="BuiltIn">
+<doc>Pauses the test executed for the given time.</doc>
+<arguments>
+<arg>1</arg>
+</arguments>
+<msg timestamp="20200202 13:22:16.233" level="INFO">Slept 1 second</msg>
+<status status="PASS" endtime="20200202 13:22:16.234" starttime="20200202 13:22:15.231"></status>
+</kw>
+<status status="PASS" endtime="20200202 13:22:16.234" critical="yes" starttime="20200202 13:22:15.229"></status>
+</test>
+<test id="s1-s2-s1-t2" name="Sleep the second time for 1 sec">
+<kw name="Sleep" library="BuiltIn">
+<doc>Pauses the test executed for the given time.</doc>
+<arguments>
+<arg>1</arg>
+</arguments>
+<msg timestamp="20200202 13:22:17.240" level="INFO">Slept 1 second</msg>
+<status status="PASS" endtime="20200202 13:22:17.240" starttime="20200202 13:22:16.238"></status>
+</kw>
+<status status="PASS" endtime="20200202 13:22:17.241" critical="yes" starttime="20200202 13:22:16.235"></status>
+</test>
+<test id="s1-s2-s1-t3" name="Sleep the third time for 1 sec">
+<kw name="Sleep" library="BuiltIn">
+<doc>Pauses the test executed for the given time.</doc>
+<arguments>
+<arg>1</arg>
+</arguments>
+<msg timestamp="20200202 13:22:18.245" level="INFO">Slept 1 second</msg>
+<status status="PASS" endtime="20200202 13:22:18.245" starttime="20200202 13:22:17.242"></status>
+</kw>
+<status status="PASS" endtime="20200202 13:22:18.247" critical="yes" starttime="20200202 13:22:17.241"></status>
+</test>
+<status status="PASS" endtime="20200202 13:22:18.253" starttime="20200202 13:22:15.224"></status>
+</suite>
+<suite source="/workspaces/robotmk/test/fixtures/robot/2_1S_3S_2S_3T/Subsuite2/2_simpletest.robot" id="s1-s2-s2" name="2 Simpletest">
+<test id="s1-s2-s2-t1" name="Sleep the first time for 1 sec">
+<kw name="Sleep" library="BuiltIn">
+<doc>Pauses the test executed for the given time.</doc>
+<arguments>
+<arg>1</arg>
+</arguments>
+<msg timestamp="20200202 13:22:19.288" level="INFO">Slept 1 second</msg>
+<status status="PASS" endtime="20200202 13:22:19.288" starttime="20200202 13:22:18.285"></status>
+</kw>
+<status status="PASS" endtime="20200202 13:22:19.289" critical="yes" starttime="20200202 13:22:18.283"></status>
+</test>
+<test id="s1-s2-s2-t2" name="Sleep the second time for 1 sec">
+<kw name="Sleep" library="BuiltIn">
+<doc>Pauses the test executed for the given time.</doc>
+<arguments>
+<arg>1</arg>
+</arguments>
+<msg timestamp="20200202 13:22:20.295" level="INFO">Slept 1 second</msg>
+<status status="PASS" endtime="20200202 13:22:20.296" starttime="20200202 13:22:19.293"></status>
+</kw>
+<status status="PASS" endtime="20200202 13:22:20.296" critical="yes" starttime="20200202 13:22:19.290"></status>
+</test>
+<test id="s1-s2-s2-t3" name="Sleep the third time for 1 sec">
+<kw name="Sleep" library="BuiltIn">
+<doc>Pauses the test executed for the given time.</doc>
+<arguments>
+<arg>1</arg>
+</arguments>
+<msg timestamp="20200202 13:22:21.300" level="INFO">Slept 1 second</msg>
+<status status="PASS" endtime="20200202 13:22:21.301" starttime="20200202 13:22:20.298"></status>
+</kw>
+<status status="PASS" endtime="20200202 13:22:21.302" critical="yes" starttime="20200202 13:22:20.296"></status>
+</test>
+<status status="PASS" endtime="20200202 13:22:21.304" starttime="20200202 13:22:18.275"></status>
+</suite>
+<status status="PASS" endtime="20200202 13:22:21.330" starttime="20200202 13:22:15.218"></status>
+</suite>
+<suite source="/workspaces/robotmk/test/fixtures/robot/2_1S_3S_2S_3T/Subsuite3" id="s1-s3" name="Subsuite3">
+<suite source="/workspaces/robotmk/test/fixtures/robot/2_1S_3S_2S_3T/Subsuite3/1_simpletest.robot" id="s1-s3-s1" name="1 Simpletest">
+<test id="s1-s3-s1-t1" name="Sleep the first time for 1 sec">
+<kw name="Sleep" library="BuiltIn">
+<doc>Pauses the test executed for the given time.</doc>
+<arguments>
+<arg>1</arg>
+</arguments>
+<msg timestamp="20200202 13:22:22.357" level="INFO">Slept 1 second</msg>
+<status status="PASS" endtime="20200202 13:22:22.357" starttime="20200202 13:22:21.355"></status>
+</kw>
+<status status="PASS" endtime="20200202 13:22:22.358" critical="yes" starttime="20200202 13:22:21.353"></status>
+</test>
+<test id="s1-s3-s1-t2" name="Sleep the second time for 1 sec">
+<kw name="Sleep" library="BuiltIn">
+<doc>Pauses the test executed for the given time.</doc>
+<arguments>
+<arg>1</arg>
+</arguments>
+<msg timestamp="20200202 13:22:23.369" level="INFO">Slept 1 second</msg>
+<status status="PASS" endtime="20200202 13:22:23.370" starttime="20200202 13:22:22.365"></status>
+</kw>
+<status status="PASS" endtime="20200202 13:22:23.370" critical="yes" starttime="20200202 13:22:22.362"></status>
+</test>
+<test id="s1-s3-s1-t3" name="Sleep the third time for 1 sec">
+<kw name="Sleep" library="BuiltIn">
+<doc>Pauses the test executed for the given time.</doc>
+<arguments>
+<arg>1</arg>
+</arguments>
+<msg timestamp="20200202 13:22:24.377" level="INFO">Slept 1 second</msg>
+<status status="PASS" endtime="20200202 13:22:24.377" starttime="20200202 13:22:23.372"></status>
+</kw>
+<status status="PASS" endtime="20200202 13:22:24.378" critical="yes" starttime="20200202 13:22:23.371"></status>
+</test>
+<status status="PASS" endtime="20200202 13:22:24.386" starttime="20200202 13:22:21.348"></status>
+</suite>
+<suite source="/workspaces/robotmk/test/fixtures/robot/2_1S_3S_2S_3T/Subsuite3/2_simpletest.robot" id="s1-s3-s2" name="2 Simpletest">
+<test id="s1-s3-s2-t1" name="Sleep the first time for 1 sec">
+<kw name="Sleep" library="BuiltIn">
+<doc>Pauses the test executed for the given time.</doc>
+<arguments>
+<arg>1</arg>
+</arguments>
+<msg timestamp="20200202 13:22:25.415" level="INFO">Slept 1 second</msg>
+<status status="PASS" endtime="20200202 13:22:25.416" starttime="20200202 13:22:24.414"></status>
+</kw>
+<status status="PASS" endtime="20200202 13:22:25.416" critical="yes" starttime="20200202 13:22:24.412"></status>
+</test>
+<test id="s1-s3-s2-t2" name="Sleep the second time for 1 sec">
+<kw name="Sleep" library="BuiltIn">
+<doc>Pauses the test executed for the given time.</doc>
+<arguments>
+<arg>1</arg>
+</arguments>
+<msg timestamp="20200202 13:22:26.424" level="INFO">Slept 1 second</msg>
+<status status="PASS" endtime="20200202 13:22:26.424" starttime="20200202 13:22:25.420"></status>
+</kw>
+<status status="PASS" endtime="20200202 13:22:26.424" critical="yes" starttime="20200202 13:22:25.417"></status>
+</test>
+<test id="s1-s3-s2-t3" name="Sleep the third time for 1 sec">
+<kw name="Sleep" library="BuiltIn">
+<doc>Pauses the test executed for the given time.</doc>
+<arguments>
+<arg>1</arg>
+</arguments>
+<msg timestamp="20200202 13:22:27.432" level="INFO">Slept 1 second</msg>
+<status status="PASS" endtime="20200202 13:22:27.432" starttime="20200202 13:22:26.428"></status>
+</kw>
+<status status="PASS" endtime="20200202 13:22:27.432" critical="yes" starttime="20200202 13:22:26.425"></status>
+</test>
+<status status="PASS" endtime="20200202 13:22:27.449" starttime="20200202 13:22:24.405"></status>
+</suite>
+<status status="PASS" endtime="20200202 13:22:27.459" starttime="20200202 13:22:21.339"></status>
+</suite>
+<status status="PASS" endtime="20200202 13:22:27.471" starttime="20200202 13:22:09.036"></status>
+</suite>
+<statistics>
+<total>
+<stat fail="0" pass="18">Critical Tests</stat>
+<stat fail="0" pass="18">All Tests</stat>
+</total>
+<tag>
+</tag>
+<suite>
+<stat fail="0" id="s1" name="2 1S 3S 2S 3T" pass="18">2 1S 3S 2S 3T</stat>
+<stat fail="0" id="s1-s1" name="Subsuite1" pass="6">2 1S 3S 2S 3T.Subsuite1</stat>
+<stat fail="0" id="s1-s1-s1" name="1 Simpletest" pass="3">2 1S 3S 2S 3T.Subsuite1.1 Simpletest</stat>
+<stat fail="0" id="s1-s1-s2" name="2 Simpletest" pass="3">2 1S 3S 2S 3T.Subsuite1.2 Simpletest</stat>
+<stat fail="0" id="s1-s2" name="Subsuite2" pass="6">2 1S 3S 2S 3T.Subsuite2</stat>
+<stat fail="0" id="s1-s2-s1" name="1 Simpletest" pass="3">2 1S 3S 2S 3T.Subsuite2.1 Simpletest</stat>
+<stat fail="0" id="s1-s2-s2" name="2 Simpletest" pass="3">2 1S 3S 2S 3T.Subsuite2.2 Simpletest</stat>
+<stat fail="0" id="s1-s3" name="Subsuite3" pass="6">2 1S 3S 2S 3T.Subsuite3</stat>
+<stat fail="0" id="s1-s3-s1" name="1 Simpletest" pass="3">2 1S 3S 2S 3T.Subsuite3.1 Simpletest</stat>
+<stat fail="0" id="s1-s3-s2" name="2 Simpletest" pass="3">2 1S 3S 2S 3T.Subsuite3.2 Simpletest</stat>
+</suite>
+</statistics>
+<errors>
+</errors>
+</robot>
