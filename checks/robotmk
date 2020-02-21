@@ -40,7 +40,11 @@ from robot.api import ExecutionResult, ResultVisitor
 import tempfile
 import os
 import re
+import time
+import datetime
 from pprint import pprint
+import xml.etree.ElementTree as ET
+from operator import add, sub
 
 iam = "robotmk"
 
@@ -48,25 +52,24 @@ iam = "robotmk"
 inventory_robotmk_rules = []
 
 def parse_robot(info):
-    with tempfile.NamedTemporaryFile(delete=False) as f_tmpxml:
-        for line in info:
-            f_tmpxml.write(line[0]+'\n')
-
-    # RF result object        
-    robot_result = ExecutionResult(f_tmpxml.name)
-    # delete the tempfile
-    os.remove(f_tmpxml.name)
-    return robot_result
+    settings = host_extra_conf_merged(host_name(), eval("inventory_"+iam+"_rules"))
+    discovery_suite_level = settings.get("discovery_suite_level", 0)
+    # flatten list of list to one XML string     
+    xmlstring = ''.join(map(str, [l[0] for l in info]))
+    xml = ET.fromstring(xmlstring)
+    suite, statistics, error =  (xml.find('suite'), xml.find('statistics'), xml.find('errors')) 
+    if not all(map(lambda x: x != None, [suite, statistics, error])):
+        return None
+    robot_result = RobotMetrics(suite, statistics, error, int(discovery_suite_level))
+    return robot_result.data
 
 # robot_result = executionresult.Result instance
 def inventory_robot(robot_result):
     settings = host_extra_conf_merged(host_name(), eval("inventory_"+iam+"_rules"))
     discovery_suite_level = settings.get("discovery_suite_level", 0)
-    visitor = RobotMetricsVisitor(int(discovery_suite_level))
-    robot_result.visit(visitor)
-    for suite in visitor.data:
-        # print suite.name
-        yield suite.name, None
+    for suite in robot_result:
+        print suite.name
+        # yield suite.name, None
 
 def check_robot(item, params, robot_result):
     if params == None: 
@@ -74,7 +77,7 @@ def check_robot(item, params, robot_result):
     settings = host_extra_conf_merged(host_name(), eval("inventory_"+iam+"_rules"))
     discovery_suite_level = int(settings.get("discovery_suite_level", 0))
 
-    visitor = RobotMetricsVisitor(discovery_suite_level)
+    # visitor = RobotMetricsVisitor(discovery_suite_level)
     robot_result.visit(visitor)
     for suite in visitor.data:
         if suite.name == item:
@@ -184,8 +187,6 @@ class RFObject(object):
             
         return my_perfdata + my_perfdata_branches
 
-
-
 class RFSuite(RFObject):
     def __init__(self, id, level, level_relative, name, status, starttime, endtime, elapsedtime, branches=[]):
         super(RFSuite, self).__init__(id, level, level_relative, name, status, starttime, endtime, elapsedtime, branches)
@@ -239,55 +240,162 @@ class RFKeyword(RFObject):
     @property
     def perfdata_creation_dict_key(self):
         return "perfdata_creation_keywords"
-  
+
+
 # ==============================================================================
 # Visitor Class for Robot Result ===============================================
 # ==============================================================================
-class RobotMetricsVisitor(ResultVisitor):
-    def __init__(self, discovery_suite_level=0):
+class RobotMetrics(object):
+    def __init__(self, suite, statistics, error, discovery_suite_level=0):
         self.discovery_suite_level = discovery_suite_level
         self.data = []
+        self.visit_suite(suite, statistics, error)
 
-    def visit_suite(self, suite, level=0):
-        count_suites = len(suite.suites)
+    def visit_suite(self, suite, statistics, error, level=0):
+        # (A suite can have suites and tests in it)
+        subsuites = suite.findall('suite')
+        subtests = suite.findall('test')
         # Subsuites
-        if count_suites:
-            subnodes = [ self.visit_suite(subsuite, level+1) for subsuite in suite.suites ]
-            subobjects = RFSuite(suite.id, level, level - self.discovery_suite_level, suite.name, suite.status, suite.starttime, suite.endtime, suite.elapsedtime, subnodes)
+        if subsuites:
+            sub_objects = [ self.visit_suite(subsuite, statistics, error, level+1) for subsuite in subsuites ]
         # Testcases
-        else:
-            subnodes = [ self.visit_test(test, level+1) for test in suite.tests ]
-            subobjects = RFSuite(suite.id, level, level - self.discovery_suite_level, suite.name, suite.status, suite.starttime, suite.endtime, suite.elapsedtime, subnodes)
+        elif subtests:
+            sub_objects = [ self.visit_test(test, statistics, error, level+1) for test in subtests ]
+
+        suite_node = RFSuite(
+            suite.attrib['id'], 
+            level, 
+            level - self.discovery_suite_level, 
+            suite.attrib['name'], 
+            suite.find('status').attrib['status'], 
+            suite.find('status').attrib['starttime'], 
+            suite.find('status').attrib['endtime'], 
+            get_elapsed_time(
+                suite.find('status').attrib['starttime'], 
+                suite.find('status').attrib['endtime'] 
+            ),
+            sub_objects)
 
         if level == self.discovery_suite_level:
-            self.data.append(subobjects)
+            self.data.append(suite_node)
         else:
-            return subobjects
+            return suite_node
 
-    def visit_test(self, test, level):
-        count_keywords = len(test.keywords)
-        subnodes = ()
-        # A test can only contain Keywords
-        if count_keywords:
-            subnodes = [ self.visit_keyword(keyword, level+1, 0) for keyword in test.keywords ]
+    def visit_test(self, test, statistics, error, level):
+        # (A test can only have keywords in it)
+        keywords = test.findall('kw')
+        if keywords:
+            subkw_objects = [ self.visit_keyword(keyword, statistics, error, level+1, 0) for keyword in keywords ]
+        
         # level_relative = fake, because tests are not nested. 
-        test_node = RFTest(test.id, level, 9999, test.name, test.status, test.starttime, test.endtime, test.elapsedtime, subnodes)
+        test_node = RFTest(
+                test.attrib['id'], 
+                level, 
+                9999, 
+                test.attrib['name'],
+                test.find('status').attrib['status'], 
+                test.find('status').attrib['starttime'], 
+                test.find('status').attrib['endtime'], 
+                get_elapsed_time(
+                    test.find('status').attrib['starttime'], 
+                    test.find('status').attrib['endtime'] 
+                ),
+                subkw_objects
+        )
         if level == self.discovery_suite_level:
             self.data.append(test_node)
         else:
             return test_node
 
-    def visit_keyword(self, keyword, level, level_relative):
-        count_keywords = len(keyword.keywords)
-        subnodes = ()
-        if count_keywords:
-            subnodes = [ self.visit_keyword(keyword, level+1, level_relative+1) for keyword in keyword.keywords ]
-        keyword_node = RFKeyword(keyword.id, level, level_relative, keyword.name, keyword.status, keyword.starttime, keyword.endtime, keyword.elapsedtime, subnodes)
+    def visit_keyword(self, keyword, statistics, error, level, level_relative):
+        # FIXME Add a keyword ID??
+        # (A keyword can have keywords in it)
+        keywords = keyword.findall('kw')
+        subkw_objects = ()
+        if keywords:
+            subkw_objects = [ self.visit_keyword(keyword, statistics, error, level+1, level_relative+1) for keyword in keywords ]
+
+        # keyword_node = RFKeyword(keyword.id, level, level_relative, keyword.name, keyword.status, keyword.starttime, keyword.endtime, keyword.elapsedtime, subkw_objects)
+        keyword_node = RFKeyword(
+                "FAKE", 
+                level, 
+                level_relative, 
+                keyword.attrib['name'], 
+                keyword.find('status').attrib['status'], 
+                keyword.find('status').attrib['starttime'], 
+                keyword.find('status').attrib['endtime'], 
+                get_elapsed_time(keyword.find('status').attrib['starttime'], keyword.find('status').attrib['endtime'] ),
+                subkw_objects)
         if level == self.discovery_suite_level:
             self.data.append(keyword_node)
         else:
             return keyword_node
-      
+
+
+#   _          _                 
+#  | |        | |                
+#  | |__   ___| |_ __   ___ _ __ 
+#  | '_ \ / _ \ | '_ \ / _ \ '__|
+#  | | | |  __/ | |_) |  __/ |   
+#  |_| |_|\___|_| .__/ \___|_|   
+#               | |              
+#               |_|              
+
+def get_elapsed_time(start_time, end_time):
+    """Returns the time between given timestamps in milliseconds."""
+    if start_time == end_time or not (start_time and end_time):
+        return 0
+    if start_time[:-4] == end_time[:-4]:
+        return int(end_time[-3:]) - int(start_time[-3:])
+    start_millis = timestamp_to_millis(start_time)
+    end_millis = timestamp_to_millis(end_time)
+    # start/end_millis can be long but we want to return int when possible
+    return int(end_millis - start_millis)
+
+def timestamp_to_millis(timestamp):
+    Y, M, D, h, m, s, millis = split_timestamp(timestamp)
+    secs = time.mktime(datetime.datetime(Y, M, D, h, m, s).timetuple())
+    return roundup(1000*secs + millis)
+
+
+def split_timestamp(timestamp):
+    years = int(timestamp[:4])
+    mons = int(timestamp[4:6])
+    days = int(timestamp[6:8])
+    hours = int(timestamp[9:11])
+    mins = int(timestamp[12:14])
+    secs = int(timestamp[15:17])
+    millis = int(timestamp[18:21])
+    return years, mons, days, hours, mins, secs, millis   
+
+def roundup(number, ndigits=0, return_type=None):
+    """Rounds number to the given number of digits.
+
+    Numbers equally close to a certain precision are always rounded away from
+    zero. By default return value is float when ``ndigits`` is positive and
+    int otherwise, but that can be controlled with ``return_type``.
+
+    With the built-in ``round()`` rounding equally close numbers as well as
+    the return type depends on the Python version.
+    """
+    result = round(number, ndigits)
+    if not return_type:
+        return_type = float if ndigits > 0 else int
+    return return_type(result)
+
+
+
+
+
+#                   _       
+#                  (_)      
+#   _ __ ___   __ _ _ _ __  
+#  | '_ ` _ \ / _` | | '_ \ 
+#  | | | | | | (_| | | | | |
+#  |_| |_| |_|\__,_|_|_| |_|
+                          
+                          
+
 
 if __name__ == "__main__":    
     global check_info
