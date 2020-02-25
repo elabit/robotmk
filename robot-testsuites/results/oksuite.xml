@@ -1,0 +1,1849 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<robot rpa="false" generated="20200225 11:54:53.131" generator="Robot 3.1.2 (Python 2.7.5 on linux2)">
+<suite source="/workspace/robotmk/robot-testsuites/suites/oksuite" id="s1" name="Oksuite">
+<suite source="/workspace/robotmk/robot-testsuites/suites/oksuite/L1-Suites" id="s1-s1" name="L1-Suites">
+<suite source="/workspace/robotmk/robot-testsuites/suites/oksuite/L1-Suites/L1-A-Suites" id="s1-s1-s1" name="L1-A-Suites">
+<suite source="/workspace/robotmk/robot-testsuites/suites/oksuite/L1-Suites/L1-A-Suites/L1-Testfile-A-1.robot" id="s1-s1-s1-s1" name="L1-Testfile-A-1">
+<test id="s1-s1-s1-s1-t1" name="Test1 - Sleep">
+<kw name="Sleep" library="BuiltIn">
+<doc>Pauses the test executed for the given time.</doc>
+<arguments>
+<arg>0.1</arg>
+</arguments>
+<msg timestamp="20200225 11:54:53.255" level="INFO">Slept 100 milliseconds</msg>
+<status status="PASS" endtime="20200225 11:54:53.255" starttime="20200225 11:54:53.155"></status>
+</kw>
+<status status="PASS" endtime="20200225 11:54:53.256" critical="yes" starttime="20200225 11:54:53.154"></status>
+</test>
+<test id="s1-s1-s1-s1-t2" name="Test2 - 1Nested Sleep">
+<kw name="MySleep">
+<kw name="Sleep" library="BuiltIn">
+<doc>Pauses the test executed for the given time.</doc>
+<arguments>
+<arg>0.1</arg>
+</arguments>
+<msg timestamp="20200225 11:54:53.357" level="INFO">Slept 100 milliseconds</msg>
+<status status="PASS" endtime="20200225 11:54:53.357" starttime="20200225 11:54:53.257"></status>
+</kw>
+<status status="PASS" endtime="20200225 11:54:53.357" starttime="20200225 11:54:53.256"></status>
+</kw>
+<status status="PASS" endtime="20200225 11:54:53.358" critical="yes" starttime="20200225 11:54:53.256"></status>
+</test>
+<test id="s1-s1-s1-s1-t3" name="Test3 - 2 Nested Sleeps">
+<kw name="MySleepSleep">
+<kw name="MySleep">
+<kw name="Sleep" library="BuiltIn">
+<doc>Pauses the test executed for the given time.</doc>
+<arguments>
+<arg>0.1</arg>
+</arguments>
+<msg timestamp="20200225 11:54:53.459" level="INFO">Slept 100 milliseconds</msg>
+<status status="PASS" endtime="20200225 11:54:53.459" starttime="20200225 11:54:53.359"></status>
+</kw>
+<status status="PASS" endtime="20200225 11:54:53.460" starttime="20200225 11:54:53.358"></status>
+</kw>
+<status status="PASS" endtime="20200225 11:54:53.460" starttime="20200225 11:54:53.358"></status>
+</kw>
+<status status="PASS" endtime="20200225 11:54:53.460" critical="yes" starttime="20200225 11:54:53.358"></status>
+</test>
+<test id="s1-s1-s1-s1-t4" name="Test4 - 3 Nested Sleeps">
+<kw name="MySleepSleepSleep">
+<kw name="MySleepSleep">
+<kw name="MySleep">
+<kw name="Sleep" library="BuiltIn">
+<doc>Pauses the test executed for the given time.</doc>
+<arguments>
+<arg>0.1</arg>
+</arguments>
+<msg timestamp="20200225 11:54:53.563" level="INFO">Slept 100 milliseconds</msg>
+<status status="PASS" endtime="20200225 11:54:53.563" starttime="20200225 11:54:53.462"></status>
+</kw>
+<status status="PASS" endtime="20200225 11:54:53.564" starttime="20200225 11:54:53.462"></status>
+</kw>
+<status status="PASS" endtime="20200225 11:54:53.564" starttime="20200225 11:54:53.462"></status>
+</kw>
+<status status="PASS" endtime="20200225 11:54:53.564" starttime="20200225 11:54:53.461"></status>
+</kw>
+<status status="PASS" endtime="20200225 11:54:53.565" critical="yes" starttime="20200225 11:54:53.461"></status>
+</test>
+<status status="PASS" endtime="20200225 11:54:53.566" starttime="20200225 11:54:53.153"></status>
+</suite>
+<suite source="/workspace/robotmk/robot-testsuites/suites/oksuite/L1-Suites/L1-A-Suites/L1-Testfile-A-2.robot" id="s1-s1-s1-s2" name="L1-Testfile-A-2">
+<test id="s1-s1-s1-s2-t1" name="Test1 - Sleep">
+<kw name="Sleep" library="BuiltIn">
+<doc>Pauses the test executed for the given time.</doc>
+<arguments>
+<arg>0.1</arg>
+</arguments>
+<msg timestamp="20200225 11:54:53.672" level="INFO">Slept 100 milliseconds</msg>
+<status status="PASS" endtime="20200225 11:54:53.673" starttime="20200225 11:54:53.572"></status>
+</kw>
+<status status="PASS" endtime="20200225 11:54:53.673" critical="yes" starttime="20200225 11:54:53.571"></status>
+</test>
+<test id="s1-s1-s1-s2-t2" name="Test2 - 1Nested Sleep">
+<kw name="MySleep">
+<kw name="Sleep" library="BuiltIn">
+<doc>Pauses the test executed for the given time.</doc>
+<arguments>
+<arg>0.1</arg>
+</arguments>
+<msg timestamp="20200225 11:54:53.776" level="INFO">Slept 100 milliseconds</msg>
+<status status="PASS" endtime="20200225 11:54:53.777" starttime="20200225 11:54:53.675"></status>
+</kw>
+<status status="PASS" endtime="20200225 11:54:53.777" starttime="20200225 11:54:53.675"></status>
+</kw>
+<status status="PASS" endtime="20200225 11:54:53.778" critical="yes" starttime="20200225 11:54:53.674"></status>
+</test>
+<test id="s1-s1-s1-s2-t3" name="Test3 - 2 Nested Sleeps">
+<kw name="MySleepSleep">
+<kw name="MySleep">
+<kw name="Sleep" library="BuiltIn">
+<doc>Pauses the test executed for the given time.</doc>
+<arguments>
+<arg>0.1</arg>
+</arguments>
+<msg timestamp="20200225 11:54:53.882" level="INFO">Slept 100 milliseconds</msg>
+<status status="PASS" endtime="20200225 11:54:53.882" starttime="20200225 11:54:53.781"></status>
+</kw>
+<status status="PASS" endtime="20200225 11:54:53.883" starttime="20200225 11:54:53.780"></status>
+</kw>
+<status status="PASS" endtime="20200225 11:54:53.883" starttime="20200225 11:54:53.780"></status>
+</kw>
+<status status="PASS" endtime="20200225 11:54:53.884" critical="yes" starttime="20200225 11:54:53.779"></status>
+</test>
+<test id="s1-s1-s1-s2-t4" name="Test4 - 3 Nested Sleeps">
+<kw name="MySleepSleepSleep">
+<kw name="MySleepSleep">
+<kw name="MySleep">
+<kw name="Sleep" library="BuiltIn">
+<doc>Pauses the test executed for the given time.</doc>
+<arguments>
+<arg>0.1</arg>
+</arguments>
+<msg timestamp="20200225 11:54:53.988" level="INFO">Slept 100 milliseconds</msg>
+<status status="PASS" endtime="20200225 11:54:53.989" starttime="20200225 11:54:53.888"></status>
+</kw>
+<status status="PASS" endtime="20200225 11:54:53.989" starttime="20200225 11:54:53.887"></status>
+</kw>
+<status status="PASS" endtime="20200225 11:54:53.989" starttime="20200225 11:54:53.886"></status>
+</kw>
+<status status="PASS" endtime="20200225 11:54:53.989" starttime="20200225 11:54:53.885"></status>
+</kw>
+<status status="PASS" endtime="20200225 11:54:53.990" critical="yes" starttime="20200225 11:54:53.884"></status>
+</test>
+<status status="PASS" endtime="20200225 11:54:53.990" starttime="20200225 11:54:53.568"></status>
+</suite>
+<suite source="/workspace/robotmk/robot-testsuites/suites/oksuite/L1-Suites/L1-A-Suites/L1-Testfile-A-3.robot" id="s1-s1-s1-s3" name="L1-Testfile-A-3">
+<test id="s1-s1-s1-s3-t1" name="Test1 - Sleep">
+<kw name="Sleep" library="BuiltIn">
+<doc>Pauses the test executed for the given time.</doc>
+<arguments>
+<arg>0.1</arg>
+</arguments>
+<msg timestamp="20200225 11:54:54.094" level="INFO">Slept 100 milliseconds</msg>
+<status status="PASS" endtime="20200225 11:54:54.095" starttime="20200225 11:54:53.994"></status>
+</kw>
+<status status="PASS" endtime="20200225 11:54:54.095" critical="yes" starttime="20200225 11:54:53.993"></status>
+</test>
+<test id="s1-s1-s1-s3-t2" name="Test2 - 1Nested Sleep">
+<kw name="MySleep">
+<kw name="Sleep" library="BuiltIn">
+<doc>Pauses the test executed for the given time.</doc>
+<arguments>
+<arg>0.1</arg>
+</arguments>
+<msg timestamp="20200225 11:54:54.197" level="INFO">Slept 100 milliseconds</msg>
+<status status="PASS" endtime="20200225 11:54:54.197" starttime="20200225 11:54:54.097"></status>
+</kw>
+<status status="PASS" endtime="20200225 11:54:54.198" starttime="20200225 11:54:54.096"></status>
+</kw>
+<status status="PASS" endtime="20200225 11:54:54.198" critical="yes" starttime="20200225 11:54:54.096"></status>
+</test>
+<test id="s1-s1-s1-s3-t3" name="Test3 - 2 Nested Sleeps">
+<kw name="MySleepSleep">
+<kw name="MySleep">
+<kw name="Sleep" library="BuiltIn">
+<doc>Pauses the test executed for the given time.</doc>
+<arguments>
+<arg>0.1</arg>
+</arguments>
+<msg timestamp="20200225 11:54:54.300" level="INFO">Slept 100 milliseconds</msg>
+<status status="PASS" endtime="20200225 11:54:54.300" starttime="20200225 11:54:54.200"></status>
+</kw>
+<status status="PASS" endtime="20200225 11:54:54.301" starttime="20200225 11:54:54.199"></status>
+</kw>
+<status status="PASS" endtime="20200225 11:54:54.301" starttime="20200225 11:54:54.199"></status>
+</kw>
+<status status="PASS" endtime="20200225 11:54:54.301" critical="yes" starttime="20200225 11:54:54.198"></status>
+</test>
+<test id="s1-s1-s1-s3-t4" name="Test4 - 3 Nested Sleeps">
+<kw name="MySleepSleepSleep">
+<kw name="MySleepSleep">
+<kw name="MySleep">
+<kw name="Sleep" library="BuiltIn">
+<doc>Pauses the test executed for the given time.</doc>
+<arguments>
+<arg>0.1</arg>
+</arguments>
+<msg timestamp="20200225 11:54:54.403" level="INFO">Slept 100 milliseconds</msg>
+<status status="PASS" endtime="20200225 11:54:54.403" starttime="20200225 11:54:54.303"></status>
+</kw>
+<status status="PASS" endtime="20200225 11:54:54.404" starttime="20200225 11:54:54.302"></status>
+</kw>
+<status status="PASS" endtime="20200225 11:54:54.404" starttime="20200225 11:54:54.302"></status>
+</kw>
+<status status="PASS" endtime="20200225 11:54:54.404" starttime="20200225 11:54:54.302"></status>
+</kw>
+<status status="PASS" endtime="20200225 11:54:54.404" critical="yes" starttime="20200225 11:54:54.301"></status>
+</test>
+<status status="PASS" endtime="20200225 11:54:54.405" starttime="20200225 11:54:53.991"></status>
+</suite>
+<status status="PASS" endtime="20200225 11:54:54.406" starttime="20200225 11:54:53.151"></status>
+</suite>
+<suite source="/workspace/robotmk/robot-testsuites/suites/oksuite/L1-Suites/L1-B-Suites" id="s1-s1-s2" name="L1-B-Suites">
+<suite source="/workspace/robotmk/robot-testsuites/suites/oksuite/L1-Suites/L1-B-Suites/L1-Testfile-B-1.robot" id="s1-s1-s2-s1" name="L1-Testfile-B-1">
+<test id="s1-s1-s2-s1-t1" name="Test1 - Sleep">
+<kw name="Sleep" library="BuiltIn">
+<doc>Pauses the test executed for the given time.</doc>
+<arguments>
+<arg>0.1</arg>
+</arguments>
+<msg timestamp="20200225 11:54:54.511" level="INFO">Slept 100 milliseconds</msg>
+<status status="PASS" endtime="20200225 11:54:54.512" starttime="20200225 11:54:54.411"></status>
+</kw>
+<status status="PASS" endtime="20200225 11:54:54.512" critical="yes" starttime="20200225 11:54:54.410"></status>
+</test>
+<test id="s1-s1-s2-s1-t2" name="Test2 - 1Nested Sleep">
+<kw name="MySleep">
+<kw name="Sleep" library="BuiltIn">
+<doc>Pauses the test executed for the given time.</doc>
+<arguments>
+<arg>0.1</arg>
+</arguments>
+<msg timestamp="20200225 11:54:54.614" level="INFO">Slept 100 milliseconds</msg>
+<status status="PASS" endtime="20200225 11:54:54.615" starttime="20200225 11:54:54.514"></status>
+</kw>
+<status status="PASS" endtime="20200225 11:54:54.615" starttime="20200225 11:54:54.513"></status>
+</kw>
+<status status="PASS" endtime="20200225 11:54:54.616" critical="yes" starttime="20200225 11:54:54.513"></status>
+</test>
+<test id="s1-s1-s2-s1-t3" name="Test3 - 2 Nested Sleeps">
+<kw name="MySleepSleep">
+<kw name="MySleep">
+<kw name="Sleep" library="BuiltIn">
+<doc>Pauses the test executed for the given time.</doc>
+<arguments>
+<arg>0.1</arg>
+</arguments>
+<msg timestamp="20200225 11:54:54.718" level="INFO">Slept 100 milliseconds</msg>
+<status status="PASS" endtime="20200225 11:54:54.718" starttime="20200225 11:54:54.618"></status>
+</kw>
+<status status="PASS" endtime="20200225 11:54:54.718" starttime="20200225 11:54:54.617"></status>
+</kw>
+<status status="PASS" endtime="20200225 11:54:54.719" starttime="20200225 11:54:54.617"></status>
+</kw>
+<status status="PASS" endtime="20200225 11:54:54.719" critical="yes" starttime="20200225 11:54:54.616"></status>
+</test>
+<test id="s1-s1-s2-s1-t4" name="Test4 - 3 Nested Sleeps">
+<kw name="MySleepSleepSleep">
+<kw name="MySleepSleep">
+<kw name="MySleep">
+<kw name="Sleep" library="BuiltIn">
+<doc>Pauses the test executed for the given time.</doc>
+<arguments>
+<arg>0.1</arg>
+</arguments>
+<msg timestamp="20200225 11:54:54.821" level="INFO">Slept 100 milliseconds</msg>
+<status status="PASS" endtime="20200225 11:54:54.821" starttime="20200225 11:54:54.721"></status>
+</kw>
+<status status="PASS" endtime="20200225 11:54:54.822" starttime="20200225 11:54:54.720"></status>
+</kw>
+<status status="PASS" endtime="20200225 11:54:54.822" starttime="20200225 11:54:54.720"></status>
+</kw>
+<status status="PASS" endtime="20200225 11:54:54.822" starttime="20200225 11:54:54.720"></status>
+</kw>
+<status status="PASS" endtime="20200225 11:54:54.822" critical="yes" starttime="20200225 11:54:54.719"></status>
+</test>
+<status status="PASS" endtime="20200225 11:54:54.823" starttime="20200225 11:54:54.409"></status>
+</suite>
+<suite source="/workspace/robotmk/robot-testsuites/suites/oksuite/L1-Suites/L1-B-Suites/L1-Testfile-B-2.robot" id="s1-s1-s2-s2" name="L1-Testfile-B-2">
+<test id="s1-s1-s2-s2-t1" name="Test1 - Sleep">
+<kw name="Sleep" library="BuiltIn">
+<doc>Pauses the test executed for the given time.</doc>
+<arguments>
+<arg>0.1</arg>
+</arguments>
+<msg timestamp="20200225 11:54:54.928" level="INFO">Slept 100 milliseconds</msg>
+<status status="PASS" endtime="20200225 11:54:54.928" starttime="20200225 11:54:54.827"></status>
+</kw>
+<status status="PASS" endtime="20200225 11:54:54.928" critical="yes" starttime="20200225 11:54:54.827"></status>
+</test>
+<test id="s1-s1-s2-s2-t2" name="Test2 - 1Nested Sleep">
+<kw name="MySleep">
+<kw name="Sleep" library="BuiltIn">
+<doc>Pauses the test executed for the given time.</doc>
+<arguments>
+<arg>0.1</arg>
+</arguments>
+<msg timestamp="20200225 11:54:55.031" level="INFO">Slept 100 milliseconds</msg>
+<status status="PASS" endtime="20200225 11:54:55.031" starttime="20200225 11:54:54.931"></status>
+</kw>
+<status status="PASS" endtime="20200225 11:54:55.031" starttime="20200225 11:54:54.930"></status>
+</kw>
+<status status="PASS" endtime="20200225 11:54:55.032" critical="yes" starttime="20200225 11:54:54.929"></status>
+</test>
+<test id="s1-s1-s2-s2-t3" name="Test3 - 2 Nested Sleeps">
+<kw name="MySleepSleep">
+<kw name="MySleep">
+<kw name="Sleep" library="BuiltIn">
+<doc>Pauses the test executed for the given time.</doc>
+<arguments>
+<arg>0.1</arg>
+</arguments>
+<msg timestamp="20200225 11:54:55.133" level="INFO">Slept 100 milliseconds</msg>
+<status status="PASS" endtime="20200225 11:54:55.133" starttime="20200225 11:54:55.033"></status>
+</kw>
+<status status="PASS" endtime="20200225 11:54:55.133" starttime="20200225 11:54:55.032"></status>
+</kw>
+<status status="PASS" endtime="20200225 11:54:55.134" starttime="20200225 11:54:55.032"></status>
+</kw>
+<status status="PASS" endtime="20200225 11:54:55.134" critical="yes" starttime="20200225 11:54:55.032"></status>
+</test>
+<test id="s1-s1-s2-s2-t4" name="Test4 - 3 Nested Sleeps">
+<kw name="MySleepSleepSleep">
+<kw name="MySleepSleep">
+<kw name="MySleep">
+<kw name="Sleep" library="BuiltIn">
+<doc>Pauses the test executed for the given time.</doc>
+<arguments>
+<arg>0.1</arg>
+</arguments>
+<msg timestamp="20200225 11:54:55.236" level="INFO">Slept 100 milliseconds</msg>
+<status status="PASS" endtime="20200225 11:54:55.236" starttime="20200225 11:54:55.135"></status>
+</kw>
+<status status="PASS" endtime="20200225 11:54:55.236" starttime="20200225 11:54:55.135"></status>
+</kw>
+<status status="PASS" endtime="20200225 11:54:55.236" starttime="20200225 11:54:55.135"></status>
+</kw>
+<status status="PASS" endtime="20200225 11:54:55.237" starttime="20200225 11:54:55.134"></status>
+</kw>
+<status status="PASS" endtime="20200225 11:54:55.237" critical="yes" starttime="20200225 11:54:55.134"></status>
+</test>
+<status status="PASS" endtime="20200225 11:54:55.238" starttime="20200225 11:54:54.824"></status>
+</suite>
+<suite source="/workspace/robotmk/robot-testsuites/suites/oksuite/L1-Suites/L1-B-Suites/L1-Testfile-B-3.robot" id="s1-s1-s2-s3" name="L1-Testfile-B-3">
+<test id="s1-s1-s2-s3-t1" name="Test1 - Sleep">
+<kw name="Sleep" library="BuiltIn">
+<doc>Pauses the test executed for the given time.</doc>
+<arguments>
+<arg>0.1</arg>
+</arguments>
+<msg timestamp="20200225 11:54:55.344" level="INFO">Slept 100 milliseconds</msg>
+<status status="PASS" endtime="20200225 11:54:55.344" starttime="20200225 11:54:55.243"></status>
+</kw>
+<status status="PASS" endtime="20200225 11:54:55.344" critical="yes" starttime="20200225 11:54:55.242"></status>
+</test>
+<test id="s1-s1-s2-s3-t2" name="Test2 - 1Nested Sleep">
+<kw name="MySleep">
+<kw name="Sleep" library="BuiltIn">
+<doc>Pauses the test executed for the given time.</doc>
+<arguments>
+<arg>0.1</arg>
+</arguments>
+<msg timestamp="20200225 11:54:55.446" level="INFO">Slept 100 milliseconds</msg>
+<status status="PASS" endtime="20200225 11:54:55.446" starttime="20200225 11:54:55.345"></status>
+</kw>
+<status status="PASS" endtime="20200225 11:54:55.447" starttime="20200225 11:54:55.345"></status>
+</kw>
+<status status="PASS" endtime="20200225 11:54:55.447" critical="yes" starttime="20200225 11:54:55.344"></status>
+</test>
+<test id="s1-s1-s2-s3-t3" name="Test3 - 2 Nested Sleeps">
+<kw name="MySleepSleep">
+<kw name="MySleep">
+<kw name="Sleep" library="BuiltIn">
+<doc>Pauses the test executed for the given time.</doc>
+<arguments>
+<arg>0.1</arg>
+</arguments>
+<msg timestamp="20200225 11:54:55.550" level="INFO">Slept 100 milliseconds</msg>
+<status status="PASS" endtime="20200225 11:54:55.551" starttime="20200225 11:54:55.449"></status>
+</kw>
+<status status="PASS" endtime="20200225 11:54:55.551" starttime="20200225 11:54:55.449"></status>
+</kw>
+<status status="PASS" endtime="20200225 11:54:55.551" starttime="20200225 11:54:55.449"></status>
+</kw>
+<status status="PASS" endtime="20200225 11:54:55.552" critical="yes" starttime="20200225 11:54:55.448"></status>
+</test>
+<test id="s1-s1-s2-s3-t4" name="Test4 - 3 Nested Sleeps">
+<kw name="MySleepSleepSleep">
+<kw name="MySleepSleep">
+<kw name="MySleep">
+<kw name="Sleep" library="BuiltIn">
+<doc>Pauses the test executed for the given time.</doc>
+<arguments>
+<arg>0.1</arg>
+</arguments>
+<msg timestamp="20200225 11:54:55.656" level="INFO">Slept 100 milliseconds</msg>
+<status status="PASS" endtime="20200225 11:54:55.656" starttime="20200225 11:54:55.555"></status>
+</kw>
+<status status="PASS" endtime="20200225 11:54:55.656" starttime="20200225 11:54:55.554"></status>
+</kw>
+<status status="PASS" endtime="20200225 11:54:55.656" starttime="20200225 11:54:55.554"></status>
+</kw>
+<status status="PASS" endtime="20200225 11:54:55.657" starttime="20200225 11:54:55.553"></status>
+</kw>
+<status status="PASS" endtime="20200225 11:54:55.657" critical="yes" starttime="20200225 11:54:55.552"></status>
+</test>
+<status status="PASS" endtime="20200225 11:54:55.657" starttime="20200225 11:54:55.239"></status>
+</suite>
+<status status="PASS" endtime="20200225 11:54:55.659" starttime="20200225 11:54:54.408"></status>
+</suite>
+<suite source="/workspace/robotmk/robot-testsuites/suites/oksuite/L1-Suites/L1-C-Suites" id="s1-s1-s3" name="L1-C-Suites">
+<suite source="/workspace/robotmk/robot-testsuites/suites/oksuite/L1-Suites/L1-C-Suites/L1-Testfile-C-1.robot" id="s1-s1-s3-s1" name="L1-Testfile-C-1">
+<test id="s1-s1-s3-s1-t1" name="Test1 - Sleep">
+<kw name="Sleep" library="BuiltIn">
+<doc>Pauses the test executed for the given time.</doc>
+<arguments>
+<arg>0.1</arg>
+</arguments>
+<msg timestamp="20200225 11:54:55.765" level="INFO">Slept 100 milliseconds</msg>
+<status status="PASS" endtime="20200225 11:54:55.765" starttime="20200225 11:54:55.664"></status>
+</kw>
+<status status="PASS" endtime="20200225 11:54:55.766" critical="yes" starttime="20200225 11:54:55.664"></status>
+</test>
+<test id="s1-s1-s3-s1-t2" name="Test2 - 1Nested Sleep">
+<kw name="MySleep">
+<kw name="Sleep" library="BuiltIn">
+<doc>Pauses the test executed for the given time.</doc>
+<arguments>
+<arg>0.1</arg>
+</arguments>
+<msg timestamp="20200225 11:54:55.870" level="INFO">Slept 100 milliseconds</msg>
+<status status="PASS" endtime="20200225 11:54:55.871" starttime="20200225 11:54:55.769"></status>
+</kw>
+<status status="PASS" endtime="20200225 11:54:55.871" starttime="20200225 11:54:55.768"></status>
+</kw>
+<status status="PASS" endtime="20200225 11:54:55.871" critical="yes" starttime="20200225 11:54:55.767"></status>
+</test>
+<test id="s1-s1-s3-s1-t3" name="Test3 - 2 Nested Sleeps">
+<kw name="MySleepSleep">
+<kw name="MySleep">
+<kw name="Sleep" library="BuiltIn">
+<doc>Pauses the test executed for the given time.</doc>
+<arguments>
+<arg>0.1</arg>
+</arguments>
+<msg timestamp="20200225 11:54:55.975" level="INFO">Slept 100 milliseconds</msg>
+<status status="PASS" endtime="20200225 11:54:55.975" starttime="20200225 11:54:55.874"></status>
+</kw>
+<status status="PASS" endtime="20200225 11:54:55.975" starttime="20200225 11:54:55.874"></status>
+</kw>
+<status status="PASS" endtime="20200225 11:54:55.975" starttime="20200225 11:54:55.873"></status>
+</kw>
+<status status="PASS" endtime="20200225 11:54:55.976" critical="yes" starttime="20200225 11:54:55.872"></status>
+</test>
+<test id="s1-s1-s3-s1-t4" name="Test4 - 3 Nested Sleeps">
+<kw name="MySleepSleepSleep">
+<kw name="MySleepSleep">
+<kw name="MySleep">
+<kw name="Sleep" library="BuiltIn">
+<doc>Pauses the test executed for the given time.</doc>
+<arguments>
+<arg>0.1</arg>
+</arguments>
+<msg timestamp="20200225 11:54:56.078" level="INFO">Slept 100 milliseconds</msg>
+<status status="PASS" endtime="20200225 11:54:56.078" starttime="20200225 11:54:55.977"></status>
+</kw>
+<status status="PASS" endtime="20200225 11:54:56.079" starttime="20200225 11:54:55.977"></status>
+</kw>
+<status status="PASS" endtime="20200225 11:54:56.079" starttime="20200225 11:54:55.977"></status>
+</kw>
+<status status="PASS" endtime="20200225 11:54:56.080" starttime="20200225 11:54:55.977"></status>
+</kw>
+<status status="PASS" endtime="20200225 11:54:56.080" critical="yes" starttime="20200225 11:54:55.976"></status>
+</test>
+<status status="PASS" endtime="20200225 11:54:56.082" starttime="20200225 11:54:55.662"></status>
+</suite>
+<suite source="/workspace/robotmk/robot-testsuites/suites/oksuite/L1-Suites/L1-C-Suites/L1-Testfile-C-2.robot" id="s1-s1-s3-s2" name="L1-Testfile-C-2">
+<test id="s1-s1-s3-s2-t1" name="Test1 - Sleep">
+<kw name="Sleep" library="BuiltIn">
+<doc>Pauses the test executed for the given time.</doc>
+<arguments>
+<arg>0.1</arg>
+</arguments>
+<msg timestamp="20200225 11:54:56.193" level="INFO">Slept 100 milliseconds</msg>
+<status status="PASS" endtime="20200225 11:54:56.193" starttime="20200225 11:54:56.092"></status>
+</kw>
+<status status="PASS" endtime="20200225 11:54:56.194" critical="yes" starttime="20200225 11:54:56.091"></status>
+</test>
+<test id="s1-s1-s3-s2-t2" name="Test2 - 1Nested Sleep">
+<kw name="MySleep">
+<kw name="Sleep" library="BuiltIn">
+<doc>Pauses the test executed for the given time.</doc>
+<arguments>
+<arg>0.1</arg>
+</arguments>
+<msg timestamp="20200225 11:54:56.297" level="INFO">Slept 100 milliseconds</msg>
+<status status="PASS" endtime="20200225 11:54:56.298" starttime="20200225 11:54:56.197"></status>
+</kw>
+<status status="PASS" endtime="20200225 11:54:56.298" starttime="20200225 11:54:56.196"></status>
+</kw>
+<status status="PASS" endtime="20200225 11:54:56.298" critical="yes" starttime="20200225 11:54:56.195"></status>
+</test>
+<test id="s1-s1-s3-s2-t3" name="Test3 - 2 Nested Sleeps">
+<kw name="MySleepSleep">
+<kw name="MySleep">
+<kw name="Sleep" library="BuiltIn">
+<doc>Pauses the test executed for the given time.</doc>
+<arguments>
+<arg>0.1</arg>
+</arguments>
+<msg timestamp="20200225 11:54:56.400" level="INFO">Slept 100 milliseconds</msg>
+<status status="PASS" endtime="20200225 11:54:56.400" starttime="20200225 11:54:56.299"></status>
+</kw>
+<status status="PASS" endtime="20200225 11:54:56.400" starttime="20200225 11:54:56.299"></status>
+</kw>
+<status status="PASS" endtime="20200225 11:54:56.400" starttime="20200225 11:54:56.299"></status>
+</kw>
+<status status="PASS" endtime="20200225 11:54:56.401" critical="yes" starttime="20200225 11:54:56.298"></status>
+</test>
+<test id="s1-s1-s3-s2-t4" name="Test4 - 3 Nested Sleeps">
+<kw name="MySleepSleepSleep">
+<kw name="MySleepSleep">
+<kw name="MySleep">
+<kw name="Sleep" library="BuiltIn">
+<doc>Pauses the test executed for the given time.</doc>
+<arguments>
+<arg>0.1</arg>
+</arguments>
+<msg timestamp="20200225 11:54:56.503" level="INFO">Slept 100 milliseconds</msg>
+<status status="PASS" endtime="20200225 11:54:56.503" starttime="20200225 11:54:56.403"></status>
+</kw>
+<status status="PASS" endtime="20200225 11:54:56.503" starttime="20200225 11:54:56.402"></status>
+</kw>
+<status status="PASS" endtime="20200225 11:54:56.503" starttime="20200225 11:54:56.402"></status>
+</kw>
+<status status="PASS" endtime="20200225 11:54:56.503" starttime="20200225 11:54:56.402"></status>
+</kw>
+<status status="PASS" endtime="20200225 11:54:56.504" critical="yes" starttime="20200225 11:54:56.401"></status>
+</test>
+<status status="PASS" endtime="20200225 11:54:56.504" starttime="20200225 11:54:56.085"></status>
+</suite>
+<suite source="/workspace/robotmk/robot-testsuites/suites/oksuite/L1-Suites/L1-C-Suites/L1-Testfile-C-3.robot" id="s1-s1-s3-s3" name="L1-Testfile-C-3">
+<test id="s1-s1-s3-s3-t1" name="Test1 - Sleep">
+<kw name="Sleep" library="BuiltIn">
+<doc>Pauses the test executed for the given time.</doc>
+<arguments>
+<arg>0.1</arg>
+</arguments>
+<msg timestamp="20200225 11:54:56.607" level="INFO">Slept 100 milliseconds</msg>
+<status status="PASS" endtime="20200225 11:54:56.608" starttime="20200225 11:54:56.507"></status>
+</kw>
+<status status="PASS" endtime="20200225 11:54:56.608" critical="yes" starttime="20200225 11:54:56.507"></status>
+</test>
+<test id="s1-s1-s3-s3-t2" name="Test2 - 1Nested Sleep">
+<kw name="MySleep">
+<kw name="Sleep" library="BuiltIn">
+<doc>Pauses the test executed for the given time.</doc>
+<arguments>
+<arg>0.1</arg>
+</arguments>
+<msg timestamp="20200225 11:54:56.710" level="INFO">Slept 100 milliseconds</msg>
+<status status="PASS" endtime="20200225 11:54:56.710" starttime="20200225 11:54:56.610"></status>
+</kw>
+<status status="PASS" endtime="20200225 11:54:56.711" starttime="20200225 11:54:56.609"></status>
+</kw>
+<status status="PASS" endtime="20200225 11:54:56.711" critical="yes" starttime="20200225 11:54:56.609"></status>
+</test>
+<test id="s1-s1-s3-s3-t3" name="Test3 - 2 Nested Sleeps">
+<kw name="MySleepSleep">
+<kw name="MySleep">
+<kw name="Sleep" library="BuiltIn">
+<doc>Pauses the test executed for the given time.</doc>
+<arguments>
+<arg>0.1</arg>
+</arguments>
+<msg timestamp="20200225 11:54:56.813" level="INFO">Slept 100 milliseconds</msg>
+<status status="PASS" endtime="20200225 11:54:56.813" starttime="20200225 11:54:56.712"></status>
+</kw>
+<status status="PASS" endtime="20200225 11:54:56.813" starttime="20200225 11:54:56.712"></status>
+</kw>
+<status status="PASS" endtime="20200225 11:54:56.814" starttime="20200225 11:54:56.711"></status>
+</kw>
+<status status="PASS" endtime="20200225 11:54:56.814" critical="yes" starttime="20200225 11:54:56.711"></status>
+</test>
+<test id="s1-s1-s3-s3-t4" name="Test4 - 3 Nested Sleeps">
+<kw name="MySleepSleepSleep">
+<kw name="MySleepSleep">
+<kw name="MySleep">
+<kw name="Sleep" library="BuiltIn">
+<doc>Pauses the test executed for the given time.</doc>
+<arguments>
+<arg>0.1</arg>
+</arguments>
+<msg timestamp="20200225 11:54:56.919" level="INFO">Slept 100 milliseconds</msg>
+<status status="PASS" endtime="20200225 11:54:56.920" starttime="20200225 11:54:56.819"></status>
+</kw>
+<status status="PASS" endtime="20200225 11:54:56.920" starttime="20200225 11:54:56.818"></status>
+</kw>
+<status status="PASS" endtime="20200225 11:54:56.920" starttime="20200225 11:54:56.817"></status>
+</kw>
+<status status="PASS" endtime="20200225 11:54:56.920" starttime="20200225 11:54:56.816"></status>
+</kw>
+<status status="PASS" endtime="20200225 11:54:56.921" critical="yes" starttime="20200225 11:54:56.815"></status>
+</test>
+<status status="PASS" endtime="20200225 11:54:56.921" starttime="20200225 11:54:56.505"></status>
+</suite>
+<status status="PASS" endtime="20200225 11:54:56.923" starttime="20200225 11:54:55.660"></status>
+</suite>
+<status status="PASS" endtime="20200225 11:54:56.926" starttime="20200225 11:54:53.150"></status>
+</suite>
+<suite source="/workspace/robotmk/robot-testsuites/suites/oksuite/L2-Suites" id="s1-s2" name="L2-Suites">
+<suite source="/workspace/robotmk/robot-testsuites/suites/oksuite/L2-Suites/L2-A-Suites" id="s1-s2-s1" name="L2-A-Suites">
+<suite source="/workspace/robotmk/robot-testsuites/suites/oksuite/L2-Suites/L2-A-Suites/L2-Testfile-A-1.robot" id="s1-s2-s1-s1" name="L2-Testfile-A-1">
+<test id="s1-s2-s1-s1-t1" name="Test1 - Sleep">
+<kw name="Sleep" library="BuiltIn">
+<doc>Pauses the test executed for the given time.</doc>
+<arguments>
+<arg>0.1</arg>
+</arguments>
+<msg timestamp="20200225 11:54:57.037" level="INFO">Slept 100 milliseconds</msg>
+<status status="PASS" endtime="20200225 11:54:57.037" starttime="20200225 11:54:56.936"></status>
+</kw>
+<status status="PASS" endtime="20200225 11:54:57.037" critical="yes" starttime="20200225 11:54:56.936"></status>
+</test>
+<test id="s1-s2-s1-s1-t2" name="Test2 - 1Nested Sleep">
+<kw name="MySleep">
+<kw name="Sleep" library="BuiltIn">
+<doc>Pauses the test executed for the given time.</doc>
+<arguments>
+<arg>0.1</arg>
+</arguments>
+<msg timestamp="20200225 11:54:57.139" level="INFO">Slept 100 milliseconds</msg>
+<status status="PASS" endtime="20200225 11:54:57.140" starttime="20200225 11:54:57.039"></status>
+</kw>
+<status status="PASS" endtime="20200225 11:54:57.140" starttime="20200225 11:54:57.038"></status>
+</kw>
+<status status="PASS" endtime="20200225 11:54:57.141" critical="yes" starttime="20200225 11:54:57.038"></status>
+</test>
+<test id="s1-s2-s1-s1-t3" name="Test3 - 2 Nested Sleeps">
+<kw name="MySleepSleep">
+<kw name="MySleep">
+<kw name="Sleep" library="BuiltIn">
+<doc>Pauses the test executed for the given time.</doc>
+<arguments>
+<arg>0.1</arg>
+</arguments>
+<msg timestamp="20200225 11:54:57.245" level="INFO">Slept 100 milliseconds</msg>
+<status status="PASS" endtime="20200225 11:54:57.245" starttime="20200225 11:54:57.144"></status>
+</kw>
+<status status="PASS" endtime="20200225 11:54:57.245" starttime="20200225 11:54:57.143"></status>
+</kw>
+<status status="PASS" endtime="20200225 11:54:57.246" starttime="20200225 11:54:57.142"></status>
+</kw>
+<status status="PASS" endtime="20200225 11:54:57.246" critical="yes" starttime="20200225 11:54:57.141"></status>
+</test>
+<test id="s1-s2-s1-s1-t4" name="Test4 - 3 Nested Sleeps">
+<kw name="MySleepSleepSleep">
+<kw name="MySleepSleep">
+<kw name="MySleep">
+<kw name="Sleep" library="BuiltIn">
+<doc>Pauses the test executed for the given time.</doc>
+<arguments>
+<arg>0.1</arg>
+</arguments>
+<msg timestamp="20200225 11:54:57.350" level="INFO">Slept 100 milliseconds</msg>
+<status status="PASS" endtime="20200225 11:54:57.350" starttime="20200225 11:54:57.250"></status>
+</kw>
+<status status="PASS" endtime="20200225 11:54:57.351" starttime="20200225 11:54:57.249"></status>
+</kw>
+<status status="PASS" endtime="20200225 11:54:57.351" starttime="20200225 11:54:57.248"></status>
+</kw>
+<status status="PASS" endtime="20200225 11:54:57.351" starttime="20200225 11:54:57.248"></status>
+</kw>
+<status status="PASS" endtime="20200225 11:54:57.351" critical="yes" starttime="20200225 11:54:57.247"></status>
+</test>
+<status status="PASS" endtime="20200225 11:54:57.352" starttime="20200225 11:54:56.934"></status>
+</suite>
+<suite source="/workspace/robotmk/robot-testsuites/suites/oksuite/L2-Suites/L2-A-Suites/L2-Testfile-A-2.robot" id="s1-s2-s1-s2" name="L2-Testfile-A-2">
+<test id="s1-s2-s1-s2-t1" name="Test1 - Sleep">
+<kw name="Sleep" library="BuiltIn">
+<doc>Pauses the test executed for the given time.</doc>
+<arguments>
+<arg>0.1</arg>
+</arguments>
+<msg timestamp="20200225 11:54:57.455" level="INFO">Slept 100 milliseconds</msg>
+<status status="PASS" endtime="20200225 11:54:57.455" starttime="20200225 11:54:57.355"></status>
+</kw>
+<status status="PASS" endtime="20200225 11:54:57.456" critical="yes" starttime="20200225 11:54:57.354"></status>
+</test>
+<test id="s1-s2-s1-s2-t2" name="Test2 - 1Nested Sleep">
+<kw name="MySleep">
+<kw name="Sleep" library="BuiltIn">
+<doc>Pauses the test executed for the given time.</doc>
+<arguments>
+<arg>0.1</arg>
+</arguments>
+<msg timestamp="20200225 11:54:57.557" level="INFO">Slept 100 milliseconds</msg>
+<status status="PASS" endtime="20200225 11:54:57.558" starttime="20200225 11:54:57.457"></status>
+</kw>
+<status status="PASS" endtime="20200225 11:54:57.558" starttime="20200225 11:54:57.457"></status>
+</kw>
+<status status="PASS" endtime="20200225 11:54:57.559" critical="yes" starttime="20200225 11:54:57.456"></status>
+</test>
+<test id="s1-s2-s1-s2-t3" name="Test3 - 2 Nested Sleeps">
+<kw name="MySleepSleep">
+<kw name="MySleep">
+<kw name="Sleep" library="BuiltIn">
+<doc>Pauses the test executed for the given time.</doc>
+<arguments>
+<arg>0.1</arg>
+</arguments>
+<msg timestamp="20200225 11:54:57.662" level="INFO">Slept 100 milliseconds</msg>
+<status status="PASS" endtime="20200225 11:54:57.663" starttime="20200225 11:54:57.561"></status>
+</kw>
+<status status="PASS" endtime="20200225 11:54:57.663" starttime="20200225 11:54:57.561"></status>
+</kw>
+<status status="PASS" endtime="20200225 11:54:57.663" starttime="20200225 11:54:57.560"></status>
+</kw>
+<status status="PASS" endtime="20200225 11:54:57.663" critical="yes" starttime="20200225 11:54:57.559"></status>
+</test>
+<test id="s1-s2-s1-s2-t4" name="Test4 - 3 Nested Sleeps">
+<kw name="MySleepSleepSleep">
+<kw name="MySleepSleep">
+<kw name="MySleep">
+<kw name="Sleep" library="BuiltIn">
+<doc>Pauses the test executed for the given time.</doc>
+<arguments>
+<arg>0.1</arg>
+</arguments>
+<msg timestamp="20200225 11:54:57.767" level="INFO">Slept 100 milliseconds</msg>
+<status status="PASS" endtime="20200225 11:54:57.767" starttime="20200225 11:54:57.666"></status>
+</kw>
+<status status="PASS" endtime="20200225 11:54:57.767" starttime="20200225 11:54:57.666"></status>
+</kw>
+<status status="PASS" endtime="20200225 11:54:57.767" starttime="20200225 11:54:57.665"></status>
+</kw>
+<status status="PASS" endtime="20200225 11:54:57.767" starttime="20200225 11:54:57.665"></status>
+</kw>
+<status status="PASS" endtime="20200225 11:54:57.767" critical="yes" starttime="20200225 11:54:57.664"></status>
+</test>
+<status status="PASS" endtime="20200225 11:54:57.768" starttime="20200225 11:54:57.353"></status>
+</suite>
+<suite source="/workspace/robotmk/robot-testsuites/suites/oksuite/L2-Suites/L2-A-Suites/L2-Testfile-A-3.robot" id="s1-s2-s1-s3" name="L2-Testfile-A-3">
+<test id="s1-s2-s1-s3-t1" name="Test1 - Sleep">
+<kw name="Sleep" library="BuiltIn">
+<doc>Pauses the test executed for the given time.</doc>
+<arguments>
+<arg>0.1</arg>
+</arguments>
+<msg timestamp="20200225 11:54:57.872" level="INFO">Slept 100 milliseconds</msg>
+<status status="PASS" endtime="20200225 11:54:57.872" starttime="20200225 11:54:57.771"></status>
+</kw>
+<status status="PASS" endtime="20200225 11:54:57.872" critical="yes" starttime="20200225 11:54:57.771"></status>
+</test>
+<test id="s1-s2-s1-s3-t2" name="Test2 - 1Nested Sleep">
+<kw name="MySleep">
+<kw name="Sleep" library="BuiltIn">
+<doc>Pauses the test executed for the given time.</doc>
+<arguments>
+<arg>0.1</arg>
+</arguments>
+<msg timestamp="20200225 11:54:57.974" level="INFO">Slept 100 milliseconds</msg>
+<status status="PASS" endtime="20200225 11:54:57.974" starttime="20200225 11:54:57.874"></status>
+</kw>
+<status status="PASS" endtime="20200225 11:54:57.975" starttime="20200225 11:54:57.873"></status>
+</kw>
+<status status="PASS" endtime="20200225 11:54:57.975" critical="yes" starttime="20200225 11:54:57.873"></status>
+</test>
+<test id="s1-s2-s1-s3-t3" name="Test3 - 2 Nested Sleeps">
+<kw name="MySleepSleep">
+<kw name="MySleep">
+<kw name="Sleep" library="BuiltIn">
+<doc>Pauses the test executed for the given time.</doc>
+<arguments>
+<arg>0.1</arg>
+</arguments>
+<msg timestamp="20200225 11:54:58.077" level="INFO">Slept 100 milliseconds</msg>
+<status status="PASS" endtime="20200225 11:54:58.078" starttime="20200225 11:54:57.977"></status>
+</kw>
+<status status="PASS" endtime="20200225 11:54:58.078" starttime="20200225 11:54:57.976"></status>
+</kw>
+<status status="PASS" endtime="20200225 11:54:58.078" starttime="20200225 11:54:57.976"></status>
+</kw>
+<status status="PASS" endtime="20200225 11:54:58.078" critical="yes" starttime="20200225 11:54:57.975"></status>
+</test>
+<test id="s1-s2-s1-s3-t4" name="Test4 - 3 Nested Sleeps">
+<kw name="MySleepSleepSleep">
+<kw name="MySleepSleep">
+<kw name="MySleep">
+<kw name="Sleep" library="BuiltIn">
+<doc>Pauses the test executed for the given time.</doc>
+<arguments>
+<arg>0.1</arg>
+</arguments>
+<msg timestamp="20200225 11:54:58.181" level="INFO">Slept 100 milliseconds</msg>
+<status status="PASS" endtime="20200225 11:54:58.181" starttime="20200225 11:54:58.080"></status>
+</kw>
+<status status="PASS" endtime="20200225 11:54:58.182" starttime="20200225 11:54:58.080"></status>
+</kw>
+<status status="PASS" endtime="20200225 11:54:58.182" starttime="20200225 11:54:58.080"></status>
+</kw>
+<status status="PASS" endtime="20200225 11:54:58.183" starttime="20200225 11:54:58.079"></status>
+</kw>
+<status status="PASS" endtime="20200225 11:54:58.183" critical="yes" starttime="20200225 11:54:58.079"></status>
+</test>
+<status status="PASS" endtime="20200225 11:54:58.185" starttime="20200225 11:54:57.769"></status>
+</suite>
+<status status="PASS" endtime="20200225 11:54:58.190" starttime="20200225 11:54:56.933"></status>
+</suite>
+<suite source="/workspace/robotmk/robot-testsuites/suites/oksuite/L2-Suites/L2-B-Suites" id="s1-s2-s2" name="L2-B-Suites">
+<suite source="/workspace/robotmk/robot-testsuites/suites/oksuite/L2-Suites/L2-B-Suites/L2-Testfile-B-1.robot" id="s1-s2-s2-s1" name="L2-Testfile-B-1">
+<test id="s1-s2-s2-s1-t1" name="Test1 - Sleep">
+<kw name="Sleep" library="BuiltIn">
+<doc>Pauses the test executed for the given time.</doc>
+<arguments>
+<arg>0.1</arg>
+</arguments>
+<msg timestamp="20200225 11:54:58.305" level="INFO">Slept 100 milliseconds</msg>
+<status status="PASS" endtime="20200225 11:54:58.305" starttime="20200225 11:54:58.204"></status>
+</kw>
+<status status="PASS" endtime="20200225 11:54:58.305" critical="yes" starttime="20200225 11:54:58.203"></status>
+</test>
+<test id="s1-s2-s2-s1-t2" name="Test2 - 1Nested Sleep">
+<kw name="MySleep">
+<kw name="Sleep" library="BuiltIn">
+<doc>Pauses the test executed for the given time.</doc>
+<arguments>
+<arg>0.1</arg>
+</arguments>
+<msg timestamp="20200225 11:54:58.408" level="INFO">Slept 100 milliseconds</msg>
+<status status="PASS" endtime="20200225 11:54:58.408" starttime="20200225 11:54:58.307"></status>
+</kw>
+<status status="PASS" endtime="20200225 11:54:58.409" starttime="20200225 11:54:58.307"></status>
+</kw>
+<status status="PASS" endtime="20200225 11:54:58.409" critical="yes" starttime="20200225 11:54:58.306"></status>
+</test>
+<test id="s1-s2-s2-s1-t3" name="Test3 - 2 Nested Sleeps">
+<kw name="MySleepSleep">
+<kw name="MySleep">
+<kw name="Sleep" library="BuiltIn">
+<doc>Pauses the test executed for the given time.</doc>
+<arguments>
+<arg>0.1</arg>
+</arguments>
+<msg timestamp="20200225 11:54:58.514" level="INFO">Slept 100 milliseconds</msg>
+<status status="PASS" endtime="20200225 11:54:58.514" starttime="20200225 11:54:58.413"></status>
+</kw>
+<status status="PASS" endtime="20200225 11:54:58.515" starttime="20200225 11:54:58.412"></status>
+</kw>
+<status status="PASS" endtime="20200225 11:54:58.515" starttime="20200225 11:54:58.411"></status>
+</kw>
+<status status="PASS" endtime="20200225 11:54:58.516" critical="yes" starttime="20200225 11:54:58.410"></status>
+</test>
+<test id="s1-s2-s2-s1-t4" name="Test4 - 3 Nested Sleeps">
+<kw name="MySleepSleepSleep">
+<kw name="MySleepSleep">
+<kw name="MySleep">
+<kw name="Sleep" library="BuiltIn">
+<doc>Pauses the test executed for the given time.</doc>
+<arguments>
+<arg>0.1</arg>
+</arguments>
+<msg timestamp="20200225 11:54:58.619" level="INFO">Slept 100 milliseconds</msg>
+<status status="PASS" endtime="20200225 11:54:58.619" starttime="20200225 11:54:58.518"></status>
+</kw>
+<status status="PASS" endtime="20200225 11:54:58.619" starttime="20200225 11:54:58.518"></status>
+</kw>
+<status status="PASS" endtime="20200225 11:54:58.619" starttime="20200225 11:54:58.517"></status>
+</kw>
+<status status="PASS" endtime="20200225 11:54:58.619" starttime="20200225 11:54:58.517"></status>
+</kw>
+<status status="PASS" endtime="20200225 11:54:58.620" critical="yes" starttime="20200225 11:54:58.516"></status>
+</test>
+<status status="PASS" endtime="20200225 11:54:58.621" starttime="20200225 11:54:58.199"></status>
+</suite>
+<suite source="/workspace/robotmk/robot-testsuites/suites/oksuite/L2-Suites/L2-B-Suites/L2-Testfile-B-2.robot" id="s1-s2-s2-s2" name="L2-Testfile-B-2">
+<test id="s1-s2-s2-s2-t1" name="Test1 - Sleep">
+<kw name="Sleep" library="BuiltIn">
+<doc>Pauses the test executed for the given time.</doc>
+<arguments>
+<arg>0.1</arg>
+</arguments>
+<msg timestamp="20200225 11:54:58.724" level="INFO">Slept 100 milliseconds</msg>
+<status status="PASS" endtime="20200225 11:54:58.724" starttime="20200225 11:54:58.623"></status>
+</kw>
+<status status="PASS" endtime="20200225 11:54:58.725" critical="yes" starttime="20200225 11:54:58.623"></status>
+</test>
+<test id="s1-s2-s2-s2-t2" name="Test2 - 1Nested Sleep">
+<kw name="MySleep">
+<kw name="Sleep" library="BuiltIn">
+<doc>Pauses the test executed for the given time.</doc>
+<arguments>
+<arg>0.1</arg>
+</arguments>
+<msg timestamp="20200225 11:54:58.827" level="INFO">Slept 100 milliseconds</msg>
+<status status="PASS" endtime="20200225 11:54:58.828" starttime="20200225 11:54:58.727"></status>
+</kw>
+<status status="PASS" endtime="20200225 11:54:58.828" starttime="20200225 11:54:58.726"></status>
+</kw>
+<status status="PASS" endtime="20200225 11:54:58.828" critical="yes" starttime="20200225 11:54:58.725"></status>
+</test>
+<test id="s1-s2-s2-s2-t3" name="Test3 - 2 Nested Sleeps">
+<kw name="MySleepSleep">
+<kw name="MySleep">
+<kw name="Sleep" library="BuiltIn">
+<doc>Pauses the test executed for the given time.</doc>
+<arguments>
+<arg>0.1</arg>
+</arguments>
+<msg timestamp="20200225 11:54:58.931" level="INFO">Slept 100 milliseconds</msg>
+<status status="PASS" endtime="20200225 11:54:58.931" starttime="20200225 11:54:58.830"></status>
+</kw>
+<status status="PASS" endtime="20200225 11:54:58.931" starttime="20200225 11:54:58.830"></status>
+</kw>
+<status status="PASS" endtime="20200225 11:54:58.931" starttime="20200225 11:54:58.829"></status>
+</kw>
+<status status="PASS" endtime="20200225 11:54:58.931" critical="yes" starttime="20200225 11:54:58.829"></status>
+</test>
+<test id="s1-s2-s2-s2-t4" name="Test4 - 3 Nested Sleeps">
+<kw name="MySleepSleepSleep">
+<kw name="MySleepSleep">
+<kw name="MySleep">
+<kw name="Sleep" library="BuiltIn">
+<doc>Pauses the test executed for the given time.</doc>
+<arguments>
+<arg>0.1</arg>
+</arguments>
+<msg timestamp="20200225 11:54:59.033" level="INFO">Slept 100 milliseconds</msg>
+<status status="PASS" endtime="20200225 11:54:59.033" starttime="20200225 11:54:58.933"></status>
+</kw>
+<status status="PASS" endtime="20200225 11:54:59.034" starttime="20200225 11:54:58.933"></status>
+</kw>
+<status status="PASS" endtime="20200225 11:54:59.034" starttime="20200225 11:54:58.932"></status>
+</kw>
+<status status="PASS" endtime="20200225 11:54:59.034" starttime="20200225 11:54:58.932"></status>
+</kw>
+<status status="PASS" endtime="20200225 11:54:59.034" critical="yes" starttime="20200225 11:54:58.931"></status>
+</test>
+<status status="PASS" endtime="20200225 11:54:59.035" starttime="20200225 11:54:58.621"></status>
+</suite>
+<suite source="/workspace/robotmk/robot-testsuites/suites/oksuite/L2-Suites/L2-B-Suites/L2-Testfile-B-3.robot" id="s1-s2-s2-s3" name="L2-Testfile-B-3">
+<test id="s1-s2-s2-s3-t1" name="Test1 - Sleep">
+<kw name="Sleep" library="BuiltIn">
+<doc>Pauses the test executed for the given time.</doc>
+<arguments>
+<arg>0.1</arg>
+</arguments>
+<msg timestamp="20200225 11:54:59.138" level="INFO">Slept 100 milliseconds</msg>
+<status status="PASS" endtime="20200225 11:54:59.139" starttime="20200225 11:54:59.038"></status>
+</kw>
+<status status="PASS" endtime="20200225 11:54:59.139" critical="yes" starttime="20200225 11:54:59.037"></status>
+</test>
+<test id="s1-s2-s2-s3-t2" name="Test2 - 1Nested Sleep">
+<kw name="MySleep">
+<kw name="Sleep" library="BuiltIn">
+<doc>Pauses the test executed for the given time.</doc>
+<arguments>
+<arg>0.1</arg>
+</arguments>
+<msg timestamp="20200225 11:54:59.240" level="INFO">Slept 100 milliseconds</msg>
+<status status="PASS" endtime="20200225 11:54:59.241" starttime="20200225 11:54:59.140"></status>
+</kw>
+<status status="PASS" endtime="20200225 11:54:59.241" starttime="20200225 11:54:59.140"></status>
+</kw>
+<status status="PASS" endtime="20200225 11:54:59.241" critical="yes" starttime="20200225 11:54:59.139"></status>
+</test>
+<test id="s1-s2-s2-s3-t3" name="Test3 - 2 Nested Sleeps">
+<kw name="MySleepSleep">
+<kw name="MySleep">
+<kw name="Sleep" library="BuiltIn">
+<doc>Pauses the test executed for the given time.</doc>
+<arguments>
+<arg>0.1</arg>
+</arguments>
+<msg timestamp="20200225 11:54:59.343" level="INFO">Slept 100 milliseconds</msg>
+<status status="PASS" endtime="20200225 11:54:59.344" starttime="20200225 11:54:59.243"></status>
+</kw>
+<status status="PASS" endtime="20200225 11:54:59.344" starttime="20200225 11:54:59.243"></status>
+</kw>
+<status status="PASS" endtime="20200225 11:54:59.344" starttime="20200225 11:54:59.242"></status>
+</kw>
+<status status="PASS" endtime="20200225 11:54:59.344" critical="yes" starttime="20200225 11:54:59.242"></status>
+</test>
+<test id="s1-s2-s2-s3-t4" name="Test4 - 3 Nested Sleeps">
+<kw name="MySleepSleepSleep">
+<kw name="MySleepSleep">
+<kw name="MySleep">
+<kw name="Sleep" library="BuiltIn">
+<doc>Pauses the test executed for the given time.</doc>
+<arguments>
+<arg>0.1</arg>
+</arguments>
+<msg timestamp="20200225 11:54:59.446" level="INFO">Slept 100 milliseconds</msg>
+<status status="PASS" endtime="20200225 11:54:59.446" starttime="20200225 11:54:59.345"></status>
+</kw>
+<status status="PASS" endtime="20200225 11:54:59.446" starttime="20200225 11:54:59.345"></status>
+</kw>
+<status status="PASS" endtime="20200225 11:54:59.447" starttime="20200225 11:54:59.345"></status>
+</kw>
+<status status="PASS" endtime="20200225 11:54:59.447" starttime="20200225 11:54:59.345"></status>
+</kw>
+<status status="PASS" endtime="20200225 11:54:59.447" critical="yes" starttime="20200225 11:54:59.344"></status>
+</test>
+<status status="PASS" endtime="20200225 11:54:59.448" starttime="20200225 11:54:59.036"></status>
+</suite>
+<status status="PASS" endtime="20200225 11:54:59.449" starttime="20200225 11:54:58.195"></status>
+</suite>
+<suite source="/workspace/robotmk/robot-testsuites/suites/oksuite/L2-Suites/L2-C-Suites" id="s1-s2-s3" name="L2-C-Suites">
+<suite source="/workspace/robotmk/robot-testsuites/suites/oksuite/L2-Suites/L2-C-Suites/L2-Testfile-C-1.robot" id="s1-s2-s3-s1" name="L2-Testfile-C-1">
+<test id="s1-s2-s3-s1-t1" name="Test1 - Sleep">
+<kw name="Sleep" library="BuiltIn">
+<doc>Pauses the test executed for the given time.</doc>
+<arguments>
+<arg>0.1</arg>
+</arguments>
+<msg timestamp="20200225 11:54:59.555" level="INFO">Slept 100 milliseconds</msg>
+<status status="PASS" endtime="20200225 11:54:59.555" starttime="20200225 11:54:59.455"></status>
+</kw>
+<status status="PASS" endtime="20200225 11:54:59.556" critical="yes" starttime="20200225 11:54:59.454"></status>
+</test>
+<test id="s1-s2-s3-s1-t2" name="Test2 - 1Nested Sleep">
+<kw name="MySleep">
+<kw name="Sleep" library="BuiltIn">
+<doc>Pauses the test executed for the given time.</doc>
+<arguments>
+<arg>0.1</arg>
+</arguments>
+<msg timestamp="20200225 11:54:59.657" level="INFO">Slept 100 milliseconds</msg>
+<status status="PASS" endtime="20200225 11:54:59.658" starttime="20200225 11:54:59.557"></status>
+</kw>
+<status status="PASS" endtime="20200225 11:54:59.658" starttime="20200225 11:54:59.557"></status>
+</kw>
+<status status="PASS" endtime="20200225 11:54:59.658" critical="yes" starttime="20200225 11:54:59.556"></status>
+</test>
+<test id="s1-s2-s3-s1-t3" name="Test3 - 2 Nested Sleeps">
+<kw name="MySleepSleep">
+<kw name="MySleep">
+<kw name="Sleep" library="BuiltIn">
+<doc>Pauses the test executed for the given time.</doc>
+<arguments>
+<arg>0.1</arg>
+</arguments>
+<msg timestamp="20200225 11:54:59.760" level="INFO">Slept 100 milliseconds</msg>
+<status status="PASS" endtime="20200225 11:54:59.760" starttime="20200225 11:54:59.659"></status>
+</kw>
+<status status="PASS" endtime="20200225 11:54:59.761" starttime="20200225 11:54:59.659"></status>
+</kw>
+<status status="PASS" endtime="20200225 11:54:59.761" starttime="20200225 11:54:59.659"></status>
+</kw>
+<status status="PASS" endtime="20200225 11:54:59.762" critical="yes" starttime="20200225 11:54:59.658"></status>
+</test>
+<test id="s1-s2-s3-s1-t4" name="Test4 - 3 Nested Sleeps">
+<kw name="MySleepSleepSleep">
+<kw name="MySleepSleep">
+<kw name="MySleep">
+<kw name="Sleep" library="BuiltIn">
+<doc>Pauses the test executed for the given time.</doc>
+<arguments>
+<arg>0.1</arg>
+</arguments>
+<msg timestamp="20200225 11:54:59.866" level="INFO">Slept 100 milliseconds</msg>
+<status status="PASS" endtime="20200225 11:54:59.866" starttime="20200225 11:54:59.765"></status>
+</kw>
+<status status="PASS" endtime="20200225 11:54:59.866" starttime="20200225 11:54:59.764"></status>
+</kw>
+<status status="PASS" endtime="20200225 11:54:59.866" starttime="20200225 11:54:59.764"></status>
+</kw>
+<status status="PASS" endtime="20200225 11:54:59.866" starttime="20200225 11:54:59.763"></status>
+</kw>
+<status status="PASS" endtime="20200225 11:54:59.867" critical="yes" starttime="20200225 11:54:59.762"></status>
+</test>
+<status status="PASS" endtime="20200225 11:54:59.867" starttime="20200225 11:54:59.453"></status>
+</suite>
+<suite source="/workspace/robotmk/robot-testsuites/suites/oksuite/L2-Suites/L2-C-Suites/L2-Testfile-C-2.robot" id="s1-s2-s3-s2" name="L2-Testfile-C-2">
+<test id="s1-s2-s3-s2-t1" name="Test1 - Sleep">
+<kw name="Sleep" library="BuiltIn">
+<doc>Pauses the test executed for the given time.</doc>
+<arguments>
+<arg>0.1</arg>
+</arguments>
+<msg timestamp="20200225 11:54:59.972" level="INFO">Slept 100 milliseconds</msg>
+<status status="PASS" endtime="20200225 11:54:59.972" starttime="20200225 11:54:59.872"></status>
+</kw>
+<status status="PASS" endtime="20200225 11:54:59.973" critical="yes" starttime="20200225 11:54:59.871"></status>
+</test>
+<test id="s1-s2-s3-s2-t2" name="Test2 - 1Nested Sleep">
+<kw name="MySleep">
+<kw name="Sleep" library="BuiltIn">
+<doc>Pauses the test executed for the given time.</doc>
+<arguments>
+<arg>0.1</arg>
+</arguments>
+<msg timestamp="20200225 11:55:00.074" level="INFO">Slept 100 milliseconds</msg>
+<status status="PASS" endtime="20200225 11:55:00.074" starttime="20200225 11:54:59.974"></status>
+</kw>
+<status status="PASS" endtime="20200225 11:55:00.074" starttime="20200225 11:54:59.973"></status>
+</kw>
+<status status="PASS" endtime="20200225 11:55:00.075" critical="yes" starttime="20200225 11:54:59.973"></status>
+</test>
+<test id="s1-s2-s3-s2-t3" name="Test3 - 2 Nested Sleeps">
+<kw name="MySleepSleep">
+<kw name="MySleep">
+<kw name="Sleep" library="BuiltIn">
+<doc>Pauses the test executed for the given time.</doc>
+<arguments>
+<arg>0.1</arg>
+</arguments>
+<msg timestamp="20200225 11:55:00.176" level="INFO">Slept 100 milliseconds</msg>
+<status status="PASS" endtime="20200225 11:55:00.177" starttime="20200225 11:55:00.076"></status>
+</kw>
+<status status="PASS" endtime="20200225 11:55:00.177" starttime="20200225 11:55:00.076"></status>
+</kw>
+<status status="PASS" endtime="20200225 11:55:00.177" starttime="20200225 11:55:00.075"></status>
+</kw>
+<status status="PASS" endtime="20200225 11:55:00.177" critical="yes" starttime="20200225 11:55:00.075"></status>
+</test>
+<test id="s1-s2-s3-s2-t4" name="Test4 - 3 Nested Sleeps">
+<kw name="MySleepSleepSleep">
+<kw name="MySleepSleep">
+<kw name="MySleep">
+<kw name="Sleep" library="BuiltIn">
+<doc>Pauses the test executed for the given time.</doc>
+<arguments>
+<arg>0.1</arg>
+</arguments>
+<msg timestamp="20200225 11:55:00.279" level="INFO">Slept 100 milliseconds</msg>
+<status status="PASS" endtime="20200225 11:55:00.279" starttime="20200225 11:55:00.179"></status>
+</kw>
+<status status="PASS" endtime="20200225 11:55:00.279" starttime="20200225 11:55:00.178"></status>
+</kw>
+<status status="PASS" endtime="20200225 11:55:00.279" starttime="20200225 11:55:00.178"></status>
+</kw>
+<status status="PASS" endtime="20200225 11:55:00.280" starttime="20200225 11:55:00.178"></status>
+</kw>
+<status status="PASS" endtime="20200225 11:55:00.280" critical="yes" starttime="20200225 11:55:00.178"></status>
+</test>
+<status status="PASS" endtime="20200225 11:55:00.281" starttime="20200225 11:54:59.868"></status>
+</suite>
+<suite source="/workspace/robotmk/robot-testsuites/suites/oksuite/L2-Suites/L2-C-Suites/L2-Testfile-C-3.robot" id="s1-s2-s3-s3" name="L2-Testfile-C-3">
+<test id="s1-s2-s3-s3-t1" name="Test1 - Sleep">
+<kw name="Sleep" library="BuiltIn">
+<doc>Pauses the test executed for the given time.</doc>
+<arguments>
+<arg>0.1</arg>
+</arguments>
+<msg timestamp="20200225 11:55:00.384" level="INFO">Slept 100 milliseconds</msg>
+<status status="PASS" endtime="20200225 11:55:00.384" starttime="20200225 11:55:00.284"></status>
+</kw>
+<status status="PASS" endtime="20200225 11:55:00.385" critical="yes" starttime="20200225 11:55:00.283"></status>
+</test>
+<test id="s1-s2-s3-s3-t2" name="Test2 - 1Nested Sleep">
+<kw name="MySleep">
+<kw name="Sleep" library="BuiltIn">
+<doc>Pauses the test executed for the given time.</doc>
+<arguments>
+<arg>0.1</arg>
+</arguments>
+<msg timestamp="20200225 11:55:00.487" level="INFO">Slept 100 milliseconds</msg>
+<status status="PASS" endtime="20200225 11:55:00.487" starttime="20200225 11:55:00.386"></status>
+</kw>
+<status status="PASS" endtime="20200225 11:55:00.487" starttime="20200225 11:55:00.386"></status>
+</kw>
+<status status="PASS" endtime="20200225 11:55:00.488" critical="yes" starttime="20200225 11:55:00.385"></status>
+</test>
+<test id="s1-s2-s3-s3-t3" name="Test3 - 2 Nested Sleeps">
+<kw name="MySleepSleep">
+<kw name="MySleep">
+<kw name="Sleep" library="BuiltIn">
+<doc>Pauses the test executed for the given time.</doc>
+<arguments>
+<arg>0.1</arg>
+</arguments>
+<msg timestamp="20200225 11:55:00.592" level="INFO">Slept 100 milliseconds</msg>
+<status status="PASS" endtime="20200225 11:55:00.593" starttime="20200225 11:55:00.491"></status>
+</kw>
+<status status="PASS" endtime="20200225 11:55:00.593" starttime="20200225 11:55:00.491"></status>
+</kw>
+<status status="PASS" endtime="20200225 11:55:00.594" starttime="20200225 11:55:00.490"></status>
+</kw>
+<status status="PASS" endtime="20200225 11:55:00.594" critical="yes" starttime="20200225 11:55:00.489"></status>
+</test>
+<test id="s1-s2-s3-s3-t4" name="Test4 - 3 Nested Sleeps">
+<kw name="MySleepSleepSleep">
+<kw name="MySleepSleep">
+<kw name="MySleep">
+<kw name="Sleep" library="BuiltIn">
+<doc>Pauses the test executed for the given time.</doc>
+<arguments>
+<arg>0.1</arg>
+</arguments>
+<msg timestamp="20200225 11:55:00.699" level="INFO">Slept 100 milliseconds</msg>
+<status status="PASS" endtime="20200225 11:55:00.700" starttime="20200225 11:55:00.599"></status>
+</kw>
+<status status="PASS" endtime="20200225 11:55:00.700" starttime="20200225 11:55:00.598"></status>
+</kw>
+<status status="PASS" endtime="20200225 11:55:00.701" starttime="20200225 11:55:00.597"></status>
+</kw>
+<status status="PASS" endtime="20200225 11:55:00.701" starttime="20200225 11:55:00.596"></status>
+</kw>
+<status status="PASS" endtime="20200225 11:55:00.702" critical="yes" starttime="20200225 11:55:00.595"></status>
+</test>
+<status status="PASS" endtime="20200225 11:55:00.702" starttime="20200225 11:55:00.282"></status>
+</suite>
+<status status="PASS" endtime="20200225 11:55:00.705" starttime="20200225 11:54:59.451"></status>
+</suite>
+<status status="PASS" endtime="20200225 11:55:00.711" starttime="20200225 11:54:56.931"></status>
+</suite>
+<suite source="/workspace/robotmk/robot-testsuites/suites/oksuite/L3-Suites" id="s1-s3" name="L3-Suites">
+<suite source="/workspace/robotmk/robot-testsuites/suites/oksuite/L3-Suites/L3-A-Suites" id="s1-s3-s1" name="L3-A-Suites">
+<suite source="/workspace/robotmk/robot-testsuites/suites/oksuite/L3-Suites/L3-A-Suites/L3-Testfile-A-1.robot" id="s1-s3-s1-s1" name="L3-Testfile-A-1">
+<test id="s1-s3-s1-s1-t1" name="Test1 - Sleep">
+<kw name="Sleep" library="BuiltIn">
+<doc>Pauses the test executed for the given time.</doc>
+<arguments>
+<arg>0.1</arg>
+</arguments>
+<msg timestamp="20200225 11:55:00.825" level="INFO">Slept 100 milliseconds</msg>
+<status status="PASS" endtime="20200225 11:55:00.825" starttime="20200225 11:55:00.724"></status>
+</kw>
+<status status="PASS" endtime="20200225 11:55:00.825" critical="yes" starttime="20200225 11:55:00.724"></status>
+</test>
+<test id="s1-s3-s1-s1-t2" name="Test2 - 1Nested Sleep">
+<kw name="MySleep">
+<kw name="Sleep" library="BuiltIn">
+<doc>Pauses the test executed for the given time.</doc>
+<arguments>
+<arg>0.1</arg>
+</arguments>
+<msg timestamp="20200225 11:55:00.929" level="INFO">Slept 100 milliseconds</msg>
+<status status="PASS" endtime="20200225 11:55:00.929" starttime="20200225 11:55:00.828"></status>
+</kw>
+<status status="PASS" endtime="20200225 11:55:00.930" starttime="20200225 11:55:00.827"></status>
+</kw>
+<status status="PASS" endtime="20200225 11:55:00.930" critical="yes" starttime="20200225 11:55:00.826"></status>
+</test>
+<test id="s1-s3-s1-s1-t3" name="Test3 - 2 Nested Sleeps">
+<kw name="MySleepSleep">
+<kw name="MySleep">
+<kw name="Sleep" library="BuiltIn">
+<doc>Pauses the test executed for the given time.</doc>
+<arguments>
+<arg>0.1</arg>
+</arguments>
+<msg timestamp="20200225 11:55:01.035" level="INFO">Slept 100 milliseconds</msg>
+<status status="PASS" endtime="20200225 11:55:01.035" starttime="20200225 11:55:00.934"></status>
+</kw>
+<status status="PASS" endtime="20200225 11:55:01.036" starttime="20200225 11:55:00.933"></status>
+</kw>
+<status status="PASS" endtime="20200225 11:55:01.036" starttime="20200225 11:55:00.932"></status>
+</kw>
+<status status="PASS" endtime="20200225 11:55:01.036" critical="yes" starttime="20200225 11:55:00.931"></status>
+</test>
+<test id="s1-s3-s1-s1-t4" name="Test4 - 3 Nested Sleeps">
+<kw name="MySleepSleepSleep">
+<kw name="MySleepSleep">
+<kw name="MySleep">
+<kw name="Sleep" library="BuiltIn">
+<doc>Pauses the test executed for the given time.</doc>
+<arguments>
+<arg>0.1</arg>
+</arguments>
+<msg timestamp="20200225 11:55:01.141" level="INFO">Slept 100 milliseconds</msg>
+<status status="PASS" endtime="20200225 11:55:01.141" starttime="20200225 11:55:01.040"></status>
+</kw>
+<status status="PASS" endtime="20200225 11:55:01.141" starttime="20200225 11:55:01.039"></status>
+</kw>
+<status status="PASS" endtime="20200225 11:55:01.142" starttime="20200225 11:55:01.039"></status>
+</kw>
+<status status="PASS" endtime="20200225 11:55:01.142" starttime="20200225 11:55:01.038"></status>
+</kw>
+<status status="PASS" endtime="20200225 11:55:01.142" critical="yes" starttime="20200225 11:55:01.037"></status>
+</test>
+<status status="PASS" endtime="20200225 11:55:01.143" starttime="20200225 11:55:00.721"></status>
+</suite>
+<suite source="/workspace/robotmk/robot-testsuites/suites/oksuite/L3-Suites/L3-A-Suites/L3-Testfile-A-2.robot" id="s1-s3-s1-s2" name="L3-Testfile-A-2">
+<test id="s1-s3-s1-s2-t1" name="Test1 - Sleep">
+<kw name="Sleep" library="BuiltIn">
+<doc>Pauses the test executed for the given time.</doc>
+<arguments>
+<arg>0.1</arg>
+</arguments>
+<msg timestamp="20200225 11:55:01.252" level="INFO">Slept 100 milliseconds</msg>
+<status status="PASS" endtime="20200225 11:55:01.252" starttime="20200225 11:55:01.151"></status>
+</kw>
+<status status="PASS" endtime="20200225 11:55:01.253" critical="yes" starttime="20200225 11:55:01.150"></status>
+</test>
+<test id="s1-s3-s1-s2-t2" name="Test2 - 1Nested Sleep">
+<kw name="MySleep">
+<kw name="Sleep" library="BuiltIn">
+<doc>Pauses the test executed for the given time.</doc>
+<arguments>
+<arg>0.1</arg>
+</arguments>
+<msg timestamp="20200225 11:55:01.356" level="INFO">Slept 100 milliseconds</msg>
+<status status="PASS" endtime="20200225 11:55:01.356" starttime="20200225 11:55:01.255"></status>
+</kw>
+<status status="PASS" endtime="20200225 11:55:01.356" starttime="20200225 11:55:01.254"></status>
+</kw>
+<status status="PASS" endtime="20200225 11:55:01.356" critical="yes" starttime="20200225 11:55:01.254"></status>
+</test>
+<test id="s1-s3-s1-s2-t3" name="Test3 - 2 Nested Sleeps">
+<kw name="MySleepSleep">
+<kw name="MySleep">
+<kw name="Sleep" library="BuiltIn">
+<doc>Pauses the test executed for the given time.</doc>
+<arguments>
+<arg>0.1</arg>
+</arguments>
+<msg timestamp="20200225 11:55:01.458" level="INFO">Slept 100 milliseconds</msg>
+<status status="PASS" endtime="20200225 11:55:01.458" starttime="20200225 11:55:01.357"></status>
+</kw>
+<status status="PASS" endtime="20200225 11:55:01.458" starttime="20200225 11:55:01.357"></status>
+</kw>
+<status status="PASS" endtime="20200225 11:55:01.458" starttime="20200225 11:55:01.357"></status>
+</kw>
+<status status="PASS" endtime="20200225 11:55:01.458" critical="yes" starttime="20200225 11:55:01.356"></status>
+</test>
+<test id="s1-s3-s1-s2-t4" name="Test4 - 3 Nested Sleeps">
+<kw name="MySleepSleepSleep">
+<kw name="MySleepSleep">
+<kw name="MySleep">
+<kw name="Sleep" library="BuiltIn">
+<doc>Pauses the test executed for the given time.</doc>
+<arguments>
+<arg>0.1</arg>
+</arguments>
+<msg timestamp="20200225 11:55:01.561" level="INFO">Slept 100 milliseconds</msg>
+<status status="PASS" endtime="20200225 11:55:01.561" starttime="20200225 11:55:01.460"></status>
+</kw>
+<status status="PASS" endtime="20200225 11:55:01.561" starttime="20200225 11:55:01.460"></status>
+</kw>
+<status status="PASS" endtime="20200225 11:55:01.562" starttime="20200225 11:55:01.460"></status>
+</kw>
+<status status="PASS" endtime="20200225 11:55:01.562" starttime="20200225 11:55:01.460"></status>
+</kw>
+<status status="PASS" endtime="20200225 11:55:01.562" critical="yes" starttime="20200225 11:55:01.459"></status>
+</test>
+<status status="PASS" endtime="20200225 11:55:01.562" starttime="20200225 11:55:01.146"></status>
+</suite>
+<suite source="/workspace/robotmk/robot-testsuites/suites/oksuite/L3-Suites/L3-A-Suites/L3-Testfile-A-3.robot" id="s1-s3-s1-s3" name="L3-Testfile-A-3">
+<test id="s1-s3-s1-s3-t1" name="Test1 - Sleep">
+<kw name="Sleep" library="BuiltIn">
+<doc>Pauses the test executed for the given time.</doc>
+<arguments>
+<arg>0.1</arg>
+</arguments>
+<msg timestamp="20200225 11:55:01.666" level="INFO">Slept 100 milliseconds</msg>
+<status status="PASS" endtime="20200225 11:55:01.666" starttime="20200225 11:55:01.565"></status>
+</kw>
+<status status="PASS" endtime="20200225 11:55:01.666" critical="yes" starttime="20200225 11:55:01.565"></status>
+</test>
+<test id="s1-s3-s1-s3-t2" name="Test2 - 1Nested Sleep">
+<kw name="MySleep">
+<kw name="Sleep" library="BuiltIn">
+<doc>Pauses the test executed for the given time.</doc>
+<arguments>
+<arg>0.1</arg>
+</arguments>
+<msg timestamp="20200225 11:55:01.768" level="INFO">Slept 100 milliseconds</msg>
+<status status="PASS" endtime="20200225 11:55:01.768" starttime="20200225 11:55:01.667"></status>
+</kw>
+<status status="PASS" endtime="20200225 11:55:01.769" starttime="20200225 11:55:01.667"></status>
+</kw>
+<status status="PASS" endtime="20200225 11:55:01.769" critical="yes" starttime="20200225 11:55:01.667"></status>
+</test>
+<test id="s1-s3-s1-s3-t3" name="Test3 - 2 Nested Sleeps">
+<kw name="MySleepSleep">
+<kw name="MySleep">
+<kw name="Sleep" library="BuiltIn">
+<doc>Pauses the test executed for the given time.</doc>
+<arguments>
+<arg>0.1</arg>
+</arguments>
+<msg timestamp="20200225 11:55:01.872" level="INFO">Slept 100 milliseconds</msg>
+<status status="PASS" endtime="20200225 11:55:01.872" starttime="20200225 11:55:01.771"></status>
+</kw>
+<status status="PASS" endtime="20200225 11:55:01.872" starttime="20200225 11:55:01.771"></status>
+</kw>
+<status status="PASS" endtime="20200225 11:55:01.872" starttime="20200225 11:55:01.770"></status>
+</kw>
+<status status="PASS" endtime="20200225 11:55:01.872" critical="yes" starttime="20200225 11:55:01.770"></status>
+</test>
+<test id="s1-s3-s1-s3-t4" name="Test4 - 3 Nested Sleeps">
+<kw name="MySleepSleepSleep">
+<kw name="MySleepSleep">
+<kw name="MySleep">
+<kw name="Sleep" library="BuiltIn">
+<doc>Pauses the test executed for the given time.</doc>
+<arguments>
+<arg>0.1</arg>
+</arguments>
+<msg timestamp="20200225 11:55:01.974" level="INFO">Slept 100 milliseconds</msg>
+<status status="PASS" endtime="20200225 11:55:01.974" starttime="20200225 11:55:01.874"></status>
+</kw>
+<status status="PASS" endtime="20200225 11:55:01.974" starttime="20200225 11:55:01.874"></status>
+</kw>
+<status status="PASS" endtime="20200225 11:55:01.975" starttime="20200225 11:55:01.873"></status>
+</kw>
+<status status="PASS" endtime="20200225 11:55:01.975" starttime="20200225 11:55:01.873"></status>
+</kw>
+<status status="PASS" endtime="20200225 11:55:01.975" critical="yes" starttime="20200225 11:55:01.873"></status>
+</test>
+<status status="PASS" endtime="20200225 11:55:01.975" starttime="20200225 11:55:01.563"></status>
+</suite>
+<status status="PASS" endtime="20200225 11:55:01.976" starttime="20200225 11:55:00.719"></status>
+</suite>
+<suite source="/workspace/robotmk/robot-testsuites/suites/oksuite/L3-Suites/L3-B-Suites" id="s1-s3-s2" name="L3-B-Suites">
+<suite source="/workspace/robotmk/robot-testsuites/suites/oksuite/L3-Suites/L3-B-Suites/L3-Testfile-B-1.robot" id="s1-s3-s2-s1" name="L3-Testfile-B-1">
+<test id="s1-s3-s2-s1-t1" name="Test1 - Sleep">
+<kw name="Sleep" library="BuiltIn">
+<doc>Pauses the test executed for the given time.</doc>
+<arguments>
+<arg>0.1</arg>
+</arguments>
+<msg timestamp="20200225 11:55:02.082" level="INFO">Slept 100 milliseconds</msg>
+<status status="PASS" endtime="20200225 11:55:02.082" starttime="20200225 11:55:01.982"></status>
+</kw>
+<status status="PASS" endtime="20200225 11:55:02.083" critical="yes" starttime="20200225 11:55:01.981"></status>
+</test>
+<test id="s1-s3-s2-s1-t2" name="Test2 - 1Nested Sleep">
+<kw name="MySleep">
+<kw name="Sleep" library="BuiltIn">
+<doc>Pauses the test executed for the given time.</doc>
+<arguments>
+<arg>0.1</arg>
+</arguments>
+<msg timestamp="20200225 11:55:02.184" level="INFO">Slept 100 milliseconds</msg>
+<status status="PASS" endtime="20200225 11:55:02.184" starttime="20200225 11:55:02.084"></status>
+</kw>
+<status status="PASS" endtime="20200225 11:55:02.184" starttime="20200225 11:55:02.083"></status>
+</kw>
+<status status="PASS" endtime="20200225 11:55:02.184" critical="yes" starttime="20200225 11:55:02.083"></status>
+</test>
+<test id="s1-s3-s2-s1-t3" name="Test3 - 2 Nested Sleeps">
+<kw name="MySleepSleep">
+<kw name="MySleep">
+<kw name="Sleep" library="BuiltIn">
+<doc>Pauses the test executed for the given time.</doc>
+<arguments>
+<arg>0.1</arg>
+</arguments>
+<msg timestamp="20200225 11:55:02.286" level="INFO">Slept 100 milliseconds</msg>
+<status status="PASS" endtime="20200225 11:55:02.286" starttime="20200225 11:55:02.186"></status>
+</kw>
+<status status="PASS" endtime="20200225 11:55:02.286" starttime="20200225 11:55:02.185"></status>
+</kw>
+<status status="PASS" endtime="20200225 11:55:02.286" starttime="20200225 11:55:02.185"></status>
+</kw>
+<status status="PASS" endtime="20200225 11:55:02.286" critical="yes" starttime="20200225 11:55:02.185"></status>
+</test>
+<test id="s1-s3-s2-s1-t4" name="Test4 - 3 Nested Sleeps">
+<kw name="MySleepSleepSleep">
+<kw name="MySleepSleep">
+<kw name="MySleep">
+<kw name="Sleep" library="BuiltIn">
+<doc>Pauses the test executed for the given time.</doc>
+<arguments>
+<arg>0.1</arg>
+</arguments>
+<msg timestamp="20200225 11:55:02.388" level="INFO">Slept 100 milliseconds</msg>
+<status status="PASS" endtime="20200225 11:55:02.388" starttime="20200225 11:55:02.288"></status>
+</kw>
+<status status="PASS" endtime="20200225 11:55:02.389" starttime="20200225 11:55:02.288"></status>
+</kw>
+<status status="PASS" endtime="20200225 11:55:02.389" starttime="20200225 11:55:02.287"></status>
+</kw>
+<status status="PASS" endtime="20200225 11:55:02.389" starttime="20200225 11:55:02.287"></status>
+</kw>
+<status status="PASS" endtime="20200225 11:55:02.389" critical="yes" starttime="20200225 11:55:02.287"></status>
+</test>
+<status status="PASS" endtime="20200225 11:55:02.389" starttime="20200225 11:55:01.979"></status>
+</suite>
+<suite source="/workspace/robotmk/robot-testsuites/suites/oksuite/L3-Suites/L3-B-Suites/L3-Testfile-B-2.robot" id="s1-s3-s2-s2" name="L3-Testfile-B-2">
+<test id="s1-s3-s2-s2-t1" name="Test1 - Sleep">
+<kw name="Sleep" library="BuiltIn">
+<doc>Pauses the test executed for the given time.</doc>
+<arguments>
+<arg>0.1</arg>
+</arguments>
+<msg timestamp="20200225 11:55:02.493" level="INFO">Slept 100 milliseconds</msg>
+<status status="PASS" endtime="20200225 11:55:02.493" starttime="20200225 11:55:02.392"></status>
+</kw>
+<status status="PASS" endtime="20200225 11:55:02.493" critical="yes" starttime="20200225 11:55:02.392"></status>
+</test>
+<test id="s1-s3-s2-s2-t2" name="Test2 - 1Nested Sleep">
+<kw name="MySleep">
+<kw name="Sleep" library="BuiltIn">
+<doc>Pauses the test executed for the given time.</doc>
+<arguments>
+<arg>0.1</arg>
+</arguments>
+<msg timestamp="20200225 11:55:02.595" level="INFO">Slept 100 milliseconds</msg>
+<status status="PASS" endtime="20200225 11:55:02.595" starttime="20200225 11:55:02.494"></status>
+</kw>
+<status status="PASS" endtime="20200225 11:55:02.595" starttime="20200225 11:55:02.494"></status>
+</kw>
+<status status="PASS" endtime="20200225 11:55:02.595" critical="yes" starttime="20200225 11:55:02.493"></status>
+</test>
+<test id="s1-s3-s2-s2-t3" name="Test3 - 2 Nested Sleeps">
+<kw name="MySleepSleep">
+<kw name="MySleep">
+<kw name="Sleep" library="BuiltIn">
+<doc>Pauses the test executed for the given time.</doc>
+<arguments>
+<arg>0.1</arg>
+</arguments>
+<msg timestamp="20200225 11:55:02.697" level="INFO">Slept 100 milliseconds</msg>
+<status status="PASS" endtime="20200225 11:55:02.697" starttime="20200225 11:55:02.596"></status>
+</kw>
+<status status="PASS" endtime="20200225 11:55:02.697" starttime="20200225 11:55:02.596"></status>
+</kw>
+<status status="PASS" endtime="20200225 11:55:02.697" starttime="20200225 11:55:02.596"></status>
+</kw>
+<status status="PASS" endtime="20200225 11:55:02.697" critical="yes" starttime="20200225 11:55:02.595"></status>
+</test>
+<test id="s1-s3-s2-s2-t4" name="Test4 - 3 Nested Sleeps">
+<kw name="MySleepSleepSleep">
+<kw name="MySleepSleep">
+<kw name="MySleep">
+<kw name="Sleep" library="BuiltIn">
+<doc>Pauses the test executed for the given time.</doc>
+<arguments>
+<arg>0.1</arg>
+</arguments>
+<msg timestamp="20200225 11:55:02.799" level="INFO">Slept 100 milliseconds</msg>
+<status status="PASS" endtime="20200225 11:55:02.799" starttime="20200225 11:55:02.699"></status>
+</kw>
+<status status="PASS" endtime="20200225 11:55:02.799" starttime="20200225 11:55:02.698"></status>
+</kw>
+<status status="PASS" endtime="20200225 11:55:02.799" starttime="20200225 11:55:02.698"></status>
+</kw>
+<status status="PASS" endtime="20200225 11:55:02.800" starttime="20200225 11:55:02.698"></status>
+</kw>
+<status status="PASS" endtime="20200225 11:55:02.800" critical="yes" starttime="20200225 11:55:02.698"></status>
+</test>
+<status status="PASS" endtime="20200225 11:55:02.800" starttime="20200225 11:55:02.390"></status>
+</suite>
+<suite source="/workspace/robotmk/robot-testsuites/suites/oksuite/L3-Suites/L3-B-Suites/L3-Testfile-B-3.robot" id="s1-s3-s2-s3" name="L3-Testfile-B-3">
+<test id="s1-s3-s2-s3-t1" name="Test1 - Sleep">
+<kw name="Sleep" library="BuiltIn">
+<doc>Pauses the test executed for the given time.</doc>
+<arguments>
+<arg>0.1</arg>
+</arguments>
+<msg timestamp="20200225 11:55:02.903" level="INFO">Slept 100 milliseconds</msg>
+<status status="PASS" endtime="20200225 11:55:02.904" starttime="20200225 11:55:02.803"></status>
+</kw>
+<status status="PASS" endtime="20200225 11:55:02.904" critical="yes" starttime="20200225 11:55:02.803"></status>
+</test>
+<test id="s1-s3-s2-s3-t2" name="Test2 - 1Nested Sleep">
+<kw name="MySleep">
+<kw name="Sleep" library="BuiltIn">
+<doc>Pauses the test executed for the given time.</doc>
+<arguments>
+<arg>0.1</arg>
+</arguments>
+<msg timestamp="20200225 11:55:03.006" level="INFO">Slept 100 milliseconds</msg>
+<status status="PASS" endtime="20200225 11:55:03.006" starttime="20200225 11:55:02.905"></status>
+</kw>
+<status status="PASS" endtime="20200225 11:55:03.006" starttime="20200225 11:55:02.905"></status>
+</kw>
+<status status="PASS" endtime="20200225 11:55:03.006" critical="yes" starttime="20200225 11:55:02.904"></status>
+</test>
+<test id="s1-s3-s2-s3-t3" name="Test3 - 2 Nested Sleeps">
+<kw name="MySleepSleep">
+<kw name="MySleep">
+<kw name="Sleep" library="BuiltIn">
+<doc>Pauses the test executed for the given time.</doc>
+<arguments>
+<arg>0.1</arg>
+</arguments>
+<msg timestamp="20200225 11:55:03.108" level="INFO">Slept 100 milliseconds</msg>
+<status status="PASS" endtime="20200225 11:55:03.108" starttime="20200225 11:55:03.008"></status>
+</kw>
+<status status="PASS" endtime="20200225 11:55:03.108" starttime="20200225 11:55:03.007"></status>
+</kw>
+<status status="PASS" endtime="20200225 11:55:03.109" starttime="20200225 11:55:03.007"></status>
+</kw>
+<status status="PASS" endtime="20200225 11:55:03.109" critical="yes" starttime="20200225 11:55:03.007"></status>
+</test>
+<test id="s1-s3-s2-s3-t4" name="Test4 - 3 Nested Sleeps">
+<kw name="MySleepSleepSleep">
+<kw name="MySleepSleep">
+<kw name="MySleep">
+<kw name="Sleep" library="BuiltIn">
+<doc>Pauses the test executed for the given time.</doc>
+<arguments>
+<arg>0.1</arg>
+</arguments>
+<msg timestamp="20200225 11:55:03.211" level="INFO">Slept 100 milliseconds</msg>
+<status status="PASS" endtime="20200225 11:55:03.211" starttime="20200225 11:55:03.110"></status>
+</kw>
+<status status="PASS" endtime="20200225 11:55:03.211" starttime="20200225 11:55:03.110"></status>
+</kw>
+<status status="PASS" endtime="20200225 11:55:03.211" starttime="20200225 11:55:03.110"></status>
+</kw>
+<status status="PASS" endtime="20200225 11:55:03.212" starttime="20200225 11:55:03.109"></status>
+</kw>
+<status status="PASS" endtime="20200225 11:55:03.212" critical="yes" starttime="20200225 11:55:03.109"></status>
+</test>
+<status status="PASS" endtime="20200225 11:55:03.213" starttime="20200225 11:55:02.801"></status>
+</suite>
+<status status="PASS" endtime="20200225 11:55:03.215" starttime="20200225 11:55:01.978"></status>
+</suite>
+<suite source="/workspace/robotmk/robot-testsuites/suites/oksuite/L3-Suites/L3-C-Suites" id="s1-s3-s3" name="L3-C-Suites">
+<suite source="/workspace/robotmk/robot-testsuites/suites/oksuite/L3-Suites/L3-C-Suites/L3-Testfile-C-1.robot" id="s1-s3-s3-s1" name="L3-Testfile-C-1">
+<test id="s1-s3-s3-s1-t1" name="Test1 - Sleep">
+<kw name="Sleep" library="BuiltIn">
+<doc>Pauses the test executed for the given time.</doc>
+<arguments>
+<arg>0.1</arg>
+</arguments>
+<msg timestamp="20200225 11:55:03.321" level="INFO">Slept 100 milliseconds</msg>
+<status status="PASS" endtime="20200225 11:55:03.322" starttime="20200225 11:55:03.221"></status>
+</kw>
+<status status="PASS" endtime="20200225 11:55:03.322" critical="yes" starttime="20200225 11:55:03.220"></status>
+</test>
+<test id="s1-s3-s3-s1-t2" name="Test2 - 1Nested Sleep">
+<kw name="MySleep">
+<kw name="Sleep" library="BuiltIn">
+<doc>Pauses the test executed for the given time.</doc>
+<arguments>
+<arg>0.1</arg>
+</arguments>
+<msg timestamp="20200225 11:55:03.426" level="INFO">Slept 100 milliseconds</msg>
+<status status="PASS" endtime="20200225 11:55:03.426" starttime="20200225 11:55:03.325"></status>
+</kw>
+<status status="PASS" endtime="20200225 11:55:03.426" starttime="20200225 11:55:03.324"></status>
+</kw>
+<status status="PASS" endtime="20200225 11:55:03.426" critical="yes" starttime="20200225 11:55:03.323"></status>
+</test>
+<test id="s1-s3-s3-s1-t3" name="Test3 - 2 Nested Sleeps">
+<kw name="MySleepSleep">
+<kw name="MySleep">
+<kw name="Sleep" library="BuiltIn">
+<doc>Pauses the test executed for the given time.</doc>
+<arguments>
+<arg>0.1</arg>
+</arguments>
+<msg timestamp="20200225 11:55:03.528" level="INFO">Slept 100 milliseconds</msg>
+<status status="PASS" endtime="20200225 11:55:03.528" starttime="20200225 11:55:03.428"></status>
+</kw>
+<status status="PASS" endtime="20200225 11:55:03.528" starttime="20200225 11:55:03.427"></status>
+</kw>
+<status status="PASS" endtime="20200225 11:55:03.528" starttime="20200225 11:55:03.427"></status>
+</kw>
+<status status="PASS" endtime="20200225 11:55:03.529" critical="yes" starttime="20200225 11:55:03.427"></status>
+</test>
+<test id="s1-s3-s3-s1-t4" name="Test4 - 3 Nested Sleeps">
+<kw name="MySleepSleepSleep">
+<kw name="MySleepSleep">
+<kw name="MySleep">
+<kw name="Sleep" library="BuiltIn">
+<doc>Pauses the test executed for the given time.</doc>
+<arguments>
+<arg>0.1</arg>
+</arguments>
+<msg timestamp="20200225 11:55:03.631" level="INFO">Slept 100 milliseconds</msg>
+<status status="PASS" endtime="20200225 11:55:03.631" starttime="20200225 11:55:03.531"></status>
+</kw>
+<status status="PASS" endtime="20200225 11:55:03.632" starttime="20200225 11:55:03.531"></status>
+</kw>
+<status status="PASS" endtime="20200225 11:55:03.632" starttime="20200225 11:55:03.530"></status>
+</kw>
+<status status="PASS" endtime="20200225 11:55:03.632" starttime="20200225 11:55:03.530"></status>
+</kw>
+<status status="PASS" endtime="20200225 11:55:03.632" critical="yes" starttime="20200225 11:55:03.529"></status>
+</test>
+<status status="PASS" endtime="20200225 11:55:03.633" starttime="20200225 11:55:03.218"></status>
+</suite>
+<suite source="/workspace/robotmk/robot-testsuites/suites/oksuite/L3-Suites/L3-C-Suites/L3-Testfile-C-2.robot" id="s1-s3-s3-s2" name="L3-Testfile-C-2">
+<test id="s1-s3-s3-s2-t1" name="Test1 - Sleep">
+<kw name="Sleep" library="BuiltIn">
+<doc>Pauses the test executed for the given time.</doc>
+<arguments>
+<arg>0.1</arg>
+</arguments>
+<msg timestamp="20200225 11:55:03.736" level="INFO">Slept 100 milliseconds</msg>
+<status status="PASS" endtime="20200225 11:55:03.736" starttime="20200225 11:55:03.636"></status>
+</kw>
+<status status="PASS" endtime="20200225 11:55:03.737" critical="yes" starttime="20200225 11:55:03.635"></status>
+</test>
+<test id="s1-s3-s3-s2-t2" name="Test2 - 1Nested Sleep">
+<kw name="MySleep">
+<kw name="Sleep" library="BuiltIn">
+<doc>Pauses the test executed for the given time.</doc>
+<arguments>
+<arg>0.1</arg>
+</arguments>
+<msg timestamp="20200225 11:55:03.838" level="INFO">Slept 100 milliseconds</msg>
+<status status="PASS" endtime="20200225 11:55:03.838" starttime="20200225 11:55:03.738"></status>
+</kw>
+<status status="PASS" endtime="20200225 11:55:03.838" starttime="20200225 11:55:03.737"></status>
+</kw>
+<status status="PASS" endtime="20200225 11:55:03.838" critical="yes" starttime="20200225 11:55:03.737"></status>
+</test>
+<test id="s1-s3-s3-s2-t3" name="Test3 - 2 Nested Sleeps">
+<kw name="MySleepSleep">
+<kw name="MySleep">
+<kw name="Sleep" library="BuiltIn">
+<doc>Pauses the test executed for the given time.</doc>
+<arguments>
+<arg>0.1</arg>
+</arguments>
+<msg timestamp="20200225 11:55:03.940" level="INFO">Slept 100 milliseconds</msg>
+<status status="PASS" endtime="20200225 11:55:03.941" starttime="20200225 11:55:03.840"></status>
+</kw>
+<status status="PASS" endtime="20200225 11:55:03.941" starttime="20200225 11:55:03.839"></status>
+</kw>
+<status status="PASS" endtime="20200225 11:55:03.941" starttime="20200225 11:55:03.839"></status>
+</kw>
+<status status="PASS" endtime="20200225 11:55:03.942" critical="yes" starttime="20200225 11:55:03.839"></status>
+</test>
+<test id="s1-s3-s3-s2-t4" name="Test4 - 3 Nested Sleeps">
+<kw name="MySleepSleepSleep">
+<kw name="MySleepSleep">
+<kw name="MySleep">
+<kw name="Sleep" library="BuiltIn">
+<doc>Pauses the test executed for the given time.</doc>
+<arguments>
+<arg>0.1</arg>
+</arguments>
+<msg timestamp="20200225 11:55:04.044" level="INFO">Slept 100 milliseconds</msg>
+<status status="PASS" endtime="20200225 11:55:04.045" starttime="20200225 11:55:03.944"></status>
+</kw>
+<status status="PASS" endtime="20200225 11:55:04.045" starttime="20200225 11:55:03.943"></status>
+</kw>
+<status status="PASS" endtime="20200225 11:55:04.046" starttime="20200225 11:55:03.943"></status>
+</kw>
+<status status="PASS" endtime="20200225 11:55:04.046" starttime="20200225 11:55:03.943"></status>
+</kw>
+<status status="PASS" endtime="20200225 11:55:04.046" critical="yes" starttime="20200225 11:55:03.942"></status>
+</test>
+<status status="PASS" endtime="20200225 11:55:04.048" starttime="20200225 11:55:03.633"></status>
+</suite>
+<suite source="/workspace/robotmk/robot-testsuites/suites/oksuite/L3-Suites/L3-C-Suites/L3-Testfile-C-3.robot" id="s1-s3-s3-s3" name="L3-Testfile-C-3">
+<test id="s1-s3-s3-s3-t1" name="Test1 - Sleep">
+<kw name="Sleep" library="BuiltIn">
+<doc>Pauses the test executed for the given time.</doc>
+<arguments>
+<arg>0.1</arg>
+</arguments>
+<msg timestamp="20200225 11:55:04.156" level="INFO">Slept 100 milliseconds</msg>
+<status status="PASS" endtime="20200225 11:55:04.157" starttime="20200225 11:55:04.055"></status>
+</kw>
+<status status="PASS" endtime="20200225 11:55:04.157" critical="yes" starttime="20200225 11:55:04.055"></status>
+</test>
+<test id="s1-s3-s3-s3-t2" name="Test2 - 1Nested Sleep">
+<kw name="MySleep">
+<kw name="Sleep" library="BuiltIn">
+<doc>Pauses the test executed for the given time.</doc>
+<arguments>
+<arg>0.1</arg>
+</arguments>
+<msg timestamp="20200225 11:55:04.261" level="INFO">Slept 100 milliseconds</msg>
+<status status="PASS" endtime="20200225 11:55:04.261" starttime="20200225 11:55:04.160"></status>
+</kw>
+<status status="PASS" endtime="20200225 11:55:04.261" starttime="20200225 11:55:04.159"></status>
+</kw>
+<status status="PASS" endtime="20200225 11:55:04.262" critical="yes" starttime="20200225 11:55:04.158"></status>
+</test>
+<test id="s1-s3-s3-s3-t3" name="Test3 - 2 Nested Sleeps">
+<kw name="MySleepSleep">
+<kw name="MySleep">
+<kw name="Sleep" library="BuiltIn">
+<doc>Pauses the test executed for the given time.</doc>
+<arguments>
+<arg>0.1</arg>
+</arguments>
+<msg timestamp="20200225 11:55:04.364" level="INFO">Slept 100 milliseconds</msg>
+<status status="PASS" endtime="20200225 11:55:04.365" starttime="20200225 11:55:04.264"></status>
+</kw>
+<status status="PASS" endtime="20200225 11:55:04.365" starttime="20200225 11:55:04.263"></status>
+</kw>
+<status status="PASS" endtime="20200225 11:55:04.365" starttime="20200225 11:55:04.263"></status>
+</kw>
+<status status="PASS" endtime="20200225 11:55:04.365" critical="yes" starttime="20200225 11:55:04.262"></status>
+</test>
+<test id="s1-s3-s3-s3-t4" name="Test4 - 3 Nested Sleeps">
+<kw name="MySleepSleepSleep">
+<kw name="MySleepSleep">
+<kw name="MySleep">
+<kw name="Sleep" library="BuiltIn">
+<doc>Pauses the test executed for the given time.</doc>
+<arguments>
+<arg>0.1</arg>
+</arguments>
+<msg timestamp="20200225 11:55:04.468" level="INFO">Slept 100 milliseconds</msg>
+<status status="PASS" endtime="20200225 11:55:04.468" starttime="20200225 11:55:04.367"></status>
+</kw>
+<status status="PASS" endtime="20200225 11:55:04.468" starttime="20200225 11:55:04.367"></status>
+</kw>
+<status status="PASS" endtime="20200225 11:55:04.468" starttime="20200225 11:55:04.366"></status>
+</kw>
+<status status="PASS" endtime="20200225 11:55:04.468" starttime="20200225 11:55:04.366"></status>
+</kw>
+<status status="PASS" endtime="20200225 11:55:04.468" critical="yes" starttime="20200225 11:55:04.366"></status>
+</test>
+<status status="PASS" endtime="20200225 11:55:04.469" starttime="20200225 11:55:04.051"></status>
+</suite>
+<status status="PASS" endtime="20200225 11:55:04.470" starttime="20200225 11:55:03.216"></status>
+</suite>
+<status status="PASS" endtime="20200225 11:55:04.473" starttime="20200225 11:55:00.717"></status>
+</suite>
+<status status="PASS" endtime="20200225 11:55:04.479" starttime="20200225 11:54:53.132"></status>
+</suite>
+<statistics>
+<total>
+<stat fail="0" pass="108">Critical Tests</stat>
+<stat fail="0" pass="108">All Tests</stat>
+</total>
+<tag>
+</tag>
+<suite>
+<stat fail="0" id="s1" name="Oksuite" pass="108">Oksuite</stat>
+<stat fail="0" id="s1-s1" name="L1-Suites" pass="36">Oksuite.L1-Suites</stat>
+<stat fail="0" id="s1-s1-s1" name="L1-A-Suites" pass="12">Oksuite.L1-Suites.L1-A-Suites</stat>
+<stat fail="0" id="s1-s1-s1-s1" name="L1-Testfile-A-1" pass="4">Oksuite.L1-Suites.L1-A-Suites.L1-Testfile-A-1</stat>
+<stat fail="0" id="s1-s1-s1-s2" name="L1-Testfile-A-2" pass="4">Oksuite.L1-Suites.L1-A-Suites.L1-Testfile-A-2</stat>
+<stat fail="0" id="s1-s1-s1-s3" name="L1-Testfile-A-3" pass="4">Oksuite.L1-Suites.L1-A-Suites.L1-Testfile-A-3</stat>
+<stat fail="0" id="s1-s1-s2" name="L1-B-Suites" pass="12">Oksuite.L1-Suites.L1-B-Suites</stat>
+<stat fail="0" id="s1-s1-s2-s1" name="L1-Testfile-B-1" pass="4">Oksuite.L1-Suites.L1-B-Suites.L1-Testfile-B-1</stat>
+<stat fail="0" id="s1-s1-s2-s2" name="L1-Testfile-B-2" pass="4">Oksuite.L1-Suites.L1-B-Suites.L1-Testfile-B-2</stat>
+<stat fail="0" id="s1-s1-s2-s3" name="L1-Testfile-B-3" pass="4">Oksuite.L1-Suites.L1-B-Suites.L1-Testfile-B-3</stat>
+<stat fail="0" id="s1-s1-s3" name="L1-C-Suites" pass="12">Oksuite.L1-Suites.L1-C-Suites</stat>
+<stat fail="0" id="s1-s1-s3-s1" name="L1-Testfile-C-1" pass="4">Oksuite.L1-Suites.L1-C-Suites.L1-Testfile-C-1</stat>
+<stat fail="0" id="s1-s1-s3-s2" name="L1-Testfile-C-2" pass="4">Oksuite.L1-Suites.L1-C-Suites.L1-Testfile-C-2</stat>
+<stat fail="0" id="s1-s1-s3-s3" name="L1-Testfile-C-3" pass="4">Oksuite.L1-Suites.L1-C-Suites.L1-Testfile-C-3</stat>
+<stat fail="0" id="s1-s2" name="L2-Suites" pass="36">Oksuite.L2-Suites</stat>
+<stat fail="0" id="s1-s2-s1" name="L2-A-Suites" pass="12">Oksuite.L2-Suites.L2-A-Suites</stat>
+<stat fail="0" id="s1-s2-s1-s1" name="L2-Testfile-A-1" pass="4">Oksuite.L2-Suites.L2-A-Suites.L2-Testfile-A-1</stat>
+<stat fail="0" id="s1-s2-s1-s2" name="L2-Testfile-A-2" pass="4">Oksuite.L2-Suites.L2-A-Suites.L2-Testfile-A-2</stat>
+<stat fail="0" id="s1-s2-s1-s3" name="L2-Testfile-A-3" pass="4">Oksuite.L2-Suites.L2-A-Suites.L2-Testfile-A-3</stat>
+<stat fail="0" id="s1-s2-s2" name="L2-B-Suites" pass="12">Oksuite.L2-Suites.L2-B-Suites</stat>
+<stat fail="0" id="s1-s2-s2-s1" name="L2-Testfile-B-1" pass="4">Oksuite.L2-Suites.L2-B-Suites.L2-Testfile-B-1</stat>
+<stat fail="0" id="s1-s2-s2-s2" name="L2-Testfile-B-2" pass="4">Oksuite.L2-Suites.L2-B-Suites.L2-Testfile-B-2</stat>
+<stat fail="0" id="s1-s2-s2-s3" name="L2-Testfile-B-3" pass="4">Oksuite.L2-Suites.L2-B-Suites.L2-Testfile-B-3</stat>
+<stat fail="0" id="s1-s2-s3" name="L2-C-Suites" pass="12">Oksuite.L2-Suites.L2-C-Suites</stat>
+<stat fail="0" id="s1-s2-s3-s1" name="L2-Testfile-C-1" pass="4">Oksuite.L2-Suites.L2-C-Suites.L2-Testfile-C-1</stat>
+<stat fail="0" id="s1-s2-s3-s2" name="L2-Testfile-C-2" pass="4">Oksuite.L2-Suites.L2-C-Suites.L2-Testfile-C-2</stat>
+<stat fail="0" id="s1-s2-s3-s3" name="L2-Testfile-C-3" pass="4">Oksuite.L2-Suites.L2-C-Suites.L2-Testfile-C-3</stat>
+<stat fail="0" id="s1-s3" name="L3-Suites" pass="36">Oksuite.L3-Suites</stat>
+<stat fail="0" id="s1-s3-s1" name="L3-A-Suites" pass="12">Oksuite.L3-Suites.L3-A-Suites</stat>
+<stat fail="0" id="s1-s3-s1-s1" name="L3-Testfile-A-1" pass="4">Oksuite.L3-Suites.L3-A-Suites.L3-Testfile-A-1</stat>
+<stat fail="0" id="s1-s3-s1-s2" name="L3-Testfile-A-2" pass="4">Oksuite.L3-Suites.L3-A-Suites.L3-Testfile-A-2</stat>
+<stat fail="0" id="s1-s3-s1-s3" name="L3-Testfile-A-3" pass="4">Oksuite.L3-Suites.L3-A-Suites.L3-Testfile-A-3</stat>
+<stat fail="0" id="s1-s3-s2" name="L3-B-Suites" pass="12">Oksuite.L3-Suites.L3-B-Suites</stat>
+<stat fail="0" id="s1-s3-s2-s1" name="L3-Testfile-B-1" pass="4">Oksuite.L3-Suites.L3-B-Suites.L3-Testfile-B-1</stat>
+<stat fail="0" id="s1-s3-s2-s2" name="L3-Testfile-B-2" pass="4">Oksuite.L3-Suites.L3-B-Suites.L3-Testfile-B-2</stat>
+<stat fail="0" id="s1-s3-s2-s3" name="L3-Testfile-B-3" pass="4">Oksuite.L3-Suites.L3-B-Suites.L3-Testfile-B-3</stat>
+<stat fail="0" id="s1-s3-s3" name="L3-C-Suites" pass="12">Oksuite.L3-Suites.L3-C-Suites</stat>
+<stat fail="0" id="s1-s3-s3-s1" name="L3-Testfile-C-1" pass="4">Oksuite.L3-Suites.L3-C-Suites.L3-Testfile-C-1</stat>
+<stat fail="0" id="s1-s3-s3-s2" name="L3-Testfile-C-2" pass="4">Oksuite.L3-Suites.L3-C-Suites.L3-Testfile-C-2</stat>
+<stat fail="0" id="s1-s3-s3-s3" name="L3-Testfile-C-3" pass="4">Oksuite.L3-Suites.L3-C-Suites.L3-Testfile-C-3</stat>
+</suite>
+</statistics>
+<errors>
+</errors>
+</robot>

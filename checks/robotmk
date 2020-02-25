@@ -24,19 +24,7 @@
 # to the Free Software Foundation, Inc., 51 Franklin St,  Fifth Floor,
 # Boston, MA 02110-1301 USA.
 
-# Output of agent (unparsed result file content of "output.xml" from RF)
-#<<<robot:sep(0)>>>
-#<?xml version="1.0" encoding="UTF-8"?>
-#<robot rpa="false" generated="20200103 16:14:32.944" generator="Robot 3.1.2 (Python 2.7.15+ on linux2)">
-#<suite source="/home/elabit/Downloads/red/workspace/mkdemo" id="s1" name="Mkdemo">
-#<suite source="/home/elabit/Downloads/red/workspace/mkdemo/A-Tests" id="s1-s1" name="A-Tests">
-#<suite source="/home/elabit/Downloads/red/workspace/mkdemo/A-Tests/A-suite1.robot" id="s1-s1-s1" name="A-suite1">
-#<test id="s1-s1-s1-t1" name="test-A-1-1">
-#...
-
-# 's1-s3-s2-t1-k1'
-
-from robot.api import ExecutionResult, ResultVisitor
+# from robot.api import ExecutionResult, ResultVisitor
 import tempfile
 import os
 import re
@@ -63,13 +51,10 @@ def parse_robot(info):
     robot_result = RobotMetrics(suite, statistics, error, int(discovery_suite_level))
     return robot_result.data
 
-# robot_result = executionresult.Result instance
 def inventory_robot(robot_result):
-    settings = host_extra_conf_merged(host_name(), eval("inventory_"+iam+"_rules"))
-    discovery_suite_level = settings.get("discovery_suite_level", 0)
     for suite in robot_result:
-        print suite.name
-        # yield suite.name, None
+        # print suite.name
+        yield suite.name, None
 
 def check_robot(item, params, robot_result):
     if params == None: 
@@ -77,9 +62,7 @@ def check_robot(item, params, robot_result):
     settings = host_extra_conf_merged(host_name(), eval("inventory_"+iam+"_rules"))
     discovery_suite_level = int(settings.get("discovery_suite_level", 0))
 
-    # visitor = RobotMetricsVisitor(discovery_suite_level)
-    robot_result.visit(visitor)
-    for suite in visitor.data:
+    for suite in robot_result:
         if suite.name == item:
             rc = suite.nagios_stateid
             nagios_result = suite.nagios_result_recursive(params, discovery_suite_level)
@@ -106,7 +89,7 @@ class RFObject(object):
     def __init__(self, id, level, level_relative, name, status, starttime, endtime, elapsedtime, branches=[]):
         self.id = id
         self.level = level
-        # level_relative begins at disceovery level, count separately for suites/tests/keywords
+        # level_relative begins at discovery level, count separately for suites/tests/keywords
         self.level_relative = level_relative
         self.name = name
         self.status = status
@@ -340,6 +323,7 @@ class RobotMetrics(object):
 #  |_| |_|\___|_| .__/ \___|_|   
 #               | |              
 #               |_|              
+# borrowed from robot-framework
 
 def get_elapsed_time(start_time, end_time):
     """Returns the time between given timestamps in milliseconds."""
@@ -357,7 +341,6 @@ def timestamp_to_millis(timestamp):
     secs = time.mktime(datetime.datetime(Y, M, D, h, m, s).timetuple())
     return roundup(1000*secs + millis)
 
-
 def split_timestamp(timestamp):
     years = int(timestamp[:4])
     mons = int(timestamp[4:6])
@@ -369,22 +352,10 @@ def split_timestamp(timestamp):
     return years, mons, days, hours, mins, secs, millis   
 
 def roundup(number, ndigits=0, return_type=None):
-    """Rounds number to the given number of digits.
-
-    Numbers equally close to a certain precision are always rounded away from
-    zero. By default return value is float when ``ndigits`` is positive and
-    int otherwise, but that can be controlled with ``return_type``.
-
-    With the built-in ``round()`` rounding equally close numbers as well as
-    the return type depends on the Python version.
-    """
     result = round(number, ndigits)
     if not return_type:
         return_type = float if ndigits > 0 else int
     return return_type(result)
-
-
-
 
 
 #                   _       
@@ -401,7 +372,6 @@ if __name__ == "__main__":
     global check_info
     check_info = {}
 
-# !! robot = Section-Name!
 check_info['robotmk'] = {
     "parse_function": parse_robot,
     "inventory_function": inventory_robot,
@@ -412,36 +382,36 @@ check_info['robotmk'] = {
     "has_perfdata": True
 }
 
-if __name__ == "__main__":
-    #import ipdb
-    #ipdb.set_trace(context=5)
-    global inventory_robotmk_rules
-    inventory_robotmk_rules = eval(open('test/fixtures/inventory_rules/ruleset1.py').read())
+# if __name__ == "__main__":
+#     #import ipdb
+#     #ipdb.set_trace(context=5)
+#     global inventory_robotmk_rules
+#     inventory_robotmk_rules = eval(open('test/fixtures/inventory_rules/ruleset1.py').read())
 
-    global host_extra_conf_merged
-    def host_extra_conf_merged(hostname, inventory_robotmk_rules):
-        return inventory_robotmk_rules[0]['value']
+#     global host_extra_conf_merged
+#     def host_extra_conf_merged(hostname, inventory_robotmk_rules):
+#         return inventory_robotmk_rules[0]['value']
 
 
-    global host_name
-    def host_name():
-        return "localhost"
+#     global host_name
+#     def host_name():
+#         return "localhost"
 
-    paramfile = 'test/fixtures/check_params/params.py'
-    try: 
-        params = eval(open(paramfile, 'r').read())
-    except: 
-        params = None
-    # ipdb.set_trace(context=5)
-    # datafile = 'test/fixtures/mk_output/outputagent.json'
-    datafile = 'test/fixtures/mk_output/outputagent_long.json'
-    # mk_output = list of lists
-    mk_output = eval(open(datafile, 'r').read())
-    parsed = parse_robot(mk_output)
-    inventory = inventory_robot(parsed)
-    state, msg, perfdata = check_robot("Mkdemo", params, parsed)
-    # state, msg, perfdata = check_robot("A-Suites", params, parsed)
-    # state, msg, perfdata = check_robot("A-suite1", params, parsed)
-    # state, msg, perfdata = check_robot("A-Tes.*", params, parsed)
-    print "Debugger ended."
+#     paramfile = 'test/fixtures/check_params/params.py'
+#     try: 
+#         params = eval(open(paramfile, 'r').read())
+#     except: 
+#         params = None
+#     # ipdb.set_trace(context=5)
+#     # datafile = 'test/fixtures/mk_output/outputagent.json'
+#     datafile = 'test/fixtures/mk_output/oksuite.json'
+#     # mk_output = list of lists
+#     mk_output = eval(open(datafile, 'r').read())
+#     parsed = parse_robot(mk_output)
+#     inventory = inventory_robot(parsed)
+#     state, msg, perfdata = check_robot("Mkdemo", params, parsed)
+#     # state, msg, perfdata = check_robot("A-Suites", params, parsed)
+#     # state, msg, perfdata = check_robot("A-suite1", params, parsed)
+#     # state, msg, perfdata = check_robot("A-Tes.*", params, parsed)
+#     print "Debugger ended."
 
