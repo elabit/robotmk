@@ -2,6 +2,7 @@ from pytest_check_mk import OK, WARNING, CRITICAL, UNKNOWN
 import os
 import pytest
 import ast
+import re
 
 test_for = 'robotmk'
 
@@ -29,21 +30,34 @@ inventory_test_params = [
 @pytest.mark.parametrize("testsuite, discovery_suite_level", inventory_test_params)
 def test_inventory_mk(checks, monkeypatch, testsuite, discovery_suite_level):
     mk_output = read_mk_input(testsuite + '/output.json')
-    expected_data = read_expected_data(testsuite + '/expected.py')
+    expected_data = read_expected_data(testsuite + '/expected.py')[discovery_suite_level]
     patch(checks.module, monkeypatch, 'discovery_suite_level_%d.py' % discovery_suite_level)
     inventory = checks['robotmk'].inventory_mk(mk_output)
-    assert_inventory(inventory, expected_data[discovery_suite_level]['suites'])
+    assert_inventory(inventory, expected_data['inventory_suites'])
 
 # Check test function
-def test_check_mk(checks, monkeypatch):
-    mk_output = read_mk_input('1S_3T/output.json')
-    patch(checks.module, monkeypatch, 'discovery_suite_level_0.py')
-    params = read_mk_checkparams('params.py')
+check_test_params = [
+    ('1S_3T', 0, '1S 3T', None),
+    ('1S_3T', 0, '1S 3T', 'MySleepSleep_0'),
+    ('1S_3T', 0, '1S 3T', 'MySleepSleep_1'),
+    ('1S_3S_2S_3T', 0, '1S 3S 2S 3T', None),
+    ('1S_3S_2S_3T', 0, '1S 3S 2S 3T', 'Subsuite1_0'),
+    ('1S_3S_2S_3T', 0, '1S 3S 2S 3T', 'Subsuite1_1'),
+    ('1S_3S_2S_3T', 1, 'Subsuite1', None),
+    ('1S_3S_2S_3T', 2, 'Sub1 suite1', None),
+]
+@pytest.mark.parametrize("testsuite, discovery_suite_level, item, checkgroup_parameters", check_test_params)
+def test_check_mk(checks, monkeypatch, testsuite, discovery_suite_level, item, checkgroup_parameters):
+    mk_output = read_mk_input('%s/output.json' % testsuite)
+    expected_data = read_expected_data(testsuite + '/expected.py')[discovery_suite_level]['check_suites'][item][checkgroup_parameters]
+    patch(checks.module, monkeypatch, 'discovery_suite_level_%d.py' % discovery_suite_level)
+    params = read_mk_checkgroup_params(checkgroup_parameters)
 
-    item = '1 Simpletest'
     result = checks['robotmk'].check_mk(item, params, mk_output) 
-    assert result[0]== (OK)
-    assert result[1].startswith(' Suite 1 Simpletest: PASS')
+    assert result[0]== expected_data['svc_status']
+    expected_output = expected_data['svc_output']
+    assert re.match(expected_output, result[1], re.DOTALL)
+    # assert result[1].startswith(expected_output)
 
 
 #   _          _                 
@@ -59,13 +73,16 @@ def read_mk_input(file):
     datafile = 'test/fixtures/robot/' + file
     return eval(open(datafile, 'r').read())
 
-def read_mk_checkparams(file):
-    paramfile = 'test/fixtures/check_params/' + file
-    try: 
-        params = eval(open(paramfile, 'r').read())
-    except: 
-        params = None
-    return params
+def read_mk_checkgroup_params(file):
+    if file: 
+        paramfile = 'test/fixtures/checkgroup_parameters/%s.py' % file
+        try: 
+            params = eval(open(paramfile, 'r').read())
+        except: 
+            params = None
+        return params
+    else: 
+        return None
 
 def read_mk_inventory_rules(file):
     rulefile = 'test/fixtures/check_params/' + file

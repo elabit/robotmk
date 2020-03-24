@@ -1,7 +1,19 @@
+*** Keywords ***
+MySleep
+	Sleep	0.1
+
+MySleepSleep
+	MySleep
+
+MySleepSleepSleep
+	MySleepSleep
+
 *** Test Cases ***
-Sleep the first time for 1 sec
-    sleep   1
-Sleep the second time for 1 sec
-    sleep   1
-Sleep the third time for 1 sec
-    sleep   1
+Test1 - Sleep
+	Sleep 	0.1
+Test2 - 1Nested Sleep
+	MySleep
+Test3 - 2 Nested Sleeps
+	MySleepSleep
+Test4 - 3 Nested Sleeps
+	MySleepSleepSleep    

@@ -32,7 +32,7 @@ def _valuespec_inventory_robotmk_rules():
                         u"within that directory level."
                         ),
                     choices = [
-                        ( "0"  , _("Directory level 0 (1 service with root folder name)") ),
+                        ( "0"  , _("Directory level 0 (one service with root folder name)") ),
                         ( "1"  , _("Directory level 1 (n services for each test file/subfolder") ),
                         ( "2"  , _("Directory level 2 (\"-\")") ),
                         ( "3"  , _("Directory level 3 (\"-\")") ),
@@ -63,7 +63,10 @@ def _parameter_valuespec_robotmk():
     return Dictionary(elements=[
         ("output_depth", Dictionary(  # L1 
             title = _('Output depth'),
-            help = _('Configure the output depth'),
+            help = _('In Robot, suites and keywords can be nested. The default of robotmk is to dissolve/recurse all nested objects and to show them in the service output.<br> '
+                     'This is good in general, but sometimes not what you want (think of a keyword which is defined by five layers of abstraction).<br>'
+                     'Set the <i>output depth</i> to 0 for sub-suites or keywords which should not get dissolved any deeper to keep the robotmk output clear and understandable.<br>'
+                     '(This is only for visual control; hidden suites/keywords are still used to calculate the overall suite state)'),
             elements = [        
                 ("output_depth_suites", ListOf(  # /L2
                     Tuple(  # L3
