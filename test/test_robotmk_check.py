@@ -1,17 +1,80 @@
 from pytest_check_mk import OK, WARNING, CRITICAL, UNKNOWN
 import os
+import pytest
+import ast
 
 test_for = 'robotmk'
 
-paramfile = 'test/fixtures/check_params/params.py'
-try: 
-    params = eval(open(paramfile, 'r').read())
-except: 
-    params = None
+#   _            _       
+#  | |          | |      
+#  | |_ ___  ___| |_ ___ 
+#  | __/ _ \/ __| __/ __|
+#  | ||  __/\__ \ |_\__ \
+#   \__\___||___/\__|___/
+                       
+# Info test function                       
+def test_check_info(checks):
+    info = checks['robotmk'].check_info
+    assert info['service_description'] == "Robot"
+    assert info['group'] == "robotmk"
+
+
+# Inventory test function
+inventory_test_params = [
+    ('1S_3T', 0),
+    ('1S_3S_2S_3T', 0),
+    ('1S_3S_2S_3T', 1),
+    ('1S_3S_2S_3T', 2),
+]
+@pytest.mark.parametrize("testsuite, discovery_suite_level", inventory_test_params)
+def test_inventory_mk(checks, monkeypatch, testsuite, discovery_suite_level):
+    mk_output = read_mk_input(testsuite + '/output.json')
+    expected_data = read_expected_data(testsuite + '/expected.py')
+    patch(checks.module, monkeypatch, 'discovery_suite_level_%d.py' % discovery_suite_level)
+    inventory = checks['robotmk'].inventory_mk(mk_output)
+    assert_inventory(inventory, expected_data[discovery_suite_level]['suites'])
+
+# Check test function
+def test_check_mk(checks, monkeypatch):
+    mk_output = read_mk_input('1S_3T/output.json')
+    patch(checks.module, monkeypatch, 'discovery_suite_level_0.py')
+    params = read_mk_checkparams('params.py')
+
+    item = '1 Simpletest'
+    result = checks['robotmk'].check_mk(item, params, mk_output) 
+    assert result[0]== (OK)
+    assert result[1].startswith(' Suite 1 Simpletest: PASS')
+
+
+#   _          _                 
+#  | |        | |                
+#  | |__   ___| |_ __   ___ _ __ 
+#  | '_ \ / _ \ | '_ \ / _ \ '__|
+#  | | | |  __/ | |_) |  __/ |   
+#  |_| |_|\___|_| .__/ \___|_|   
+#               | |              
+#               |_|              
 
 def read_mk_input(file):
     datafile = 'test/fixtures/robot/' + file
     return eval(open(datafile, 'r').read())
+
+def read_mk_checkparams(file):
+    paramfile = 'test/fixtures/check_params/' + file
+    try: 
+        params = eval(open(paramfile, 'r').read())
+    except: 
+        params = None
+    return params
+
+def read_mk_inventory_rules(file):
+    rulefile = 'test/fixtures/check_params/' + file
+    data = eval(open('test/fixtures/inventory_robotmk_rules/%s' % rulefile).read())
+
+def read_expected_data(file):
+    datafile = 'test/fixtures/robot/' + file
+    data = ast.literal_eval(open(datafile, 'r').read())
+    return data
 
 def patch(module, monkeypatch, rulefile):
     data = eval(open('test/fixtures/inventory_robotmk_rules/%s' % rulefile).read())
@@ -30,37 +93,4 @@ def assert_inventory(inventory, suites):
     _suites = map(lambda x: x[0], inventory)
     assert suites == _suites
 
-def test_check_info(checks):
-    info = checks['robotmk'].check_info
-    assert info['service_description'] == "Robot"
-    assert info['group'] == "robotmk"
-
-
-def test_inventory_mk_1_1S_3T__0(checks, monkeypatch):
-    mk_output = read_mk_input('1_1S_3T/output.json')
-    patch(checks.module, monkeypatch, 'discovery_suite_level_0.py')
-    inventory = checks['robotmk'].inventory_mk(mk_output)
-    assert_inventory(inventory, ['1 Simpletest'])
-
-def test_check_mk(checks, monkeypatch):
-    mk_output = read_mk_input('1_1S_3T/output.json')
-    patch(checks.module, monkeypatch, 'discovery_suite_level_0.py')
-
-    item = '1 Simpletest'
-    result = checks['robotmk'].check_mk(item, params, mk_output) 
-    assert result[0]== (OK)
-    assert result[1].startswith(' Suite 1 Simpletest: PASS')
-
-
-def test_inventory_mk_2_1S_3S_2S_3T__0(checks, monkeypatch):
-    mk_output = read_mk_input('2_1S_3S_2S_3T/output.json')
-    patch(checks.module, monkeypatch, 'discovery_suite_level_0.py')
-    inventory = checks['robotmk'].inventory_mk(mk_output)
-    assert_inventory(inventory, ['2 1S 3S 2S 3T'])
-
-def test_inventory_mk_2_1S_3S_2S_3T__1(checks, monkeypatch):
-    mk_output = read_mk_input('2_1S_3S_2S_3T/output.json')
-    patch(checks.module, monkeypatch, 'discovery_suite_level_1.py')
-    inventory = checks['robotmk'].inventory_mk(mk_output)
-    assert_inventory(inventory, ['Subsuite1', 'Subsuite2', 'Subsuite3'])
 
