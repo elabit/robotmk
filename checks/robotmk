@@ -86,9 +86,9 @@ class RFObject(object):
         'FAIL'  : 'CRIT'
     }
 
-    def __init__(self, id, level, level_relative, name, status, starttime, endtime, elapsedtime, branches=[]):
+    def __init__(self, id, level_absolute, level_relative, name, status, starttime, endtime, elapsedtime, branches=[]):
         self.id = id
-        self.level = level
+        self.level_absolute = level_absolute
         # level_relative begins at discovery level, count separately for suites/tests/keywords
         self.level_relative = level_relative
         self.name = name
@@ -170,8 +170,8 @@ class RFObject(object):
         return my_perfdata + my_perfdata_branches
 
 class RFSuite(RFObject):
-    def __init__(self, id, level, level_relative, name, status, starttime, endtime, elapsedtime, branches=[]):
-        super(RFSuite, self).__init__(id, level, level_relative, name, status, starttime, endtime, elapsedtime, branches)
+    def __init__(self, id, level_absolute, level_relative, name, status, starttime, endtime, elapsedtime, branches=[]):
+        super(RFSuite, self).__init__(id, level_absolute, level_relative, name, status, starttime, endtime, elapsedtime, branches)
 
     def __str__(self):
         return "Suite"
@@ -187,8 +187,8 @@ class RFSuite(RFObject):
         return "perfdata_creation_suites"
 
 class RFTest(RFObject):
-    def __init__(self, id, level, level_relative, name, status, starttime, endtime, elapsedtime, branches=[]):
-        super(RFTest, self).__init__(id, level, level_relative, name, status, starttime, endtime, elapsedtime, branches)
+    def __init__(self, id, level_absolute, level_relative, name, status, starttime, endtime, elapsedtime, branches=[]):
+        super(RFTest, self).__init__(id, level_absolute, level_relative, name, status, starttime, endtime, elapsedtime, branches)
 
     def __str__(self):
         return "Test"
@@ -206,8 +206,8 @@ class RFTest(RFObject):
         return "perfdata_creation_tests"        
 
 class RFKeyword(RFObject):
-    def __init__(self, id, level, level_relative, name, status, starttime, endtime, elapsedtime, branches=[]):
-        super(RFKeyword, self).__init__(id, level, level_relative, name, status, starttime, endtime, elapsedtime, branches)
+    def __init__(self, id, level_absolute, level_relative, name, status, starttime, endtime, elapsedtime, branches=[]):
+        super(RFKeyword, self).__init__(id, level_absolute, level_relative, name, status, starttime, endtime, elapsedtime, branches)
 
     def __str__(self):
         return "Keyword"
@@ -233,21 +233,21 @@ class RobotMetrics(object):
         self.data = []
         self.visit_suite(suite, statistics, error)
 
-    def visit_suite(self, suite, statistics, error, level=0):
+    def visit_suite(self, suite, statistics, error, level_absolute=0):
         # (A suite can have suites and tests in it)
         subsuites = suite.findall('suite')
         subtests = suite.findall('test')
         # Subsuites
         if subsuites:
-            sub_objects = [ self.visit_suite(subsuite, statistics, error, level+1) for subsuite in subsuites ]
+            sub_objects = [ self.visit_suite(subsuite, statistics, error, level_absolute+1) for subsuite in subsuites ]
         # Testcases
         elif subtests:
-            sub_objects = [ self.visit_test(test, statistics, error, level+1) for test in subtests ]
+            sub_objects = [ self.visit_test(test, statistics, error, level_absolute+1) for test in subtests ]
 
         suite_node = RFSuite(
             suite.attrib['id'], 
-            level, 
-            level - self.discovery_suite_level, 
+            level_absolute, 
+            level_absolute - self.discovery_suite_level, 
             suite.attrib['name'], 
             suite.find('status').attrib['status'], 
             suite.find('status').attrib['starttime'], 
@@ -258,21 +258,21 @@ class RobotMetrics(object):
             ),
             sub_objects)
 
-        if level == self.discovery_suite_level:
+        if level_absolute == self.discovery_suite_level:
             self.data.append(suite_node)
         else:
             return suite_node
 
-    def visit_test(self, test, statistics, error, level):
+    def visit_test(self, test, statistics, error, level_absolute):
         # (A test can only have keywords in it)
         keywords = test.findall('kw')
         if keywords:
-            subkw_objects = [ self.visit_keyword(keyword, statistics, error, level+1, 0) for keyword in keywords ]
+            subkw_objects = [ self.visit_keyword(keyword, statistics, error, level_absolute+1, 0) for keyword in keywords ]
         
         # level_relative = fake, because tests are not nested. 
         test_node = RFTest(
                 test.attrib['id'], 
-                level, 
+                level_absolute, 
                 9999, 
                 test.attrib['name'],
                 test.find('status').attrib['status'], 
@@ -284,23 +284,23 @@ class RobotMetrics(object):
                 ),
                 subkw_objects
         )
-        if level == self.discovery_suite_level:
+        if level_absolute == self.discovery_suite_level:
             self.data.append(test_node)
         else:
             return test_node
 
-    def visit_keyword(self, keyword, statistics, error, level, level_relative):
+    def visit_keyword(self, keyword, statistics, error, level_absolute, level_relative):
         # FIXME Add a keyword ID??
         # (A keyword can have keywords in it)
         keywords = keyword.findall('kw')
         subkw_objects = ()
         if keywords:
-            subkw_objects = [ self.visit_keyword(keyword, statistics, error, level+1, level_relative+1) for keyword in keywords ]
+            subkw_objects = [ self.visit_keyword(keyword, statistics, error, level_absolute+1, level_relative+1) for keyword in keywords ]
 
-        # keyword_node = RFKeyword(keyword.id, level, level_relative, keyword.name, keyword.status, keyword.starttime, keyword.endtime, keyword.elapsedtime, subkw_objects)
+        # keyword_node = RFKeyword(keyword.id, level_absolute, level_relative, keyword.name, keyword.status, keyword.starttime, keyword.endtime, keyword.elapsedtime, subkw_objects)
         keyword_node = RFKeyword(
                 "FAKE", 
-                level, 
+                level_absolute, 
                 level_relative, 
                 keyword.attrib['name'], 
                 keyword.find('status').attrib['status'], 
@@ -308,7 +308,7 @@ class RobotMetrics(object):
                 keyword.find('status').attrib['endtime'], 
                 get_elapsed_time(keyword.find('status').attrib['starttime'], keyword.find('status').attrib['endtime'] ),
                 subkw_objects)
-        if level == self.discovery_suite_level:
+        if level_absolute == self.discovery_suite_level:
             self.data.append(keyword_node)
         else:
             return keyword_node
