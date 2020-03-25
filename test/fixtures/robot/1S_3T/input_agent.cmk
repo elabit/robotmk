@@ -1,3 +1,4 @@
+<<<robotmk:sep(0)>>>
 <?xml version="1.0" encoding="UTF-8"?>
 <robot rpa="false" generated="20200325 14:24:31.018" generator="Robot 3.1.2 (Python 2.7.5 on linux2)">
 <suite source="/workspace/robotmk/test/fixtures/robot/1S_3T" id="s1" name="1S 3T">

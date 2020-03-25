@@ -1,52 +1,75 @@
+# Development documentation
+
 Install checkMK pytest module: 
 
 ```
 pip install -e /python-pytest-check_mk/
 ```
 
-## Test data structure
+Waiting for pull request:
 
-`output_depth_ suites/keywords`
+* https://github.com/tom-mi/python-pytest-check_mk/pull/1
+* https://github.com/tom-mi/python-pytest-check_mk/pull/2
 
-`runtime_thresolds_ suites/tests/keywords`
 
+## install check
 
+Install the check by creating a symlink: 
+
+    ln -s /workspace/robotmk/checks/robotmk /omd/sites/cmk/local/share/check_mk/checks/robotmk
+
+Verify that checkMK can use the robotmk check: 
 
 ```
-Lv  LvRe
-0   -       Mkdemo/
-1   0           A-Suites/ ****
-2   1               A-suite1/
-3   999                 test-A-1-1
-4   0                       keyword
-5   1                           keyword
-6   2                               keyword
-                                keyword
-                                keyword
-                            kw
-                            kw
-                        test-A-1-2
-                        test-A-1-3
-                        test-A-1-4
-                    A-suite2/
-                        test-A-2-1
-                        test-A-2-2
-                        test-A-2-3
-                        test-A-2-4
-                    A-suite3/
-                    ...
-                    ...
-                B-Suites/
-                    B-suite1/
-                        test-B-1-1
-                        test-B-1-2
-                        test-B-1-3
-                        test-B-1-4
-                    B-suite2
-                    ...
-                    ...
-                C-Suites/
-                    C-suite1/
-                    ...
-                    ...
+OMD[cmk]:~$ cmk -L | grep robot                                          
+robotmk     tcp    (no man page present)
+```
+
+## install wato configuration settings
+
+Install the WATO configuration settings by creating a symlink: 
+
+    ln -s /workspace/robotmk/check_parameters_robotmk.py /omd/sites/cmk/local/share/check_mk/web/plugins/wato/check_parameters_robotmk.py
+
+
+## test
+
+FIXME see 2. "generate test data"
+
+``` 
+OMD[cmk]:~$ cmk -IIv robothost1
+Discovering services on: robothost1
+robothost1:
++ FETCHING DATA
+ [agent] Execute data source
+ [piggyback] Execute data source
+No piggyback files for 'robothost1'. Skip processing.
+No piggyback files for '127.0.0.1'. Skip processing.
++ EXECUTING DISCOVERY PLUGINS (44)
+systemd_units does not support discovery. Skipping it.
+ps_lnx does not support discovery. Skipping it.
+ps.perf does not support discovery. Skipping it.
+  1 chrony
+  1 cpu.loads
+  1 cpu.threads
+  4 df
+  1 diskstat
+  3 kernel
+  1 kernel.util
+  1 livestatus_status
+  1 lnx_if
+  2 lnx_thermal
+  1 mem.linux
+  1 mkeventd_status
+  1 mknotifyd
+  4 mounts
+  1 omd_apache
+  1 omd_status
+  1 postfix_mailq
+  1 postfix_mailq_status
+  1 robotmk                      <<<<<<<<<<<<<<<
+  1 systemd_units.services_summary
+  1 tcp_conn_stats
+  1 uptime
+SUCCESS - Found 31 services, 1 host labels
 ```

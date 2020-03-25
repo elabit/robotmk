@@ -28,7 +28,12 @@ converts the XML result into JSON:
     cd test/fixtures/robot
     make all
 
-This will create a file `output.json` for each tests suite. The JSON exactly represents the data which are feeded into the CheckMK check ("list of lists").
+This will create for each test suite: 
+
+* `input_agent.json` = *Agent* test data. This is exactly the robot XML result file plus the first section line ('<<<robot:sep(0)>>>'). This file gets copied with the suite name as filename into the cmk spooldir (default: `/var/lib/check_mk_agent/spool/'`)
+* `input_check.json` = *Check* test data. The JSON exactly represents the data which CheckMK passes to the check ("list of lists").
+
+After this step, you have data to test directly in CheckMK/WATO as well as for development. 
 
 ### 3. Define the expected data
 Each test suite folder must contain a file `expected.py` which defines what the test should expect.

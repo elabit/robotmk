@@ -4,17 +4,33 @@
 import os
 import argparse
 import json
+from shutil import copyfile
 
-parser = argparse.ArgumentParser(description='Generate ChecMK check input from Robot XML result files')
+parser = argparse.ArgumentParser(description='Generate ChecMK agent and check input from Robot XML result files')
 parser.add_argument("-f", "--file", help="Robot XML result file", required=True)
+parser.add_argument("-s", "--spooldir", help="CMK spooldir", default='/var/lib/check_mk_agent/spool', required=False)
 arg = parser.parse_args()
+filename = arg.file.replace('./', '')
 try:
-    with open(arg.file, "r") as file: 
+    with open(filename, "r") as file: 
         xmldata = file.readlines()
-    outfilename = "%s/%s.json" % (os.path.dirname(arg.file), os.path.splitext(os.path.basename(arg.file))[0])
-    with open(outfilename, "w") as file:
+    suitename = os.path.dirname(filename)
+    print "=== %s " % suitename
+    # create spool file for agent    
+    agent_input_filename = "%s/input_agent.cmk" % suitename
+    print "  -> %s" % agent_input_filename
+    with open(agent_input_filename, "w") as file:
+        file.write('<<<robotmk:sep(0)>>>\n')
+        file.writelines(xmldata)
+    spoolfile = '%s/robotmk_%s' % (arg.spooldir, suitename)
+    copyfile(agent_input_filename, spoolfile)
+    print "  -> %s" % spoolfile
+
+    # create data which CheckMK passes to the check ('list of lists')
+    check_input_filename = "%s/input_check.json" % suitename
+    print "  -> %s" % check_input_filename
+    with open(check_input_filename, "w") as file:
         file.write(json.dumps([ [x] for x in xmldata ]))
-    print "%s => %s" % (arg.file, outfilename)
 except: 
-    print "Error while converting Robot result file %s to CheckMK input" % arg.file
+    print "Error while converting Robot result file %s to CheckMK input" % filename
 
