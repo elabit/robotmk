@@ -36,6 +36,13 @@ from operator import add, sub
 
 iam = "robotmk"
 
+STATES = {
+    0: 'OK',
+    1: 'WARNING',
+    2: 'CRITICAL',
+    3: 'UNKNOWN',
+}
+
 # GRIFFEL WEG!! MUSS SEIN!
 inventory_robotmk_rules = []
 
@@ -64,8 +71,9 @@ def check_robot(item, checkgroup_parameters, robot_result):
 
     for suite in robot_result:
         if suite.name == item:
-            rc = suite.nagios_stateid
             nagios_result = suite.nagios_result_recursive(checkgroup_parameters, discovery_suite_level)
+            # worststate
+            rc = max(map(lambda x: x[0], nagios_result))
             if checkgroup_parameters.get('perfdata_creation'):
                 perf = suite.nagios_perfdata_recursive(checkgroup_parameters['perfdata_creation'], False)
             else:   
@@ -88,8 +96,11 @@ class RFObject(object):
 
     def __init__(self, id, level_absolute, level_relative, name, status, starttime, endtime, elapsedtime, branches=[]):
         self.id = id
+        # level_absolute is the absolute position in the suite tree. A RFMetrics object 
+        # with a discovery_suite_level of 2 for example can result in on or more suites
+        # which each have a level_absolute if 2.  
         self.level_absolute = level_absolute
-        # level_relative begins at discovery level, count separately for suites/tests/keywords
+        # level_relative begins starts for each suites/tests/keywords at 0 (to control output_depth for suites/kws)
         self.level_relative = level_relative
         self.name = name
         self.status = status
@@ -98,6 +109,10 @@ class RFObject(object):
         self.elapsedtime = elapsedtime
         # FIXME assert branches type
         self.branches = branches
+
+    @property
+    def abbr(self):
+        return '[%s]' % str(self)[:1].upper()
 
     @property
     def nagios_stateid(self):
@@ -112,40 +127,93 @@ class RFObject(object):
         return ( self.name, self.elapsedtime)
 
     # returns status and RC of this node and subnodes
-    def nagios_result_recursive(self, checkgroup_parameters, discovery_suite_level, depth_limit=None ):
-        output_depth = checkgroup_parameters.get('output_depth', {}).get(self.output_depth_dict_key, [])
-        next_depth_limit = None
-        for item in output_depth:
-            (pattern, depth) = item
-            if re.match(pattern, self.name):
-                # limit for this object
-                depth_limit = int(depth)
-                # limit for recursion of underlying objects 
-                next_depth_limit = depth_limit - 1
+    def nagios_result_recursive(self, checkgroup_parameters, discovery_suite_level, depth_limit_inherited=None ):
+        # returns the value for a given pattern (output_depth, runtime_threshold, perfdata) 
+        def pattern_value(patterns, name):
+            for pattern_tuple in patterns:
+                if re.match(pattern_tuple[0], name):   
+                    return pattern_tuple[1]
+                return None
 
-        # TODO: runtime evaluation
-        my_rc = self.nagios_stateid
-        runtime_str = "%s s" % self.elapsedtime
-        padding = (len(self.id) - ((discovery_suite_level+1) * 3)) * "-"
-        my_out = ("%s %s %s: %s (%s)" % (padding, str(self), self.name, self.status, runtime_str)).strip()
-        # list of tuples
+        # RUNTIME EVALUTATION --- How long did Suites/Tests/Keywords run? 
+        runtime_thresholds = checkgroup_parameters.get('runtime_threshold', {}).get(self.runtime_threshold_dict_key, [])
+        this_runtime_threshold = pattern_value(runtime_thresholds, self.name)
+        elapsed_sec = self.elapsedtime/float(1000)
+        if this_runtime_threshold and elapsed_sec >= this_runtime_threshold: 
+            my_rc = 1
+            runtime_str = "%.1fs, WARNING: > %.2fs" % (elapsed_sec, this_runtime_threshold)
+            padding = (discovery_suite_level - self.level_absolute)* -1 * u"\u2504"
+            my_out = ("%s %s %s '%s': %s (%s)" % (padding, self.symbol_nok, self.abbr, self.name, self.status, runtime_str)).strip()
+            my_err = '%s %s over runtime' % (str(self), self.name)
+        else: 
+            my_rc = self.nagios_stateid
+            runtime_str = "%.1fs" % elapsed_sec
+            padding = (discovery_suite_level - self.level_absolute)* -1 * u"\u2504"
+            my_out = ("%s %s %s '%s': %s (%s)" % (padding, self.symbol_ok, self.abbr, self.name, self.status, runtime_str)).strip()
+            my_err = ''
+
+
+        # OUTPUT DEPTH --- how deep can we descend in nested suites/keywords?  
+        output_depths = checkgroup_parameters.get('output_depth', {}).get(self.output_depth_dict_key, [])
+        this_depth_limit = pattern_value(output_depths, self.name)
+
+        # i = inherited depth
+        # t = this depth
+        # nx = next depth
+
+        # i  t  nx
+        # -----------
+        # n  n. n    #3
+        # n  0. -1   #4
+        # n  2. 1    #1 
+        #   
+        # 0. n  -1   #2
+        # 0  0. -1   #4
+        # 0  2. 1    #1 
+        #   
+        # 2  n  1    #2
+        # 2  0. -1   #4
+        # 2  2. 1    #1 
+
+        if this_depth_limit == None or this_depth_limit > 0: 
+            if this_depth_limit > 0: 
+                #1 we can descend
+                next_depth_limit = this_depth_limit -1 
+            else:  
+                # no pattern for this, decide from inherited value
+                if depth_limit_inherited >= 0:    
+                    #2
+                    next_depth_limit = depth_limit_inherited -1 
+                else: 
+                    #3
+                    next_depth_limit = None
+        else: 
+            #4 there's 0 defined, this overwrites inherited depth
+            next_depth_limit = -1
+
+        # list of tuples holding all sub elements
         my_result_branches = []
-
-        # either limit is set or no limit at all
-        if depth_limit != 0 or depth_limit == None: 
-            # list of tuples
+        # Let's descend
+        if next_depth_limit == None or next_depth_limit > -1: 
             sublists = [ subel.nagios_result_recursive(checkgroup_parameters, discovery_suite_level, next_depth_limit) for subel in self.branches ]
+            # avoid nesting, flat the list
             for sublist in sublists: 
                 for subitem in sublist: 
                     my_result_branches.append(subitem)  
-        # Are we on the last recursion? => duplicate the first line for short_output
+
+        # Are we on the last recursion? 
         if self.level_relative == 0 and str(self) == "Suite": 
-            my_out_firstline = my_out + " FIXME: add. info - failed tests: foo, bar, baz"
+            elements_with_errors = filter(lambda x: x[2], my_result_branches)
+            errors = ', '.join([ x[2] for x in elements_with_errors])
+            worst_stateid = max(map(lambda x: x[0], my_result_branches))
+            worststate = STATES[worst_stateid]
+            # duplicate the first line for short_output
+            my_out_firstline = my_out + ", %s: %s" % (worststate, errors)
             my_result_firstline = [(my_rc, my_out_firstline)]
         else:
             my_result_firstline = []
             
-        my_result = [(my_rc, my_out)]
+        my_result = [(my_rc, my_out, my_err)]
         return my_result_firstline + my_result + my_result_branches
 
     # returns performance data of this node and subnodes
@@ -177,6 +245,13 @@ class RFSuite(RFObject):
         return "Suite"
 
     @property
+    def symbol_ok(self):
+        return u"\u25ef"
+    @property
+    def symbol_nok(self):
+        return u"\u2b24"
+
+    @property
     def output_depth_dict_key(self):
         return "output_depth_suites"
     @property
@@ -192,6 +267,13 @@ class RFTest(RFObject):
 
     def __str__(self):
         return "Test"
+    @property
+    def symbol_ok(self):
+        return u"\u25a1"
+    @property
+    def symbol_nok(self):
+        return u"\u25a0"
+
 
     # not really needed, 'cause tests cannot be nested, hence there is no depth. 
     # This is only to suppress nasty warnings. 
@@ -211,6 +293,13 @@ class RFKeyword(RFObject):
 
     def __str__(self):
         return "Keyword"
+
+    @property
+    def symbol_ok(self):
+        return u"\u25cb"
+    @property
+    def symbol_nok(self):
+        return u"\u25cf"
 
     # which key in dict output_depth is holding the values for keywords
     @property
@@ -258,6 +347,7 @@ class RobotMetrics(object):
             ),
             sub_objects)
 
+
         if level_absolute == self.discovery_suite_level:
             self.data.append(suite_node)
         else:
@@ -273,7 +363,7 @@ class RobotMetrics(object):
         test_node = RFTest(
                 test.attrib['id'], 
                 level_absolute, 
-                9999, 
+                0, 
                 test.attrib['name'],
                 test.find('status').attrib['status'], 
                 test.find('status').attrib['starttime'], 
@@ -295,7 +385,7 @@ class RobotMetrics(object):
         keywords = keyword.findall('kw')
         subkw_objects = ()
         if keywords:
-            subkw_objects = [ self.visit_keyword(keyword, statistics, error, level_absolute+1, level_relative+1) for keyword in keywords ]
+            subkw_objects = [ self.visit_keyword(subkeyword, statistics, error, level_absolute+1, level_relative+1) for subkeyword in keywords ]
 
         # keyword_node = RFKeyword(keyword.id, level_absolute, level_relative, keyword.name, keyword.status, keyword.starttime, keyword.endtime, keyword.elapsedtime, subkw_objects)
         keyword_node = RFKeyword(

@@ -1,6 +1,6 @@
 <<<robotmk:sep(0)>>>
 <?xml version="1.0" encoding="UTF-8"?>
-<robot rpa="false" generated="20200325 14:24:31.018" generator="Robot 3.1.2 (Python 2.7.5 on linux2)">
+<robot rpa="false" generated="20200326 15:51:23.929" generator="Robot 3.1.2 (Python 2.7.5 on linux2)">
 <suite source="/workspace/robotmk/test/fixtures/robot/1S_3T" id="s1" name="1S 3T">
 <suite source="/workspace/robotmk/test/fixtures/robot/1S_3T/1_simpletest.robot" id="s1-s1" name="1 Simpletest">
 <test id="s1-s1-t1" name="Test1 - Sleep">
@@ -9,65 +9,83 @@
 <arguments>
 <arg>0.1</arg>
 </arguments>
-<msg timestamp="20200325 14:24:31.138" level="INFO">Slept 100 milliseconds</msg>
-<status status="PASS" endtime="20200325 14:24:31.138" starttime="20200325 14:24:31.037"></status>
+<msg timestamp="20200326 15:51:24.050" level="INFO">Slept 100 milliseconds</msg>
+<status status="PASS" endtime="20200326 15:51:24.050" starttime="20200326 15:51:23.949"></status>
 </kw>
-<status status="PASS" endtime="20200325 14:24:31.138" critical="yes" starttime="20200325 14:24:31.037"></status>
+<status status="PASS" endtime="20200326 15:51:24.050" critical="yes" starttime="20200326 15:51:23.949"></status>
 </test>
 <test id="s1-s1-t2" name="Test2 - 1Nested Sleep">
 <kw name="MySleep">
-<kw name="Sleep" library="BuiltIn">
-<doc>Pauses the test executed for the given time.</doc>
 <arguments>
 <arg>0.1</arg>
 </arguments>
-<msg timestamp="20200325 14:24:31.241" level="INFO">Slept 100 milliseconds</msg>
-<status status="PASS" endtime="20200325 14:24:31.241" starttime="20200325 14:24:31.140"></status>
+<kw name="Sleep" library="BuiltIn">
+<doc>Pauses the test executed for the given time.</doc>
+<arguments>
+<arg>${time}</arg>
+</arguments>
+<msg timestamp="20200326 15:51:24.152" level="INFO">Slept 100 milliseconds</msg>
+<status status="PASS" endtime="20200326 15:51:24.152" starttime="20200326 15:51:24.051"></status>
 </kw>
-<status status="PASS" endtime="20200325 14:24:31.242" starttime="20200325 14:24:31.140"></status>
+<status status="PASS" endtime="20200326 15:51:24.153" starttime="20200326 15:51:24.051"></status>
 </kw>
-<status status="PASS" endtime="20200325 14:24:31.242" critical="yes" starttime="20200325 14:24:31.139"></status>
+<status status="PASS" endtime="20200326 15:51:24.153" critical="yes" starttime="20200326 15:51:24.050"></status>
 </test>
 <test id="s1-s1-t3" name="Test3 - 2 Nested Sleeps">
 <kw name="MySleepSleep">
-<kw name="MySleep">
-<kw name="Sleep" library="BuiltIn">
-<doc>Pauses the test executed for the given time.</doc>
 <arguments>
 <arg>0.1</arg>
 </arguments>
-<msg timestamp="20200325 14:24:31.346" level="INFO">Slept 100 milliseconds</msg>
-<status status="PASS" endtime="20200325 14:24:31.346" starttime="20200325 14:24:31.245"></status>
+<kw name="MySleep">
+<arguments>
+<arg>${time}</arg>
+</arguments>
+<kw name="Sleep" library="BuiltIn">
+<doc>Pauses the test executed for the given time.</doc>
+<arguments>
+<arg>${time}</arg>
+</arguments>
+<msg timestamp="20200326 15:51:24.257" level="INFO">Slept 100 milliseconds</msg>
+<status status="PASS" endtime="20200326 15:51:24.257" starttime="20200326 15:51:24.156"></status>
 </kw>
-<status status="PASS" endtime="20200325 14:24:31.347" starttime="20200325 14:24:31.244"></status>
+<status status="PASS" endtime="20200326 15:51:24.257" starttime="20200326 15:51:24.155"></status>
 </kw>
-<status status="PASS" endtime="20200325 14:24:31.347" starttime="20200325 14:24:31.244"></status>
+<status status="PASS" endtime="20200326 15:51:24.257" starttime="20200326 15:51:24.154"></status>
 </kw>
-<status status="PASS" endtime="20200325 14:24:31.347" critical="yes" starttime="20200325 14:24:31.243"></status>
+<status status="PASS" endtime="20200326 15:51:24.258" critical="yes" starttime="20200326 15:51:24.153"></status>
 </test>
 <test id="s1-s1-t4" name="Test4 - 3 Nested Sleeps">
 <kw name="MySleepSleepSleep">
+<arguments>
+<arg>0.3</arg>
+</arguments>
 <kw name="MySleepSleep">
+<arguments>
+<arg>${time}</arg>
+</arguments>
 <kw name="MySleep">
+<arguments>
+<arg>${time}</arg>
+</arguments>
 <kw name="Sleep" library="BuiltIn">
 <doc>Pauses the test executed for the given time.</doc>
 <arguments>
-<arg>0.1</arg>
+<arg>${time}</arg>
 </arguments>
-<msg timestamp="20200325 14:24:31.452" level="INFO">Slept 100 milliseconds</msg>
-<status status="PASS" endtime="20200325 14:24:31.452" starttime="20200325 14:24:31.351"></status>
+<msg timestamp="20200326 15:51:24.560" level="INFO">Slept 300 milliseconds</msg>
+<status status="PASS" endtime="20200326 15:51:24.561" starttime="20200326 15:51:24.260"></status>
 </kw>
-<status status="PASS" endtime="20200325 14:24:31.453" starttime="20200325 14:24:31.350"></status>
+<status status="PASS" endtime="20200326 15:51:24.561" starttime="20200326 15:51:24.259"></status>
 </kw>
-<status status="PASS" endtime="20200325 14:24:31.453" starttime="20200325 14:24:31.349"></status>
+<status status="PASS" endtime="20200326 15:51:24.561" starttime="20200326 15:51:24.259"></status>
 </kw>
-<status status="PASS" endtime="20200325 14:24:31.453" starttime="20200325 14:24:31.349"></status>
+<status status="PASS" endtime="20200326 15:51:24.562" starttime="20200326 15:51:24.259"></status>
 </kw>
-<status status="PASS" endtime="20200325 14:24:31.454" critical="yes" starttime="20200325 14:24:31.348"></status>
+<status status="PASS" endtime="20200326 15:51:24.562" critical="yes" starttime="20200326 15:51:24.258"></status>
 </test>
-<status status="PASS" endtime="20200325 14:24:31.455" starttime="20200325 14:24:31.035"></status>
+<status status="PASS" endtime="20200326 15:51:24.563" starttime="20200326 15:51:23.947"></status>
 </suite>
-<status status="PASS" endtime="20200325 14:24:31.457" starttime="20200325 14:24:31.019"></status>
+<status status="PASS" endtime="20200326 15:51:24.565" starttime="20200326 15:51:23.930"></status>
 </suite>
 <statistics>
 <total>

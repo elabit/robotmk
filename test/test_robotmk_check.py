@@ -37,6 +37,11 @@ def test_inventory_mk(checks, monkeypatch, testsuite, discovery_suite_level):
 
 # Check test function
 check_test_params = [
+    # 1 Test Suite folder
+    # 2 discovery suite level
+    # 3 check item
+    # 4 checkgroup_parameters file name (without .py extension)
+    # 1       2   3       4
     ('1S_3T', 0, '1S 3T', None),
     ('1S_3T', 0, '1S 3T', 'MySleepSleep_0'),
     ('1S_3T', 0, '1S 3T', 'MySleepSleep_1'),
@@ -44,6 +49,7 @@ check_test_params = [
     ('1S_3S_2S_3T', 0, '1S 3S 2S 3T', 'Subsuite1_0'),
     ('1S_3S_2S_3T', 0, '1S 3S 2S 3T', 'Subsuite1_1'),
     ('1S_3S_2S_3T', 1, 'Subsuite1', None),
+    ('1S_3S_2S_3T', 1, 'Subsuite3', 'Suite_Sub3_suites_2seconds'),
     ('1S_3S_2S_3T', 2, 'Sub1 suite1', None),
 ]
 @pytest.mark.parametrize("testsuite, discovery_suite_level, item, checkgroup_parameters", check_test_params)

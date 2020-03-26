@@ -1,19 +1,22 @@
 *** Keywords ***
 MySleep
-	Sleep	0.1
+	[Arguments]	${time}
+	Sleep	${time}
 
 MySleepSleep
-	MySleep
+	[Arguments]	${time}
+	MySleep	${time}
 
 MySleepSleepSleep
-	MySleepSleep
+	[Arguments]	${time}
+	MySleepSleep	${time}
 
 *** Test Cases ***
 Test1 - Sleep
 	Sleep 	0.1
 Test2 - 1Nested Sleep
-	MySleep
+	MySleep	0.1
 Test3 - 2 Nested Sleeps
-	MySleepSleep
+	MySleepSleep	0.1
 Test4 - 3 Nested Sleeps
-	MySleepSleepSleep    
+	MySleepSleepSleep	0.3  

@@ -63,7 +63,7 @@ def _parameter_valuespec_robotmk():
     return Dictionary(elements=[
         ("output_depth", Dictionary(  # L1 
             title = _('Output depth'),
-            help = _('In Robot, suites and keywords can be nested. The default of robotmk is to dissolve/recurse all nested objects and to show them in the service output.<br> '
+            help = _('xIn Robot, suites and keywords can be nested. The default of robotmk is to dissolve/recurse all nested objects and to show them in the service output.<br> '
                      'This is good in general, but sometimes not what you want (think of a keyword which is defined by five layers of abstraction).<br>'
                      'Set the <i>output depth</i> to 0 for sub-suites or keywords which should not get dissolved any deeper to keep the robotmk output clear and understandable.<br>'
                      '(This is only for visual control; hidden suites/keywords are still used to calculate the overall suite state)'),
@@ -129,10 +129,10 @@ def _parameter_valuespec_robotmk():
                                 title=("<b>Suite</b> pattern"),
                                 allow_empty=False,
                             ),
-                            Integer(
+                            Float(
                                 title=("WARN threshold (s)"),
                                 allow_empty=False,
-                                size=3,
+                                size=6,
                             ),                            
                         ],
                     ),  # L3 / Tuple
@@ -150,10 +150,10 @@ def _parameter_valuespec_robotmk():
                                 title=("<b>Test</b> pattern"),
                                 allow_empty=False,
                             ),
-                            Integer(
+                            Float(
                                 title=("WARN threshold (s)"),
                                 allow_empty=False,
-                                size=3,
+                                size=6,
                             ),                            
                         ],
                     ),  # L3 / Tuple
@@ -171,10 +171,10 @@ def _parameter_valuespec_robotmk():
                                 title=("<b>Keyword</b> pattern"),
                                 allow_empty=False,
                             ),
-                            Integer(
+                            Float(
                                 title=("WARN threshold (s)"),
                                 allow_empty=False,
-                                size=3,
+                                size=6,
                             ),                            
                         ],
                     ),  # L3 / Tuple
