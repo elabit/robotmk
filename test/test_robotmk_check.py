@@ -29,11 +29,20 @@ inventory_test_params = [
 ]
 @pytest.mark.parametrize("testsuite, discovery_suite_level", inventory_test_params)
 def test_inventory_mk(checks, monkeypatch, testsuite, discovery_suite_level):
-    mk_output = read_mk_input(testsuite + '/input_check.json')
+    mk_check_input = read_mk_input(testsuite + '/input_check.json')
     expected_data = read_expected_data(testsuite + '/expected.py')[discovery_suite_level]
     patch(checks.module, monkeypatch, 'discovery_suite_level_%d.py' % discovery_suite_level)
-    inventory = checks['robotmk'].inventory_mk(mk_output)
+    inventory = checks['robotmk'].inventory_mk(mk_check_input)
     assert_inventory(inventory, expected_data['inventory_suites'])
+
+# Multiple Suite Inventory test function
+def test_multi_inventory_mk(checks, monkeypatch):
+    mk_check_input = read_mk_input('1S_3T/input_check.json')
+    mk_check_input.extend(read_mk_input('1S_3S_2S_3T/input_check.json'))
+    patch(checks.module, monkeypatch, 'discovery_suite_level_0.py')
+    inventory = checks['robotmk'].inventory_mk(mk_check_input)
+    assert_inventory(inventory, ['1S 3T', '1S 3S 2S 3T'])
+
 
 # Check test function
 check_test_params = [
@@ -58,12 +67,12 @@ check_test_params = [
 ]
 @pytest.mark.parametrize("testsuite, discovery_suite_level, item, checkgroup_parameters", check_test_params)
 def test_check_mk(checks, monkeypatch, testsuite, discovery_suite_level, item, checkgroup_parameters):
-    mk_output = read_mk_input('%s/input_check.json' % testsuite)
+    mk_check_input = read_mk_input('%s/input_check.json' % testsuite)
     expected_data = read_expected_data(testsuite + '/expected.py')[discovery_suite_level]['check_suites'][item][checkgroup_parameters]
     patch(checks.module, monkeypatch, 'discovery_suite_level_%d.py' % discovery_suite_level)
     params = read_mk_checkgroup_params(checkgroup_parameters)
 
-    result = checks['robotmk'].check_mk(item, params, mk_output) 
+    result = checks['robotmk'].check_mk(item, params, mk_check_input) 
     assert result[0]== expected_data['svc_status']
     expected_output = expected_data['svc_output']
     assert re.match(expected_output, result[1], re.DOTALL)

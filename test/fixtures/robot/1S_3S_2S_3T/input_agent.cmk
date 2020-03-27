@@ -1,6 +1,6 @@
 <<<robotmk:sep(0)>>>
 <?xml version="1.0" encoding="UTF-8"?>
-<robot rpa="false" generated="20200327 11:49:40.290" generator="Robot 3.1.2 (Python 2.7.5 on linux2)">
+<robot rpa="false" generated="20200327 16:14:13.201" generator="Robot 3.1.2 (Python 2.7.5 on linux2)">
 <suite source="/workspace/robotmk/test/fixtures/robot/1S_3S_2S_3T" id="s1" name="1S 3S 2S 3T">
 <suite source="/workspace/robotmk/test/fixtures/robot/1S_3S_2S_3T/Subsuite1" id="s1-s1" name="Subsuite1">
 <suite source="/workspace/robotmk/test/fixtures/robot/1S_3S_2S_3T/Subsuite1/Sub1_suite1.robot" id="s1-s1-s1" name="Sub1 suite1">
@@ -10,10 +10,10 @@
 <arguments>
 <arg>0.1</arg>
 </arguments>
-<msg timestamp="20200327 11:49:40.412" level="INFO">Slept 100 milliseconds</msg>
-<status status="PASS" endtime="20200327 11:49:40.412" starttime="20200327 11:49:40.311"></status>
+<msg timestamp="20200327 16:14:13.322" level="INFO">Slept 100 milliseconds</msg>
+<status status="PASS" endtime="20200327 16:14:13.322" starttime="20200327 16:14:13.222"></status>
 </kw>
-<status status="PASS" endtime="20200327 11:49:40.412" critical="yes" starttime="20200327 11:49:40.311"></status>
+<status status="PASS" endtime="20200327 16:14:13.323" critical="yes" starttime="20200327 16:14:13.221"></status>
 </test>
 <test id="s1-s1-s1-t2" name="Sleep the second time for 0.1 sec">
 <kw name="Sleep" library="BuiltIn">
@@ -21,10 +21,10 @@
 <arguments>
 <arg>0.1</arg>
 </arguments>
-<msg timestamp="20200327 11:49:40.513" level="INFO">Slept 100 milliseconds</msg>
-<status status="PASS" endtime="20200327 11:49:40.513" starttime="20200327 11:49:40.413"></status>
+<msg timestamp="20200327 16:14:13.424" level="INFO">Slept 100 milliseconds</msg>
+<status status="PASS" endtime="20200327 16:14:13.424" starttime="20200327 16:14:13.323"></status>
 </kw>
-<status status="PASS" endtime="20200327 11:49:40.514" critical="yes" starttime="20200327 11:49:40.412"></status>
+<status status="PASS" endtime="20200327 16:14:13.424" critical="yes" starttime="20200327 16:14:13.323"></status>
 </test>
 <test id="s1-s1-s1-t3" name="Sleep the third time for 0.1 sec">
 <kw name="Sleep" library="BuiltIn">
@@ -32,12 +32,12 @@
 <arguments>
 <arg>0.1</arg>
 </arguments>
-<msg timestamp="20200327 11:49:40.615" level="INFO">Slept 100 milliseconds</msg>
-<status status="PASS" endtime="20200327 11:49:40.615" starttime="20200327 11:49:40.514"></status>
+<msg timestamp="20200327 16:14:13.526" level="INFO">Slept 100 milliseconds</msg>
+<status status="PASS" endtime="20200327 16:14:13.527" starttime="20200327 16:14:13.425"></status>
 </kw>
-<status status="PASS" endtime="20200327 11:49:40.615" critical="yes" starttime="20200327 11:49:40.514"></status>
+<status status="PASS" endtime="20200327 16:14:13.527" critical="yes" starttime="20200327 16:14:13.425"></status>
 </test>
-<status status="PASS" endtime="20200327 11:49:40.616" starttime="20200327 11:49:40.309"></status>
+<status status="PASS" endtime="20200327 16:14:13.528" starttime="20200327 16:14:13.220"></status>
 </suite>
 <suite source="/workspace/robotmk/test/fixtures/robot/1S_3S_2S_3T/Subsuite1/Sub1_suite2.robot" id="s1-s1-s2" name="Sub1 suite2">
 <test id="s1-s1-s2-t1" name="Sleep the first time for 0.1 sec">
@@ -46,10 +46,10 @@
 <arguments>
 <arg>0.1</arg>
 </arguments>
-<msg timestamp="20200327 11:49:40.719" level="INFO">Slept 100 milliseconds</msg>
-<status status="PASS" endtime="20200327 11:49:40.719" starttime="20200327 11:49:40.618"></status>
+<msg timestamp="20200327 16:14:13.638" level="INFO">Slept 100 milliseconds</msg>
+<status status="PASS" endtime="20200327 16:14:13.638" starttime="20200327 16:14:13.537"></status>
 </kw>
-<status status="PASS" endtime="20200327 11:49:40.719" critical="yes" starttime="20200327 11:49:40.618"></status>
+<status status="PASS" endtime="20200327 16:14:13.639" critical="yes" starttime="20200327 16:14:13.536"></status>
 </test>
 <test id="s1-s1-s2-t2" name="Sleep the second time for 0.1 sec">
 <kw name="Sleep" library="BuiltIn">
@@ -57,10 +57,10 @@
 <arguments>
 <arg>0.1</arg>
 </arguments>
-<msg timestamp="20200327 11:49:40.820" level="INFO">Slept 100 milliseconds</msg>
-<status status="PASS" endtime="20200327 11:49:40.820" starttime="20200327 11:49:40.720"></status>
+<msg timestamp="20200327 16:14:13.740" level="INFO">Slept 100 milliseconds</msg>
+<status status="PASS" endtime="20200327 16:14:13.741" starttime="20200327 16:14:13.640"></status>
 </kw>
-<status status="PASS" endtime="20200327 11:49:40.820" critical="yes" starttime="20200327 11:49:40.719"></status>
+<status status="PASS" endtime="20200327 16:14:13.741" critical="yes" starttime="20200327 16:14:13.639"></status>
 </test>
 <test id="s1-s1-s2-t3" name="Sleep the third time for 0.1 sec">
 <kw name="Sleep" library="BuiltIn">
@@ -68,14 +68,14 @@
 <arguments>
 <arg>0.1</arg>
 </arguments>
-<msg timestamp="20200327 11:49:40.922" level="INFO">Slept 100 milliseconds</msg>
-<status status="PASS" endtime="20200327 11:49:40.922" starttime="20200327 11:49:40.821"></status>
+<msg timestamp="20200327 16:14:13.843" level="INFO">Slept 100 milliseconds</msg>
+<status status="PASS" endtime="20200327 16:14:13.843" starttime="20200327 16:14:13.742"></status>
 </kw>
-<status status="PASS" endtime="20200327 11:49:40.922" critical="yes" starttime="20200327 11:49:40.821"></status>
+<status status="PASS" endtime="20200327 16:14:13.844" critical="yes" starttime="20200327 16:14:13.742"></status>
 </test>
-<status status="PASS" endtime="20200327 11:49:40.922" starttime="20200327 11:49:40.616"></status>
+<status status="PASS" endtime="20200327 16:14:13.845" starttime="20200327 16:14:13.531"></status>
 </suite>
-<status status="PASS" endtime="20200327 11:49:40.923" starttime="20200327 11:49:40.308"></status>
+<status status="PASS" endtime="20200327 16:14:13.848" starttime="20200327 16:14:13.218"></status>
 </suite>
 <suite source="/workspace/robotmk/test/fixtures/robot/1S_3S_2S_3T/Subsuite2" id="s1-s2" name="Subsuite2">
 <suite source="/workspace/robotmk/test/fixtures/robot/1S_3S_2S_3T/Subsuite2/Sub2_suite1.robot" id="s1-s2-s1" name="Sub2 suite1">
@@ -85,10 +85,10 @@
 <arguments>
 <arg>0.1</arg>
 </arguments>
-<msg timestamp="20200327 11:49:41.027" level="INFO">Slept 100 milliseconds</msg>
-<status status="PASS" endtime="20200327 11:49:41.028" starttime="20200327 11:49:40.927"></status>
+<msg timestamp="20200327 16:14:13.960" level="INFO">Slept 100 milliseconds</msg>
+<status status="PASS" endtime="20200327 16:14:13.960" starttime="20200327 16:14:13.859"></status>
 </kw>
-<status status="PASS" endtime="20200327 11:49:41.028" critical="yes" starttime="20200327 11:49:40.927"></status>
+<status status="PASS" endtime="20200327 16:14:13.961" critical="yes" starttime="20200327 16:14:13.858"></status>
 </test>
 <test id="s1-s2-s1-t2" name="Sleep the second time for 0.1 sec">
 <kw name="Sleep" library="BuiltIn">
@@ -96,10 +96,10 @@
 <arguments>
 <arg>0.1</arg>
 </arguments>
-<msg timestamp="20200327 11:49:41.129" level="INFO">Slept 100 milliseconds</msg>
-<status status="PASS" endtime="20200327 11:49:41.129" starttime="20200327 11:49:41.029"></status>
+<msg timestamp="20200327 16:14:14.063" level="INFO">Slept 100 milliseconds</msg>
+<status status="PASS" endtime="20200327 16:14:14.063" starttime="20200327 16:14:13.962"></status>
 </kw>
-<status status="PASS" endtime="20200327 11:49:41.129" critical="yes" starttime="20200327 11:49:41.028"></status>
+<status status="PASS" endtime="20200327 16:14:14.064" critical="yes" starttime="20200327 16:14:13.961"></status>
 </test>
 <test id="s1-s2-s1-t3" name="Sleep the third time for 0.1 sec">
 <kw name="Sleep" library="BuiltIn">
@@ -107,12 +107,12 @@
 <arguments>
 <arg>0.1</arg>
 </arguments>
-<msg timestamp="20200327 11:49:41.230" level="INFO">Slept 100 milliseconds</msg>
-<status status="PASS" endtime="20200327 11:49:41.231" starttime="20200327 11:49:41.130"></status>
+<msg timestamp="20200327 16:14:14.167" level="INFO">Slept 100 milliseconds</msg>
+<status status="PASS" endtime="20200327 16:14:14.167" starttime="20200327 16:14:14.066"></status>
 </kw>
-<status status="PASS" endtime="20200327 11:49:41.231" critical="yes" starttime="20200327 11:49:41.130"></status>
+<status status="PASS" endtime="20200327 16:14:14.167" critical="yes" starttime="20200327 16:14:14.065"></status>
 </test>
-<status status="PASS" endtime="20200327 11:49:41.231" starttime="20200327 11:49:40.925"></status>
+<status status="PASS" endtime="20200327 16:14:14.168" starttime="20200327 16:14:13.855"></status>
 </suite>
 <suite source="/workspace/robotmk/test/fixtures/robot/1S_3S_2S_3T/Subsuite2/Sub2_suite2.robot" id="s1-s2-s2" name="Sub2 suite2">
 <test id="s1-s2-s2-t1" name="Sleep the first time for 0.1 sec">
@@ -121,10 +121,10 @@
 <arguments>
 <arg>0.1</arg>
 </arguments>
-<msg timestamp="20200327 11:49:41.334" level="INFO">Slept 100 milliseconds</msg>
-<status status="PASS" endtime="20200327 11:49:41.335" starttime="20200327 11:49:41.234"></status>
+<msg timestamp="20200327 16:14:14.274" level="INFO">Slept 100 milliseconds</msg>
+<status status="PASS" endtime="20200327 16:14:14.275" starttime="20200327 16:14:14.174"></status>
 </kw>
-<status status="PASS" endtime="20200327 11:49:41.335" critical="yes" starttime="20200327 11:49:41.234"></status>
+<status status="PASS" endtime="20200327 16:14:14.275" critical="yes" starttime="20200327 16:14:14.173"></status>
 </test>
 <test id="s1-s2-s2-t2" name="Sleep the second time for 0.1 sec">
 <kw name="Sleep" library="BuiltIn">
@@ -132,10 +132,10 @@
 <arguments>
 <arg>0.1</arg>
 </arguments>
-<msg timestamp="20200327 11:49:41.436" level="INFO">Slept 100 milliseconds</msg>
-<status status="PASS" endtime="20200327 11:49:41.436" starttime="20200327 11:49:41.335"></status>
+<msg timestamp="20200327 16:14:14.377" level="INFO">Slept 100 milliseconds</msg>
+<status status="PASS" endtime="20200327 16:14:14.377" starttime="20200327 16:14:14.276"></status>
 </kw>
-<status status="PASS" endtime="20200327 11:49:41.436" critical="yes" starttime="20200327 11:49:41.335"></status>
+<status status="PASS" endtime="20200327 16:14:14.378" critical="yes" starttime="20200327 16:14:14.276"></status>
 </test>
 <test id="s1-s2-s2-t3" name="Sleep the third time for 0.1 sec">
 <kw name="Sleep" library="BuiltIn">
@@ -143,14 +143,14 @@
 <arguments>
 <arg>0.1</arg>
 </arguments>
-<msg timestamp="20200327 11:49:41.537" level="INFO">Slept 100 milliseconds</msg>
-<status status="PASS" endtime="20200327 11:49:41.538" starttime="20200327 11:49:41.437"></status>
+<msg timestamp="20200327 16:14:14.479" level="INFO">Slept 100 milliseconds</msg>
+<status status="PASS" endtime="20200327 16:14:14.479" starttime="20200327 16:14:14.379"></status>
 </kw>
-<status status="PASS" endtime="20200327 11:49:41.538" critical="yes" starttime="20200327 11:49:41.436"></status>
+<status status="PASS" endtime="20200327 16:14:14.480" critical="yes" starttime="20200327 16:14:14.378"></status>
 </test>
-<status status="PASS" endtime="20200327 11:49:41.539" starttime="20200327 11:49:41.232"></status>
+<status status="PASS" endtime="20200327 16:14:14.480" starttime="20200327 16:14:14.170"></status>
 </suite>
-<status status="PASS" endtime="20200327 11:49:41.539" starttime="20200327 11:49:40.924"></status>
+<status status="PASS" endtime="20200327 16:14:14.481" starttime="20200327 16:14:13.850"></status>
 </suite>
 <suite source="/workspace/robotmk/test/fixtures/robot/1S_3S_2S_3T/Subsuite3" id="s1-s3" name="Subsuite3">
 <suite source="/workspace/robotmk/test/fixtures/robot/1S_3S_2S_3T/Subsuite3/Sub3_suite1.robot" id="s1-s3-s1" name="Sub3 suite1">
@@ -160,10 +160,10 @@
 <arguments>
 <arg>3</arg>
 </arguments>
-<msg timestamp="20200327 11:49:44.544" level="INFO">Slept 3 seconds</msg>
-<status status="PASS" endtime="20200327 11:49:44.545" starttime="20200327 11:49:41.544"></status>
+<msg timestamp="20200327 16:14:17.486" level="INFO">Slept 3 seconds</msg>
+<status status="PASS" endtime="20200327 16:14:17.486" starttime="20200327 16:14:14.485"></status>
 </kw>
-<status status="PASS" endtime="20200327 11:49:44.545" critical="yes" starttime="20200327 11:49:41.544"></status>
+<status status="PASS" endtime="20200327 16:14:17.487" critical="yes" starttime="20200327 16:14:14.485"></status>
 </test>
 <test id="s1-s3-s1-t2" name="Sleep the second time for 0.1 sec">
 <kw name="Sleep" library="BuiltIn">
@@ -171,10 +171,10 @@
 <arguments>
 <arg>0.1</arg>
 </arguments>
-<msg timestamp="20200327 11:49:44.646" level="INFO">Slept 100 milliseconds</msg>
-<status status="PASS" endtime="20200327 11:49:44.646" starttime="20200327 11:49:44.546"></status>
+<msg timestamp="20200327 16:14:17.590" level="INFO">Slept 100 milliseconds</msg>
+<status status="PASS" endtime="20200327 16:14:17.590" starttime="20200327 16:14:17.489"></status>
 </kw>
-<status status="PASS" endtime="20200327 11:49:44.646" critical="yes" starttime="20200327 11:49:44.545"></status>
+<status status="PASS" endtime="20200327 16:14:17.590" critical="yes" starttime="20200327 16:14:17.488"></status>
 </test>
 <test id="s1-s3-s1-t3" name="Sleep the third time for 0.1 sec">
 <kw name="Sleep" library="BuiltIn">
@@ -182,12 +182,12 @@
 <arguments>
 <arg>0.1</arg>
 </arguments>
-<msg timestamp="20200327 11:49:44.747" level="INFO">Slept 100 milliseconds</msg>
-<status status="PASS" endtime="20200327 11:49:44.748" starttime="20200327 11:49:44.647"></status>
+<msg timestamp="20200327 16:14:17.691" level="INFO">Slept 100 milliseconds</msg>
+<status status="PASS" endtime="20200327 16:14:17.691" starttime="20200327 16:14:17.591"></status>
 </kw>
-<status status="PASS" endtime="20200327 11:49:44.748" critical="yes" starttime="20200327 11:49:44.647"></status>
+<status status="PASS" endtime="20200327 16:14:17.692" critical="yes" starttime="20200327 16:14:17.590"></status>
 </test>
-<status status="PASS" endtime="20200327 11:49:44.748" starttime="20200327 11:49:41.542"></status>
+<status status="PASS" endtime="20200327 16:14:17.693" starttime="20200327 16:14:14.483"></status>
 </suite>
 <suite source="/workspace/robotmk/test/fixtures/robot/1S_3S_2S_3T/Subsuite3/Sub3_suite2.robot" id="s1-s3-s2" name="Sub3 suite2">
 <test id="s1-s3-s2-t1" name="Sleep the first time for 0.1 sec">
@@ -196,10 +196,10 @@
 <arguments>
 <arg>0.1</arg>
 </arguments>
-<msg timestamp="20200327 11:49:44.852" level="INFO">Slept 100 milliseconds</msg>
-<status status="PASS" endtime="20200327 11:49:44.852" starttime="20200327 11:49:44.751"></status>
+<msg timestamp="20200327 16:14:17.798" level="INFO">Slept 100 milliseconds</msg>
+<status status="PASS" endtime="20200327 16:14:17.798" starttime="20200327 16:14:17.698"></status>
 </kw>
-<status status="PASS" endtime="20200327 11:49:44.852" critical="yes" starttime="20200327 11:49:44.751"></status>
+<status status="PASS" endtime="20200327 16:14:17.799" critical="yes" starttime="20200327 16:14:17.697"></status>
 </test>
 <test id="s1-s3-s2-t2" name="Sleep the second time for 0.1 sec">
 <kw name="Sleep" library="BuiltIn">
@@ -207,10 +207,10 @@
 <arguments>
 <arg>0.1</arg>
 </arguments>
-<msg timestamp="20200327 11:49:44.953" level="INFO">Slept 100 milliseconds</msg>
-<status status="PASS" endtime="20200327 11:49:44.953" starttime="20200327 11:49:44.853"></status>
+<msg timestamp="20200327 16:14:17.900" level="INFO">Slept 100 milliseconds</msg>
+<status status="PASS" endtime="20200327 16:14:17.900" starttime="20200327 16:14:17.800"></status>
 </kw>
-<status status="PASS" endtime="20200327 11:49:44.953" critical="yes" starttime="20200327 11:49:44.852"></status>
+<status status="PASS" endtime="20200327 16:14:17.901" critical="yes" starttime="20200327 16:14:17.799"></status>
 </test>
 <test id="s1-s3-s2-t3" name="Sleep the third time for 3 sec">
 <kw name="Sleep" library="BuiltIn">
@@ -218,16 +218,16 @@
 <arguments>
 <arg>3</arg>
 </arguments>
-<msg timestamp="20200327 11:49:47.955" level="INFO">Slept 3 seconds</msg>
-<status status="PASS" endtime="20200327 11:49:47.955" starttime="20200327 11:49:44.954"></status>
+<msg timestamp="20200327 16:14:20.903" level="INFO">Slept 3 seconds</msg>
+<status status="PASS" endtime="20200327 16:14:20.903" starttime="20200327 16:14:17.902"></status>
 </kw>
-<status status="PASS" endtime="20200327 11:49:47.955" critical="yes" starttime="20200327 11:49:44.954"></status>
+<status status="PASS" endtime="20200327 16:14:20.904" critical="yes" starttime="20200327 16:14:17.901"></status>
 </test>
-<status status="PASS" endtime="20200327 11:49:47.955" starttime="20200327 11:49:44.749"></status>
+<status status="PASS" endtime="20200327 16:14:20.905" starttime="20200327 16:14:17.694"></status>
 </suite>
-<status status="PASS" endtime="20200327 11:49:47.957" starttime="20200327 11:49:41.540"></status>
+<status status="PASS" endtime="20200327 16:14:20.908" starttime="20200327 16:14:14.482"></status>
 </suite>
-<status status="PASS" endtime="20200327 11:49:47.959" starttime="20200327 11:49:40.291"></status>
+<status status="PASS" endtime="20200327 16:14:20.912" starttime="20200327 16:14:13.202"></status>
 </suite>
 <statistics>
 <total>

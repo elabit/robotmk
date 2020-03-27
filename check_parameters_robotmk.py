@@ -79,6 +79,7 @@ def _parameter_valuespec_robotmk():
                             TextAscii(
                                 title=("<b>Suite</b> pattern"),
                                 allow_empty=False,
+                                size=60,
                             ),
                             Integer(
                                 title=("depth"),
@@ -100,6 +101,7 @@ def _parameter_valuespec_robotmk():
                             TextAscii(
                                 title=("<b>Keyword</b> pattern"),
                                 allow_empty=False,
+                                size=60,
                             ),
                             Integer(
                                 title=("depth"),
@@ -134,6 +136,7 @@ def _parameter_valuespec_robotmk():
                             TextAscii(
                                 title=("<b>Suite</b> pattern"),
                                 allow_empty=False,
+                                size=60,
                             ),
                             Float(
                                 title=("WARN threshold (s)"),
@@ -155,6 +158,7 @@ def _parameter_valuespec_robotmk():
                             TextAscii(
                                 title=("<b>Test</b> pattern"),
                                 allow_empty=False,
+                                size=60,
                             ),
                             Float(
                                 title=("WARN threshold (s)"),
@@ -176,6 +180,7 @@ def _parameter_valuespec_robotmk():
                             TextAscii(
                                 title=("<b>Keyword</b> pattern"),
                                 allow_empty=False,
+                                size=60,
                             ),
                             Float(
                                 title=("WARN threshold (s)"),
@@ -201,15 +206,19 @@ def _parameter_valuespec_robotmk():
                 ("perfdata_creation_suites", ListOfStrings(  # /L2
                     title = _('<b>Suite</b> perfdata'),
                     orientation="horizontal",
+                    size=60,
+                    
                 )), # L2 
 
                ("perfdata_creation_tests", ListOfStrings(  # /L2
                     title = _('<b>Test</b> perfdata'),
                     orientation="horizontal",
+                    size=60,
                 )), # L2                
                 ("perfdata_creation_keywords", ListOfStrings(  # /L2
                     title = _('<b>Keyword</b> perfdata'),
                     orientation="horizontal",
+                    size=60,
                 )), # L2                                         
             ],
         )), # L1 / perfdata_creation                          

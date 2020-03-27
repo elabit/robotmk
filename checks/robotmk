@@ -46,20 +46,27 @@ STATES = {
 # GRIFFEL WEG!! MUSS SEIN!
 inventory_robotmk_rules = []
 
+# info = one __or more__ robot XML results concatenated 
 def parse_robot(info):
     settings = host_extra_conf_merged(host_name(), eval("inventory_"+iam+"_rules"))
     discovery_suite_level = settings.get("discovery_suite_level", 0)
-    # flatten list of list to one XML string     
-    xmlstring = ''.join(map(str, [l[0] for l in info]))
-    xml = ET.fromstring(xmlstring)
-    suite, statistics, error =  (xml.find('suite'), xml.find('statistics'), xml.find('errors')) 
-    if not all(map(lambda x: x != None, [suite, statistics, error])):
-        return None
-    robot_result = RobotMetrics(suite, statistics, error, int(discovery_suite_level))
-    return robot_result.data
+    # stringify list of lists
+    all_xmlstring = ''.join(map(str, [l[0] for l in info]))
+    # identify XMLs
+    xmllist = map(lambda x: '<?xml' + x, all_xmlstring.split('<?xml'))[1:]
+    robot_results = []
+    for xml in xmllist: 
+        oxml = ET.fromstring(xml)
+        suite, statistics, error =  (oxml.find('suite'), oxml.find('statistics'), oxml.find('errors')) 
+        if not all(map(lambda x: x != None, [suite, statistics, error])):
+            continue
+        robot_result = RobotMetrics(suite, statistics, error, int(discovery_suite_level))
+        robot_results.extend(robot_result.data)
+    # list of RFSuite objects
+    return robot_results
 
-def inventory_robot(robot_result):
-    for suite in robot_result:
+def inventory_robot(robot_results):
+    for suite in robot_results:
         # print suite.name
         yield suite.name, None
 
@@ -271,7 +278,6 @@ class RFTest(RFObject):
     def symbol_nok(self):
         return u"\u25a0"
 
-
     # not really needed, 'cause tests cannot be nested, hence there is no depth. 
     # This is only to suppress nasty warnings. 
     @property
@@ -290,10 +296,6 @@ class RFKeyword(RFObject):
 
     def __str__(self):
         return "Keyword"
-
-    # @staticmethod
-    # def keyword_id(parent_id, ind):
-    #     return "%s-%s"
 
     @property
     def symbol_ok(self):
