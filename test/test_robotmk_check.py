@@ -45,9 +45,13 @@ check_test_params = [
     ('1S_3T', 0, '1S 3T', None),
     ('1S_3T', 0, '1S 3T', 'MySleepSleep_0'),
     ('1S_3T', 0, '1S 3T', 'MySleepSleep_1'),
+    ('1S_3T', 0, '1S 3T', 'MySleep_perfdata'),
     ('1S_3S_2S_3T', 0, '1S 3S 2S 3T', None),
     ('1S_3S_2S_3T', 0, '1S 3S 2S 3T', 'Subsuite1_0'),
     ('1S_3S_2S_3T', 0, '1S 3S 2S 3T', 'Subsuite1_1'),
+    ('1S_3S_2S_3T', 0, '1S 3S 2S 3T', 'Subsuites_perfdata'),
+    ('1S_3S_2S_3T', 0, '1S 3S 2S 3T', 'Tests_perfdata'),
+    ('1S_3S_2S_3T', 0, '1S 3S 2S 3T', 'runtime_test_2sec'),
     ('1S_3S_2S_3T', 1, 'Subsuite1', None),
     ('1S_3S_2S_3T', 1, 'Subsuite3', 'Suite_Sub3_suites_2seconds'),
     ('1S_3S_2S_3T', 2, 'Sub1 suite1', None),
@@ -63,6 +67,20 @@ def test_check_mk(checks, monkeypatch, testsuite, discovery_suite_level, item, c
     assert result[0]== expected_data['svc_status']
     expected_output = expected_data['svc_output']
     assert re.match(expected_output, result[1], re.DOTALL)
+    if 'perfdata' in expected_data and expected_data['perfdata']: 
+        expected_perfdata_list = expected_data['perfdata']
+        expected_perflabels = [ x[0] for x in expected_perfdata_list]
+        for perfdata in result[2]:
+            assert perfdata[0] in expected_perflabels
+            expected_index = expected_perflabels.index(perfdata[0])
+            expected_perfdata = expected_perfdata_list[expected_index]
+            # Value
+            assert re.match(expected_perfdata[1], perfdata[1])
+            # Warning
+            if len(expected_perfdata) == 3: 
+                assert re.match(expected_perfdata[2], perfdata[2])
+
+
     # assert result[1].startswith(expected_output)
 
 

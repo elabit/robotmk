@@ -63,10 +63,12 @@ def _parameter_valuespec_robotmk():
     return Dictionary(elements=[
         ("output_depth", Dictionary(  # L1 
             title = _('Output depth'),
-            help = _('xIn Robot, suites and keywords can be nested. The default of robotmk is to dissolve/recurse all nested objects and to show them in the service output.<br> '
+            help = _('In Robot, suites and keywords can be nested. The default of RobotMK is to dissolve/recurse all nested objects and to show them in the service output.<br> '
                      'This is good in general, but sometimes not what you want (think of a keyword which is defined by five layers of abstraction).<br>'
-                     'Set the <i>output depth</i> to 0 for sub-suites or keywords which should not get dissolved any deeper to keep the robotmk output clear and understandable.<br>'
-                     '(This is only for visual control; hidden suites/keywords are still used to calculate the overall suite state)'),
+                     'To keep the RobotMK output clear and understandable, set a proper pattern and e.g. <i>output depth=0</i> for sub-suites or keywords which should not get dissolved any deeper.<br>'
+                     '(Hint: This is only for visual control; suites/keywords which are hidden by this setting can still be compared to <i>runtime_threshold</i> and change the overall suite state.)<br>'
+                     'Patterns always start at the beginning.'
+                     ),
             elements = [        
                 ("output_depth_suites", ListOf(  # /L2
                     Tuple(  # L3
@@ -117,7 +119,11 @@ def _parameter_valuespec_robotmk():
 
         ("runtime_threshold", Dictionary(
             title = _('Runtime thresholds'),
-            help = _('Set runtime thresholds FIXME '),
+            help = _('Define patterns here to assign runtime thresholds to suites, tests and keywords. <br>'
+                    'A runtime exceedance always results in a WARN state and is propagated to the overall suite status.<br>'
+                    'Always keep in mind that runtime monitoring is not a feature of Robot but RobotMK. This means that a Robot suite can have an internal OK state but WARN in CheckMK.<br>'
+                    'Patterns always start at the beginning.'
+            ),
             elements = [
                 ("runtime_threshold_suites", ListOf(  # /L2
                     Tuple(  # L3
@@ -189,7 +195,8 @@ def _parameter_valuespec_robotmk():
         # TODO: Helper function comma delimited ??
         ("perfdata_creation", Dictionary(
             title = _('Perfdata creation'),
-            help = _('Configure FIXME Main graph & subgraphs'),
+            help = _('By default, no performance data are generated. Define patterns here to select suites, tests and keywords which should be displayed in graphs. <br>'
+                    'Patterns always start at the beginning.'),
             elements = [
                 ("perfdata_creation_suites", ListOfStrings(  # /L2
                     title = _('<b>Suite</b> perfdata'),

@@ -20,6 +20,35 @@
                     'svc_status': 0,
                     'svc_output': ".*?\[S\] '1S 3S 2S 3T': PASS.*?\[S\] '1S 3S 2S 3T': PASS.*?\[S\] 'Subsuite1': PASS.*?\[S\] 'Sub1 suite1': PASS.*?\[S\] 'Subsuite2': PASS.*?\[S\] 'Sub2 suite1': PASS.*?\[T\] 'Sleep the first time for 0.1 sec': PASS.*?\[K\] 'Sleep': PASS"
                 },
+                # Test that there are perfdata for Subsuites.*
+                'Subsuites_perfdata': {
+                    'svc_status': 0,
+                    'svc_output': ".*?",
+                    'perfdata'  : [
+                        ('s1-s1_Subsuite1', '\d+\.\d+', '8.00'), 
+                        ('s1-s2_Subsuite2', '\d+\.\d+', '8.00'), 
+                        ('s1-s3_Subsuite3', '\d+\.\d+', '8.00'),
+                        ('s1-s3-s2_Sub3_suite2', '\d+\.\d+'),
+                    ]
+                },
+                # Test that there are perfdata for Tests "Sleep the second time for.*""
+                'Tests_perfdata': {
+                    'svc_status': 0,
+                    'svc_output': ".*?",
+                    'perfdata'  : [
+                        ('s1-s1-s1-t2_Sleep_the_second_time_for_0.1_sec', '\d+\.\d+', '8.00'),
+                        ('s1-s1-s2-t2_Sleep_the_second_time_for_0.1_sec', '\d+\.\d+', '8.00'),
+                        ('s1-s2-s1-t2_Sleep_the_second_time_for_0.1_sec', '\d+\.\d+', '8.00'),
+                        ('s1-s2-s2-t2_Sleep_the_second_time_for_0.1_sec', '\d+\.\d+', '8.00'),
+                        ('s1-s3-s1-t2_Sleep_the_second_time_for_0.1_sec', '\d+\.\d+', '8.00'),
+                        ('s1-s3-s2-t2_Sleep_the_second_time_for_0.1_sec', '\d+\.\d+', '8.00'),
+                    ]
+                },  
+                # Test that Tests "third time.*" are WARNING
+                'runtime_test_2sec': {
+                    'svc_status': 1,
+                    'svc_output': ".*?\[S\] '1S 3S 2S 3T': PASS \(\d+\.\d+s\), WARNING: Test 'Sleep the third time for 3 sec' over runtime.*?",
+                },                              
             }
         },
     },
@@ -37,7 +66,7 @@
                 # Two suites run for 3 seconds > 2 WARN
                 'Suite_Sub3_suites_2seconds': {
                     'svc_status': 1,
-                    'svc_output': ".*?\[S\] 'Subsuite3': PASS \(\d+\.\d+s\), WARNING: Suite Sub3 suite1 over runtime, Suite Sub3 suite2 over runtime.*?\[S\] 'Sub3 suite1': PASS \(\d+\.\d+s, WARNING: > \d+\.\d+s\).*?\[S\] 'Sub3 suite2': PASS \(\d+\.\d+s, WARNING: > \d+\.\d+s\)",
+                    'svc_output': ".*?\[S\] 'Subsuite3': PASS \(\d+\.\d+s\), WARNING: Suite 'Sub3 suite1' over runtime, Suite 'Sub3 suite2' over runtime.*?\[S\] 'Sub3 suite1': PASS \(\d+\.\d+s, WARNING: > \d+\.\d+s\).*?\[S\] 'Sub3 suite2': PASS \(\d+\.\d+s, WARNING: > \d+\.\d+s\)",
                 },
             }
         }
