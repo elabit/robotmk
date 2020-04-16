@@ -8,3 +8,4 @@ check_parameters_vpn_tunnel.py
 checks/multipath
 robot-testsuites/suites
 .DS_Store
+geckodriver*.log

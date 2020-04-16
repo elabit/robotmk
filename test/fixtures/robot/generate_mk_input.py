@@ -14,7 +14,7 @@ filename = arg.file.replace('./', '')
 try:
     with open(filename, "r") as file: 
         xmldata = file.readlines()
-    suitename = os.path.dirname(filename)
+    suitename = os.path.dirname(filename).split('/')[0]
     print "=== %s " % suitename
     # create spool file for agent    
     agent_input_filename = "%s/input_agent.cmk" % suitename

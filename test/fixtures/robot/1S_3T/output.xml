@@ -1,5 +1,5 @@
 <?xml version="1.0" encoding="UTF-8"?>
-<robot rpa="false" generated="20200327 16:14:21.305" generator="Robot 3.1.2 (Python 2.7.5 on linux2)">
+<robot rpa="false" generated="20200407 14:25:13.559" generator="Robot 3.1.2 (Python 2.7.5 on linux2)">
 <suite source="/workspace/robotmk/test/fixtures/robot/1S_3T" id="s1" name="1S 3T">
 <suite source="/workspace/robotmk/test/fixtures/robot/1S_3T/1_simpletest.robot" id="s1-s1" name="1 Simpletest">
 <test id="s1-s1-t1" name="Test1 - Sleep">
@@ -8,10 +8,10 @@
 <arguments>
 <arg>0.1</arg>
 </arguments>
-<msg timestamp="20200327 16:14:21.425" level="INFO">Slept 100 milliseconds</msg>
-<status status="PASS" endtime="20200327 16:14:21.425" starttime="20200327 16:14:21.325"></status>
+<msg timestamp="20200407 14:25:13.679" level="INFO">Slept 100 milliseconds</msg>
+<status status="PASS" endtime="20200407 14:25:13.679" starttime="20200407 14:25:13.579"></status>
 </kw>
-<status status="PASS" endtime="20200327 16:14:21.425" critical="yes" starttime="20200327 16:14:21.324"></status>
+<status status="PASS" endtime="20200407 14:25:13.680" critical="yes" starttime="20200407 14:25:13.578"></status>
 </test>
 <test id="s1-s1-t2" name="Test2 - 1Nested Sleep">
 <kw name="MySleep">
@@ -23,12 +23,12 @@
 <arguments>
 <arg>${time}</arg>
 </arguments>
-<msg timestamp="20200327 16:14:21.527" level="INFO">Slept 100 milliseconds</msg>
-<status status="PASS" endtime="20200327 16:14:21.527" starttime="20200327 16:14:21.427"></status>
+<msg timestamp="20200407 14:25:13.781" level="INFO">Slept 100 milliseconds</msg>
+<status status="PASS" endtime="20200407 14:25:13.782" starttime="20200407 14:25:13.681"></status>
 </kw>
-<status status="PASS" endtime="20200327 16:14:21.527" starttime="20200327 16:14:21.426"></status>
+<status status="PASS" endtime="20200407 14:25:13.782" starttime="20200407 14:25:13.681"></status>
 </kw>
-<status status="PASS" endtime="20200327 16:14:21.528" critical="yes" starttime="20200327 16:14:21.426"></status>
+<status status="PASS" endtime="20200407 14:25:13.782" critical="yes" starttime="20200407 14:25:13.680"></status>
 </test>
 <test id="s1-s1-t3" name="Test3 - 2 Nested Sleeps">
 <kw name="MySleepSleep">
@@ -44,14 +44,14 @@
 <arguments>
 <arg>${time}</arg>
 </arguments>
-<msg timestamp="20200327 16:14:21.630" level="INFO">Slept 100 milliseconds</msg>
-<status status="PASS" endtime="20200327 16:14:21.630" starttime="20200327 16:14:21.529"></status>
+<msg timestamp="20200407 14:25:13.884" level="INFO">Slept 100 milliseconds</msg>
+<status status="PASS" endtime="20200407 14:25:13.884" starttime="20200407 14:25:13.783"></status>
 </kw>
-<status status="PASS" endtime="20200327 16:14:21.630" starttime="20200327 16:14:21.529"></status>
+<status status="PASS" endtime="20200407 14:25:13.884" starttime="20200407 14:25:13.783"></status>
 </kw>
-<status status="PASS" endtime="20200327 16:14:21.630" starttime="20200327 16:14:21.529"></status>
+<status status="PASS" endtime="20200407 14:25:13.884" starttime="20200407 14:25:13.783"></status>
 </kw>
-<status status="PASS" endtime="20200327 16:14:21.631" critical="yes" starttime="20200327 16:14:21.528"></status>
+<status status="PASS" endtime="20200407 14:25:13.884" critical="yes" starttime="20200407 14:25:13.782"></status>
 </test>
 <test id="s1-s1-t4" name="Test4 - 3 Nested Sleeps">
 <kw name="MySleepSleepSleep">
@@ -71,20 +71,20 @@
 <arguments>
 <arg>${time}</arg>
 </arguments>
-<msg timestamp="20200327 16:14:21.933" level="INFO">Slept 300 milliseconds</msg>
-<status status="PASS" endtime="20200327 16:14:21.933" starttime="20200327 16:14:21.632"></status>
+<msg timestamp="20200407 14:25:14.186" level="INFO">Slept 300 milliseconds</msg>
+<status status="PASS" endtime="20200407 14:25:14.186" starttime="20200407 14:25:13.886"></status>
 </kw>
-<status status="PASS" endtime="20200327 16:14:21.933" starttime="20200327 16:14:21.632"></status>
+<status status="PASS" endtime="20200407 14:25:14.187" starttime="20200407 14:25:13.885"></status>
 </kw>
-<status status="PASS" endtime="20200327 16:14:21.933" starttime="20200327 16:14:21.632"></status>
+<status status="PASS" endtime="20200407 14:25:14.187" starttime="20200407 14:25:13.885"></status>
 </kw>
-<status status="PASS" endtime="20200327 16:14:21.933" starttime="20200327 16:14:21.631"></status>
+<status status="PASS" endtime="20200407 14:25:14.187" starttime="20200407 14:25:13.885"></status>
 </kw>
-<status status="PASS" endtime="20200327 16:14:21.934" critical="yes" starttime="20200327 16:14:21.631"></status>
+<status status="PASS" endtime="20200407 14:25:14.187" critical="yes" starttime="20200407 14:25:13.884"></status>
 </test>
-<status status="PASS" endtime="20200327 16:14:21.934" starttime="20200327 16:14:21.322"></status>
+<status status="PASS" endtime="20200407 14:25:14.187" starttime="20200407 14:25:13.577"></status>
 </suite>
-<status status="PASS" endtime="20200327 16:14:21.935" starttime="20200327 16:14:21.306"></status>
+<status status="PASS" endtime="20200407 14:25:14.189" starttime="20200407 14:25:13.560"></status>
 </suite>
 <statistics>
 <total>
