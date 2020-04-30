@@ -1,0 +1,49 @@
+#!/usr/bin/env python
+import os 
+import sys
+import yaml
+import io
+import shutil
+from robot import run
+
+#os.environ['HOME']
+
+########### set default values
+cfg = {'outputdir': '/tmp/robot',
+       'robotdir' : '/usr/lib/check_mk_agent/robot',
+       'log'      : 'none',
+       'console'  : 'none',
+       'report'   : 'none'}
+CMKCONFIG = '/etc/check_mk/robotmk.cfg'
+########## Read configuration ##########
+if os.access(CMKCONFIG, os.R_OK):
+   with open(CMKCONFIG, 'r') as stream:
+      cfg = yaml.safe_load(stream)
+
+OUTPUTDIR = cfg.pop('outputdir', None)
+ROBOTDIR = cfg.pop('robotdir', None)
+
+
+
+########## Run, robot run ##############
+run(cfg['robotdir'], outputdir=cfg['outputdir'], log=cfg['log'], console='none', report='none')
+
+########## Send output.xml to checkmk ########
+#TODO find a way to let robot write the xml file to stdout direct
+#possibly problem in Windows
+
+print('<<<robotmk>>>')
+
+#Another efficient way to copy output.xml to stdout
+#TODO find out whats efficient
+with open (cfg['outputdir'] + '/output.xml', 'r') as f:
+   shutil.copyfileobj(f, sys.stdout)
+sys.exit()
+
+f = open(cfg['outputdir'] + '/output.xml', 'r')
+#print(f.read()) # Would read the hole file in memory.
+#Lets read the file line by line. This is memory efficient, fast, and leads to simple code
+for line in f:
+   #print(line.replace('\n',''))
+   print(line)
+f.close()
