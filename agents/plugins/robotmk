@@ -5,6 +5,7 @@ import yaml
 import io
 import shutil
 from robot import run
+from pathlib import Path
 
 #os.environ['HOME']
 
@@ -13,17 +14,33 @@ cfg = {'outputdir': '/tmp/robot',
        'robotdir' : '/usr/lib/check_mk_agent/robot',
        'log'      : 'none',
        'console'  : 'none',
-       'report'   : 'none'}
-CMKCONFIG = '/etc/check_mk/robotmk.cfg'
+       'report'   : 'none',
+       'suites'   : {}
+       }
+
+if os.name == 'posix':
+   CMKCONFIG = Path('/etc/check_mk/robotmk.cfg')
+elif os.name == 'nt':
+   CMKCONFIG = Path('C:\TBD')
+else:
+   # We are not on a supported OS
+   if debug: print('OS Name' + os.name + 'is not supported by robotmk')
+   exit(1)
 ########## Read configuration ##########
 if os.access(CMKCONFIG, os.R_OK):
    with open(CMKCONFIG, 'r') as stream:
       cfg = yaml.safe_load(stream)
 
-OUTPUTDIR = cfg.pop('outputdir', None)
-ROBOTDIR = cfg.pop('robotdir', None)
+OUTPUTDIR = Path(cfg.pop('outputdir', None))
+ROBOTDIR = Path(cfg.pop('robotdir', None))
 
+if len(cfg['suites']) == 0:
+   for suite in ROBOTDIR.iterdir():
+      cfg['suites'].update({suite.name:None})
 
+print(cfg['suites'])
+
+exit(0)
 
 ########## Run, robot run ##############
 run(cfg['robotdir'], outputdir=cfg['outputdir'], log=cfg['log'], console='none', report='none')
