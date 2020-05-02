@@ -19,15 +19,15 @@ Will create three files, Suite1.xml, Suite2.xml, Suite3.xml in /tmp and print to
 If a configuration file is found, it will be read in and each option found in the configuration file will overwrite the default value of the corresponding option. If no suites are defined, the plugin will follow the same approach to start the suites as described above without a configuration file.
 
 
-If suites are defined in the configuration file, the plugin will start only the defined suites with all conigured suite specific options, regardless if there are additional suites in the filesystem.
+If suites are defined in the configuration file, the plugin will start only the defined suites with all configured suite specific options, regardless if there are additional suites in the filesystem. If a piggyback host is defined in teh configuration file, the agent section will contain this host to allow to assign the suite to another as the monitored host.
 
 The plugin could be started with the option --debug to allow command line debugging. It is necessary to export the environment variables `AgentDirectory` and `PluginsDirectory` to simulate the agent. The debug option is not intended to debug the robot tests and will only output plugin specific information. To debug robot tests the robot command could be used.
 
-As by nature the plugin will run longer than then the agent timout and frequency settings would allow, the plugin has to run as a chached plugin. Create a directory with number of seconds which are at least higher than the number of seconds the robot testes run below the `PluginsDirectory` and move the plugin to that directory. The agent will then delay the start of the plugin that number of seconds and cache the results. If the plugin is not able to return and update the cached results in time the service will go to stale. AFAIK the agent doesnt check if the plugin is already started and start another session after the cache time expired. This means the process robo needs to be monitored that it doesnt run more than once (To be tested).
+As by nature the plugin will run longer than the agent timout and frequency settings would allow, the plugin has to run as a cached plugin. Create a directory with number of seconds which are at least higher than the number of seconds the robot testes run below the `PluginsDirectory` and move the robotmk agent plugin to that directory. The agent will then delay the start of the plugin that number of seconds and cache the results. If the plugin is not able to return and update the cached results in time the service will go to stale. AFAIK the agent doesnt check if the plugin is already started and start another session after the cache time expired. This means the process robo needs to be monitored that it doesnt run more than once (To be tested).
 
-For the checkmk CEE and CME edition a rule for the agent bakery will be available wich allows the settings of the chache time, the configuration of the global options and the configuration of the suites to be run with all specific options as described below.
+For the checkmk CEE and CME edition a rule for the agent bakery will be available wich allows the settings of the cache time, the configuration of the global options and the configuration of the suites to be run with all specific options as described below. The YAML configuration file will be then baked along with the robotmk agent plugin in the installation packages and installed on the monitored host in the configured directories.
 
-To deploy the robot suites the Agent Bakery rule "Deploy custom files with agent" could be used. To make that work the files has be below /usr/lib/check_mk_agent in lInux and below the Agent installation directoyr in Windows. Epsecially for Windows this needs to be tested with the new Agent from 1.6.
+To deploy the robot suites the Agent Bakery rule "Deploy custom files with agent" could be used. To make that work the files has to be below /usr/lib/check_mk_agent in Linux and below the Agent installation directoyr in Windows. Epsecially for Windows this needs to be tested with the new Agent Version 1.6 and 1.7.
 
 ## YAML Configuration File
 The YAML configuration for robotmk plugin has a gobal section with options globally used for all suites. Possibly this options may overwritten per suite.
@@ -46,6 +46,8 @@ Currently the following options are global:
 Then the yaml configuration has a dictonary named `suites` which contains a dictonary for each suite to be run. The name of the key of the dictonaries below `suites` MUST have the same name as the suite directory or file below the robot root directory (option `robotdir`). Each suite could contain a dictionary with robot options. Option names match robot command line option long names without hyphens so that, for example, `--name` becomes `name` in the yaml configuration. See `robot --help` for explanation. The options are optional and a suite dictonary may could be complete empty.
 
 Most options that can be given from the command line work. An exception is that options --pythonpath, --argumentfile, --help and --version are not supported.
+
+With the option `host` a piggy back host could be configured to allow to assign the suite to a specific host, other than the host the agent runs on.
 
 Options that can be given on the command line multiple times can be passed as lists. For example:
 ```yaml
@@ -79,6 +81,7 @@ report:
 #Here comes the suites
 suites:
    Suite1:
+      host: mypiggyhost
       variable:
          name1: value1
          name2: value2
