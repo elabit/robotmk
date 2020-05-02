@@ -1,16 +1,49 @@
 # checkmk agent plugin for robotmk
 
+The plugin requires a python 3 installation with robotframework installed. If robotframework is not installed the plguin will exit silently except if started in debug mode. The agent plugin will check in the `AgentDirectory` the configuration file `robotmk.cfg`. If the file is not found it will use the default configuration (see YAML configuration file), and start for each file or directory below the 1st level of the directory `robot` which is one level above the `PluginsDirectory` (normally /usr/lib/check_mk_agent/robot in Linux) the robot via the function run from the robot API without any additional options, create in the $tmp folder of the OS a XML output file named the same as the file or directory found and print to stdout each time a section ```<<<robotmk>>>``` followed by the content of the XML file. Finally the XML files in the $tmp folder will be deleted before the plugin exits.
+
+__EXAMPLE:__
+
+Directories:
+```
+   /usr/lib/check_mk_agent/robot/Suite1
+   /usr/lib/check_mk_agent/robot/Suite2
+```
+Files:
+```
+   /usr/lib/check_mk_agent/robot/Suite3.robot
+```
+Will create three files, Suite1.xml, Suite2.xml, Suite3.xml in /tmp and print to stdout three times the section ```<<<robotmk>>>``` followed by the content of each XML file.
+
+
+If a configuration file is found, it will be read in and each option found in the configuration file will overwrite the default value of the corresponding option. If no suites are defined, the plugin will follow the same approach to start the suites as described above without a configuration file.
+
+
+If suites are defined in the configuration file, the plugin will start only the defined suites with all conigured suite specific options, regardless if there are additional suites in the filesystem.
+
+The plugin could be started with the option --debug to allow command line debugging. It is necessary to export the environment variables `AgentDirectory` and `PluginsDirectory` to simulate the agent. The debug option is not intended to debug the robot tests and will only output plugin specific information. To debug robot tests the robot command could be used.
+
+As by nature the plugin will run longer than then the agent timout and frequency settings would allow, the plugin has to run as a chached plugin. Create a directory with number of seconds which are at least higher than the number of seconds the robot testes run below the `PluginsDirectory` and move the plugin to that directory. The agent will then delay the start of the plugin that number of seconds and cache the results. If the plugin is not able to return and update the cached results in time the service will go to stale. AFAIK the agent doesnt check if the plugin is already started and start another session after the cache time expired. This means the process robo needs to be monitored that it doesnt run more than once (To be tested).
+
+For the checkmk CEE and CME edition a rule for the agent bakery will be available wich allows the settings of the chache time, the configuration of the global options and the configuration of the suites to be run with all specific options as described below.
+
+To deploy the robot suites the Agent Bakery rule "Deploy custom files with agent" could be used. To make that work the files has be below /usr/lib/check_mk_agent in lInux and below the Agent installation directoyr in Windows. Epsecially for Windows this needs to be tested with the new Agent from 1.6.
+
 ## YAML Configuration File
 The YAML configuration for robotmk plugin has a gobal section with options globally used for all suites. Possibly this options may overwritten per suite.
 Currently the following options are global:
+
+
 |option| function| default value|
 |------|------------------------|---------------|
-|outputdir| The directory where the XML outputfile is stored|TBD|
-|robotdir| The directory where the robot suites are living|TBD|
+|outputdir| The directory where the XML outputfile is stored|OS $tmp|
+|robotdir| The directory where the robot suites are living|Directory robot, one level above PluginsDirectory|
 |log| Logfiles|none|
 |console| MUST be always **none** while robotmk runs as a plugin|none|
 |report| Reports generation|none|
-Then the yaml configuration has a dictonary named `suites` which contains a dictonary for each suite to be run. The name of the key of the dictonaries below `suites` MUST have the same name as the suite directory below the robot root directory (option `robotdir`). Each suite could contain a dictionary with robot options. Option names match robot command line option long names without hyphens so that, for example, `--name` becomes `name` in the yaml configuration. See `robot --help` for explanation. The options are optional and a suite dictonary may could be complete empty.
+
+
+Then the yaml configuration has a dictonary named `suites` which contains a dictonary for each suite to be run. The name of the key of the dictonaries below `suites` MUST have the same name as the suite directory or file below the robot root directory (option `robotdir`). Each suite could contain a dictionary with robot options. Option names match robot command line option long names without hyphens so that, for example, `--name` becomes `name` in the yaml configuration. See `robot --help` for explanation. The options are optional and a suite dictonary may could be complete empty.
 
 Most options that can be given from the command line work. An exception is that options --pythonpath, --argumentfile, --help and --version are not supported.
 
@@ -34,7 +67,7 @@ variable:
 
 is equivalent to --variable name1:value1 --variable name2:value2 --variable  name3:value3.
 
-A complete robotmk yaml configuration file can look like that:
+A complete robotmk yaml configuration file can look like this:
 
 ```yaml
 #Global variables
