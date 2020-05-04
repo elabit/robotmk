@@ -9,13 +9,14 @@ from pathlib import Path
 
 #os.environ['HOME']
 
+debug = 0
 ########### set default values
 cfg = {'outputdir': '/tmp/robot',
        'robotdir' : '/usr/lib/check_mk_agent/robot',
        'log'      : 'none',
        'console'  : 'none',
        'report'   : 'none',
-       'suites'   : {}
+       #'suites'   : {}
        }
 
 if os.name == 'posix':
@@ -34,33 +35,45 @@ if os.access(CMKCONFIG, os.R_OK):
 OUTPUTDIR = Path(cfg.pop('outputdir', None))
 ROBOTDIR = Path(cfg.pop('robotdir', None))
 
-if len(cfg['suites']) == 0:
+#TODO Optimize this.
+if 'suites' not in cfg:
+   cfg.update({'suites':{}})
    for suite in ROBOTDIR.iterdir():
       cfg['suites'].update({suite.name:None})
+elif len(cfg['suites']) == 0:
+   for suite in ROBOTDIR.iterdir():
+      cfg['suites'].update({suite.name:None})
+if debug:
+   print(cfg['suites'])
 
-print(cfg['suites'])
+#exit(0)
 
-exit(0)
-
+for suite in cfg['suites']:
+   if debug:
+      print('Start running Suite: %s' % (ROBOTDIR.joinpath(suite)))
 ########## Run, robot run ##############
-run(cfg['robotdir'], outputdir=cfg['outputdir'], log=cfg['log'], console='none', report='none')
-
+   run(ROBOTDIR.joinpath(suite), outputdir=OUTPUTDIR, output=suite.rsplit('.')[0], console='none', log=cfg['log'], report='none')
+   #exit(0)
 ########## Send output.xml to checkmk ########
 #TODO find a way to let robot write the xml file to stdout direct
 #possibly problem in Windows
 
-print('<<<robotmk>>>')
+
+   if 'host' in cfg['suites'][suite]:
+      print('<<<<%s>>>>' % (cfg['suites'][suite]['host']))
+   print('<<<robotmk>>>')
 
 #Another efficient way to copy output.xml to stdout
 #TODO find out whats efficient
-with open (cfg['outputdir'] + '/output.xml', 'r') as f:
-   shutil.copyfileobj(f, sys.stdout)
-sys.exit()
+#TODO test with OUTPUTDIR.open()
+   with open (OUTPUTDIR.joinpath(suite.rsplit('.')[0]).with_suffix('.xml'), 'r') as f:
+      shutil.copyfileobj(f, sys.stdout)
+#   sys.exit()
 
-f = open(cfg['outputdir'] + '/output.xml', 'r')
+#f = open(cfg['outputdir'] + suite + '.xml', 'r')
 #print(f.read()) # Would read the hole file in memory.
 #Lets read the file line by line. This is memory efficient, fast, and leads to simple code
-for line in f:
+#for line in f:
    #print(line.replace('\n',''))
-   print(line)
-f.close()
+#   print(line)
+#f.close()
