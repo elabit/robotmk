@@ -1,6 +1,6 @@
 # checkmk agent plugin for robotmk
 
-The plugin requires a python 3 installation with robotframework installed. If robotframework is not installed the plguin will exit silently except if started in debug mode. The agent plugin will check in the `AgentDirectory` the configuration file `robotmk.cfg`. If the file is not found it will use the default configuration (see YAML configuration file), and start for each file or directory below the 1st level of the directory `robot` which is one level above the `PluginsDirectory` (normally /usr/lib/check_mk_agent/robot in Linux) the robot via the function run from the robot API without any additional options, create in the $tmp folder of the OS a XML output file named the same as the file or directory found and print to stdout each time a section ```<<<robotmk>>>``` followed by the content of the XML file. Finally the XML files in the $tmp folder will be deleted before the plugin exits.
+The plugin requires a python 3 installation with robotframework installed. If robotframework is not installed the plguin will exit silently except if started in debug mode. The agent plugin will check in the `AgentDirectory` the configuration file `robotmk.cfg`. If the file is not found it will use the default configuration (see YAML configuration file), and start for each file or directory below the 1st level of the directory `robot` which is one level above the `PluginsDirectory` (normally /usr/lib/check_mk_agent/robot in Linux) the robot via the function run from the robot API without any additional options, create in the $tmp folder of the OS a XML output file named the same as the file or directory found and print to stdout each time a section ```<<<robotmk:sep(0)>>>``` followed by the content of the XML file. Finally the XML files in the $tmp folder will be deleted before the plugin exits.
 
 __EXAMPLE:__
 
@@ -13,7 +13,7 @@ Files:
 ```
    /usr/lib/check_mk_agent/robot/Suite3.robot
 ```
-Will create three files, Suite1.xml, Suite2.xml, Suite3.xml in /tmp and print to stdout three times the section ```<<<robotmk>>>``` followed by the content of each XML file.
+Will create three files, Suite1.xml, Suite2.xml, Suite3.xml in /tmp and print to stdout three times the section ```<<<robotmk:sep(0)>>>``` followed by the content of each XML file.
 
 
 If a configuration file is found, it will be read in and each option found in the configuration file will overwrite the default value of the corresponding option. If no suites are defined, the plugin will follow the same approach to start the suites as described above without a configuration file.
@@ -43,7 +43,7 @@ Currently the following options are global:
 |report| Reports generation|none|
 
 
-Then the yaml configuration has a dictonary named `suites` which contains a dictonary for each suite to be run. The name of the key of the dictonaries below `suites` MUST have the same name as the suite directory or file below the robot root directory (option `robotdir`). Each suite could contain a dictionary with robot options. Option names match robot command line option long names without hyphens so that, for example, `--name` becomes `name` in the yaml configuration. See `robot --help` for explanation. The options are optional and a suite dictonary may could be complete empty.
+Then the yaml configuration has a dictionary named `suites` which contains a dictionary for each suite to be run. The name of the key of the dictonaries below `suites` MUST have the same name as the suite directory or file below the robot root directory (option `robotdir`). Each suite could contain a dictionary with robot options. Option names match robot command line option long names without hyphens so that, for example, `--name` becomes `name` in the yaml configuration. See `robot --help` for explanation. The options are optional and a suite dictionary may could be complete empty.
 
 Most options that can be given from the command line work. An exception is that options --pythonpath, --argumentfile, --help and --version are not supported.
 
