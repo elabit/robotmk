@@ -11,29 +11,37 @@ from pathlib import Path
 
 debug = 1
 ########### set default values
-cfg = {'outputdir': '/tmp/robot',
+if debug: print('############### Starting preperation ###############')
+if os.name == 'nt':
+   cfg = {'outputdir': 'C:/temp',
+       'robotdir' : 'C:/ProgramData/checkmk/agent/robot',
+       'log'      : 'none',
+       'console'  : 'none',
+       'report'   : 'none',
+       #'suites'   : {}
+       }
+   CMKCONFIG = Path('C:/ProgramData/checkmk/agent/config/robotmk.cfg')
+elif os.name == 'posix':
+   cfg = {'outputdir': '/tmp/robot',
        'robotdir' : '/usr/lib/check_mk_agent/robot',
        'log'      : 'none',
        'console'  : 'none',
        'report'   : 'none',
        #'suites'   : {}
        }
-if debug: print('############### Starting preperation ###############')
-if os.name == 'posix':
    CMKCONFIG = Path('/etc/check_mk/robotmk.cfg')
-elif os.name == 'nt':
-   CMKCONFIG = Path('C:\TBD')
 else:
    # We are not on a supported OS
-   if debug: print('OS Name' + os.name + 'is not supported by robotmk')
+   if debug: print('\tOS Name' + os.name + 'is not supported by robotmk')
    exit(1)
+if debug: print('\tConfig file: %s' % CMKCONFIG)
 ########## Read configuration ##########
 if os.access(CMKCONFIG, os.R_OK):
    if debug: print('\tFound configuration file %s' % CMKCONFIG)
    with open(CMKCONFIG, 'r') as stream:   
       cfg = yaml.safe_load(stream)
 else:
-   if debug: print('No configuration file found, starting with defaults')
+   if debug: print('\tNo configuration file found, starting with defaults')
 OUTPUTDIR = Path(cfg.pop('outputdir', None))
 ROBOTDIR = Path(cfg.pop('robotdir', None))
 
@@ -55,9 +63,9 @@ for suite,options in cfg['suites'].items():
       print('################# Start running suite: %s #####################' % suite)
       print('\tStarting robot with: %s' % (ROBOTDIR.joinpath(suite)))
       print('\tSuite %s is of type %s' % (suite, type(suite)))
-      print('\t%s' % suite)
+      
 ###################### Run, robot run ##############
-   run(ROBOTDIR.joinpath(suite), outputdir=OUTPUTDIR, output=suite, console='none', log=cfg['log'], report='none')
+   run(ROBOTDIR.joinpath(suite), outputdir=OUTPUTDIR, output=suite.replace('.robot',''), console='none', log=cfg['log'], report='none')
 
 ###################### Send output.xml to checkmk ########
 #TODO find a way to let robot write the xml file to stdout direct
@@ -72,6 +80,7 @@ for suite,options in cfg['suites'].items():
 #Another efficient way to copy output.xml to stdout
 #TODO find out whats efficient
 #TODO test with OUTPUTDIR.open()
+   if debug: print('\tTry to open suite: %s' % suite)
    with open (OUTPUTDIR.joinpath(suite).with_suffix('.xml'), 'r') as f:
       if debug: print('\tCopy outputfile %s to stdout' % (OUTPUTDIR.joinpath(suite).with_suffix('.xml')))
       if not debug: shutil.copyfileobj(f, sys.stdout)
