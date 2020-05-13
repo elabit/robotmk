@@ -39,7 +39,7 @@ if debug: print('\tConfig file: %s' % CMKCONFIG)
 if os.access(CMKCONFIG, os.R_OK):
    if debug: print('\tFound configuration file %s' % CMKCONFIG)
    with open(CMKCONFIG, 'r') as stream:   
-      cfg = yaml.safe_load(stream)
+      cfg.update(yaml.safe_load(stream))
 else:
    if debug: print('\tNo configuration file found, starting with defaults')
 OUTPUTDIR = Path(cfg.pop('outputdir', None))
@@ -58,15 +58,15 @@ if len(cfg['suites']) == 0:
 
 ################# Run all suites we found in config or ROBOTDIR #######################
 for suite,options in cfg['suites'].items():
-#for suite in cfg['suites']:
    if debug:
       print('################# Start running suite: %s #####################' % suite)
       print('\tStarting robot with: %s' % (ROBOTDIR.joinpath(suite)))
-      print('\tSuite %s is of type %s' % (suite, type(suite)))
       
 ###################### Run, robot run ##############
-   run(ROBOTDIR.joinpath(suite), outputdir=OUTPUTDIR, output=suite.replace('.robot',''), console='none', log=cfg['log'], report='none')
-
+#TODO do we net the returncode? Only >250 are real problems.
+#TODO Try .rstrip()  instead .replace()
+   rc = run(ROBOTDIR.joinpath(suite), outputdir=OUTPUTDIR, output=suite.replace('.robot',''), console='none', log=cfg['log'], report=cfg['report'], **options)
+   if debug: print(f'\trobot finished with returncode: {rc}')
 ###################### Send output.xml to checkmk ########
 #TODO find a way to let robot write the xml file to stdout direct
 #possibly problem in Windows
@@ -74,7 +74,7 @@ for suite,options in cfg['suites'].items():
    if options:
       if 'host' in options:
          if debug: print('Found piggy back host:%s in config' % options['host'])
-         print('<<<<%s>>>>' % (options['host']))
+         print('<<<<%s>>>>' % (options.pop('host')))
    print('<<<robotmk:sep(0)>>>')
 
 #Another efficient way to copy output.xml to stdout
