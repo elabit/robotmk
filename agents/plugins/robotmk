@@ -9,7 +9,7 @@ from pathlib import Path
 
 #os.environ['HOME']
 
-debug = 1
+debug = 0
 ########### set default values
 if debug: print('############### Starting preperation ###############')
 if os.name == 'nt':
@@ -32,12 +32,13 @@ elif os.name == 'posix':
    CMKCONFIG = Path('/etc/check_mk/robotmk.cfg')
 else:
    # We are not on a supported OS
-   if debug: print('\tOS Name' + os.name + 'is not supported by robotmk')
+   if debug: print(f'\tOS Name {os.name} is not supported by robotmk')
    exit(1)
-if debug: print('\tConfig file: %s' % CMKCONFIG)
+if debug: print(f'\tLooking for config file: {CMKCONFIG}')
 ########## Read configuration ##########
+#TODO use Path.exists()
 if os.access(CMKCONFIG, os.R_OK):
-   if debug: print('\tFound configuration file %s' % CMKCONFIG)
+   if debug: print(f'\tFound configuration file {CMKCONFIG}')
    with open(CMKCONFIG, 'r') as stream:   
       cfg.update(yaml.safe_load(stream))
 else:
@@ -51,38 +52,53 @@ ROBOTDIR = Path(cfg.pop('robotdir', None))
 cfg.setdefault('suites',{})
 #If no suites defined we run each suite we find in ROBOTDIR
 if len(cfg['suites']) == 0:
-   if debug: print('\tNo suites found in configuration')
+   if debug: print('\tNo suites found in configuration file')
+   #probably use file/dir instead of suiet to avoid confusions
    for suite in ROBOTDIR.iterdir():
-      if debug: print('\tFound suite: %s in ROBOTDIR: %s' % (suite.name, ROBOTDIR))
+      if debug: print(f'\tFound suite: {suite.name} in ROBOTDIR: {ROBOTDIR}')
       cfg['suites'].update({suite.name:{}})
 
 ################# Run all suites we found in config or ROBOTDIR #######################
 for suite,options in cfg['suites'].items():
    if debug:
-      print('################# Start running suite: %s #####################' % suite)
-      print('\tStarting robot with: %s' % (ROBOTDIR.joinpath(suite)))
+      print(f'################# Start running suite: {suite} #####################')
+      print(f'\tStarting robot with: {ROBOTDIR.joinpath(suite)}')
+   #Lets test if the file or directory is available
+   if not ROBOTDIR.joinpath(suite).exists():
+      if debug: print(f'\tSuite file or directory not found!')
+      break
       
-###################### Run, robot run ##############
-#TODO do we net the returncode? Only >250 are real problems.
-#TODO Try .rstrip()  instead .replace()
-   rc = run(ROBOTDIR.joinpath(suite), outputdir=OUTPUTDIR, output=suite.replace('.robot',''), console='none', log=cfg['log'], report=cfg['report'], **options)
-   if debug: print(f'\trobot finished with returncode: {rc}')
-###################### Send output.xml to checkmk ########
-#TODO find a way to let robot write the xml file to stdout direct
-#possibly problem in Windows
-
+#################### Run, robot run #################################################
+ #TODO Try .rstrip()  instead .replace()
+   if options:
+      if debug: print(f'\tWith options:{options}')
+      rc = run(ROBOTDIR.joinpath(suite), outputdir=OUTPUTDIR, output=suite.replace('.robot',''), console='none', log=cfg['log'], report=cfg['report'], **options)
+   else:
+      if debug: print('\tWithout options')
+      rc = run(ROBOTDIR.joinpath(suite), outputdir=OUTPUTDIR, output=suite.replace('.robot',''), console='none', log=cfg['log'], report=cfg['report'])
+   if debug: print(f'\trobot finished with returncode: {rc}\n\tLess than 250 shows number of failed tests!')
+   if rc > 250: 
+      print('\trobot exited with error and no outputfile is generated.')
+      print ('\tPlease run robot command manually to see the error')
+      break
+###################### Send output.xml to checkmk #######################################
+#TODO move this upward in the code could cause issues in case suite doesnt run.
+# May pop out to a variable
    if options:
       if 'host' in options:
-         if debug: print('Found piggy back host:%s in config' % options['host'])
-         print('<<<<%s>>>>' % (options.pop('host')))
+         if debug: print(f'\tFound piggy back host: "{options["host"]}" in config')
+         print(f'<<<<{options.pop("host")}>>>>')
+   #print the section header
    print('<<<robotmk:sep(0)>>>')
 
 #Another efficient way to copy output.xml to stdout
+#TODO find a way to let robot write the xml file to stdout direct
+#possibly problem in Windows
 #TODO find out whats efficient
 #TODO test with OUTPUTDIR.open()
-   if debug: print('\tTry to open suite: %s' % suite)
+#TODO do we nedd to test if file is available????   
    with open (OUTPUTDIR.joinpath(suite).with_suffix('.xml'), 'r') as f:
-      if debug: print('\tCopy outputfile %s to stdout' % (OUTPUTDIR.joinpath(suite).with_suffix('.xml')))
+      if debug: print(f'\tCopy outputfile {OUTPUTDIR.joinpath(suite).with_suffix(".xml")} to stdout')
       if not debug: shutil.copyfileobj(f, sys.stdout)
 #   sys.exit()
 
