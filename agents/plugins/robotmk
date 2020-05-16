@@ -14,7 +14,8 @@ if '--debug' in sys.argv: debug = 1
 if debug: print('############### Starting preperation ###############')
 if os.name == 'nt':
    cfg = {'outputdir': 'C:/temp',
-       'robotdir' : 'C:/ProgramData/checkmk/agent/robot',
+      #Building the path to the robot directory with help of the environment variable 'DataDirectory' or use default path if not set
+       'robotdir' : Path(os.environ.setdefault('DataDirectory','C:/ProgramData/checkmk/agent')).joinpath('robot'),
        'log'      : 'none',
        'console'  : 'none',
        'report'   : 'none',
@@ -24,7 +25,8 @@ if os.name == 'nt':
    CMKCONFIG = Path(os.environ.setdefault('AgentDirectory','C:/ProgramData/checkmk/agent/config')).joinpath('robotmk').with_suffix('.yml')
 elif os.name == 'posix':
    cfg = {'outputdir': '/tmp/robot',
-       'robotdir' : '/usr/lib/check_mk_agent/robot',
+       #Building the path to the robot directory with help of the environment variable 'DataDirectory' or use default path if not set
+       'robotdir' : Path(os.environ.setdefault('DataDirectory','/usr/lib/check_mk_agent')).joinpath('robot'),
        'log'      : 'none',
        'console'  : 'none',
        'report'   : 'none',
@@ -45,7 +47,11 @@ if os.access(CMKCONFIG, os.R_OK):
       cfg.update(yaml.safe_load(stream))
 else:
    if debug: print('\tNo configuration file found, starting with defaults')
+
+#The OUPUTDIR is the final path where all outputfiles, logfiles and report files ends.
 OUTPUTDIR = Path(cfg.pop('outputdir', None))
+
+#The ROBOTDIR is the directory where robot looks for the suite files or directories
 ROBOTDIR = Path(cfg.pop('robotdir', None))
 
 #TODO Optimize this.
