@@ -7,9 +7,9 @@ import shutil
 from robot import run
 from pathlib import Path
 
-#os.environ['HOME']
-
+########  Debug handling ################
 debug = 0
+if '--debug' in sys.argv: debug = 1
 ########### set default values
 if debug: print('############### Starting preperation ###############')
 if os.name == 'nt':
@@ -20,7 +20,8 @@ if os.name == 'nt':
        'report'   : 'none',
        #'suites'   : {}
        }
-   CMKCONFIG = Path('C:/ProgramData/checkmk/agent/config/robotmk.cfg')
+   #Building the path to the configuration file with help of the environment variable 'AgentDirectory' or use default path if not set
+   CMKCONFIG = Path(os.environ.setdefault('AgentDirectory','C:/ProgramData/checkmk/agent/config')).joinpath('robotmk').with_suffix('.yml')
 elif os.name == 'posix':
    cfg = {'outputdir': '/tmp/robot',
        'robotdir' : '/usr/lib/check_mk_agent/robot',
@@ -29,7 +30,8 @@ elif os.name == 'posix':
        'report'   : 'none',
        #'suites'   : {}
        }
-   CMKCONFIG = Path('/etc/check_mk/robotmk.cfg')
+   #Building the path to the configuration file with help of the environment variable 'AgentDirectory' or use default path if not set
+   CMKCONFIG = Path(os.environ.setdefault('AgentDirectory','/etc/check_mk')).joinpath('robotmk').with_suffix('.yml')
 else:
    # We are not on a supported OS
    if debug: print(f'\tOS Name {os.name} is not supported by robotmk')
