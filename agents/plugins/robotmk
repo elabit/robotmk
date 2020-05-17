@@ -1,4 +1,10 @@
 #!/usr/bin/env python
+
+#Maintainer: Michael FRANK <michael.frank@mikefrank.de>
+#Version: 0.0.1
+
+#TODO Use try except to catch if library not available.
+#In Windows beside robot also pyYAML needs to be installed.
 import os 
 import sys
 import yaml
@@ -7,30 +13,31 @@ import shutil
 from robot import run
 from pathlib import Path
 
-########  Debug handling ################
+########################  Debug handling ############################
 debug = 0
 if '--debug' in sys.argv: debug = 1
 ########### set default values
 if debug: print('############### Starting preperation ###############')
 if os.name == 'nt':
+   #We are in the Windows world
+   #TODO check if there is a env variable to detect OS TMP
    cfg = {'outputdir': 'C:/temp',
       #Building the path to the robot directory with help of the environment variable 'DataDirectory' or use default path if not set
        'robotdir' : Path(os.environ.setdefault('DataDirectory','C:/ProgramData/checkmk/agent')).joinpath('robot'),
        'log'      : 'none',
        'console'  : 'none',
        'report'   : 'none',
-       #'suites'   : {}
        }
    #Building the path to the configuration file with help of the environment variable 'AgentDirectory' or use default path if not set
    CMKCONFIG = Path(os.environ.setdefault('AgentDirectory','C:/ProgramData/checkmk/agent/config')).joinpath('robotmk').with_suffix('.yml')
 elif os.name == 'posix':
+   #We are in the UNIX/Linux world
    cfg = {'outputdir': '/tmp/robot',
        #Building the path to the robot directory with help of the environment variable 'DataDirectory' or use default path if not set
        'robotdir' : Path(os.environ.setdefault('DataDirectory','/usr/lib/check_mk_agent')).joinpath('robot'),
        'log'      : 'none',
        'console'  : 'none',
        'report'   : 'none',
-       #'suites'   : {}
        }
    #Building the path to the configuration file with help of the environment variable 'AgentDirectory' or use default path if not set
    CMKCONFIG = Path(os.environ.setdefault('AgentDirectory','/etc/check_mk')).joinpath('robotmk').with_suffix('.yml')
@@ -38,8 +45,9 @@ else:
    # We are not on a supported OS
    if debug: print(f'\tOS Name {os.name} is not supported by robotmk')
    exit(1)
+
 if debug: print(f'\tLooking for config file: {CMKCONFIG}')
-########## Read configuration ##########
+######################## Read configuration #########################
 #TODO use Path.exists()
 if os.access(CMKCONFIG, os.R_OK):
    if debug: print(f'\tFound configuration file {CMKCONFIG}')
@@ -66,7 +74,7 @@ if len(cfg['suites']) == 0:
       if debug: print(f'\tFound suite: {suite.name} in ROBOTDIR: {ROBOTDIR}')
       cfg['suites'].update({suite.name:{}})
 
-################# Run all suites we found in config or ROBOTDIR #######################
+######################## Run all suites we found in config or ROBOTDIR ############
 for suite,options in cfg['suites'].items():
    if debug:
       print(f'################# Start running suite: {suite} #####################')
@@ -75,27 +83,42 @@ for suite,options in cfg['suites'].items():
    if not ROBOTDIR.joinpath(suite).exists():
       if debug: print(f'\tSuite file or directory not found!')
       break
-      
-#################### Run, robot run #################################################
- #TODO Try .rstrip()  instead .replace()
-   if options:
-      if debug: print(f'\tWith options:{options}')
-      rc = run(ROBOTDIR.joinpath(suite), outputdir=OUTPUTDIR, output=suite.replace('.robot',''), console='none', log=cfg['log'], report=cfg['report'], **options)
+   if options is None or len(options) == 0: 
+      options = {}
+      if debug: print(f'\tNo options set; Starting with default options')
+   #Anyway we have to suppress the output from robot to stdout. checkmk cannot deal with it.
+   #TODO discuss if wanted in debug output
+   if debug: 
+      options.update({'console':'verbose'})
    else:
-      if debug: print('\tWithout options')
-      rc = run(ROBOTDIR.joinpath(suite), outputdir=OUTPUTDIR, output=suite.replace('.robot',''), console='none', log=cfg['log'], report=cfg['report'])
+      options.update({'console':'none'})
+   #Settig mandatory options
+   options.update({'outputdir':OUTPUTDIR})
+   #Set the output filename to the suitname. If the suite was a file we have to remove the extension.
+   #TODO Try .rstrip()  instead .replace()
+   options.update({'output':suite.replace('.robot','')})
+   #If option 'log' or 'report' is not set in config file we set the default
+   #TODO Possibly we allow 'global options' Just needs an additional iteration.
+   options.setdefault('log',cfg['log'])
+   options.setdefault('report',cfg['report'])
+   #In case Piggy Back host is found in the options we store it in a variable and remove it.
+   #host is not a valid option for robot but its silently accepted.
+   #TODO Test if this is really needed
+   if 'host' in options:
+      host = options.pop('host')
+   if debug: print(f'\tStart with following options: {options}')
+######################## Run robot run..... ###############################################
+   rc = run(ROBOTDIR.joinpath(suite), **options)
    if debug: print(f'\trobot finished with returncode: {rc}\n\tLess than 250 shows number of failed tests!')
    if rc > 250: 
       print('\trobot exited with error and no outputfile is generated.')
       print ('\tPlease run robot command manually to see the error')
       break
-###################### Send output.xml to checkmk #######################################
-#TODO move this upward in the code could cause issues in case suite doesnt run.
-# May pop out to a variable
-   if options:
-      if 'host' in options:
-         if debug: print(f'\tFound piggy back host: "{options["host"]}" in config')
-         print(f'<<<<{options.pop("host")}>>>>')
+######################## Send output.xml to checkmk #######################################
+   #If a piggy back hots is defined in config we print the section header
+   if 'host' in locals():
+      if debug: print(f'\tFound piggy back host: {host}" in config')
+      print(f'<<<<{host}>>>>')
    #print the section header
    print('<<<robotmk:sep(0)>>>')
 
@@ -104,7 +127,8 @@ for suite,options in cfg['suites'].items():
 #possibly problem in Windows
 #TODO find out whats efficient
 #TODO test with OUTPUTDIR.open()
-#TODO do we nedd to test if file is available????   
+#TODO do we nedd to test if file is available????
+#TODO Should we have an option to delete XML files afterwards or may we delete it anyway?
    with open (OUTPUTDIR.joinpath(suite).with_suffix('.xml'), 'r') as f:
       if debug: print(f'\tCopy outputfile {OUTPUTDIR.joinpath(suite).with_suffix(".xml")} to stdout')
       if not debug: shutil.copyfileobj(f, sys.stdout)
