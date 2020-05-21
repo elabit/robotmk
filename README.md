@@ -1,75 +1,78 @@
-# Development documentation
+# RobotMK
 
-Install checkMK pytest module: 
+## What is RobotMK? 
 
-```
-pip install -e /python-pytest-check_mk/
-```
+RobotMK allows you to integrate the results of the great [Robot Framework](https://robotframework.org/) into the monitoring system [CheckMK](https://checkmk.com).
 
-Waiting for pull request:
+RobotMK consists of mainly two components: 
 
-* https://github.com/tom-mi/python-pytest-check_mk/pull/1
-* https://github.com/tom-mi/python-pytest-check_mk/pull/2
+* `checks/robotmk` check: evaluates the XML output of robot
+* `check_parameters_robotmk.py`: WATO configuration page 
 
+## Installation
 
-## install check
+Currently, there is no MK package to install RobotMK. The simplest way to get this done is 
 
-Install the check by creating a symlink: 
-
-    ln -s /workspace/robotmk/checks/robotmk /omd/sites/cmk/local/share/check_mk/checks/robotmk
-
-Verify that checkMK can use the robotmk check: 
+* clone this repository
+* checkout the `dev` branch 
+* copy the files into your CMK site
 
 ```
+$ cp /workspace/robotmk/checks/robotmk /omd/sites/SITENAME/local/share/check_mk/checks/robotmk
+$ cp /workspace/robotmk/check_parameters_robotmk.py /omd/sites/SITENAME/local/share/check_mk/web/plugins/wato/check_parameters_robotmk.py
+```
+
+Now verify that checkMK can use the robotmk check: 
+
+```
+$ su - cmk
 OMD[cmk]:~$ cmk -L | grep robot                                          
 robotmk     tcp    (no man page present)
 ```
 
-## install wato configuration settings
+## Development setup
 
-Install the WATO configuration settings by creating a symlink: 
+### Submodule init
 
-    ln -s /workspace/robotmk/check_parameters_robotmk.py /omd/sites/cmk/local/share/check_mk/web/plugins/wato/check_parameters_robotmk.py
+All tests rely on the Python test module [python-pytest-check_mk](https://github.com/tom-mi/python-pytest-check_mk), for which two pull requests are waiting. 
 
+As long as the pull reqeusts ([1](https://github.com/tom-mi/python-pytest-check_mk/pull/1) and [2](https://github.com/tom-mi/python-pytest-check_mk/pull/2))  are outstanding, the forked version of `python-pytest-check_mk` is included as a git submodule. `tox` (see next section) takes care about the initialisation, so there is no work for you. 
 
-## test
+### Python versions
+This project is based on two Python versions: 
 
-FIXME see 2. "generate test data"
+* **Python 2.7** - robotmk **check** on the CheckMK Server (CheckMK will be running soon on Python3)
+* **Python 3.6** - robotmk **plugin** on the Robot test host
 
-``` 
-OMD[cmk]:~$ cmk -IIv robothost1
-Discovering services on: robothost1
-robothost1:
-+ FETCHING DATA
- [agent] Execute data source
- [piggyback] Execute data source
-No piggyback files for 'robothost1'. Skip processing.
-No piggyback files for '127.0.0.1'. Skip processing.
-+ EXECUTING DISCOVERY PLUGINS (44)
-systemd_units does not support discovery. Skipping it.
-ps_lnx does not support discovery. Skipping it.
-ps.perf does not support discovery. Skipping it.
-  1 chrony
-  1 cpu.loads
-  1 cpu.threads
-  4 df
-  1 diskstat
-  3 kernel
-  1 kernel.util
-  1 livestatus_status
-  1 lnx_if
-  2 lnx_thermal
-  1 mem.linux
-  1 mkeventd_status
-  1 mknotifyd
-  4 mounts
-  1 omd_apache
-  1 omd_status
-  1 postfix_mailq
-  1 postfix_mailq_status
-  1 robotmk                      <<<<<<<<<<<<<<<
-  1 systemd_units.services_summary
-  1 tcp_conn_stats
-  1 uptime
-SUCCESS - Found 31 services, 1 host labels
+To run all tests, make sure that you have installed both versions on your machine. 
+
+### tox 
+
+[tox](https://tox.readthedocs.io/en/latest/index.html) manages the virtual envs for us to run tests both for check and plugin within their proper environment. 
+
+First, make sure that you have `tox` installed on your system. It is perfect to install tox in a virtual environment: 
+
+```
+~$ virtualenv ~/venv-tox
+created virtual environment CPython2.7.5.final.0-64 in 140ms
+  creator CPython2Posix(dest=/root/venv-tox, clear=False, global=False)
+  seeder FromAppData(download=False, pip=latest, setuptools=latest, wheel=latest, via=copy, app_data_dir=/root/.local/share/virtualenv/seed-app-data/v1.0.1)
+  activators PythonActivator,CShellActivator,FishActivator,PowerShellActivator,BashActivator
+~$ . ~/venv-tox/bin/activate
+(venv-tox) ~$ pip install tox
+(venv-tox) ~$ tox --version
+3.15.1 imported from /root/venv-tox/lib/python2.7/site-packages/tox/__init__.pyc
+```
+
+### running tests
+
+With `tox` installed now, the tests can be started: 
+
+```
+# run tests for the plugin (Python 3.6) and the check (Python 2.7)
+tox
+# run only plugin tests
+tox -e plugin 
+# run only check tests
+tox -e check
 ```
