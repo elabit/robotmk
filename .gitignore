@@ -9,3 +9,4 @@ checks/multipath
 robot-testsuites/suites
 .DS_Store
 geckodriver*.log
+.tox
