@@ -10,7 +10,7 @@
             "request": "launch",
             "program": "${workspaceFolder}/checks/robotmk",
             "console": "integratedTerminal",
-            "python.pythonPath": ".tox/check/bin/python"
+            "pythonPath": "${workspaceFolder}/.tox/check/bin/python"
         }
     ]
 }

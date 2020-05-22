@@ -1,6 +1,10 @@
 {
+    "python.testing.pytestArgs": [
+        "test/"
+    ],
     "python.testing.unittestEnabled": false,
     "python.testing.nosetestsEnabled": false,
     "python.testing.pytestEnabled": true,
-    "python.pythonPath": ".tox/check/bin/python"
+
+    "python.pythonPath": "${workspaceFolder}/.tox/check/bin/python",      
 }
