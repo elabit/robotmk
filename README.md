@@ -9,6 +9,7 @@ Read the [feature page](https://robotmk.org) of RobotMK to learn about its histo
 
 RobotMK consists of mainly two components: 
 
+* `agents/plugins/robotmk` plugin: executes Robot tests on the client side
 * `checks/robotmk` check: evaluates the XML output of robot
 * `check_parameters_robotmk.py`: WATO configuration page 
 
@@ -21,8 +22,29 @@ Currently, there is no MK package to install RobotMK. The simplest way to get th
 * copy the files into your CMK site
 
 ```
+# install check
 $ cp /workspace/robotmk/checks/robotmk /omd/sites/SITENAME/local/share/check_mk/checks/robotmk
+# install WATO settings
 $ cp /workspace/robotmk/check_parameters_robotmk.py /omd/sites/SITENAME/local/share/check_mk/web/plugins/wato/check_parameters_robotmk.py
+# install example tests (optional) 
+$ cp -R /workspace/robotmk/test/fixtures/robot /usr/lib/check_mk_agent/
+# install the plugin (example: cache time 90 seconds)
+# mkdir mkdir /usr/lib/check_mk_agent/plugins/90
+# cp 
+```
+
+Finally place the `robotmk.yml` into the checkMK config dir: 
+```
+#Global variables
+outputdir: /tmp/robot
+robot_suite_dir: /usr/lib/check_mk_agent/robot
+log:
+console:
+report:
+# Suites to execute
+suites:
+   1S_3S_2S_3T:
+   1S_3T:
 ```
 
 Now verify that checkMK can use the robotmk check: 
