@@ -16,7 +16,7 @@ from pathlib import Path
 
 debug = 0
 if '--debug' in sys.argv: 
-   debug = 1
+   debug = 0
 
 def start():
    ########### set default values
