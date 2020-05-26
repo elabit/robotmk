@@ -117,6 +117,9 @@ def start():
       #TODO Test if this is really needed
       if 'host' in suite_options:
          host = suite_options.pop('host')
+
+      # TODO: Perhaps this preformatting has to be done for several other arguments
+      # which can be given multiple times.        
       # --variable name:value => ['name:value', 'name2:value2']
       if 'variable' in suite_options: 
          suite_options['variable'] = list(map(lambda x: f'{x[0]}:{x[1]}', suite_options['variable'].items()))
