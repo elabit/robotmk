@@ -1,8 +1,11 @@
 # RobotMK
 
+
 ## What is RobotMK? 
 
 RobotMK allows you to integrate the results of the great [Robot Framework](https://robotframework.org/) into the monitoring system [CheckMK](https://checkmk.com).
+
+Read the [feature page](https://robotmk.org) of RobotMK to learn about its history, features and advantages. 
 
 RobotMK consists of mainly two components: 
 
@@ -32,11 +35,20 @@ robotmk     tcp    (no man page present)
 
 ## Development setup
 
+### Installation 
+
+It is assumed that you are developing on a Linux host which already has CheckMK installed. Instead of copying the files into the site (as described in [Installation](#installation)), just create symlinks (`ln -s `) to the apropriate files and directories. 
+
 ### Submodule init
 
 All tests rely on the Python test module [python-pytest-check_mk](https://github.com/tom-mi/python-pytest-check_mk), for which two pull requests are waiting. 
 
 As long as the pull reqeusts ([1](https://github.com/tom-mi/python-pytest-check_mk/pull/1) and [2](https://github.com/tom-mi/python-pytest-check_mk/pull/2))  are outstanding, the forked version of `python-pytest-check_mk` is included as a git submodule. `tox` (see next section) takes care about the initialisation, so there is no work for you. 
+
+The manual step to update the submodule is: 
+``` 
+git submodule update --init --recursive
+```
 
 ### Python versions
 This project is based on two Python versions: 
@@ -76,3 +88,19 @@ tox -e plugin
 # run only check tests
 tox -e check
 ```
+
+## Credits/Thanks
+
+### Co-workers
+
+I want to express my thanks to the following people who help to make RobotMK better by submitting code: 
+
+* Michael FRANK (checkMK agent plugin)
+* Guillaume DURVILLE (checkMK bakery rule)
+
+### Supporters
+
+Thanks to the companies which support the development of RobotMK: 
+
+* [ITERATIO GmbH](http://iteratio.com/), Cologne - Hardy DÜTTMANN
+* 
