@@ -10,7 +10,35 @@
             "request": "launch",
             "program": "${workspaceFolder}/checks/robotmk",
             "console": "integratedTerminal",
-            "pythonPath": "${workspaceFolder}/.tox/check/bin/python"
+            "pythonPath": "${workspaceFolder}/.tox/check/bin/python",
+            // allow to inspect also foreign code
+            "justMyCode": false
+        },
+        {
+            "name": "RobotMK plugin",
+            "type": "python",
+            "request": "launch",
+            "program": "${workspaceFolder}/agents/plugins/robotmk",
+            "console": "integratedTerminal",
+            "pythonPath": "${workspaceFolder}/.tox/plugin/bin/python",
+            // allow to inspect also foreign code
+            "justMyCode": false
+        },
+        {
+            "name": "Python: Current File",
+            "type": "python",
+            "request": "launch",
+            "program": "${file}",
+            "console": "integratedTerminal",
+            // "subProcess": true,
+            // "justMyCode": false,
+        },        
+        {
+            "name": "Debug Tests",
+            "type": "python",
+            "request": "test",
+            "console": "integratedTerminal",
+            "justMyCode": false
         }
     ]
 }

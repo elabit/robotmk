@@ -1,10 +1,17 @@
 {
     "python.testing.pytestArgs": [
-        "test/"
+        "--cache-clear",
+        "--ignore=python-pytest-check_mk"
+        // "test/"
     ],
     "python.testing.unittestEnabled": false,
     "python.testing.nosetestsEnabled": false,
     "python.testing.pytestEnabled": true,
 
-    "python.pythonPath": "${workspaceFolder}/.tox/check/bin/python",      
+    "python.pythonPath": ".tox/plugin/bin/python",
+    "files.watcherExclude": {
+        "**/__pycache__/**": true,
+        "**/.pytest_cache/**": true
+    },
+    
 }
