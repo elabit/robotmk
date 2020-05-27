@@ -1,3 +1,3 @@
 {
-    'var_values': ['testvalue1', 'testvalue2'],
+    'var_values': ['Testvar is testvalue1', 'Testvar is testvalue2'],
 }
