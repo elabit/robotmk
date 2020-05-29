@@ -20,27 +20,123 @@ from cmk.gui.plugins.wato import (
 def _valuespec_inventory_robotmk_rules():
     return Dictionary(
         title=_("Robot Framework Service Discovery"),
+        
         elements=[
-            ( "discovery_suite_level",
-                DropdownChoice(
-                    title = _("Discovery suite level"),
-                    help=_(
-                        u"Each Robot result consists of one suite which is the folder name of the test(s)."
-                        u"Below that, you have sub-suites for each robot test file and/or for each subfolder."
-                        u"Choosing level 0 will create 1 service which will reflect all tests and suites within this folder."
-                        u"A level of 1 or higher will create 1 or more services, depending on the number of test files/folders"
-                        u"within that directory level."
+            ("robot_discovery_level",
+                ListOf(
+                    Tuple(elements=[
+                        TextAscii(
+                            title=("Root suite pattern"),
+                            allow_empty=True,
+                            size=25,
+                            default_value=".*",
+                            help=_("Define a regular expression for the root suite in the Robot result you want to set the <b>discovery level</b>. To find out the root suite name, open output.xml of the Robot test and search for the very first suite tag.")
                         ),
-                    choices = [
-                        ( "0"  , _("Directory level 0 (one service with root folder name)") ),
-                        ( "1"  , _("Directory level 1 (n services for each test file/subfolder") ),
-                        ( "2"  , _("Directory level 2 (\"-\")") ),
-                        ( "3"  , _("Directory level 3 (\"-\")") ),
-                    ]
-            )),
-            # TODO: Service Prefix
-        ],
+                        DropdownChoice(
+                            title = ("Level"),
+                            choices = [
+                                ( "0"  , _("0 - create one service from the top result element")),
+                                ( "1"  , _("1 - create service(s) from each result element 1 level deeper")),
+                                ( "2"  , _("2 - create service(s) from each result element 2 levels deeper")),
+                                ( "3"  , _("3 - create service(s) from each result element 3 levels deeper")),
+                            ],
+                            help=_(
+                                u"Each Robot result consists of one suite which is either the "
+                                u".robot file name or the folder name containg the tests.<br>"
+                                u"By default, RobotMK creates 1 service from this single root node.<br>"
+                                u"Choosing another level enables you to <b>split the Robot result</b> into "
+                                u"as many services as you want.<br>"
+                                u"Keep in mind that the deeper you choose this level, the more likely "
+                                u"it is that you will also get services out from tests and keywords (if this is what you want...)."
+                            ),        
+                        ),
+                    ]),  #Tuple
+                    title=_("Discovery level of services from Robot output"),
+
+                ) # ListOf
+            ), 
+            ("robot_service_prefix",
+                ListOf(
+                    Tuple(elements=[
+                        TextAscii(
+                            title=("Root suite pattern"),
+                            allow_empty=True,
+                            size=25,
+                            default_value=".*",
+                            help=_("Define a regular expression for the root suite in the Robot result you want to set the <b>service name prefix</b>. To find out the root suite name, open output.xml of the Robot test and search for the very first suite tag.")
+                        ),
+
+                        TextAscii(
+                            title=("Service name prefix"),
+                            allow_empty=True,
+                            size=25,
+                            default_value="Robot ",
+                            help=_("How Robot service names should start")
+                        ),                              
+                    ]),  #Tuple_elements
+                    title=_("Service prefix for discovered Robot services"),
+
+                ) # ListOf
+            ), 
+        ],  # elements
     )
+
+
+# def _valuespec_inventory_robotmk_rules():
+#     return Dictionary(
+#         title=_("Robot Framework Service Discovery"),
+        
+#         elements=[
+#             ("robot_discovery",
+#                 ListOf(
+#                     Tuple(elements=[
+
+#                         TextAscii(
+#                             title=("Service name prefix"),
+#                             allow_empty=True,
+#                             size=25,
+#                             default_value="Robot ",
+#                             help=_("How all Robot service names start")
+#                         ),                        
+#                         Dictionary(
+#                             title=_("Discovery level"),
+#                             elements=[
+#                                 ( "discovery_level",
+#                                     DropdownChoice(
+#                                         choices = [
+#                                             ( "0"  , _("0 - create ONE service from the one result element in the top level")),
+#                                             ( "1"  , _("1 - create service(s) from each result element 1 level deeper")),
+#                                             ( "2"  , _("2 - create service(s) from each result element 2 levels deeper")),
+#                                             ( "3"  , _("3 - create service(s) from each result element 3 levels deeper")),
+#                                         ],
+#                                     )
+#                                 ),
+#                             ],
+#                             help=_(
+#                                 u"Each Robot result consists of one suite which is either the "
+#                                 u".robot file name or the folder name containg the tests.<br>"
+#                                 u"By default, RobotMK creates 1 service from this single root node.<br>"
+#                                 u"Choosing another level enables you to split the Robot result into "
+#                                 u"as many services as you want.<br>"
+#                                 u"Keep in mind that the deeper you choose this level, the more likely "
+#                                 u"it is that you will also get services out from tests and keywords (if this is what you want...)."
+#                                 ),                                                    
+#                         ),       
+#                         TextAscii(
+#                             title=("Root suite pattern"),
+#                             allow_empty=True,
+#                             size=25,
+#                             default_value=".*",
+#                             help=_("A regular expression matching the single root node of the Robot result.")
+#                         ),
+#                     ]),  #Tuple_elements
+#                     title=_("Adopt discovery of services from Robot output"),
+
+#                 ) # ListOf
+#             ), 
+#         ],  # elements
+#     )
+
 
 
 rulespec_registry.register(

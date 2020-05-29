@@ -48,8 +48,7 @@ inventory_robotmk_rules = []
 
 # info = one __or more__ robot XML results concatenated 
 def parse_robot(info):
-    settings = host_extra_conf_merged(host_name(), eval("inventory_"+iam+"_rules"))
-    discovery_suite_level = settings.get("discovery_suite_level", 0)
+    robot_discovery_level = get_setting('robot_discovery_level',[])
     # stringify list of lists
     all_xmlstring = ''.join(map(str, [l[0] for l in info]))
     # identify XMLs
@@ -57,28 +56,34 @@ def parse_robot(info):
     robot_results = []
     for xml in xmllist: 
         oxml = ET.fromstring(xml)
-        suite, statistics, error =  (oxml.find('suite'), oxml.find('statistics'), oxml.find('errors')) 
+        suite, statistics, error =  (oxml.find('./suite'), oxml.find('./statistics'), oxml.find('./errors')) 
+        discovery_level = int(pattern_match(robot_discovery_level,suite.attrib['name'], 0))
         if not all(map(lambda x: x != None, [suite, statistics, error])):
             continue
-        robot_result = RobotMetrics(suite, statistics, error, int(discovery_suite_level))
+        robot_result = RobotMetrics(suite, statistics, error, discovery_level)
         robot_results.extend(robot_result.data)
     # list of RFSuite objects
     return robot_results
 
 def inventory_robot(robot_results):
+    robot_service_prefix = get_setting('robot_service_prefix',[])
     for suite in robot_results:
-        # print suite.name
-        yield suite.name, None
+        prefix = pattern_match(robot_service_prefix, suite.name, '')
+        suite_name = "%s%s" % (prefix, suite.name)
+        yield suite_name, None
+        # uncomment instead of yield to debug this method
+        # print suite_name
 
 def check_robot(item, checkgroup_parameters, robot_result):
     if checkgroup_parameters == None: 
         checkgroup_parameters = {}
-    settings = host_extra_conf_merged(host_name(), eval("inventory_"+iam+"_rules"))
-    discovery_suite_level = int(settings.get("discovery_suite_level", 0))
+    robot_discovery_level = get_setting('robot_discovery_level',[])
 
     for suite in robot_result:
-        if suite.name == item:
-            nagios_result = suite.nagios_result_recursive(checkgroup_parameters, discovery_suite_level)
+        item_without_prefix = strip_prefix(item)
+        if suite.name == item_without_prefix:
+            discovery_level = int(pattern_match(robot_discovery_level, item_without_prefix, 0))
+            nagios_result = suite.nagios_result_recursive(checkgroup_parameters, discovery_level)
             # worststate
             rc = max(map(lambda x: x[0], nagios_result))
             # First element in nagios_result is a duplicate of the second; begin at index 1
@@ -86,6 +91,15 @@ def check_robot(item, checkgroup_parameters, robot_result):
             perf = [ x[3] for x in nagios_result[1:] if x[3] ]
             output = '\n'.join([ i[1] for i in nagios_result])
             return rc, output, perf
+
+# strips the prefix from the suitename
+def strip_prefix(suitename):
+    robot_service_prefix = get_setting('robot_service_prefix',[])
+    prefix = pattern_match(robot_service_prefix, suitename, '')
+    if suitename.startswith(prefix):
+        return suitename[len(prefix):]
+    else:
+        return suitename
 
 # ==============================================================================
 # Classes for robot result objects =============================================
@@ -103,7 +117,7 @@ class RFObject(object):
     def __init__(self, id, level_absolute, level_relative, name, status, starttime, endtime, elapsedtime, branches=[]):
         self.id = id
         # level_absolute is the absolute position in the suite tree. A RFMetrics object 
-        # with a discovery_suite_level of 2 for example can result in on or more suites
+        # with a discovery_level of 2 for example can result in on or more suites
         # which each have a level_absolute if 2.  
         self.level_absolute = level_absolute
         # level_relative begins starts for each suites/tests/keywords at 0 (to control output_depth for suites/kws)
@@ -133,22 +147,12 @@ class RFObject(object):
         return ( self.name, self.elapsedtime)
 
     # returns status and RC of this node and subnodes
-    def nagios_result_recursive(self, checkgroup_parameters, discovery_suite_level, depth_limit_inherited=None ):
+    def nagios_result_recursive(self, checkgroup_parameters, discovery_level, depth_limit_inherited=None ):
         # If the pattern for <setting> matches, return the value (if tuple) or True
         def get_pattern_value(setting):
             setting_keyname = getattr(self, "%s_dict_key" % setting)
             patterns = checkgroup_parameters.get(setting, {}).get(setting_keyname, [])
-            for elem in patterns:
-                # elem can be 
-                # - a list of (pattern, value) tuples: thresholds/output_depth 
-                # - a list of patterns: perfdata creation (no value needed here) 
-                if type(elem) == tuple: 
-                    if re.match(elem[0], self.name):
-                        return elem[1]
-                else:
-                    if re.match(elem, self.name):
-                        return True
-            return None
+            return pattern_match(patterns, self.name)
 
         # RUNTIME EVALUTATION --- How long did Suites/Tests/Keywords run? 
         this_runtime_threshold = get_pattern_value('runtime_threshold')
@@ -156,13 +160,13 @@ class RFObject(object):
         if this_runtime_threshold and elapsed_sec >= this_runtime_threshold: 
             my_rc = 1
             runtime_str = "%.2fs, WARNING: > %.2fs" % (elapsed_sec, this_runtime_threshold)
-            padding = (discovery_suite_level - self.level_absolute)* -1 * u"\u2504"
+            padding = (discovery_level - self.level_absolute)* -1 * u"\u2504"
             my_out = ("%s %s %s '%s': %s (%s)" % (padding, self.symbol_nok, self.abbr, self.name, self.status, runtime_str)).strip()
             my_err = "%s '%s' over runtime" % (str(self), self.name)
         else: 
             my_rc = self.nagios_stateid
             runtime_str = "%.2fs" % elapsed_sec
-            padding = (discovery_suite_level - self.level_absolute)* -1 * u"\u2504"
+            padding = (discovery_level - self.level_absolute)* -1 * u"\u2504"
             my_out = ("%s %s %s '%s': %s (%s)" % (padding, self.symbol_ok, self.abbr, self.name, self.status, runtime_str)).strip()
             my_err = ''
 
@@ -219,7 +223,7 @@ class RFObject(object):
         my_result_branches = []
         # Let's descend
         if next_depth_limit == None or next_depth_limit > -1: 
-            sublists = [ subel.nagios_result_recursive(checkgroup_parameters, discovery_suite_level, next_depth_limit) for subel in self.branches ]
+            sublists = [ subel.nagios_result_recursive(checkgroup_parameters, discovery_level, next_depth_limit) for subel in self.branches ]
             # avoid nesting, flat the list
             for sublist in sublists: 
                 for subitem in sublist: 
@@ -320,8 +324,8 @@ class RFKeyword(RFObject):
 # Visitor Class for Robot Result ===============================================
 # ==============================================================================
 class RobotMetrics(object):
-    def __init__(self, suite, statistics, error, discovery_suite_level=0):
-        self.discovery_suite_level = discovery_suite_level
+    def __init__(self, suite, statistics, error, discovery_level=0):
+        self.discovery_level = discovery_level
         self.data = []
         self.visit_suite(suite, statistics, error)
 
@@ -339,7 +343,7 @@ class RobotMetrics(object):
         suite_node = RFSuite(
             suite.attrib['id'], 
             level_absolute, 
-            level_absolute - self.discovery_suite_level, 
+            level_absolute - self.discovery_level, 
             suite.attrib['name'], 
             suite.find('status').attrib['status'], 
             suite.find('status').attrib['starttime'], 
@@ -351,7 +355,7 @@ class RobotMetrics(object):
             sub_objects)
 
 
-        if level_absolute == self.discovery_suite_level:
+        if level_absolute == self.discovery_level:
             self.data.append(suite_node)
         else:
             return suite_node
@@ -377,7 +381,7 @@ class RobotMetrics(object):
                 ),
                 subkw_objects
         )
-        if level_absolute == self.discovery_suite_level:
+        if level_absolute == self.discovery_level:
             self.data.append(test_node)
         else:
             return test_node
@@ -401,7 +405,7 @@ class RobotMetrics(object):
                 keyword.find('status').attrib['endtime'], 
                 get_elapsed_time(keyword.find('status').attrib['starttime'], keyword.find('status').attrib['endtime'] ),
                 subkw_objects)
-        if level_absolute == self.discovery_suite_level:
+        if level_absolute == self.discovery_level:
             self.data.append(keyword_node)
         else:
             return keyword_node
@@ -414,9 +418,30 @@ class RobotMetrics(object):
 #  | | | |  __/ | |_) |  __/ |   
 #  |_| |_|\___|_| .__/ \___|_|   
 #               | |              
-#               |_|              
-# borrowed from robot-framework
+#               |_|   
 
+# Determine if a list of patterns matches.
+# If list elements are tuples of (pattern,value), return the value
+# If list elements are patterns, return bool
+# If nothing matches return the default
+def pattern_match(patterns, name, default=None):
+    for elem in patterns:
+        if type(elem) == tuple: 
+            if re.match(elem[0], name):
+                return elem[1]
+        else:
+            if re.match(elem, name):
+                return True
+    return default
+
+# two helper funcs to get host settings
+def get_host_extra_conf_merged():
+    return host_extra_conf_merged(host_name(), eval("inventory_"+iam+"_rules"))
+def get_setting(setting, defaultvalue):
+    settings = get_host_extra_conf_merged()
+    return settings.get(setting,defaultvalue)
+
+# all following borrowed from robot-framework
 def get_elapsed_time(start_time, end_time):
     """Returns the time between given timestamps in milliseconds."""
     if start_time == end_time or not (start_time and end_time):
@@ -470,7 +495,6 @@ check_info['robotmk'] = {
     "check_function": check_robot,
     "service_description": "Robot",
     "group": "robotmk",
-    # FIXME
     "has_perfdata": True
 }
 
@@ -480,12 +504,12 @@ if __name__ == "__main__":
 
     debugsets = [
         {
-            'discovery_suite_level': 0,
+            'discovery_level': 0,
             'paramfile': 'params.py',
             'suite': '1S_3S_2S_3T',
         },
         {
-            'discovery_suite_level': 0,
+            'discovery_level': 0,
             'paramfile': 'params.py',
             'suite': '1S_3S_2S_3T',
         },
@@ -494,7 +518,7 @@ if __name__ == "__main__":
 
     global inventory_robotmk_rules
     inventory_robotmk_rules = ast.literal_eval(
-        open('test/fixtures/inventory_robotmk_rules/discovery_suite_level_%d.py' % debugset['discovery_suite_level']).read())
+        open('test/fixtures/inventory_robotmk_rules/discovery_slvel_%d.py' % debugset['discovery_level']).read())
     global host_extra_conf_merged
     def host_extra_conf_merged(hostname, inventory_robotmk_rules):
         return inventory_robotmk_rules[0]['value']
