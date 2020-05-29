@@ -4,3 +4,10 @@ python:
   - "2.7"
 install: pip install tox-travis
 script: tox -v
+
+#safelist
+branches:
+  only:
+  - master
+  - develop
+  - /^v\d+\.\d+(\.\d+)?(-\S*)?$/
