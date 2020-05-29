@@ -1,5 +1,6 @@
 # RobotMK
 
+[![Build Status](https://travis-ci.com/simonmeggle/robotmk.svg?branch=develop)](https://travis-ci.com/simonmeggle/robotmk)
 
 ## What is RobotMK? 
 
