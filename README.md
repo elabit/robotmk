@@ -39,17 +39,6 @@ robotmk     tcp    (no man page present)
 
 It is assumed that you are developing on a Linux host which already has CheckMK installed. Instead of copying the files into the site (as described in [Installation](#installation)), just create symlinks (`ln -s `) to the apropriate files and directories. 
 
-### Submodule init
-
-All tests rely on the Python test module [python-pytest-check_mk](https://github.com/tom-mi/python-pytest-check_mk), for which two pull requests are waiting. 
-
-As long as the pull reqeusts ([1](https://github.com/tom-mi/python-pytest-check_mk/pull/1) and [2](https://github.com/tom-mi/python-pytest-check_mk/pull/2))  are outstanding, the forked version of `python-pytest-check_mk` is included as a git submodule. `tox` (see next section) takes care about the initialisation, so there is no work for you. 
-
-The manual step to update the submodule is: 
-``` 
-git submodule update --init --recursive
-```
-
 ### Python versions
 This project is based on two Python versions: 
 
@@ -76,7 +65,7 @@ created virtual environment CPython2.7.5.final.0-64 in 140ms
 3.15.1 imported from /root/venv-tox/lib/python2.7/site-packages/tox/__init__.pyc
 ```
 
-### running tests
+### running tests with tox
 
 With `tox` installed now, the tests can be started: 
 
@@ -88,6 +77,18 @@ tox -e plugin
 # run only check tests
 tox -e check
 ```
+
+### Submodule init
+
+All tests rely on the Python test module [python-pytest-check_mk](https://github.com/tom-mi/python-pytest-check_mk), for which two pull requests are waiting. 
+
+As long as the pull reqeusts ([1](https://github.com/tom-mi/python-pytest-check_mk/pull/1) and [2](https://github.com/tom-mi/python-pytest-check_mk/pull/2))  are outstanding, the forked version of `python-pytest-check_mk` is included as a git submodule. `tox` (see next section) takes care about the initialisation, so there is no work for you. 
+
+The manual step to update the submodule is: 
+``` 
+git submodule update --init --recursive
+```
+
 
 ## Credits/Thanks
 
