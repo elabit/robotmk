@@ -24,6 +24,7 @@
 # to the Free Software Foundation, Inc., 51 Franklin St,  Fifth Floor,
 # Boston, MA 02110-1301 USA.
 
+
 import tempfile
 import os
 import re
@@ -154,21 +155,30 @@ class RFObject(object):
             patterns = checkgroup_parameters.get(setting, {}).get(setting_keyname, [])
             return pattern_match(patterns, self.name)
 
-        # RUNTIME EVALUTATION --- How long did Suites/Tests/Keywords run? 
-        this_runtime_threshold = get_pattern_value('runtime_threshold')
-        elapsed_sec = self.elapsedtime/float(1000)
-        if this_runtime_threshold and elapsed_sec >= this_runtime_threshold: 
-            my_rc = 1
-            runtime_str = "%.2fs, WARNING: > %.2fs" % (elapsed_sec, this_runtime_threshold)
+        # TODO: padding as class method
+
+        # Check for failed test
+        if isinstance(self, RFTest) and self.critical: 
+            my_rc = 2
             padding = (discovery_level - self.level_absolute)* -1 * u"\u2504"
-            my_out = ("%s %s %s '%s': %s (%s)" % (padding, self.symbol_nok, self.abbr, self.name, self.status, runtime_str)).strip()
-            my_err = "%s '%s' over runtime" % (str(self), self.name)
+            my_out = ("%s %s %s '%s': %s (CRITICAL: %s)" % (padding, self.symbol_nok, self.abbr, self.name, self.status, self.text)).strip()
+            my_err = "%s '%s' failed with '%s'" % (str(self), self.name, self.text)
         else: 
-            my_rc = self.nagios_stateid
-            runtime_str = "%.2fs" % elapsed_sec
-            padding = (discovery_level - self.level_absolute)* -1 * u"\u2504"
-            my_out = ("%s %s %s '%s': %s (%s)" % (padding, self.symbol_ok, self.abbr, self.name, self.status, runtime_str)).strip()
-            my_err = ''
+            # RUNTIME EVALUTATION --- How long did Suites/Tests/Keywords run? 
+            this_runtime_threshold = get_pattern_value('runtime_threshold')
+            elapsed_sec = self.elapsedtime/float(1000)
+            if this_runtime_threshold and elapsed_sec >= this_runtime_threshold: 
+                my_rc = 1
+                runtime_str = "%.2fs, WARNING: > %.2fs" % (elapsed_sec, this_runtime_threshold)
+                padding = (discovery_level - self.level_absolute)* -1 * u"\u2504"
+                my_out = ("%s %s %s '%s': %s (%s)" % (padding, self.symbol_nok, self.abbr, self.name, self.status, runtime_str)).strip()
+                my_err = "%s '%s' over runtime" % (str(self), self.name)
+            else: 
+                my_rc = self.nagios_stateid
+                runtime_str = "%.2fs" % elapsed_sec
+                padding = (discovery_level - self.level_absolute)* -1 * u"\u2504"
+                my_out = ("%s %s %s '%s': %s (%s)" % (padding, self.symbol_ok, self.abbr, self.name, self.status, runtime_str)).strip()
+                my_err = ''
 
         # PERFDATA ---- Which elemens should produce performance data? 
         this_perfdata_value = get_pattern_value('perfdata_creation')
@@ -270,8 +280,10 @@ class RFSuite(RFObject):
         return "perfdata_creation_suites"
 
 class RFTest(RFObject):
-    def __init__(self, id, level_absolute, level_relative, name, status, starttime, endtime, elapsedtime, branches=[]):
+    def __init__(self, id, level_absolute, level_relative, name, status, starttime, endtime, elapsedtime, branches=[], critical=False, text=''):
         super(RFTest, self).__init__(id, level_absolute, level_relative, name, status, starttime, endtime, elapsedtime, branches)
+        self.critical = critical
+        self.text = text
 
     def __str__(self):
         return "Test"
@@ -366,6 +378,20 @@ class RobotMetrics(object):
         if keywords:
             subkw_objects = [ self.visit_keyword(keyword, statistics, error, level_absolute+1, 0, test.attrib['id'], ind+1) for ind, keyword in enumerate(keywords) ]
         
+        # ElementTree's XPath support is somehow... limited (no 'and')
+
+        # Attention. Robot has another understanding of what's "ciritcal": "All test cases are considered critical by default". 
+        # (http://robotframework.org/robotframework/latest/RobotFrameworkUserGuide.html#setting-criticality)
+        # For Robot, a FAILed test only can let the whole test run fail if it is marked as 'critical'.
+        # For this reason, lets check for 'critical' as precondition and 'status' if it was an error.   
+        if test.find('status[@status="FAIL"]') != None and test.find('status[@critical="yes"]') != None: 
+            critical = True
+            text = test.find('status[@critical="yes"]').text
+        else:
+            critical = False
+            text = ''
+
+
         # level_relative = always 0, because tests are not nested. 
         test_node = RFTest(
                 test.attrib['id'], 
@@ -379,7 +405,10 @@ class RobotMetrics(object):
                     test.find('status').attrib['starttime'], 
                     test.find('status').attrib['endtime'] 
                 ),
-                subkw_objects
+                subkw_objects, 
+                critical,
+                text
+
         )
         if level_absolute == self.discovery_level:
             self.data.append(test_node)

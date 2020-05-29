@@ -72,6 +72,7 @@ check_test_params = [
     ('1S_3S_2S_3T', 'discovery_level_1', 1, 'Subsuite1',   None),
     ('1S_3S_2S_3T', 'discovery_level_1', 1, 'Subsuite3',   'Suite_Sub3_suites_2seconds'),
     ('1S_3S_2S_3T', 'discovery_level_2', 2, 'Sub1 suite1', None),
+    ('1S_2T_fail',  'discovery_level_0', 0, '1S 2T fail',  None),
 ]
 @pytest.mark.parametrize("testsuite, inventory_rules, discovery_level, item, checkgroup_parameters", check_test_params)
 def test_check_mk(checks, monkeypatch, testsuite, inventory_rules, discovery_level, item, checkgroup_parameters):
