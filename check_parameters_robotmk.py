@@ -26,12 +26,7 @@ def _valuespec_agent_config_robotmk():
     return Alternative(
         title=_("RobotMK (Linux, Windows)"),
         help=_(
-            "This will deploy and configure the Check_MK agent plugin <tt>mk_sap_hana</tt>. "
-            "To make this plugin work you have to configure USERSTOREKEY or USER and PASSWORD, "
-            "ie. USERSTOREKEY=SVAMON and SID=I08 means we need a key for SVAMONI08 in the HDB "
-            "userstore specified in $MK_CONFDIR/sap_hana.cfg. Moreover you can configure "
-            "'RUNAS' with the following values 'agent' or 'instance'. The latter one is default. "
-            " Use the FQDN in the query if HOSTNAME is not set, other the short hostname."),
+            "Robotmk placeholder, oops !"),
         style="dropdown",
         elements=[
             Dictionary(title=_("Deploy the RobotMK plugin"),
