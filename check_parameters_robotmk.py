@@ -36,13 +36,15 @@ def _valuespec_agent_config_robotmk():
                            ("cache_time",
                             Age(
                                 title=_("Cache time of data"),
+                                help=_("Set a custom interval the RobotMK plugin should be executed (instead of normal check interval)"),
                                 minvalue=1,
                                 maxvalue=65535,
-                                default_value=30,
+                                default_value=900,
                             )),
                             ("outputdir",
                             TextAscii(
-                                regex="^[-a-zA-Z0-9._]*$",
+                                # regex="^[-a-zA-Z0-9._]*$",
+                                regex="^(/[^/ ]*)+/?$",
                                 regex_error=_("Your outputdir has an invalid format."),
                                 title=_("Output directory of where XML test result is stored"),
                                 help=_("If nothing is filled out, the default will be used"),
@@ -51,7 +53,8 @@ def _valuespec_agent_config_robotmk():
                             )),
                             ("robotdir",
                             TextAscii(
-                                regex="^[-a-zA-Z0-9._]*$",
+                                # regex="^[-a-zA-Z0-9._]*$",
+                                regex="^(/[^/ ]*)+/?$",
                                 regex_error=_("Your output dir has an invalid format."),
                                 help=_("If nothing is filled out, the default will be used"),
                                 title=_("The directory where the robot suites are living"),
@@ -69,16 +72,9 @@ def _valuespec_agent_config_robotmk():
                                         size=50,
                                     ), 
                                     Dictionary(
-                                        # optional_keys=["piggyhost, outputdir"],
-                                        elements=[
-                                            # ("suite",
-                                            # TextAscii(
-                                            #     title=_("Robot test file/dir name"),
-                                            #     help=_("Robot Framework can execute files (.robot) as well as nested directories "
-                                            #         "which itself contain .robot files. All names are expected to be relative to the robot dir."),
-                                            #     allow_empty=False,
-                                            # )),                            
-                                            ("piggyhost",
+                                        elements=[    
+                                            # Proposal: piggybackhost instead of host                   
+                                            ("host",
                                             MonitoredHostname(
                                                 title=_("Monitoring host this test suite should be mapped to (<b>piggyback</b>)"),
                                                 help=
