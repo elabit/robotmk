@@ -4,6 +4,7 @@
 import cmk.utils.paths
 import logging
 import yaml
+import os
 
 #this is purely a debug feature
 logger = logging.getLogger('agent_bakery')
@@ -14,8 +15,11 @@ fh.setLevel(logging.DEBUG)
 logger.addHandler(fh)
 
 def bake_robotmk(opsys, conf, conf_dir, plugins_dir, agconf):
-    target_dir = plugins_dir
-
+    target_dir = plugins_dir 
+    cache_time = conf.pop('cache_time', None)
+    if cache_time: 
+        target_dir = "%s/%d" % (target_dir, cache_time)
+        os.mkdir(target_dir)
     # Deploy the agent plugin
     if opsys == "linux":
         shutil.copy2(cmk.utils.paths.local_agents_dir + "/plugins/robotmk", target_dir + "/robotmk")
