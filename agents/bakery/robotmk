@@ -37,8 +37,11 @@ def bake_robotmk(opsys, conf, conf_dir, plugins_dir, agconf):
     logger.debug("Opsys : %s" % opsys)
 
     logger.debug("type of conf object : %s" % type(conf))
-    data = yaml.dump(conf)
-    logger.debug("Yaml converted data : %s" % data)
+    # remove the suites as they are python tuples - converted later
+    robot_test_suites = conf.pop('test_suites')
+    # the rest is the global part
+    robot_global_conf = conf
+    logger.debug("Yaml converted global data : %s" % robot_global_conf)
 
     #example taken from bakery on how to address data from the conf.
     #for this please see the logger in your log file
@@ -90,13 +93,27 @@ def bake_robotmk(opsys, conf, conf_dir, plugins_dir, agconf):
     #   Suite2:
     #   Suite3:
 
+
+    # SETTING DEFAULTS
+    robot_global_conf.setdefault('log', '')
+    robot_global_conf.setdefault('console', '')
+    robot_global_conf.setdefault('report', '')
     if opsys == "windows":
         content = content.replace('\n', '\r\n')
-    
-    #we can't use this nice thing, because pyyaml is difficult, because why have nice things ?
+        robot_global_conf.setdefault('outputdir', "FIXME")
+        robot_global_conf.setdefault('robotdir', "FIXME")
+    elif opsys == "linux":
+        robot_global_conf.setdefault('outputdir', "/tmp/robotmk")
+        robot_global_conf.setdefault('robotdir', "/usr/lib/check_mk_agent/robot")
 
+    
+    # convert the tuples of dicts into dict of dicts to become YAML compatible
+    robot_test_suites_list = { 'suites' : dict( (x,y) for x,y in (robot_test_suites)) }
+
+    #we can't use this nice thing, because pyyaml is difficult, because why have nice things ?
     with open(cfg_file,"w") as output_file:
-        yaml.dump(data,output_file, explicit_end=True, default_flow_style=False,line_break=1)
+        yaml.dump(robot_global_conf,output_file, explicit_end=False, default_flow_style=False,line_break=1)
+        yaml.dump(robot_test_suites_list,output_file, explicit_end=True, default_flow_style=False,line_break=1)
 
 
 bakery_info["robotmk"] = {
