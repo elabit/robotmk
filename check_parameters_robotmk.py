@@ -17,6 +17,106 @@ from cmk.gui.plugins.wato import (
 )
 
 
+from cmk.gui.cee.plugins.wato.agent_bakery import (
+    RulespecGroupMonitoringAgentsAgentPlugins
+)
+
+
+def _valuespec_agent_config_robotmk():
+    return Alternative(
+        title=_("RobotMK (Linux, Windows)"),
+        help=_(
+            "Robotmk placeholder, oops !"),
+        style="dropdown",
+        elements=[
+            Dictionary(title=_("Deploy the RobotMK plugin"),
+                       #optional_keys=["runas"],
+                       elements=[
+                           ("cache_time",
+                            Age(
+                                title=_("Cache time of data"),
+                                minvalue=1,
+                                maxvalue=65535,
+                                default_value=30,
+                            )),
+                            ("test_suites",
+                            ListOf(
+                                Dictionary(
+                                    optional_keys=["piggyhost"],
+                                    elements=[
+                                        ("piggyhost",
+                                        Hostname(
+                                            title=_("Monitoring host this test suite should be mapped to"),
+                                            help=
+                                            _("If you leave this empty then the test suite will run on the host "
+                                                "where the <tt>robotmk</tt> plugin is running. In this case the "
+                                                "name of all executed suites must be unique."),
+                                        )),
+                                        ("outputdir",
+                                        TextAscii(
+                                            regex="^[-a-zA-Z0-9._]*$",
+                                            regex_error=_("Your outputdir has an invalid format."),
+                                            title=_("Output directory of where XML test result is stored"),
+                                            help=_("If nothing is filled out, the default will be used"),
+                                            allow_empty=True,
+                                            default_value="OMD_ROOT"
+                                        )),
+                                        ("robotdir",
+                                        TextAscii(
+                                            regex="^[-a-zA-Z0-9._]*$",
+                                            regex_error=_("Your output dir has an invalid format."),
+                                            help=_("If nothing is filled out, the default will be used"),
+                                            title=_("The directory where the robot suites are living"),
+                                            allow_empty=True,
+                                            default_value="OMD_ROOT"
+                                        )),
+                                        ("tags",
+                                        ListOfStrings(
+                                            title=_("tags to go through"),
+                                            help=_("The tags matching what will be executed :)"),
+                                            size=40,
+                                        )),
+                                        ("variables",
+                                        ListOfStrings(
+                                            title=_("variables to use"),
+                                            help=_("Only scalar are supported. Must be supplied as key/value pair"),
+                                            size=40,
+                                            orientation="vertical",
+                                            valuespec=TextAscii(
+                                                size=20,
+                                                regex=".*:.*",
+                                                regex_error=_("Please entere a key-value pair separated by ':'"),
+                                            ),
+                                        )),
+                                        ("dry_run",
+                                        Checkbox(
+                                            title=_("Dry run this test suite"),
+                                            label=_("Do a dry run instead of actually running the test !"),
+                                        )),
+                                    ],
+                                ),
+                                title=_("Test suites"),
+                                help=
+                                _("Inspired by the ORACLE monitoring rule :)"),
+                                add_label=_("Add test suite"),
+                                movable=False,
+                            )),
+                       ]),
+            FixedValue(
+                None,
+                title=_("Do not deploy the RobotMK plugin"),
+                totext=_("(disabled)"),
+            ),
+        ],
+    )
+
+rulespec_registry.register(
+    HostRulespec(
+        group=RulespecGroupMonitoringAgentsAgentPlugins,
+        name="agent_config:robotmk",
+        valuespec=_valuespec_agent_config_robotmk,
+    ))
+
 def _valuespec_inventory_robotmk_rules():
     return Dictionary(
         title=_("Robot Framework Service Discovery"),
