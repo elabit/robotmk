@@ -26,8 +26,20 @@
                 "robothost1"
             ],
             "console": "integratedTerminal",
-            "pythonPath": "/omd/sites/cmk/bin/python"
-        }
+            "pythonPath": "/omd/sites/cmk/bin/python",
+            // allow to inspect also foreign code
+            "justMyCode": false
+        },
+        {
+            "name": "RobotMK plugin",
+            "type": "python",
+            "request": "launch",
+            "program": "${workspaceFolder}/agents/plugins/robotmk",
+            "console": "integratedTerminal",
+            "pythonPath": "${workspaceFolder}/.tox/plugin/bin/python",
+            // allow to inspect also foreign code
+            "justMyCode": false
+        },
             
         
     ]

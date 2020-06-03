@@ -10,3 +10,5 @@ robot-testsuites/suites
 .DS_Store
 geckodriver*.log
 .tox
+test/fixtures/robot/1S_1T/*.xml
+test/fixtures/robot/1S_1T/*.html

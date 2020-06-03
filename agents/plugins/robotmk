@@ -1,0 +1,171 @@
+#!/usr/bin/env python3
+
+#Maintainer: Michael FRANK <michael.frank@mikefrank.de>
+#Version: 0.0.1
+
+#TODO Use try except to catch if library not available.
+
+import os 
+import sys
+import yaml
+import io
+import shutil
+
+from robot import run
+from pathlib import Path
+
+debug = 0
+if '--debug' in sys.argv: 
+   debug = 0
+
+def start():
+   ########### set default values
+   log_debug('############### Starting preperation ###############')
+   if os.name == 'nt':
+      #We are in the Windows world
+      #TODO check if there is a env variable to detect OS TMP
+      cfg = {'outputdir': 'C:/temp',
+         #Building the path to the robot directory with help of the environment variable 'AGENT_DATA_DIR' or use default path if not set
+         'robot_suite_dir' : Path(os.environ.setdefault('AGENT_DATA_DIR','C:/ProgramData/checkmk/agent')).joinpath('robot'),
+         'log'      : 'none',
+         'console'  : 'none',
+         'report'   : 'none',
+         }
+      #Building the path to the configuration file with help of the environment variable 'AGENT_CFG_DIR' or use default path if not set
+      robotmk_cfg = Path(os.environ.setdefault('AGENT_CFG_DIR','C:/ProgramData/checkmk/agent/config')).joinpath('robotmk').with_suffix('.yml')
+   elif os.name == 'posix':
+      #We are in the UNIX/Linux world
+      #Load environment
+      agent_data_dir = Path(os.environ.setdefault('AGENT_DATA_DIR','/usr/lib/check_mk_agent'))
+      agent_cfg_dir  = Path(os.environ.setdefault('AGENT_CFG_DIR','/etc/check_mk'))
+      robotmk_cfg    = agent_cfg_dir.joinpath(
+         Path(os.environ.setdefault('ROBOTMK_CFG_FILE', 'robotmk.yml')).with_suffix('.yml'))
+      outputdir = Path(os.environ.setdefault('OUTPUTDIR','/tmp/robot'))
+      cfg = {'outputdir': outputdir,
+         #Building the path to the robot directory with help of the environment variable 'AGENT_DATA_DIR' or use default path if not set
+         'robot_suite_dir' : agent_data_dir.joinpath('robot'),
+         'log'      : 'none',
+         'console'  : 'none',
+         'report'   : 'none',
+         }
+   else:
+      # We are not on a supported OS
+      log_debug(f'OS Name {os.name} is not supported by robotmk')
+      exit(1)
+
+   log_debug(f'agent_data_dir: {agent_data_dir}')
+   log_debug(f'agent_cfg_dir: {agent_cfg_dir}')
+   log_debug(f'robotmk_cfg: {robotmk_cfg}')
+   log_debug(f'outputdir: {outputdir}')
+
+   ######################## Read configuration #########################
+   #TODO use Path.exists()
+   if os.access(robotmk_cfg, os.R_OK):
+      log_debug(f'Found configuration file {robotmk_cfg}')
+      with open(robotmk_cfg, 'r') as stream:   
+         cfg.update(yaml.safe_load(stream))
+   else:
+      log_debug('No configuration file {robot_cfg} found, starting with defaults')
+
+   #The OUPUTDIR is the final path where all outputfiles, logfiles and report files ends.
+   outputdir = Path(cfg.pop('outputdir', None))
+   Path(outputdir).mkdir(exist_ok=True)
+
+   #The robot_suite_dir is the directory where robot looks for the suite files or directories
+   robot_suite_dir = Path(cfg.pop('robot_suite_dir', None))
+
+   #TODO Optimize this.
+   #If no suites are defined we setup an empty suite dict.
+   #This is necessary to later on fill the dict.
+   cfg.setdefault('suites',{})
+   #If no suites defined we run each suite we find in robot_suite_dir
+   if len(cfg['suites']) == 0:
+      log_debug('No suites found in configuration file')
+      #probably use file/dir instead of suiet to avoid confusions
+      for suite in robot_suite_dir.iterdir():
+         log_debug(f'Found suite: {suite.name} in robot_suite_dir: {robot_suite_dir}')
+         cfg['suites'].update({suite.name:{}})
+
+   ######################## Run all suites we found in config or robot_suite_dir ############
+   for suite,suite_options in cfg['suites'].items():
+      if debug:
+         print(f'################# Start running suite: {suite} #####################')
+         print(f'\tStarting robot with: {robot_suite_dir.joinpath(suite)}')
+      #Lets test if the file or directory is available
+      if not robot_suite_dir.joinpath(suite).exists():
+         log_debug(f'Suite file or directory not found!')
+         break
+      if suite_options is None or len(suite_options) == 0: 
+         suite_options = {}
+         log_debug(f'No suite_options set; Starting with default suite_options')
+      #Anyway we have to suppress the output from robot to stdout. checkmk cannot deal with it.
+      #TODO discuss if wanted in debug output
+      if debug: 
+         suite_options.update({'console':'verbose'})
+      else:
+         suite_options.update({'console':'none'})
+      #Settig mandatory suite_options
+      suite_options.update({'outputdir':outputdir})
+      #Set the output filename to the suitname. If the suite was a file we have to remove the extension.
+      suite_options.update({'output':suite.replace('.robot','')})
+      #If option 'log' or 'report' is not set in config file we set the default
+      #TODO Possibly we allow 'global suite_options' Just needs an additional iteration.
+      suite_options.setdefault('log',cfg['log'])
+      suite_options.setdefault('report',cfg['report'])
+      #In case Piggy Back host is found in the suite_options we store it in a variable and remove it.
+      #host is not a valid option for robot but its silently accepted.
+      #TODO Test if this is really needed
+      if 'host' in suite_options:
+         host = suite_options.pop('host')
+
+      # TODO: Perhaps this preformatting has to be done for several other arguments
+      # which can be given multiple times.        
+      # --variable name:value => ['name:value', 'name2:value2']
+      if 'variable' in suite_options: 
+        suite_options['variable'] = list(map(lambda x: f'{x[0]}:{x[1]}', suite_options['variable'].items()))
+
+      log_debug(f'Start with following suite_options: {suite_options}')
+      ######################## Run robot run..... ###############################################
+      rc = run(robot_suite_dir.joinpath(suite), **suite_options)
+      log_debug(f'robot suite  {suite} finished with returncode: {rc}\n\tLess than 250 shows number of failed tests!')
+      if rc > 250: 
+         print('\trobot exited with error and no outputfile is generated.')
+         print ('\tPlease run robot command manually to see the error')
+         break
+      ######################## Send output.xml to checkmk #######################################
+      #If a piggy back hots is defined in config we print the section header
+      if 'host' in locals():
+         log_debug(f'Found piggy back host: {host}" in config')
+         print(f'<<<<{host}>>>>')
+      #print the section header
+      print('<<<robotmk:sep(0)>>>')
+
+      #Another efficient way to copy output.xml to stdout
+      #TODO find a way to let robot write the xml file to stdout direct
+      #possibly problem in Windows
+      #TODO find out whats efficient
+      #TODO test with outputdir.open()
+      #TODO do we nedd to test if file is available????
+      #TODO Should we have an option to delete XML files afterwards or may we delete it anyway?
+      with open (outputdir.joinpath(suite).with_suffix('.xml'), 'r') as f:
+         log_debug(f'Copy outputfile {outputdir.joinpath(suite).with_suffix(".xml")} to stdout')
+         if not debug: shutil.copyfileobj(f, sys.stdout)
+      #   sys.exit()
+
+   #f = open(cfg['outputdir'] + suite + '.xml', 'r')
+   #print(f.read()) # Would read the hole file in memory.
+   #Lets read the file line by line. This is memory efficient, fast, and leads to simple code
+   #for line in f:
+      #print(line.replace('\n',''))
+   #   print(line)
+   #f.close()
+
+def log_debug(text):
+   if debug:
+      print(f'{text}')
+
+def log(text):
+   print('{text}')
+
+if __name__ == '__main__': 
+   start()

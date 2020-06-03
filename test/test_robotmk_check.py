@@ -1,3 +1,5 @@
+#!.tox/check/bin/python
+
 from pytest_check_mk import OK, WARNING, CRITICAL, UNKNOWN
 import os
 import pytest

@@ -1,0 +1,18 @@
+#Global variables
+outputdir: /tmp/robot
+robotdir: /usr/lib/check_mk_agent/robot
+log:
+console:
+report:
+#Here comes the suites
+suites:
+   Suite1:
+      variable:
+         name1: value1
+         name2: value2
+      critical: 
+         - tag1
+         - tag2
+         - tag3
+   Suite2:
+   Suite3:
