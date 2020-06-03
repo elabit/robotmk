@@ -1,16 +1,34 @@
 {
-    // Use IntelliSense to learn about possible attributes.
-    // Hover to view descriptions of existing attributes.
-    // For more information, visit: https://go.microsoft.com/fwlink/?linkid=830387
     "version": "0.2.0",
     "configurations": [
+        // no longer needed
+        
+        // {
+        //     "name": "RobotMK check",
+        //     "type": "python",
+        //     "request": "launch",
+        //     "program": "${workspaceFolder}/checks/robotmk",
+        //     "console": "integratedTerminal",
+        //     "pythonPath": "${workspaceFolder}/.tox/check/bin/python"
+        // },
+
+        // Use this debug config if you connect to OMD as site user
+        // In this case you can debug the check with contextual data. 
         {
-            "name": "RobotMK check",
+            "name": "cmk - robotmk",
             "type": "python",
             "request": "launch",
-            "program": "${workspaceFolder}/checks/robotmk",
+            "program": "/omd/sites/cmk/bin/cmk",
+            "args": [
+                "-v",
+                "-n",
+                "--checks=robotmk",
+                "robothost1"
+            ],
             "console": "integratedTerminal",
-            "pythonPath": "${workspaceFolder}/.tox/check/bin/python"
+            "pythonPath": "/omd/sites/cmk/bin/python"
         }
+            
+        
     ]
 }

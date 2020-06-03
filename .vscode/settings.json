@@ -6,5 +6,5 @@
     "python.testing.nosetestsEnabled": false,
     "python.testing.pytestEnabled": true,
 
-    "python.pythonPath": "${workspaceFolder}/.tox/check/bin/python",      
+    "python.pythonPath": ".tox/check/bin/python",      
 }
