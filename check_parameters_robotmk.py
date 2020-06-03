@@ -26,7 +26,8 @@ def _valuespec_agent_config_robotmk():
     return Alternative(
         title=_("RobotMK (Linux, Windows)"),
         help=_(
-            "Robotmk placeholder, oops !"),
+            "This will deploy the agent plugin to execute Robot Framework E2E test on the remote host "
+            "and a .YML configuration file with the list of test suites to execute."),
         style="dropdown",
         elements=[
             Dictionary(title=_("Deploy the RobotMK plugin"),
