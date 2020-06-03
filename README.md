@@ -32,6 +32,8 @@ $ cp -R /workspace/robotmk/test/fixtures/robot /usr/lib/check_mk_agent/
 # install the plugin 
 $ mkdir /usr/lib/check_mk_agent/plugins/90   # cache time 90 seconds
 $ cp /workspace/robotmk/agtnes/plugin/robotmk /usr/lib/check_mk_agent/plugins/90/
+# install the bakery script
+$ cp /workspace/robotmk/agents/bakery/robotmk  /omd/sites/SITENAME/local/share/check_mk/agents/bakery/
 ```
 
 Finally place the `robotmk.yml` into the checkMK config dir: 
