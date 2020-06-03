@@ -40,68 +40,94 @@ def _valuespec_agent_config_robotmk():
                                 maxvalue=65535,
                                 default_value=30,
                             )),
+                            ("outputdir",
+                            TextAscii(
+                                regex="^[-a-zA-Z0-9._]*$",
+                                regex_error=_("Your outputdir has an invalid format."),
+                                title=_("Output directory of where XML test result is stored"),
+                                help=_("If nothing is filled out, the default will be used"),
+                                allow_empty=True,
+                                default_value="OMD_ROOT"
+                            )),
+                            ("robotdir",
+                            TextAscii(
+                                regex="^[-a-zA-Z0-9._]*$",
+                                regex_error=_("Your output dir has an invalid format."),
+                                help=_("If nothing is filled out, the default will be used"),
+                                title=_("The directory where the robot suites are living"),
+                                allow_empty=True,
+                                default_value="OMD_ROOT"
+                            )),                            
                             ("test_suites",
                             ListOf(
-                                Dictionary(
-                                    optional_keys=["piggyhost"],
-                                    elements=[
-                                        ("piggyhost",
-                                        Hostname(
-                                            title=_("Monitoring host this test suite should be mapped to"),
-                                            help=
-                                            _("If you leave this empty then the test suite will run on the host "
-                                                "where the <tt>robotmk</tt> plugin is running. In this case the "
-                                                "name of all executed suites must be unique."),
-                                        )),
-                                        ("outputdir",
-                                        TextAscii(
-                                            regex="^[-a-zA-Z0-9._]*$",
-                                            regex_error=_("Your outputdir has an invalid format."),
-                                            title=_("Output directory of where XML test result is stored"),
-                                            help=_("If nothing is filled out, the default will be used"),
-                                            allow_empty=True,
-                                            default_value="OMD_ROOT"
-                                        )),
-                                        ("robotdir",
-                                        TextAscii(
-                                            regex="^[-a-zA-Z0-9._]*$",
-                                            regex_error=_("Your output dir has an invalid format."),
-                                            help=_("If nothing is filled out, the default will be used"),
-                                            title=_("The directory where the robot suites are living"),
-                                            allow_empty=True,
-                                            default_value="OMD_ROOT"
-                                        )),
-                                        ("tags",
-                                        ListOfStrings(
-                                            title=_("tags to go through"),
-                                            help=_("The tags matching what will be executed :)"),
-                                            size=40,
-                                        )),
-                                        ("variables",
-                                        ListOfStrings(
-                                            title=_("variables to use"),
-                                            help=_("Only scalar are supported. Must be supplied as key/value pair"),
-                                            size=40,
-                                            orientation="vertical",
-                                            valuespec=TextAscii(
-                                                size=20,
-                                                regex=".*:.*",
-                                                regex_error=_("Please entere a key-value pair separated by ':'"),
-                                            ),
-                                        )),
-                                        ("dry_run",
-                                        Checkbox(
-                                            title=_("Dry run this test suite"),
-                                            label=_("Do a dry run instead of actually running the test !"),
-                                        )),
-                                    ],
-                                ),
+                                Tuple(elements=[
+                                    TextAscii(
+                                        title=_("Robot test file/dir name"),
+                                        help=_("Robot Framework can execute files (.robot) as well as nested directories "
+                                            "which itself contain .robot files. All names are expected to be relative to the robot dir."),
+                                        allow_empty=False,
+                                        size=50,
+                                    ), 
+                                    Dictionary(
+                                        # optional_keys=["piggyhost, outputdir"],
+                                        elements=[
+                                            # ("suite",
+                                            # TextAscii(
+                                            #     title=_("Robot test file/dir name"),
+                                            #     help=_("Robot Framework can execute files (.robot) as well as nested directories "
+                                            #         "which itself contain .robot files. All names are expected to be relative to the robot dir."),
+                                            #     allow_empty=False,
+                                            # )),                            
+                                            ("piggyhost",
+                                            MonitoredHostname(
+                                                title=_("Monitoring host this test suite should be mapped to (<b>piggyback</b>)"),
+                                                help=
+                                                _("By default, all test suites will run on the host where the <tt>robotmk</tt> "
+                                                    "plugin is running; the name of all executed suites must be unique.<br>"
+                                                    "<b>Piggyback</b> allows to assign the results of this particular Robot test "
+                                                    "to another host."),
+                                                allow_empty=False,
+                                            )),
+
+                                            ("tags",
+                                            ListOfStrings(
+                                                title=_("tags to go through"),
+                                                help=_("The tags matching what will be executed :)"),
+                                                size=40,
+                                            )),
+                                            # TODO
+                                            # Replace by Tuple, e.g. 
+                                            #Tuple(elements=[
+                                            #    Filesize(title=_("Warning below")),
+                                            #    Filesize(title=_("Critical below"))
+                                            #],)),
+                                            ("variables",
+                                            ListOfStrings(
+                                                title=_("variables to use"),
+                                                help=_("Only scalar are supported. Must be supplied as key/value pair"),
+                                                size=40,
+                                                orientation="vertical",
+                                                valuespec=TextAscii(
+                                                    size=20,
+                                                    regex=".*:.*",
+                                                    regex_error=_("Please enter a key-value pair separated by ':'"),
+                                                ),
+                                            )),
+                                            # TO DISCUSS: needed? 
+                                            ("dry_run",
+                                            Checkbox(
+                                                title=_("Dry run this test suite"),
+                                                label=_("Do a dry run instead of actually running the test !"),
+                                            )),
+                                        ],
+                                    )
+                                ]),
                                 title=_("Test suites"),
                                 help=
                                 _("Inspired by the ORACLE monitoring rule :)"),
                                 add_label=_("Add test suite"),
-                                movable=False,
-                            )),
+                                movable=True,
+                            )), # test suites, Listof
                        ]),
             FixedValue(
                 None,
