@@ -10,4 +10,6 @@ branches:
   only:
   - master
   - develop
+  - agentplugin
+  - bakery
   - /^v\d+\.\d+(\.\d+)?(-\S*)?$/

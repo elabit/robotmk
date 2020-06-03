@@ -29,9 +29,9 @@ $ cp /workspace/robotmk/checks/robotmk /omd/sites/SITENAME/local/share/check_mk/
 $ cp /workspace/robotmk/check_parameters_robotmk.py /omd/sites/SITENAME/local/share/check_mk/web/plugins/wato/check_parameters_robotmk.py
 # install example tests (optional) 
 $ cp -R /workspace/robotmk/test/fixtures/robot /usr/lib/check_mk_agent/
-# install the plugin (example: cache time 90 seconds)
-# mkdir mkdir /usr/lib/check_mk_agent/plugins/90
-# cp 
+# install the plugin 
+$ mkdir /usr/lib/check_mk_agent/plugins/90   # cache time 90 seconds
+$ cp /workspace/robotmk/agtnes/plugin/robotmk /usr/lib/check_mk_agent/plugins/90/
 ```
 
 Finally place the `robotmk.yml` into the checkMK config dir: 
