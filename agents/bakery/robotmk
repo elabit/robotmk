@@ -66,6 +66,26 @@ def bake_robotmk(opsys, conf, conf_dir, plugins_dir, agconf):
     # credentials can be put into this file manually.
     #content += "!include %s\n" % local_cfg_file
 
+    # Example robotmk.yml file: #######
+    ## (Global variables)
+    # outputdir: /tmp/robot
+    # robotdir: /usr/lib/check_mk_agent/robot
+    # log:
+    # console:
+    # report:
+    ## (Here come the suites)
+    # suites:
+    #   Suite1:
+    #       variable:
+    #           name1: value1
+    #           name2: value2
+    #       critical: 
+    #           - tag1
+    #           - tag2
+    #           - tag3
+    #   Suite2:
+    #   Suite3:
+
     if opsys == "windows":
         content = content.replace('\n', '\r\n')
     
