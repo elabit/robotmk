@@ -3,19 +3,32 @@
 #Maintainer: Michael FRANK <michael.frank@mikefrank.de>
 #Version: 0.0.1
 
-#TODO Use try except to catch if library not available.
-#In Windows beside robot also pyYAML needs to be installed.
-import os 
-import sys
-import yaml
-import io
-import shutil
-from robot import run
-from pathlib import Path
 
 ########################  Debug handling ############################
+
+import os 
+import sys
+import io
+import shutil
+from pathlib import Path
+
 debug = 0
 if '--debug' in sys.argv: debug = 1
+
+#In Windows beside robot also pyYAML needs to be installed.
+try:
+   import yaml
+except:
+   if debug: print('You need pyYAML to run this plugin.')
+   exit(1)
+try:
+   from robot import run
+except:
+   if debug: print('You need robotframework installed to run this plugin.')
+   exit(1)
+
+
+
 ########### set default values
 if debug: print('############### Starting preperation ###############')
 if os.name == 'nt':
@@ -34,7 +47,7 @@ elif os.name == 'posix':
    #We are in the UNIX/Linux world
    cfg = {'outputdir': '/tmp/robot',
        #Building the path to the robot directory with help of the environment variable 'DataDirectory' or use default path if not set
-       'robotdir' : Path(os.environ.setdefault('DataDirectory','/usr/lib/check_mk_agent')).joinpath('robot'),
+       'robotdir' : Path(os.environ.setdefault('DataDirectory','The suite options are now ')).joinpath('robot'),
        'log'      : 'none',
        'console'  : 'none',
        'report'   : 'none',
