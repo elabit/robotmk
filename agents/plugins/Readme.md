@@ -42,7 +42,7 @@ Currently the following options are global:
 |report| Reports generation|none|
 
 
-Then the yaml configuration has a dictionary named `suites` which contains a dictionary for each suite to be run. The name of the key of the dictonaries below `suites` MUST have the same name as the suite directory or file below the robot root directory (option `robotdir`). Each suite could contain a dictionary with robot options. Option names match robot command line option long names without hyphens so that, for example, `--name` becomes `name` in the yaml configuration. See `robot --help` for explanation of each option. The options are optional and a suite dictionary may could be complete empty.
+Then the yaml configuration has a dictionary named `suites` which contains a dictionary for each suite to be run. The name of the key of the dictonaries below `suites` MUST have the same name as the suite directory or file below the robot root directory (option `robotdir`). Each suite could contain a dictionary with robot options. Option names match robot command line option long names without hyphens so that, for example, `--name` becomes `name` in the yaml configuration. See `robot --help` for explanation of each option. The options are optional and a suite dictionary may could be complete empty. Any option set on suite level ovewrites the global option, except tags and variables which are cumulative.
 
 A online parser like http://yaml-online-parser.appspot.com/ could be used to validate the configuration.
 
@@ -81,6 +81,14 @@ robotdir: /usr/lib/check_mk_agent/robot
 log:
 console:
 report:
+settag:
+   - 'GlobalTag1'
+   - 'GlobalTag2'
+
+variable:
+   - 'GlobVar1: MyGlobVar1'
+   - 'GlobVar2: MyGlobVar2'
+timestampoutputs: 'True'
 #Here comes the suites
 suites:
    Suite1:
@@ -92,7 +100,7 @@ suites:
          - tag1
          - tag2
          - tag3
-      timestampoutputs: 'True'
+      timestampoutputs: 'False'
    Suite2:
    Suite3:
 ```

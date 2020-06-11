@@ -1,4 +1,4 @@
-#!/usr/bin/env python
+#!/usr/bin/env python3
 
 #Maintainer: Michael FRANK <michael.frank@mikefrank.de>
 #Version: 0.0.1
@@ -27,8 +27,6 @@ except:
    if debug: print('You need robotframework installed to run this plugin.')
    exit(1)
 
-
-
 ########### set default values
 if debug: print('############### Starting preperation ###############')
 if os.name == 'nt':
@@ -47,7 +45,7 @@ elif os.name == 'posix':
    #We are in the UNIX/Linux world
    cfg = {'outputdir': '/tmp/robot',
        #Building the path to the robot directory with help of the environment variable 'DataDirectory' or use default path if not set
-       'robotdir' : Path(os.environ.setdefault('DataDirectory','The suite options are now ')).joinpath('robot'),
+       'robotdir' : Path(os.environ.setdefault('DataDirectory','/usr/lib/check_mk_agent/robot')).joinpath('robot'),
        'log'      : 'none',
        'console'  : 'none',
        'report'   : 'none',
@@ -108,12 +106,15 @@ for suite,options in cfg['suites'].items():
    #Settig mandatory options
    options.update({'outputdir':OUTPUTDIR})
    #Set the output filename to the suitname. If the suite was a file we have to remove the extension.
-   #TODO Try .rstrip()  instead .replace()
    options.update({'output':suite.replace('.robot','')})
    #If option 'log' or 'report' is not set in config file we set the default
-   #TODO Possibly we allow 'global options' Just needs an additional iteration.
-   options.setdefault('log',cfg['log'])
-   options.setdefault('report',cfg['report'])
+   for key in cfg:
+      if key == "suites": break
+      if key == "settag" or key == "variable":
+         if key not in options or options[key] == None:
+            options[key] = []
+         options[key].extend(cfg[key])
+      options.setdefault(key, cfg[key])
    #In case Piggy Back host is found in the options we store it in a variable and remove it.
    #host is not a valid option for robot but its silently accepted.
    #TODO Test if this is really needed
@@ -124,33 +125,18 @@ for suite,options in cfg['suites'].items():
    rc = run(ROBOTDIR.joinpath(suite), **options)
    if debug: print(f'\trobot finished with returncode: {rc}\n\tLess than 250 shows number of failed tests!')
    if rc > 250: 
-      print('\trobot exited with error and no outputfile is generated.')
-      print ('\tPlease run robot command manually to see the error')
+      if debug: print('\trobot exited with error and no outputfile is generated.')
+      if debug: print ('\tPlease run robot command manually to see the error')
       break
 ######################## Send output.xml to checkmk #######################################
    #If a piggy back hots is defined in config we print the section header
    if 'host' in locals():
       if debug: print(f'\tFound piggy back host: {host}" in config')
       print(f'<<<<{host}>>>>')
+      del host
    #print the section header
    print('<<<robotmk:sep(0)>>>')
-
-#Another efficient way to copy output.xml to stdout
-#TODO find a way to let robot write the xml file to stdout direct
-#possibly problem in Windows
-#TODO find out whats efficient
-#TODO test with OUTPUTDIR.open()
-#TODO do we nedd to test if file is available????
 #TODO Should we have an option to delete XML files afterwards or may we delete it anyway?
    with open (OUTPUTDIR.joinpath(suite).with_suffix('.xml'), 'r') as f:
       if debug: print(f'\tCopy outputfile {OUTPUTDIR.joinpath(suite).with_suffix(".xml")} to stdout')
       if not debug: shutil.copyfileobj(f, sys.stdout)
-#   sys.exit()
-
-#f = open(cfg['outputdir'] + suite + '.xml', 'r')
-#print(f.read()) # Would read the hole file in memory.
-#Lets read the file line by line. This is memory efficient, fast, and leads to simple code
-#for line in f:
-   #print(line.replace('\n',''))
-#   print(line)
-#f.close()
