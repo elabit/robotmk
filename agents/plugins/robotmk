@@ -202,4 +202,5 @@ for suite,options in cfg['suites'].items():
          print(f'\tCopy outputfile {OUTPUTDIR.joinpath(suite).with_suffix(".xml")} to stdout')
       else: 
          shutil.copyfileobj(f, sys.stdout)
+         f.close()
          OUTPUTDIR.joinpath(suite).with_suffix('.xml').unlink()
