@@ -1,14 +1,24 @@
 #!/usr/bin/env python3
 
-#Maintainer: Michael FRANK <michael.frank@mikefrank.de>
+#Name: robotmk
+#Platform: POSIX, Windows
+#Author: Michael FRANK 
+#Author-email: <michael.frank@mikefrank.de>
+#Build June 2020
 #Version: 0.0.1
+#License: GNU General Public License v2
+
+#Summary: Runs robot from robotframework and send xml output to checkmk
+
+#Home-page: https://github.com/mike1098/robotmk/tree/agentplugin/agents/plugins
+
 import os 
 import sys
 import shutil
 from pathlib import Path
 
 #robot options whith a list of multiple values needs a special handling to
-#add global options to local options.
+#add global options to suite options.
 LISTOPTIONS = ['settag',
                'variable',
                'critical',
