@@ -2,16 +2,12 @@
 
 #Maintainer: Michael FRANK <michael.frank@mikefrank.de>
 #Version: 0.0.1
-
-
-########################  Debug handling ############################
-
 import os 
 import sys
-import io
 import shutil
 from pathlib import Path
 
+########################  Debug handling ############################
 debug = 0
 if '--debug' in sys.argv: debug = 1
 
@@ -27,7 +23,7 @@ except:
    if debug: print('You need robotframework installed to run this plugin.')
    exit(1)
 
-########### set default values
+######################### set default values ################################
 if debug: print('############### Starting preperation ###############')
 if os.name == 'nt':
    #We are in the Windows world
@@ -59,21 +55,35 @@ else:
 
 if debug: print(f'\tLooking for config file: {CMKCONFIG}')
 ######################## Read configuration #########################
-#TODO use Path.exists()
 if os.access(CMKCONFIG, os.R_OK):
    if debug: print(f'\tFound configuration file {CMKCONFIG}')
-   with open(CMKCONFIG, 'r') as stream:   
-      cfg.update(yaml.safe_load(stream))
+   try:
+      with CMKCONFIG.open() as stream:   
+         cfg.update(yaml.safe_load(stream))
+   except yaml.YAMLError as exc:
+      if debug: print ("\tError while parsing YAML file:")
+      if hasattr(exc, 'problem_mark') and debug:
+         if exc.context != None:
+            print ('\t  parser says:\n\t' + str(exc.problem_mark) + '\n\t  ' +
+               str(exc.problem) + ' ' + str(exc.context) +
+               '\n\tPlease correct data and retry.')
+         else:
+            print ('\t  parser says\n\t' + str(exc.problem_mark) + '\n\t  ' +
+                str(exc.problem) + '\n\tPlease correct data and retry.')
+         exit(1)
+      else:
+         exit(1)
 else:
    if debug: print('\tNo configuration file found, starting with defaults')
 
 #The OUPUTDIR is the final path where all outputfiles, logfiles and report files ends.
+#TODO remove because of global opts
+#TODO test if dir is available and correct set
 OUTPUTDIR = Path(cfg.pop('outputdir', None))
 
 #The ROBOTDIR is the directory where robot looks for the suite files or directories
 ROBOTDIR = Path(cfg.pop('robotdir', None))
 
-#TODO Optimize this.
 #If no suites are defined we setup an empty suite dict.
 #This is necessary to later on fill the dict.
 cfg.setdefault('suites',{})
