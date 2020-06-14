@@ -7,11 +7,34 @@ import sys
 import shutil
 from pathlib import Path
 
+#robot options whith a list of multiple values needs a special handling to
+#add global options to local options.
+LISTOPTIONS = ['settag',
+               'variable',
+               'critical',
+               'noncritical',
+               'test',
+               'task',
+               'suite',
+               'include',
+               'exclude',
+               'tagstatinclude',
+               'tagstatexclude',
+               'tagstatcombine',
+               'tagdoc',
+               'tagstatlink',
+               'removekeywords',
+               'flattenkeywords',
+               'listener',
+               'prerunmodifier',
+               'prerebotmodifier',
+               'pythonpath']
+
 ########################  Debug handling ############################
 debug = 0
 if '--debug' in sys.argv: debug = 1
 
-#In Windows beside robot also pyYAML needs to be installed.
+#In Windows beside robot also pyYAML needs to be installed seperate.
 try:
    import yaml
 except:
@@ -27,7 +50,6 @@ except:
 if debug: print('############### Starting preperation ###############')
 if os.name == 'nt':
    #We are in the Windows world
-   #TODO check if there is a env variable to detect OS TMP
    cfg = {'outputdir': 'C:/temp',
       #Building the path to the robot directory with help of the environment variable 'DataDirectory' or use default path if not set
        'robotdir' : Path(os.environ.setdefault('DataDirectory','C:/ProgramData/checkmk/agent')).joinpath('robot'),
@@ -39,9 +61,9 @@ if os.name == 'nt':
    CMKCONFIG = Path(os.environ.setdefault('AgentDirectory','C:/ProgramData/checkmk/agent/config')).joinpath('robotmk').with_suffix('.yml')
 elif os.name == 'posix':
    #We are in the UNIX/Linux world
-   cfg = {'outputdir': '/tmp/robot',
+   cfg = {'outputdir': '/tmp',
        #Building the path to the robot directory with help of the environment variable 'DataDirectory' or use default path if not set
-       'robotdir' : Path(os.environ.setdefault('DataDirectory','/usr/lib/check_mk_agent/robot')).joinpath('robot'),
+       'robotdir' : Path(os.environ.setdefault('DataDirectory','/usr/lib/check_mk_agent')).joinpath('robot'),
        'log'      : 'none',
        'console'  : 'none',
        'report'   : 'none',
@@ -58,7 +80,7 @@ if debug: print(f'\tLooking for config file: {CMKCONFIG}')
 if os.access(CMKCONFIG, os.R_OK):
    if debug: print(f'\tFound configuration file {CMKCONFIG}')
    try:
-      with CMKCONFIG.open() as stream:   
+      with CMKCONFIG.open(mode='r') as stream:   
          cfg.update(yaml.safe_load(stream))
    except yaml.YAMLError as exc:
       if debug: print ("\tError while parsing YAML file:")
@@ -76,11 +98,6 @@ if os.access(CMKCONFIG, os.R_OK):
 else:
    if debug: print('\tNo configuration file found, starting with defaults')
 
-#The OUPUTDIR is the final path where all outputfiles, logfiles and report files ends.
-#TODO remove because of global opts
-#TODO test if dir is available and correct set
-OUTPUTDIR = Path(cfg.pop('outputdir', None))
-
 #The ROBOTDIR is the directory where robot looks for the suite files or directories
 ROBOTDIR = Path(cfg.pop('robotdir', None))
 
@@ -90,7 +107,6 @@ cfg.setdefault('suites',{})
 #If no suites defined we run each suite we find in ROBOTDIR
 if len(cfg['suites']) == 0:
    if debug: print('\tNo suites found in configuration file')
-   #probably use file/dir instead of suiet to avoid confusions
    for suite in ROBOTDIR.iterdir():
       if debug: print(f'\tFound suite: {suite.name} in ROBOTDIR: {ROBOTDIR}')
       cfg['suites'].update({suite.name:{}})
@@ -102,29 +118,53 @@ for suite,options in cfg['suites'].items():
       print(f'\tStarting robot with: {ROBOTDIR.joinpath(suite)}')
    #Lets test if the file or directory is available
    if not ROBOTDIR.joinpath(suite).exists():
-      if debug: print(f'\tSuite file or directory not found!')
-      break
-   if options is None or len(options) == 0: 
+      if debug: print(f'\tSuite file or directory {ROBOTDIR.joinpath(suite)} not found!')
+      continue
+   if options is None or len(options) == 0:
       options = {}
       if debug: print(f'\tNo options set; Starting with default options')
    #Anyway we have to suppress the output from robot to stdout. checkmk cannot deal with it.
-   #TODO discuss if wanted in debug output
+   #Except if we start in debug mode
    if debug: 
       options.update({'console':'verbose'})
    else:
       options.update({'console':'none'})
-   #Settig mandatory options
-   options.update({'outputdir':OUTPUTDIR})
    #Set the output filename to the suitname. If the suite was a file we have to remove the extension.
    options.update({'output':suite.replace('.robot','')})
-   #If option 'log' or 'report' is not set in config file we set the default
+   #Merge the suite options with globally set options.
    for key in cfg:
-      if key == "suites": break
-      if key == "settag" or key == "variable":
+      if key == "suites": continue
+      # If the global option is a list we extend the suite list
+      # If the suite option is a string and global option a list we
+      # make a the suite option a list and extend it with global list.
+      # If the global option is a string and suite option a list we append it
+      # If both is a string we build a list.
+      if key in LISTOPTIONS and type(cfg[key]) == list:
          if key not in options or options[key] == None:
             options[key] = []
-         options[key].extend(cfg[key])
+         if type(options[key]) == list:
+            options[key].extend(cfg[key])
+         else:
+            options[key] = [options[key]]
+            options[key].extend(cfg[key])
+      if key in LISTOPTIONS and key in options and type(cfg[key]) == str:
+         if type(options[key]) == list:
+            options[key].append(cfg[key])
+         elif type(options[key]) == str:
+            options[key] = [options[key]]
+            options[key].append(cfg[key])
       options.setdefault(key, cfg[key])
+
+   #The OUTPUTDIR is the directory where robot place all its ouput files.
+   # Lets test if it is a directory and we can write to it before we start robot.
+   OUTPUTDIR=Path(options['outputdir'])
+   if not OUTPUTDIR.is_dir():
+      if debug: print(f'\tOutput directory {OUTPUTDIR} is not a directory')
+      continue
+   if not os.access(OUTPUTDIR, os.W_OK):
+      if debug: print(f'\tOutput directory {OUTPUTDIR} is not a writable directory')
+      continue
+
    #In case Piggy Back host is found in the options we store it in a variable and remove it.
    #host is not a valid option for robot but its silently accepted.
    #TODO Test if this is really needed
@@ -146,7 +186,10 @@ for suite,options in cfg['suites'].items():
       del host
    #print the section header
    print('<<<robotmk:sep(0)>>>')
-#TODO Should we have an option to delete XML files afterwards or may we delete it anyway?
-   with open (OUTPUTDIR.joinpath(suite).with_suffix('.xml'), 'r') as f:
-      if debug: print(f'\tCopy outputfile {OUTPUTDIR.joinpath(suite).with_suffix(".xml")} to stdout')
-      if not debug: shutil.copyfileobj(f, sys.stdout)
+   #Copy the content of xml file to STDOUT and delete it.
+   with OUTPUTDIR.joinpath(suite).with_suffix('.xml').open(mode='r') as f:
+      if debug: 
+         print(f'\tCopy outputfile {OUTPUTDIR.joinpath(suite).with_suffix(".xml")} to stdout')
+      else: 
+         shutil.copyfileobj(f, sys.stdout)
+         OUTPUTDIR.joinpath(suite).with_suffix('.xml').unlink()
