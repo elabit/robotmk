@@ -1,0 +1,12 @@
+#Global variables
+outputdir: /tmp/robot_foo
+robot_suite_dir: ./test/fixtures/robot/
+log:
+console:
+report:
+# Suites to execute
+suites:
+   1S_3S_2S_3T:
+      include: 
+         - testtag1
+         - testtag2
