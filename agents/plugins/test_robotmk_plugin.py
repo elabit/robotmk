@@ -28,13 +28,8 @@ def test_agent_plugin(test_dir):
     expected_data = read_expected_data(test_path + '/expected.py')
     assert allsuites == expected_data['suites']
 
-plugin_test_params = [
-    # param: Test folder below test/fixtures/plugin
-    '3_arguments_tags'
-]
-@pytest.mark.parametrize("test_dir", plugin_test_params)
-def test_agent_plugin_arg(test_dir):
-    test_path = "./test/fixtures/plugin/%s" % test_dir
+def test_agent_plugin_arg_tags_include():
+    test_path = "./test/fixtures/plugin/%s" % '3_arguments_tags_include'
     os.environ["AGENT_CFG_DIR"] = test_path
 
     agent_output = robot_start()
@@ -46,6 +41,20 @@ def test_agent_plugin_arg(test_dir):
         alltests.extend([test.attrib['name'] for test in tests])
     expected_data = read_expected_data(test_path + '/expected.py')
     assert alltests == expected_data['test_names']
+
+def test_agent_plugin_arg_tags_exclude():
+    test_path = "./test/fixtures/plugin/%s" % '4_arguments_tags_exclude'
+    os.environ["AGENT_CFG_DIR"] = test_path
+
+    agent_output = robot_start()
+    all_xml = agent_output.split('<<<robotmk:sep(0)>>>\n')[1:]
+    alltests = []
+    for xml in all_xml:
+        oxml = ET.fromstring(xml)
+        tests = oxml.findall('.//test')
+        alltests.extend([test.attrib['name'] for test in tests])
+    expected_data = read_expected_data(test_path + '/expected.py')
+    assert [alltests[0],alltests[-1]] == expected_data['test_names']
 
 def test_agent_plugin_arg_vars():
     test_path = "./test/fixtures/plugin/2_arguments_variables"
