@@ -13,7 +13,7 @@ plugin_test_params = [
     '1_execute_all_suites',
 ]
 @pytest.mark.parametrize("test_dir", plugin_test_params)
-def test_agent_plugin(test_dir):
+def test_agent_plugin_execute_all_suites(test_dir):
     test_path = "./test/fixtures/plugin/%s" % test_dir
     os.environ["AGENT_CFG_DIR"] = test_path
     # os.environ["ROBOTMK_CFG_FILE"] = "robotmk.yml"
@@ -27,6 +27,27 @@ def test_agent_plugin(test_dir):
         allsuites.append(suite.attrib['name'])
     expected_data = read_expected_data(test_path + '/expected.py')
     assert allsuites == expected_data['suites']
+
+plugin_test_params = [
+    # param: Test folder below test/fixtures/plugin
+    '7_execute_selected_suites'
+]
+@pytest.mark.parametrize("test_dir", plugin_test_params)
+def test_agent_plugin_execute_selected_suites(test_dir):
+    test_path = "./test/fixtures/plugin/%s" % test_dir
+    os.environ["AGENT_CFG_DIR"] = test_path
+    # os.environ["ROBOTMK_CFG_FILE"] = "robotmk.yml"
+
+    agent_output = robot_start()
+    all_xml = agent_output.split('<<<robotmk:sep(0)>>>\n')[1:]
+    allsuites = []
+    for xml in all_xml:
+        oxml = ET.fromstring(xml)
+        suites = oxml.findall('.//suite')
+        allsuites.extend([ suite.attrib['name'] for suite in suites if suite.attrib != {}])
+    expected_data = read_expected_data(test_path + '/expected.py')
+    assert allsuites == expected_data['suites']
+
 
 def test_agent_plugin_arg_tags_include():
     test_path = "./test/fixtures/plugin/%s" % '3_arguments_tags_include'

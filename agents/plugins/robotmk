@@ -11,9 +11,8 @@
 # 'test',
 # X 'include',
 # X 'exclude',
-# 'variablefile',
-# 'exitonfailure',
-# 'argumentfile',
+# X 'variablefile',
+# O 'exitonfailure',
 # 'critical',
 # 'noncritical',
 
