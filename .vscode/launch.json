@@ -15,7 +15,7 @@
         // Use this debug config if you connect to OMD as site user
         // In this case you can debug the check with contextual data. 
         {
-            "name": "cmk - robotmk",
+            "name": "RobotMK bakery",
             "type": "python",
             "request": "launch",
             "program": "/omd/sites/cmk/bin/cmk",
