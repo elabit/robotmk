@@ -68,6 +68,17 @@ def test_agent_plugin_arg_vars():
     for value in expected_data['var_values']:
         assert value in message_values
 
+def test_agent_plugin_arg_name():
+    test_path = "./test/fixtures/plugin/5_arguments_name"
+    expected_data = read_expected_data(test_path + '/expected.py')
+    os.environ["AGENT_CFG_DIR"] = test_path
+
+    agent_output = robot_start()
+    xml = agent_output.split('<<<robotmk:sep(0)>>>\n')[1]
+    oxml = ET.fromstring(xml)
+    suitename = oxml.find('./suite') 
+    assert suitename.attrib['name'] == expected_data['suite_name']
+
 def robot_start():
     # capture stdout of the plugin execution
     f = io.StringIO()
