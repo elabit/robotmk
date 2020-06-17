@@ -6,11 +6,11 @@
 # -        -> overriding defaults
 
 # Options supported by the bakery: 
-# 'name',
+# X 'name', 
 # 'suite',
 # 'test',
-# 'include',
-# 'exclude',
+# X 'include',
+# X 'exclude',
 # 'variablefile',
 # 'exitonfailure',
 # 'argumentfile',

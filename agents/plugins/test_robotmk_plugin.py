@@ -56,11 +56,17 @@ def test_agent_plugin_arg_tags_exclude():
     expected_data = read_expected_data(test_path + '/expected.py')
     assert [alltests[0],alltests[-1]] == expected_data['test_names']
 
-def test_agent_plugin_arg_vars():
-    test_path = "./test/fixtures/plugin/2_arguments_variables"
+
+plugin_test_params = [
+    # param: Test folder below test/fixtures/plugin
+    '2_arguments_variables',
+    '6_arguments_variable_file'
+]
+@pytest.mark.parametrize("test_dir", plugin_test_params)
+def test_agent_plugin_arg_vars(test_dir):
+    test_path = "./test/fixtures/plugin/" + test_dir
     expected_data = read_expected_data(test_path + '/expected.py')
     os.environ["AGENT_CFG_DIR"] = test_path
-
     agent_output = robot_start()
     xml = agent_output.split('<<<robotmk:sep(0)>>>\n')[1]
     oxml = ET.fromstring(xml)
@@ -72,7 +78,6 @@ def test_agent_plugin_arg_name():
     test_path = "./test/fixtures/plugin/5_arguments_name"
     expected_data = read_expected_data(test_path + '/expected.py')
     os.environ["AGENT_CFG_DIR"] = test_path
-
     agent_output = robot_start()
     xml = agent_output.split('<<<robotmk:sep(0)>>>\n')[1]
     oxml = ET.fromstring(xml)
