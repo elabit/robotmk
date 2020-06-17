@@ -40,7 +40,18 @@
             // allow to inspect also foreign code
             "justMyCode": false
         },
-            
-        
+        {
+            "name": "RobotMK plugin WIN",
+            "type": "python",
+            "request": "launch",
+            "program": "${workspaceFolder}/agents/plugins/robotmk",
+            "args": [
+                "--debug"
+            ],
+            "console": "integratedTerminal",
+            //"pythonPath": "c:/python38/python",
+            // allow to inspect also foreign code
+            "justMyCode": false
+        },           
     ]
 }
