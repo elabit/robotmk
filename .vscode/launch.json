@@ -25,20 +25,17 @@
             "justMyCode": false
         },
         {
-            "name": "Python: Current File",
+            "name": "RobotMK plugin WIN",
             "type": "python",
             "request": "launch",
-            "program": "${file}",
+            "program": "${workspaceFolder}/agents/plugins/robotmk",
+            "args": [
+                "--debug"
+            ],
             "console": "integratedTerminal",
-            // "subProcess": true,
-            // "justMyCode": false,
-        },        
-        {
-            "name": "Debug Tests",
-            "type": "python",
-            "request": "test",
-            "console": "integratedTerminal",
+            //"pythonPath": "c:/python38/python",
+            // allow to inspect also foreign code
             "justMyCode": false
-        }
+        },           
     ]
 }

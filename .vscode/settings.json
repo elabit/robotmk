@@ -7,11 +7,9 @@
     "python.testing.unittestEnabled": false,
     "python.testing.nosetestsEnabled": false,
     "python.testing.pytestEnabled": true,
-
-    "python.pythonPath": ".pyenv/plugin/bin/python",
+    "python.pythonPath": "C:\\Python38\\python.exe",      
     "files.watcherExclude": {
         "**/__pycache__/**": true,
         "**/.pytest_cache/**": true
     },
-    
 }
