@@ -41,30 +41,47 @@ def _valuespec_agent_config_robotmk():
                                 maxvalue=65535,
                                 default_value=900,
                             )),
+                            ("exit_on_failure",
+                            Checkbox(
+                                title=_("Exit on failure"),
+                                label=_("Stops test execution if any critical test fails."),
+                                default_value=False,
+                                help=_("Keep in mind this will only affect tests flaged as critical"),
+                            )),
                             ("outputdir",
-                            TextAscii(
+                            TextUnicode(
                                 # regex="^[-a-zA-Z0-9._]*$",
-                                regex="^(/[^/ ]*)+/?$",
                                 regex_error=_("Your outputdir has an invalid format."),
                                 title=_("Output directory of where XML test result is stored"),
-                                help=_("If nothing is filled out, the default will be used"),
+                                help=_("If nothing is filled out, the default will be used. Default assumes a linux path. Path validation is made during baking."),
                                 allow_empty=True,
-                                default_value="OMD_ROOT"
+                                default_value="/tmp/"
                             )),
                             ("robotdir",
-                            TextAscii(
+                            TextUnicode(
                                 # regex="^[-a-zA-Z0-9._]*$",
-                                regex="^(/[^/ ]*)+/?$",
-                                regex_error=_("Your output dir has an invalid format."),
-                                help=_("If nothing is filled out, the default will be used"),
+                                regex_error=_("Your robot dir has an invalid format."),
+                                help=_("If nothing is filled out, the default will be used. Default assumes a linux path. Path validation is made during baking."),
                                 title=_("The directory where the robot suites are living"),
                                 allow_empty=True,
-                                default_value="OMD_ROOT"
-                            )),                            
-                            ("test_suites",
+                                default_value="/usr/lib/check_mk_agent/robot"
+                            )), 
+                            ("top_level_suite_name",
+                            TextUnicode(
+                                regex_error=_("Your output dir has an invalid format."),
+                                help=_("Select tests by name or by long name containing also"
+                                        " parent suite name like `Parent.Test`. Name is case"
+                                        " and space insensitive and it can also be a simple"
+                                        " pattern where `*` matches anything, `?` matches any"
+                                        " single character, and `[chars]` matches one character"
+                                        " in brackets."),
+                                title=_("Set the name of the top level test suite. Overrides auto naming from top level dir or robot file."),
+                                allow_empty=True,
+                            )), 
+                            ("suites",
                             ListOf(
                                 Tuple(elements=[
-                                    TextAscii(
+                                    TextUnicode(
                                         title=_("Robot test file/dir name"),
                                         help=_("Robot Framework can execute files (.robot) as well as nested directories "
                                             "which itself contain .robot files. All names are expected to be relative to the robot dir."),
@@ -84,43 +101,77 @@ def _valuespec_agent_config_robotmk():
                                                     "to another host."),
                                                 allow_empty=False,
                                             )),
-
-                                            ("tags",
+                                            ("exclude_tags",
                                             ListOfStrings(
-                                                title=_("tags to go through"),
-                                                help=_("The tags matching what will be executed :)"),
+                                                title=_("Excludes the following tags from testing "),
+                                                size=40,
+                                                help=_("Select test cases not to run by tag. These tests are"
+                                                       " not run even if included with --include. Tags are"
+                                                        " matched using same rules as with --include."),                                                
+                                            )),
+                                            ("include_tags",
+                                            ListOfStrings(
+                                                title=_("Includes the following tags to test"),
+                                                help=_("Select tests by tag. Similarly as name with --test,"
+                                                        "tag is case and space insensitive and it is possible"
+                                                        "to use patterns with `*`, `?` and `[]` as wildcards."
+                                                        "Tags and patterns can also be combined together with"
+                                                        "`AND`, `OR`, and `NOT` operators."),
                                                 size=40,
                                             )),
+                                            ("test_name",
+                                            ListOfStrings(
+                                                title=_("Select test based on test name"),
+                                                help=_("Select tests by name or by long name containing also"
+                                                        " parent suite name like `Parent.Test`. Name is case"
+                                                        " and space insensitive and it can also be a simple"
+                                                        " pattern where `*` matches anything, `?` matches any"
+                                                        " single character, and `[chars]` matches one character"
+                                                        " in brackets."),
+                                                size=40,
+                                            )),
+                                            # ("variables",
+                                            # ListOf(
+                                            #     Tuple(elements=[
+                                            #         TextUnicode(
+                                            #             title=_("Key"),
+                                            #             allow_empty=False,
+                                            #             help=_("The key")
+                                            #         ),
+                                            #         TextUnicode(
+                                            #             title=_("Value"),
+                                            #             allow_empty=False,
+                                            #             help=_("The value")
+                                            #         ),
+                                                    
+                                            #     ]),
+                                            #     title=_("Variables"),
+                                            #     help=_("This must form a key:value pair"),
+                                            # )),
                                             # TODO
                                             # Replace by Tuple, e.g. 
                                             #Tuple(elements=[
                                             #    Filesize(title=_("Warning below")),
                                             #    Filesize(title=_("Critical below"))
-                                            #],)),
+                                            # ],)),
                                             ("variables",
                                             ListOfStrings(
                                                 title=_("variables to use"),
                                                 help=_("Only scalar are supported. Must be supplied as key/value pair"),
                                                 size=40,
                                                 orientation="vertical",
-                                                valuespec=TextAscii(
+                                                valuespec=TextUnicode(
                                                     size=20,
                                                     regex=".*:.*",
                                                     regex_error=_("Please enter a key-value pair separated by ':'"),
                                                 ),
-                                            )),
-                                            # TO DISCUSS: needed? 
-                                            ("dry_run",
-                                            Checkbox(
-                                                title=_("Dry run this test suite"),
-                                                label=_("Do a dry run instead of actually running the test !"),
                                             )),
                                         ],
                                     )
                                 ]),
                                 title=_("Test suites"),
                                 help=
-                                _("Inspired by the ORACLE monitoring rule :)"),
+                                _("You can use this button to add as many test suites as you see fit. Keep in mind each test suite will be executed after the other."),
                                 add_label=_("Add test suite"),
                                 movable=True,
                             )), # test suites, Listof

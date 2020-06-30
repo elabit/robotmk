@@ -4,117 +4,56 @@
 import cmk.utils.paths
 import logging
 import yaml
-import os
-
-#this is purely a debug feature
-logger = logging.getLogger('agent_bakery')
-logger.setLevel(logging.DEBUG)
-# create file handler which logs even debug messages
-fh = logging.FileHandler(cmk.utils.paths.omd_root + '/var/log/just_bakery.log')
-fh.setLevel(logging.DEBUG)
-logger.addHandler(fh)
 
 def bake_robotmk(opsys, conf, conf_dir, plugins_dir, agconf):
-    target_dir = plugins_dir 
-    cache_time = conf.pop('cache_time', None)
-    if cache_time: 
-        target_dir = "%s/%d" % (target_dir, cache_time)
-        os.mkdir(target_dir)
+    target_dir = plugins_dir
+
     # Deploy the agent plugin
     if opsys == "linux":
         shutil.copy2(cmk.utils.paths.local_agents_dir + "/plugins/robotmk", target_dir + "/robotmk")
     else:
-        shutil.copy2(cmk.utils.paths.local_agents_dir + "/windows/plugins/robotmk.vbs",
-                     target_dir + "/robotmk.vbs")
+        shutil.copy2(cmk.utils.paths.local_agents_dir + "/windows/plugins/robotmk",
+                     target_dir + "/robotmk")
 
     # Create the agent configuration
     content = agent_file_header
 
-    logger.debug("Configuration values from rules : %s" % conf)
-    logger.debug("Agconf : %s" % agconf)
-    logger.debug("Conf_dir : %s" % conf_dir)
-    logger.debug("Plugins dir : %s" % plugins_dir)
-    logger.debug("Opsys : %s" % opsys)
-
-    logger.debug("type of conf object : %s" % type(conf))
-    # remove the suites as they are python tuples - converted later
-    robot_test_suites = conf.pop('test_suites')
-    # the rest is the global part
-    robot_global_conf = conf
-    logger.debug("Yaml converted global data : %s" % robot_global_conf)
-
     #example taken from bakery on how to address data from the conf.
     #for this please see the logger in your log file
-    """
-    if "credentials" in conf:
-        content += "[client]\n" \
-                   "user=%s\n" \
-                   "password=\"%s\"\n" % conf['credentials']
-
-    if "socket" in conf:
-        content += "socket=%s\n" % conf['socket']
-
-    if "host" in conf:
-        content += "host=%s\n" % conf["host"]
-    """
 
     if opsys == "linux":
-        cfg_file = conf_dir + "/robotmk.cfg"
-        local_cfg_file = "%s/robotmk.local.cfg" % agconf["agent_paths"]["config"]
+        cfg_file = conf_dir + "/robotmk.yml"
+        #local_cfg_file = "%s/robotmk.local.cfg" % agconf["agent_paths"]["config"]
     else:
-        cfg_file = conf_dir + "/robotmk.ini"
-        local_cfg_file = "%s/robotmk.local.ini" % agconf["agent_paths"]["config"]
+        cfg_file = conf_dir + "/robotmk.yml"
+        #local_cfg_file = "%s/robotmk.local.ini" % agconf["agent_paths"]["config"]
 
-    #below could be nice for custom file, copied from elsewhere
+    robot_test_suites = conf.get('suites')
+    # the rest is the global part
+    robot_global_conf = conf
 
-    # Include an optional file that the user is allowed to store and modify locally.
-    # This may be useful in case on wants to put the agent under bakery control, but
-    # don't want to store the database credentials in the bakery. Instead of that the
-    # credentials can be put into this file manually.
-    #content += "!include %s\n" % local_cfg_file
-
-    # Example robotmk.yml file: #######
-    ## (Global variables)
-    # outputdir: /tmp/robot
-    # robotdir: /usr/lib/check_mk_agent/robot
-    # log:
-    # console:
-    # report:
-    ## (Here come the suites)
-    # suites:
-    #   Suite1:
-    #       variable:
-    #           name1: value1
-    #           name2: value2
-    #       critical: 
-    #           - tag1
-    #           - tag2
-    #           - tag3
-    #   Suite2:
-    #   Suite3:
-
-
-    # SETTING DEFAULTS
     robot_global_conf.setdefault('log', '')
     robot_global_conf.setdefault('console', '')
     robot_global_conf.setdefault('report', '')
     if opsys == "windows":
-        content = content.replace('\n', '\r\n')
         robot_global_conf.setdefault('outputdir', "FIXME")
         robot_global_conf.setdefault('robotdir', "FIXME")
     elif opsys == "linux":
         robot_global_conf.setdefault('outputdir', "/tmp/robotmk")
         robot_global_conf.setdefault('robotdir', "/usr/lib/check_mk_agent/robot")
 
-    
-    # convert the tuples of dicts into dict of dicts to become YAML compatible
     robot_test_suites_list = { 'suites' : dict( (x,y) for x,y in (robot_test_suites)) }
-
-    #we can't use this nice thing, because pyyaml is difficult, because why have nice things ?
+    robot_global_conf.update(robot_test_suites_list)
+    #i'd rather have this here, it will get overlooked if put in above block, will not work since conf is NOT string anymore
+    # if opsys == "windows":
+    #     robot_global_conf = robot_global_conf.replace('\n', '\r\n')
+    
+    #safer to use "safe_dump apparently"
     with open(cfg_file,"w") as output_file:
-        yaml.dump(robot_global_conf,output_file, explicit_end=False, default_flow_style=False,line_break=1)
-        yaml.dump(robot_test_suites_list,output_file, explicit_end=True, default_flow_style=False,line_break=1)
+        yaml.safe_dump(robot_global_conf,output_file, encoding='utf-8', allow_unicode=True)
+        yaml.safe_dump(robot_test_suites_list,output_file,encoding='utf-8', allow_unicode=True)
 
+    logger.debug("goodbye")
 
 bakery_info["robotmk"] = {
     "bake_function": bake_robotmk,
