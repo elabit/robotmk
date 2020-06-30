@@ -16,10 +16,10 @@ def bake_robotmk(opsys, conf, conf_dir, plugins_dir):
     robot_global_conf.setdefault('cache_time', 900)
     cfg_file = conf_dir + "/robotmk.yml"
     if opsys == "windows":
-        os_newline = '\r\n'
+        # TODO: Path validation
+        os_newline = "\r\n"
         os_pluginname = "robotmk.py"
-        robot_global_conf.setdefault('outputdir', "C:\\tmp")
-        robot_global_conf.setdefault('robotdir', "C:\\ProgramData\\checkmk\\agent")
+        robot_global_conf.setdefault('robotdir', 'C:\ProgramData\checkmk\agent\robot')
         with Path(conf_dir, "check_mk.ini.plugins.zzz_%s" % os_pluginname).open("w") as out:
             out.write(u"    execution %s = async\r\n" % os_pluginname)
             out.write(u"    cache_age %s = %d\r\n" % (os_pluginname, robot_global_conf['cache_time']))
@@ -27,9 +27,9 @@ def bake_robotmk(opsys, conf, conf_dir, plugins_dir):
             out.write(u"    timeout %s = %d\r\n" % (os_pluginname, robot_global_conf['cache_time'] - 60))
             out.write(u"\r\n")
     elif opsys == "linux":
-        os_newline = '\r'
+        # TODO: Path validation
+        os_newline = "\r"
         os_pluginname = "robotmk"
-        robot_global_conf.setdefault('outputdir', "/tmp/robotmk")
         robot_global_conf.setdefault('robotdir', "/usr/lib/check_mk_agent/robot")
         plugins_dir = Path(plugins_dir, "%s" % robot_global_conf['cache_time'])
         plugins_dir.mkdir(parents=True, exist_ok=True)
@@ -38,17 +38,14 @@ def bake_robotmk(opsys, conf, conf_dir, plugins_dir):
                                  ("robotmk", "RobotMK is supported on Windows and Linux only"))
     
     shutil.copy2(cmk.utils.paths.local_agents_dir + '/plugins/robotmk', str(plugins_dir) + '/' + os_pluginname)
-
-    robot_test_suites_list = { 'suites' : dict( (x,y) for x,y in (robot_test_suites)) }
-    #robot_global_conf.update(robot_test_suites_list)
-    #i'd rather have this here, it will get overlooked if put in above block, will not work since conf is NOT string anymore
-    # if opsys == "windows":
-    #     robot_global_conf = robot_global_conf.replace('\n', '\r\n')
     
+    # transform suites dict
+    robot_test_suites_dict = { 'suites' : dict( (x,y) for x,y in (robot_test_suites)) }
+
     with open(cfg_file,"w") as output_file:
-        yaml.safe_dump(agent_file_header,output_file, line_break=os_newline, encoding='utf-8', allow_unicode=True)
-        yaml.safe_dump(robot_global_conf,output_file, line_break=os_newline, encoding='utf-8', allow_unicode=True)
-        yaml.safe_dump(robot_test_suites_list,output_file, line_break=os_newline, encoding='utf-8', allow_unicode=True)
+        output_file.write(agent_file_header)
+        yaml.safe_dump(robot_global_conf, output_file, line_break=os_newline, encoding='utf-8', allow_unicode=True)
+        yaml.safe_dump(robot_test_suites_dict, output_file, line_break=os_newline, encoding='utf-8', allow_unicode=True)
 
 bakery_info["robotmk"] = {
     "bake_function": bake_robotmk,
