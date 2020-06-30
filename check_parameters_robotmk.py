@@ -35,48 +35,30 @@ def _valuespec_agent_config_robotmk():
                        elements=[
                            ("cache_time",
                             Age(
-                                title=_("Cache time of data"),
-                                help=_("Set a custom interval the RobotMK plugin should be executed (instead of normal check interval)"),
+                                title=_("Agent Plugin Cache time / execution interval"),
+                                help=_("Set a custom interval the RobotMK plugin should be executed on the host (instead of normal check interval)"),
                                 minvalue=1,
                                 maxvalue=65535,
                                 default_value=900,
                             )),
-                            ("exit_on_failure",
-                            Checkbox(
-                                title=_("Exit on failure"),
-                                label=_("Stops test execution if any critical test fails."),
-                                default_value=False,
-                                help=_("Keep in mind this will only affect tests flaged as critical"),
-                            )),
-                            ("outputdir",
-                            TextUnicode(
-                                # regex="^[-a-zA-Z0-9._]*$",
-                                regex_error=_("Your outputdir has an invalid format."),
-                                title=_("Output directory of where XML test result is stored"),
-                                help=_("If nothing is filled out, the default will be used. Default assumes a linux path. Path validation is made during baking."),
-                                allow_empty=True,
-                                default_value="/tmp/"
-                            )),
+                            # Leave this commented. Outputdir is not something the user should need to change. 
+                            # ("outputdir",
+                            # TextUnicode(
+                            #     # regex="^[-a-zA-Z0-9._]*$",
+                            #     regex_error=_("Your outputdir has an invalid format."),
+                            #     title=_("Output directory of where XML test result is stored"),
+                            #     help=_("If nothing is filled out, the default will be used. Default assumes a linux path. Path validation is made during baking."),
+                            #     allow_empty=True,
+                            #     default_value="/tmp/"
+                            # )),
                             ("robotdir",
                             TextUnicode(
-                                # regex="^[-a-zA-Z0-9._]*$",
-                                regex_error=_("Your robot dir has an invalid format."),
-                                help=_("If nothing is filled out, the default will be used. Default assumes a linux path. Path validation is made during baking."),
-                                title=_("The directory where the robot suites are living"),
+                                title=_("Robot suites directory"),
+                                help=_("By default the RobotMK plugin will search for Robot suites in <tt>/usr/lib/check_mk_agent/robot</tt> (Linux) or <tt>C:\\ProgramData\\checkmk\\agent\\robot</tt> (Windows). <br>"
+                                        "OS dependent path validation is made during baking.<br>"),
                                 allow_empty=True,
-                                default_value="/usr/lib/check_mk_agent/robot"
-                            )), 
-                            ("top_level_suite_name",
-                            TextUnicode(
-                                regex_error=_("Your output dir has an invalid format."),
-                                help=_("Select tests by name or by long name containing also"
-                                        " parent suite name like `Parent.Test`. Name is case"
-                                        " and space insensitive and it can also be a simple"
-                                        " pattern where `*` matches anything, `?` matches any"
-                                        " single character, and `[chars]` matches one character"
-                                        " in brackets."),
-                                title=_("Set the name of the top level test suite. Overrides auto naming from top level dir or robot file."),
-                                allow_empty=True,
+                                size=100,
+                                default_value=""
                             )), 
                             ("suites",
                             ListOf(
@@ -88,48 +70,101 @@ def _valuespec_agent_config_robotmk():
                                         allow_empty=False,
                                         size=50,
                                     ), 
+
                                     Dictionary(
                                         elements=[    
-                                            # Proposal: piggybackhost instead of host                   
-                                            ("host",
-                                            MonitoredHostname(
-                                                title=_("Monitoring host this test suite should be mapped to (<b>piggyback</b>)"),
-                                                help=
-                                                _("By default, all test suites will run on the host where the <tt>robotmk</tt> "
-                                                    "plugin is running; the name of all executed suites must be unique.<br>"
-                                                    "<b>Piggyback</b> allows to assign the results of this particular Robot test "
-                                                    "to another host."),
+                                            ("name",
+                                            TextUnicode(
+                                                title=_("Top level suite name (<tt>--name</tt>)"),
+                                                help=_("Set the name of the top level suite. By default the name is created based on the executed file or directory."),
                                                 allow_empty=False,
-                                            )),
-                                            ("exclude_tags",
+                                                size=50,
+                                            )), 
+                                            ("suite",
                                             ListOfStrings(
-                                                title=_("Excludes the following tags from testing "),
+                                                title=_("Select suites (<tt>--suite</tt>)"),
+                                                help=_("Select suites by name. <br>When this option is used with"
+                                                        " <tt>--test</tt>, <tt>--include</tt> or <tt>--exclude</tt>, only tests in"
+                                                        " matching suites and also matching other filtering"
+                                                        " criteria are selected. <br>"
+                                                        " Name can be a simple pattern similarly as with <tt>--test</tt> and it can contain parent"
+                                                        " name separated with a dot. <br>"
+                                                        " For example, <tt>X.Y</tt> selects suite <tt>Y</tt> only if its parent is <tt>X</tt>.<br>"),
                                                 size=40,
-                                                help=_("Select test cases not to run by tag. These tests are"
-                                                       " not run even if included with --include. Tags are"
-                                                        " matched using same rules as with --include."),                                                
-                                            )),
-                                            ("include_tags",
+                                            )),                                                 
+                                            ("test",
                                             ListOfStrings(
-                                                title=_("Includes the following tags to test"),
-                                                help=_("Select tests by tag. Similarly as name with --test,"
-                                                        "tag is case and space insensitive and it is possible"
-                                                        "to use patterns with `*`, `?` and `[]` as wildcards."
-                                                        "Tags and patterns can also be combined together with"
-                                                        "`AND`, `OR`, and `NOT` operators."),
-                                                size=40,
-                                            )),
-                                            ("test_name",
-                                            ListOfStrings(
-                                                title=_("Select test based on test name"),
+                                                title=_("Select test (<tt>--test</tt>)"),
                                                 help=_("Select tests by name or by long name containing also"
-                                                        " parent suite name like `Parent.Test`. Name is case"
+                                                        " parent suite name like <tt>Parent.Test</tt>. <br>Name is case"
                                                         " and space insensitive and it can also be a simple"
-                                                        " pattern where `*` matches anything, `?` matches any"
-                                                        " single character, and `[chars]` matches one character"
-                                                        " in brackets."),
+                                                        " pattern where <tt>*</tt> matches anything, <tt>?</tt> matches any"
+                                                        " single character, and <tt>[chars]</tt> matches one character"
+                                                        " in brackets.<br>"),
+                                                size=40,
+                                            )),                                            
+                                            # FIXME: test includes!
+                                            ("include",
+                                            ListOfStrings(
+                                                title=_("Include tests by tag (<tt>--include</tt>)"),
+                                                help=_("Select tests by tag. (<a href=\"https://robotframework.org/robotframework/latest/RobotFrameworkUserGuide.html#tagging-test-cases\">About tagging test cases</a>)<br>Similarly as name with <tt>--test</tt>,"
+                                                        "tag is case and space insensitive and it is possible"
+                                                        "to use patterns with <tt>*</tt>, <tt>?</tt> and <tt>[]</tt> as wildcards.<br>"
+                                                        "Tags and patterns can also be combined together with"
+                                                        "<tt>AND</tt>, <tt>OR</tt>, and <tt>NOT</tt> operators.<br>"
+                                                        "Examples: <br><tt>foo</tt><br><tt>bar*</tt><br><tt>fooANDbar*</tt><br>"),
                                                 size=40,
                                             )),
+                                            # FIXME: test excludes!
+                                            ("exclude",
+                                            ListOfStrings(
+                                                title=_("Exclude tests by tag (<tt>--exclude</tt>)"),
+                                                help=_("Select test cases not to run by tag. (<a href=\"https://robotframework.org/robotframework/latest/RobotFrameworkUserGuide.html#tagging-test-cases\">About tagging test cases</a>)<br>These tests are"
+                                                       " not run even if included with <tt>--include</tt>. <br>Tags are"
+                                                        " matched using same rules as with <tt>--include</tt>.<br>"),                                                
+                                                size=40,
+                                            )),
+                                            ("critical",
+                                            ListOfStrings(
+                                                title=_("Critical test tag (<tt>--critical</tt>)"),
+                                                help=_("Tests having the given tag are considered critical. (<b>This is no threshold</b>, see <a href=\"https://robotframework.org/robotframework/latest/RobotFrameworkUserGuide.html#setting-criticality\">About setting criticality</a>)<br>"
+                                                        "If no critical tags are set, all tests are critical.<br>"
+                                                        "Tags can be given as a pattern same way as with <tt>--include</tt>.<br>"),
+                                                size=40,
+                                            )),
+                                            ("noncritical",
+                                            ListOfStrings(
+                                                title=_("Non-Critical test tag (<tt>--noncritical</tt>)"),
+                                                help=_("Tests having the given tag are considered non-critical, even if also <tt>--critical</tt> is set. (<b>This is no threshold</b>, see <a href=\"https://robotframework.org/robotframework/latest/RobotFrameworkUserGuide.html#setting-criticality\">About setting criticality</a>)<br>"
+                                                        "Tags can be given as a pattern same way as with <tt>--include</tt>.<br>"),
+                                                size=40,
+                                            )),
+                                            ("variables",
+                                            ListOfStrings(
+                                                title=_("Variables (<tt>--variable</tt>)"),
+                                                help=_("Set variables in the test data. <br>Only scalar variables with string"
+                                                " value are supported and name is given without <tt>${}</tt>. <br>"
+                                                " See <tt>--variablefile</tt> for a more powerful variable setting mechanism.<br>"
+                                                "Example: <tt>varname:value</tt><br>"),
+                                                # size=600,
+                                                orientation="vertical",
+                                                valuespec=TextUnicode(
+                                                    size=40,
+                                                    regex=".*:.*",
+                                                    regex_error=_("Please enter a key-value pair separated by ':'"),
+                                                ),
+                                            )),                                            
+                                            ("variablefile",
+                                            ListOfStrings(
+                                                title=_("Load variables from file (<tt>--variablefile</tt>)"),
+                                                help=_("Python or YAML file file to read variables from. (<a href=\"https://robotframework.org/robotframework/latest/RobotFrameworkUserGuide.html#variable-files\">About variable files</a>)<br>Possible arguments to the variable file can be given"
+                                                       " after the path using colon or semicolon as separator.<br>"
+                                                       "Examples:<br> "                                               
+                                                       "<tt>path/vars.yaml</tt><br>"
+                                                       "<tt>set_environment.py:testing</tt><br>"),                                                
+                                                size=40,
+                                            )),
+
                                             # ("variables",
                                             # ListOf(
                                             #     Tuple(elements=[
@@ -154,24 +189,32 @@ def _valuespec_agent_config_robotmk():
                                             #    Filesize(title=_("Warning below")),
                                             #    Filesize(title=_("Critical below"))
                                             # ],)),
-                                            ("variables",
-                                            ListOfStrings(
-                                                title=_("variables to use"),
-                                                help=_("Only scalar are supported. Must be supplied as key/value pair"),
-                                                size=40,
-                                                orientation="vertical",
-                                                valuespec=TextUnicode(
-                                                    size=20,
-                                                    regex=".*:.*",
-                                                    regex_error=_("Please enter a key-value pair separated by ':'"),
-                                                ),
-                                            )),
+
+                                            ("exitonfailure",
+                                            DropdownChoice(
+                                                title=_("Exit on failure"),
+                                                help=_("Stops test execution if any critical test fails. (<a href=\"https://robotframework.org/robotframework/latest/RobotFrameworkUserGuide.html#stopping-when-first-test-case-fails\">About failed tests</a>)"),
+                                                choices=[
+                                                    ('yes', _('yes')),
+                                                    ('no', _('no')),
+                                                ],
+                                                default_value="no",
+                                            )),   
+                                            # Proposal: piggybackhost instead of host                   
+                                            ("host",
+                                            MonitoredHostname(
+                                                title=_("Piggyback host"),
+                                                help=
+                                                _("Piggyback allows to assign the results of this particular Robot test to another host."),
+                                                allow_empty=False,
+                                            )),                                                                                     
                                         ],
                                     )
                                 ]),
                                 title=_("Test suites"),
                                 help=
-                                _("You can use this button to add as many test suites as you see fit. Keep in mind each test suite will be executed after the other."),
+                                _("Click <i>Add test suite</i> to add Robot suites to the execution and drag them to re-order. <br>"
+                                "Each test suite will be executed after the other.<br>"),
                                 add_label=_("Add test suite"),
                                 movable=True,
                             )), # test suites, Listof
