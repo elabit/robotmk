@@ -55,7 +55,7 @@ def _valuespec_agent_config_robotmk():
                             TextUnicode(
                                 title=_("Robot suites directory"),
                                 help=_("By default the RobotMK plugin will search for Robot suites in <tt>/usr/lib/check_mk_agent/robot</tt> (Linux) or <tt>C:\\ProgramData\\checkmk\\agent\\robot</tt> (Windows). <br>"
-                                        "OS dependent path validation is made during baking.<br>"),
+                                        "Windows paths can be given with single backslashes; OS dependent path validation is made during baking.<br>"),
                                 allow_empty=True,
                                 size=100,
                                 default_value=""
@@ -76,7 +76,8 @@ def _valuespec_agent_config_robotmk():
                                             ("name",
                                             TextUnicode(
                                                 title=_("Top level suite name (<tt>--name</tt>)"),
-                                                help=_("Set the name of the top level suite. By default the name is created based on the executed file or directory."),
+                                                help=_("Set the name of the top level suite. By default the name is created based on the executed file or directory.<br>"
+                                                    "This sets the name of a fresh discovered Robot service; an already existing service will hide away and will be found by the discovery under a new name."),
                                                 allow_empty=False,
                                                 size=50,
                                             )), 
