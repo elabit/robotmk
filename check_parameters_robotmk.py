@@ -192,7 +192,7 @@ def _valuespec_agent_config_robotmk():
 
                                             ("exitonfailure",
                                             DropdownChoice(
-                                                title=_("Exit on failure"),
+                                                title=_("Exit on failure (<tt>--exitonfailure</tt>)"),
                                                 help=_("Stops test execution if any critical test fails. (<a href=\"https://robotframework.org/robotframework/latest/RobotFrameworkUserGuide.html#stopping-when-first-test-case-fails\">About failed tests</a>)"),
                                                 choices=[
                                                     ('yes', _('yes')),
