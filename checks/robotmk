@@ -155,8 +155,6 @@ class RFObject(object):
             patterns = checkgroup_parameters.get(setting, {}).get(setting_keyname, [])
             return pattern_match(patterns, self.name)
 
-        # TODO: padding as class method
-
         # Check for failed test
         if isinstance(self, RFTest) and self.critical: 
             my_rc = 2

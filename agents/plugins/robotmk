@@ -1,21 +1,5 @@
 #!/usr/bin/env python3
 
-# TODO Tests: 
-# - no yml -> env cfg -> default suite location -> suites present/not present
-# -    yml -> with/without suites
-# -        -> overriding defaults
-
-# Options supported by the bakery: 
-# X 'name', 
-# 'suite',
-# 'test',
-# X 'include',
-# X 'exclude',
-# X 'variablefile',
-# O 'exitonfailure',
-# 'critical',
-# 'noncritical',
-
 import os 
 import sys
 import shutil
@@ -66,6 +50,7 @@ def start():
    if not os.path.exists(robotdir):
       log_debug(f"ERROR: {robotdir} does not exist; no suites found to execute. Exiting.")
       exit(1)
+      
    #If no suites are defined we setup an empty suite dict.
    #This is necessary to later on fill the dict.
    yml_cfg.setdefault('suites',{})
@@ -92,9 +77,8 @@ def start():
       # Piggyback host
       if 'host' in suite_options:
          host = suite_options.pop('host')
-
-      # TODO: Perhaps this preformatting has to be done for several other arguments
-      # which can be given multiple times.        
+      
+      # Preformat Variables to meet the Robot API requirement 
       # --variable name:value => ['name:value', 'name2:value2']
       if 'variable' in suite_options: 
         suite_options['variable'] = list(map(lambda x: f'{x[0]}:{x[1]}', suite_options['variable'].items()))
@@ -172,10 +156,7 @@ def apply_global_cfg(suite, suite_options, yml_cfg):
       suite_options.update({'console':'none'})
    
    suite_options.update({'outputdir': str(yml_cfg['outputdir'])})
-   # Output filename without extension
    suite_options.update({'output': suite.replace('.robot','')})
-   #If option 'log' or 'report' is not set in config file we set the default
-   #TODO Possibly we allow 'global suite_options' Just needs an additional iteration.
    suite_options.setdefault('log',yml_cfg['log'])
    suite_options.setdefault('report',yml_cfg['report'])
    return suite_options

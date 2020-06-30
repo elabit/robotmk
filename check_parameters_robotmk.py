@@ -104,7 +104,6 @@ def _valuespec_agent_config_robotmk():
                                                         " in brackets.<br>"),
                                                 size=40,
                                             )),                                            
-                                            # FIXME: test includes!
                                             ("include",
                                             ListOfStrings(
                                                 title=_("Include tests by tag (<tt>--include</tt>)"),
@@ -116,7 +115,6 @@ def _valuespec_agent_config_robotmk():
                                                         "Examples: <br><tt>foo</tt><br><tt>bar*</tt><br><tt>fooANDbar*</tt><br>"),
                                                 size=40,
                                             )),
-                                            # FIXME: test excludes!
                                             ("exclude",
                                             ListOfStrings(
                                                 title=_("Exclude tests by tag (<tt>--exclude</tt>)"),
@@ -165,32 +163,6 @@ def _valuespec_agent_config_robotmk():
                                                        "<tt>set_environment.py:testing</tt><br>"),                                                
                                                 size=40,
                                             )),
-
-                                            # ("variables",
-                                            # ListOf(
-                                            #     Tuple(elements=[
-                                            #         TextUnicode(
-                                            #             title=_("Key"),
-                                            #             allow_empty=False,
-                                            #             help=_("The key")
-                                            #         ),
-                                            #         TextUnicode(
-                                            #             title=_("Value"),
-                                            #             allow_empty=False,
-                                            #             help=_("The value")
-                                            #         ),
-                                                    
-                                            #     ]),
-                                            #     title=_("Variables"),
-                                            #     help=_("This must form a key:value pair"),
-                                            # )),
-                                            # TODO
-                                            # Replace by Tuple, e.g. 
-                                            #Tuple(elements=[
-                                            #    Filesize(title=_("Warning below")),
-                                            #    Filesize(title=_("Critical below"))
-                                            # ],)),
-
                                             ("exitonfailure",
                                             DropdownChoice(
                                                 title=_("Exit on failure (<tt>--exitonfailure</tt>)"),
@@ -510,8 +482,6 @@ def _parameter_valuespec_robotmk():
             ],
         )), # L1 / runtime_threshold  
 
-
-        # TODO: Helper function comma delimited ??
         ("perfdata_creation", Dictionary(
             title = _('Perfdata creation'),
             help = _('By default, no performance data are generated. Define patterns here to select suites, tests and keywords which should be displayed in graphs. <br>'
