@@ -1,0 +1,57 @@
+{
+    "version": "0.2.0",
+    "configurations": [
+        // no longer needed
+        
+        // {
+        //     "name": "RobotMK check",
+        //     "type": "python",
+        //     "request": "launch",
+        //     "program": "${workspaceFolder}/checks/robotmk",
+        //     "console": "integratedTerminal",
+        //     "pythonPath": "${workspaceFolder}/.tox/check/bin/python"
+        // },
+
+        // Use this debug config if you connect to OMD as site user
+        // In this case you can debug the check with contextual data. 
+        {
+            "name": "RobotMK bakery",
+            "type": "python",
+            "request": "launch",
+            "program": "/omd/sites/cmk/bin/cmk",
+            "args": [
+                "-v",
+                "-n",
+                "--checks=robotmk",
+                "robothost1"
+            ],
+            "console": "integratedTerminal",
+            "pythonPath": "/omd/sites/cmk/bin/python",
+            // allow to inspect also foreign code
+            "justMyCode": false
+        },
+        {
+            "name": "RobotMK plugin",
+            "type": "python",
+            "request": "launch",
+            "program": "${workspaceFolder}/agents/plugins/robotmk",
+            "console": "integratedTerminal",
+            "pythonPath": "${workspaceFolder}/.tox/plugin/bin/python",
+            // allow to inspect also foreign code
+            "justMyCode": false
+        },
+        {
+            "name": "RobotMK plugin WIN",
+            "type": "python",
+            "request": "launch",
+            "program": "${workspaceFolder}/agents/plugins/robotmk",
+            "args": [
+                "--debug"
+            ],
+            "console": "integratedTerminal",
+            //"pythonPath": "c:/python38/python",
+            // allow to inspect also foreign code
+            "justMyCode": false
+        },           
+    ]
+}

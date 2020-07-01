@@ -1,0 +1,3 @@
+{
+    'suite_name': 'mytestsuite'
+}

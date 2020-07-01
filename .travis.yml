@@ -1,0 +1,15 @@
+language: python
+python:
+  - "3.6"
+  - "2.7"
+install: pip install tox-travis
+script: tox -v
+
+#safelist
+branches:
+  only:
+  - master
+  - develop
+  - agentplugin
+  - bakery
+  - /^v\d+\.\d+(\.\d+)?(-\S*)?$/

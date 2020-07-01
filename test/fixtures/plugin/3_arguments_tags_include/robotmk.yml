@@ -1,0 +1,8 @@
+#Global variables
+robotdir: ./test/fixtures/robot/
+# Suites to execute
+suites:
+   1S_3S_2S_3T:
+      include: 
+         - testtag1
+         - testtag2

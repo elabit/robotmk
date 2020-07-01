@@ -1,0 +1,9 @@
+#Global variables
+robotdir: ./test/fixtures/robot/
+# Suites to execute
+suites:
+   1S_3S_2S_3T:
+      test:
+         - Sleep the first time*
+         - Sleep the second time*
+         
