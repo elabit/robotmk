@@ -28,7 +28,7 @@ def bake_robotmk(opsys, conf, conf_dir, plugins_dir):
             out.write(u"\r\n")
     elif opsys == "linux":
         # TODO: Path validation
-        os_newline = "\r"
+        os_newline = "\n"
         os_pluginname = "robotmk"
         robot_global_conf.setdefault('robotdir', "/usr/lib/check_mk_agent/robot")
         plugins_dir = Path(plugins_dir, "%s" % robot_global_conf['cache_time'])
