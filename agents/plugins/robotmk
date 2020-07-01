@@ -50,10 +50,14 @@ def start():
    if not os.path.exists(robotdir):
       log_debug(f"ERROR: {robotdir} does not exist; no suites found to execute. Exiting.")
       exit(1)
-      
+
    #If no suites are defined we setup an empty suite dict.
    #This is necessary to later on fill the dict.
-   yml_cfg.setdefault('suites',{})
+   if 'suites' in yml_cfg: 
+      if not yml_cfg['suites']:
+         yml_cfg['suites'] = {}
+   else: 
+      yml_cfg.setdefault('suites',{})
    if len(yml_cfg['suites']) == 0:
       log_debug(f'No suites specified in configuration file -> run all in {robotdir}:')
       for suite in robotdir.iterdir():
