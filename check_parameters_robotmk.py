@@ -36,7 +36,9 @@ def _valuespec_agent_config_robotmk():
                            ("cache_time",
                             Age(
                                 title=_("Agent Plugin Cache time / execution interval"),
-                                help=_("Set a custom interval the RobotMK plugin should be executed on the host (instead of normal check interval)"),
+                                help=_("Sets the interval in which the RobotMK plugin should be executed on the host (instead of normal check interval).<br>"
+                                "The default is set to 15min but strongly depends on the maximum probable runtime of all <i>test suites</i>. Choose an interval which is a comprimise between frequency and headroom.<br>"
+                                "The timeout for the RobotMK plugin execution is always <tt>cache_time - 60s</tt> to avoid concurrency problems."),
                                 minvalue=1,
                                 maxvalue=65535,
                                 default_value=900,
@@ -186,8 +188,10 @@ def _valuespec_agent_config_robotmk():
                                 ]),
                                 title=_("Test suites"),
                                 help=
-                                _("Click <i>Add test suite</i> to add Robot suites to the execution and drag them to re-order. <br>"
-                                "Each test suite will be executed after the other.<br>"),
+                                _("Click <i>Add test suite</i> to add Robot suites to the execution queue. <br>Drag them to change the order of execution. <br>"
+                                "All test suites will be executed in series.<br>"
+                                "If you do not add any suite, RobotMK will execute all <tt>.robot</tt> files in the <i>Robot suites directory</i>; directories containing <tt>.robot</tt> files will be also executed as suites.<br>"
+                                "Keep in mind to set a proper <i>Agent plugin cache time</i> which is higher than the probable maximum runtime of all suites. "),
                                 add_label=_("Add test suite"),
                                 movable=True,
                             )), # test suites, Listof
