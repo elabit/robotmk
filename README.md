@@ -178,6 +178,27 @@ The manual step to update the submodule is:
 git submodule update --init --recursive
 ```
 
+## TODO
+
+See the [Github Issues](https://github.com/simonmeggle/robotmk/issues) page for a complete list of feature requests, known bugs etc.
+
+Next development steps will be: 
+
+* Improve the Robot test scheduling/execution on the remote side. Fiddling with cache_time and a guessed maximum runtime of all tests in total is a compromise at best. I am planning to develop a "juggler" plugin mode, which allows to define an execution interval for each Robot test. Robot tests are started then as detached processes. The juggler always knows how many tests can be started at once.
+* Create a complete Docker-based test setup which covers all test scenarios. Why not test RobotMK's functionality with Robot/Selenium itself.
+* Robot produces nice HTML reports. Why not transport them to the CheckMK server and store in a dedicated shared folder. Then link CheckMK Robot checks to the corresponding HTML reports.  
+* Create a Docker container to execute Robot tests also in Containers. Expand the agent plugin to trigger Robot containers with API calls to Kubernetes and Docker Swarm to distribute E2E tests.  
+* Create dynamic area-stacked performance graphs in the CheckMK grapher. (No, I won't do this for PNP4Nagios)
+
+## Contributing
+
+If you want to help RobotMK to get better, you're warmly welcomed!
+
+* Fork this project
+* Create a feature branch with a name containing the issue number (or submit a new issue first), from the current `develop` branch. 
+* Always and often rebase your feature branch from `develop` 
+* Pull requests are welcome if they can be merged and solve a problem
+
 ## License
 
 **RobotMK** is published unter the [GNU General Public License v3.0](https://spdx.org/licenses/GPL-3.0-or-later.html)
@@ -186,7 +207,7 @@ git submodule update --init --recursive
 
 ### Contributions
 
-I want to express my thanks to the following people who help to make RobotMK better by submitting code: 
+Thanks to the following people who help to make RobotMK better by submitting code: 
 
 * Michael FRANK (contributed to the agent plugin)
 * Guillaume DURVILLE (contributed to the bakery rule)
