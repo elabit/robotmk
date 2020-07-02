@@ -22,6 +22,14 @@ Robot Framework can automate End2End-Tests for you (and much more). Integrating 
 
 Read the [feature page](https://robotmk.org) of RobotMK to learn about its history, features and advantages. 
 
+## Key features
+
+* **Centralized control** via WATO: RobotMK is configured via a powerful rule system in the web administration interface of CheckMK (WATO).
+* **100% Robot-compatible**: RobotMK does not require any adaptation to existing Robot tests; they can be integrated in CheckMK without any intervention.
+* **Runtime monitoring**: ​RobotMK monitors the runtimes of whole suites, tests and keywords assisted by the pattern-based rule system. Even insidious performance changes can thus be detected.
+* **Pattern-based reduction of the output** to the essential ensures an optimum result.
+* selective **performance data**: granular control over the creation of performance graphs
+
 ## Requirements
 
 CheckMK 1.6 Enterprise edition (CEE) is recommended to distribute the RobotMK YAML configuration to the monitoring agent. If you are using CRE, consider a worthwile [switch to CEE](https://www.iteratio.com/). 
