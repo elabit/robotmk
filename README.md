@@ -28,6 +28,7 @@ Read the [feature page](https://robotmk.org) of RobotMK to learn about its histo
 * **100% Robot-compatible**: RobotMK does not require any adaptation to existing Robot tests; they can be integrated in CheckMK without any intervention.
 * **Runtime monitoring**: ​RobotMK monitors the runtimes of whole suites, tests and keywords assisted by the pattern-based rule system. Even insidious performance changes can thus be detected.
 * **Pattern-based reduction of the output** to the essential ensures an optimum result.
+* **Flexible**: Create as many CheckMK checks as you want out of one single Robot test by using the **discovery level**.  
 * selective **performance data**: granular control over the creation of performance graphs
 
 ## Requirements
@@ -61,7 +62,7 @@ robotmk     tcp    (no man page present)
 This recording shows how easy it is to deploy the RobotMK to the host `robothost1`: 
 
 * Go to the WATO section "Monitoring Agents" -> Rules
-* Create a new "RobotMK" rule
+* Create a new `RobotMK bakery rule`
   * We set the Cache time to 5 minutes so that the plugin gets executed only every 5 minutes.  
   * `sampletest` is the name of a Robot test in the default agent lib folder (`/usr/lib/check_mk_agent/robot`, configurable). To bring Robot test to the client, use the WATO rule `Deploy custom files with agent` - but there is more to come :-)  
   * As you can see, we can set most of the arguments we could also give to Robot on the CLI: rename the suite, pass variables, call variable files with parameters (yeah), etc...
@@ -99,12 +100,27 @@ As soon as the new agent is installed on the client, it starts to execute the ro
 
 ### Configure the E2E check
 
-Lastly, we want to 
+Now we use the `RobotMK rule for discovered services` to 
 
 * set a threshold on `Subsuite3` on 5 seconds
 * draw performance data for every `Subsuite`
 
 ![desc](img/ruleconf.gif)
+
+### Discovery level: split up a Robot tests into many CMK services
+
+Lastly, we decide every "Subsuite" in the Robot test to be represented as an own CheckMK service. 
+"Subsuite1-3" are one (1) level deeper from the top result level. Hence, we use the `Robot Framework Discovery Level rule` to set the discovery level from 0 (top level) to 1. 
+
+
+Why would you want to do this? 
+
+* See every test part in a **dedicated monitoring check** with its **own state**
+* Perhaps you already have **complex Robot tests** and you do not want to tear them apart 
+* Send **notifications for certain parts** of the tests to individual contacts
+* Generate **reports about different parts** of the test (e.g. open application, login, report generation)
+
+![desc](img/disc-level.gif)
 
 ## Development setup
 
