@@ -36,7 +36,7 @@ def bake_robotmk(opsys, conf, conf_dir, plugins_dir):
         # TODO: Path validation
         os_newline = "\r\n"
         os_pluginname = "robotmk.py"
-        robot_global_conf.setdefault('robotdir', 'C:\ProgramData\checkmk\agent\robot')
+        robot_global_conf.setdefault('robotdir', "C:\\ProgramData\\checkmk\\agent\\robot")
         with Path(conf_dir, "check_mk.ini.plugins.zzz_%s" % os_pluginname).open("w") as out:
             out.write(u"    execution %s = async\r\n" % os_pluginname)
             out.write(u"    cache_age %s = %d\r\n" % (os_pluginname, robot_global_conf['cache_time']))
