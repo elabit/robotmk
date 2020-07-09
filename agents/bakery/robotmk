@@ -59,6 +59,13 @@ def bake_robotmk(opsys, conf, conf_dir, plugins_dir):
     # transform suites dict
     robot_test_suites_dict = { 'suites' : dict( (x,y) for x,y in (robot_test_suites)) }
 
+    # In the end, what counts is how the variable section in the bakery rule looks like. 
+    # It looks nices, but produces a list of tuples which we now transform into a dict. 
+    for (k1,v1) in robot_test_suites_dict['suites'].items():
+        for (k2,v2) in v1.items():
+            if k2 == 'variable':
+                v1.update({ 'variable': dict(v2) })
+
     with open(cfg_file,"w") as output_file:
         output_file.write(agent_file_header)
         yaml.safe_dump(robot_global_conf, output_file, line_break=os_newline, encoding='utf-8', allow_unicode=True)

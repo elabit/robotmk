@@ -158,21 +158,41 @@ def _valuespec_agent_config_robotmk():
                                                         "Tags can be given as a pattern same way as with <tt>--include</tt>.<br>"),
                                                 size=40,
                                             )),
-                                            ("variables",
-                                            ListOfStrings(
+                                            # ("variable",
+                                            # ListOfStrings(
+                                            #     title=_("Variables (<tt>--variable</tt>)"),
+                                            #     help=_("Set variables in the test data. <br>Only scalar variables with string"
+                                            #     " value are supported and name is given without <tt>${}</tt>. <br>"
+                                            #     " (See <tt>--variablefile</tt> for a more powerful variable setting mechanism.)<br>"
+                                            #     "Example: <tt>varname:value</tt><br>"),
+                                            #     # size=600,
+                                            #     orientation="vertical",
+                                            #     valuespec=TextUnicode(
+                                            #         size=40,
+                                            #         regex=".*:.*",
+                                            #         regex_error=_("Please enter a key-value pair separated by ':'"),
+                                            #     ),
+                                            # )),  
+                                            ("variable",
+                                            ListOf(
+                                                Tuple(
+                                                    elements=[
+                                                        TextAscii(
+                                                            title=_("Variable name:")
+                                                        ),
+                                                        TextAscii(
+                                                            title=_("Value:"),
+                                                        ),
+                                                    ],
+                                                    orientation="horizontal",
+                                                ),
+                                                movable=False,
                                                 title=_("Variables (<tt>--variable</tt>)"),
                                                 help=_("Set variables in the test data. <br>Only scalar variables with string"
                                                 " value are supported and name is given without <tt>${}</tt>. <br>"
-                                                " See <tt>--variablefile</tt> for a more powerful variable setting mechanism.<br>"
-                                                "Example: <tt>varname:value</tt><br>"),
-                                                # size=600,
-                                                orientation="vertical",
-                                                valuespec=TextUnicode(
-                                                    size=40,
-                                                    regex=".*:.*",
-                                                    regex_error=_("Please enter a key-value pair separated by ':'"),
-                                                ),
-                                            )),                                            
+                                                " (See <tt>--variablefile</tt> for a more powerful variable setting mechanism.)<br>")
+                                            )),
+
                                             ("variablefile",
                                             ListOfStrings(
                                                 title=_("Load variables from file (<tt>--variablefile</tt>)"),
