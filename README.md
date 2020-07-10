@@ -1,54 +1,51 @@
 # RobotMK
 
+*A tool to integrate Robot Framework End2End tests into CheckMK*
+
 [![Build Status](https://travis-ci.com/simonmeggle/robotmk.svg?branch=develop)](https://travis-ci.com/simonmeggle/robotmk)
 
-## What is RobotMK? 
+![desc](img/robot_robotmk_checkmk.png)
 
-RobotMK allows you to integrate the results of the great [Robot Framework](https://robotframework.org/) into the monitoring system [CheckMK](https://checkmk.com).
+## Description
+
+**What is RobotMK?** RobotMK allows you to integrate the results of the great [Robot Framework](https://robotframework.org/) into the great monitoring system [CheckMK](https://checkmk.com). Great. 
+
+**Why do you need RobotMK?** A monitoring system like checkMK does a very good job to monitor your business' IT infrastructure with checks for CPU, Memory, Network devices, etc. The reason why you are running IT is that you provide a service to users. Therefore you also should monitor what your users use, and most important: do it like they do. Use a real browser, mouse and keyboard strokes. Test from End (the user) to End (your IT infrastructure as a whole). This is called "End2End"-Testing.
+
+Robot Framework can automate End2End-Tests for you (and much more). Integrating those tests into CheckMK is a great supplement.
+
+**RobotMK** acts as a bridge between Robot Framework and CheckMK. It consists of those components: 
+
+* RobotMK **bakery rule**: Use the CheckMK WATO rule editor to decide which remote hosts should be deployed with the RobotMK plugin. Define which suites should be executed there and the individual parameters. 
+* RobotMK **plugin**: integrated into the CheckMK monitoring agent, it executes Robot tests on the client side. It gets controlled by the robotmk YML file which is created by the bakery. 
+* RobotMK **check**: evaluates the Result coming from Robot tests. Define thresholds for any step within the test. Control which steps should produce performance data for nice graphs. Decide how to split up Robot results into different services ("checks" in CheckMK) - without splitting the robot test. 
 
 Read the [feature page](https://robotmk.org) of RobotMK to learn about its history, features and advantages. 
 
-RobotMK consists of mainly two components: 
+## Key features
 
-* `agents/plugins/robotmk` plugin: executes Robot tests on the client side
-* `checks/robotmk` check: evaluates the XML output of robot
-* `check_parameters_robotmk.py`: WATO configuration page 
+* **Centralized control** via WATO: RobotMK is configured via a powerful rule system in the web administration interface of CheckMK (WATO).
+* **100% Robot-compatible**: RobotMK does not require any adaptation to existing Robot tests; they can be integrated in CheckMK without any intervention.
+* **Runtime monitoring**: ​RobotMK monitors the runtimes of whole suites, tests and keywords assisted by the pattern-based rule system. Even insidious performance changes can thus be detected.
+* **Pattern-based reduction of the output** to the essential ensures an optimum result.
+* **Flexible**: Create as many CheckMK checks as you want out of one single Robot test by using the **discovery level**.  
+* selective **performance data**: granular control over the creation of performance graphs
+
+## Requirements
+
+CheckMK 1.6 Enterprise edition (CEE) is recommended to distribute the RobotMK YAML configuration to the monitoring agent. If you are using CRE, consider a worthwile [switch to CEE](https://www.iteratio.com/). 
+
+If you a fine to write the YAML configuration by hand, CRE is also appropriate. 
 
 ## Installation
 
-Currently, there is no MK package to install RobotMK. The simplest way to get this done is 
+You can choose between two ways of installing RobotMK: 
 
-* clone this repository
-* checkout the `dev` branch 
-* copy the files into your CMK site
+* by hand (cloning the repository, coping files by hand)
+* Installing as [MKP](https://checkmk.com/cms_mkps.html) from [CMK Exchange](https://exchange.checkmk.com/) (recommended)
 
-```
-# install check
-$ cp /workspace/robotmk/checks/robotmk /omd/sites/SITENAME/local/share/check_mk/checks/robotmk
-# install WATO settings
-$ cp /workspace/robotmk/check_parameters_robotmk.py /omd/sites/SITENAME/local/share/check_mk/web/plugins/wato/check_parameters_robotmk.py
-# install example tests (optional) 
-$ cp -R /workspace/robotmk/test/fixtures/robot /usr/lib/check_mk_agent/
-# install the plugin 
-$ mkdir /usr/lib/check_mk_agent/plugins/90   # cache time 90 seconds
-$ cp /workspace/robotmk/agtnes/plugin/robotmk /usr/lib/check_mk_agent/plugins/90/
-# install the bakery script
-$ cp /workspace/robotmk/agents/bakery/robotmk  /omd/sites/SITENAME/local/share/check_mk/agents/bakery/
-```
+![mkp-installation](img/mkpinstall.gif)
 
-Finally place the `robotmk.yml` into the checkMK config dir: 
-```
-#Global variables
-outputdir: /tmp/robot
-robot_suite_dir: /usr/lib/check_mk_agent/robot
-log:
-console:
-report:
-# Suites to execute
-suites:
-   1S_3S_2S_3T:
-   1S_3T:
-```
 
 Now verify that checkMK can use the robotmk check: 
 
@@ -57,6 +54,73 @@ $ su - cmk
 OMD[cmk]:~$ cmk -L | grep robot                                          
 robotmk     tcp    (no man page present)
 ```
+
+## Usage
+
+### Configure what to execute
+
+This recording shows how easy it is to deploy the RobotMK to the host `robothost1`: 
+
+* Go to the WATO section "Monitoring Agents" -> Rules
+* Create a new `RobotMK bakery rule`
+  * We set the Cache time to 5 minutes so that the plugin gets executed only every 5 minutes.  
+  * `sampletest` is the name of a Robot test in the default agent lib folder (`/usr/lib/check_mk_agent/robot`, configurable). To bring Robot test to the client, use the WATO rule `Deploy custom files with agent` - but there is more to come :-)  
+  * As you can see, we can set most of the arguments we could also give to Robot on the CLI: rename the suite, pass variables, call variable files with parameters (yeah), etc...
+  * Piggyback allows you to assign the Robot result to another host than `robothost1`
+
+
+![desc](img/bakery.gif)
+
+* The bakery bakes a new RPM package containing the RobotMK plugin and the RobotMK YML file: 
+
+```
+# Created by Check_MK Agent Bakery.
+# This file is managed via WATO, do not edit manually or you
+# lose your changes next time when you update the agent.
+
+cache_time: 300
+console: ''
+log: ''
+report: ''
+robotdir: /usr/lib/check_mk_agent/robot
+suites:
+  sampletest:
+    name: iwantanothername
+    variablefile:
+    - varfile.py:testing
+    variables:
+    - var1:value1
+    - var2:value2
+```
+### Integrate the new Robot E2E check into CheckMK
+
+As soon as the new agent is installed on the client, it starts to execute the robot test(s). You will notice that the service "CheckMK Discovery" turns to WARNING because it hs found the first result of out Robot test in the agent output. Let's integrate the new check into the monitoring!
+
+![desc](img/disc.gif)
+
+### Configure the E2E check
+
+Now we use the `RobotMK rule for discovered services` to 
+
+* set a threshold on `Subsuite3` on 5 seconds
+* draw performance data for every `Subsuite`
+
+![desc](img/ruleconf.gif)
+
+### Discovery level: split up a Robot tests into many CMK services
+
+Lastly, we decide every "Subsuite" in the Robot test to be represented as an own CheckMK service. 
+"Subsuite1-3" are one (1) level deeper from the top result level. Hence, we use the `Robot Framework Discovery Level rule` to set the discovery level from 0 (top level) to 1. 
+
+
+Why would you want to do this? 
+
+* See every test part in a **dedicated monitoring check** with its **own state**
+* Perhaps you already have **complex Robot tests** and you do not want to tear them apart 
+* Send **notifications for certain parts** of the tests to individual contacts
+* Generate **reports about different parts** of the test (e.g. open application, login, report generation)
+
+![desc](img/disc-level.gif)
 
 ## Development setup
 
@@ -114,15 +178,39 @@ The manual step to update the submodule is:
 git submodule update --init --recursive
 ```
 
+## TODO
+
+See the [Github Issues](https://github.com/simonmeggle/robotmk/issues) page for a complete list of feature requests, known bugs etc.
+
+Next development steps will be: 
+
+* Improve the Robot test scheduling/execution on the remote side. Fiddling with cache_time and a guessed maximum runtime of all tests in total is a compromise at best. I am planning to develop a "juggler" plugin mode, which allows to define an execution interval for each Robot test. Robot tests are started then as detached processes. The juggler always knows how many tests can be started at once.
+* Create a complete Docker-based test setup which covers all test scenarios. Why not test RobotMK's functionality with Robot/Selenium itself.
+* Robot produces nice HTML reports. Why not transport them to the CheckMK server and store in a dedicated shared folder. Then link CheckMK Robot checks to the corresponding HTML reports.  
+* Create a Docker container to execute Robot tests also in Containers. Expand the agent plugin to trigger Robot containers with API calls to Kubernetes and Docker Swarm to distribute E2E tests.  
+* Create dynamic area-stacked performance graphs in the CheckMK grapher. (No, I won't do this for PNP4Nagios)
+
+## Contributing
+
+If you want to help RobotMK to get better, you're warmly welcomed!
+
+* Fork this project
+* Create a feature branch with a name containing the issue number (or submit a new issue first), from the current `develop` branch. 
+* Always and often rebase your feature branch from `develop` 
+* Pull requests are welcome if they can be merged and solve a problem
+
+## License
+
+**RobotMK** is published unter the [GNU General Public License v3.0](https://spdx.org/licenses/GPL-3.0-or-later.html)
 
 ## Credits/Thanks
 
-### Co-workers
+### Contributions
 
-I want to express my thanks to the following people who help to make RobotMK better by submitting code: 
+Thanks to the following people who help to make RobotMK better by submitting code: 
 
-* Michael FRANK (checkMK agent plugin)
-* Guillaume DURVILLE (checkMK bakery rule)
+* Michael FRANK (contributed to the agent plugin)
+* Guillaume DURVILLE (contributed to the bakery rule)
 
 ### Supporters
 

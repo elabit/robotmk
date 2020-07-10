@@ -1,6 +1,23 @@
 #!/usr/bin/env python
 # -*- encoding: utf-8; py-indent-offset: 4 -*-
 
+# (c) 2020 Simon Meggle <simon.meggle@elabit.de>
+
+# This file is part of RobotMK
+# https://robotmk.org
+# https://github.com/simonmeggle/robotmk
+
+# RobotMK is free software;  you can redistribute it and/or modify it
+# under the  terms of the  GNU General Public License  as published by
+# the Free Software Foundation in version 3.  This file is distributed
+# in the hope that it will be useful, but WITHOUT ANY WARRANTY;  with-
+# out even the implied warranty of  MERCHANTABILITY  or  FITNESS FOR A
+# PARTICULAR PURPOSE. See the  GNU General Public License for more de-
+# ails.  You should have  received  a copy of the  GNU  General Public
+# License along with GNU Make; see the file  COPYING.  If  not,  write
+# to the Free Software Foundation, Inc., 51 Franklin St,  Fifth Floor,
+# Boston, MA 02110-1301 USA.
+
 import cmk.utils.paths
 import logging
 import yaml
@@ -19,7 +36,7 @@ def bake_robotmk(opsys, conf, conf_dir, plugins_dir):
         # TODO: Path validation
         os_newline = "\r\n"
         os_pluginname = "robotmk.py"
-        robot_global_conf.setdefault('robotdir', 'C:\ProgramData\checkmk\agent\robot')
+        robot_global_conf.setdefault('robotdir', "C:\\ProgramData\\checkmk\\agent\\robot")
         with Path(conf_dir, "check_mk.ini.plugins.zzz_%s" % os_pluginname).open("w") as out:
             out.write(u"    execution %s = async\r\n" % os_pluginname)
             out.write(u"    cache_age %s = %d\r\n" % (os_pluginname, robot_global_conf['cache_time']))
@@ -41,6 +58,13 @@ def bake_robotmk(opsys, conf, conf_dir, plugins_dir):
     
     # transform suites dict
     robot_test_suites_dict = { 'suites' : dict( (x,y) for x,y in (robot_test_suites)) }
+
+    # In the end, what counts is how the variable section in the bakery rule looks like. 
+    # It looks nices, but produces a list of tuples which we now transform into a dict. 
+    for (k1,v1) in robot_test_suites_dict['suites'].items():
+        for (k2,v2) in v1.items():
+            if k2 == 'variable':
+                v1.update({ 'variable': dict(v2) })
 
     with open(cfg_file,"w") as output_file:
         output_file.write(agent_file_header)
