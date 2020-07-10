@@ -8,6 +8,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## Unreleased
 
+## [v0.1.1] - 2020-07-10
+
 ### Fixed
 - Bakery: Wrong formatting of variable argument (#38)
 - Plugin: Backslash escaping of CheckMK programdata path (#37)
