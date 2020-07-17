@@ -148,7 +148,9 @@ class RFObject(object):
             patterns = checkgroup_parameters.get(setting, {}).get(setting_keyname, [])
             return pattern_match(patterns, self.name)
 
-        # Check for failed test
+        this_runtime_threshold = None
+        elapsed_sec = None
+        # Corner case: check for a failed test; it has no elapsed_sec
         if isinstance(self, RFTest) and self.critical: 
             my_rc = 2
             padding = (discovery_level - self.level_absolute)* -1 * u"\u2504"
@@ -174,7 +176,7 @@ class RFObject(object):
         # PERFDATA ---- Which elemens should produce performance data? 
         this_perfdata_value = get_pattern_value('perfdata_creation')
         my_perfdata = None
-        if this_perfdata_value: 
+        if this_perfdata_value and elapsed_sec != None: 
             perflabel = "%s_%s" % (self.id, self.name.replace(' ', '_'))
             if this_runtime_threshold: 
                 my_perfdata = (perflabel, "%.2f" % elapsed_sec, "%.2f" % this_runtime_threshold)
