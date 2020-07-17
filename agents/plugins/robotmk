@@ -22,17 +22,6 @@ import sys
 import shutil
 from pathlib import Path
 
-try:
-   import yaml
-except:
-   log_debug('You need pyYAML installed to run this plugin.')
-   exit(1)
-try:
-   from robot import run
-except:
-   log_debug('You need robotframework installed to run this plugin.')
-   exit(1)
-
 DEFAULTS = {
    'nt': {
       'agent_data_dir'  : 'C:/ProgramData/checkmk/agent',
@@ -190,4 +179,14 @@ def log(text):
    print('{text}')
 
 if __name__ == '__main__': 
+   try:
+      import yaml
+   except:
+      log_debug('You need pyYAML installed to run this plugin.')
+      exit(1)
+   try:
+      from robot import run
+   except:
+      log_debug('You need robotframework installed to run this plugin.')
+      exit(1)
    start()
