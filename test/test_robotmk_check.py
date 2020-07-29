@@ -70,7 +70,8 @@ check_test_params = [
     ('1S_3S_2S_3T', 'discovery_level_0', 0, '1S 3S 2S 3T', 'Subsuite1_1'),
     ('1S_3S_2S_3T', 'discovery_level_0', 0, '1S 3S 2S 3T', 'Subsuites_perfdata'),
     ('1S_3S_2S_3T', 'discovery_level_0', 0, '1S 3S 2S 3T', 'Tests_perfdata'),
-    ('1S_3S_2S_3T', 'discovery_level_0', 0, '1S 3S 2S 3T', 'runtime_test_2sec'),
+    ('1S_3S_2S_3T', 'discovery_level_0', 0, '1S 3S 2S 3T', 'runtime_test_2sec_warn'),
+    ('1S_3S_2S_3T', 'discovery_level_0', 0, '1S 3S 2S 3T', 'runtime_test_2sec_crit'),
     ('1S_3S_2S_3T', 'discovery_level_1', 1, 'Subsuite1',   None),
     ('1S_3S_2S_3T', 'discovery_level_1', 1, 'Subsuite3',   'Suite_Sub3_suites_2seconds'),
     ('1S_3S_2S_3T', 'discovery_level_2', 2, 'Sub1 suite1', None),
@@ -98,10 +99,9 @@ def test_check_mk(checks, monkeypatch, testsuite, inventory_rules, discovery_lev
             expected_perfdata = expected_perfdata_list[expected_index]
             # Value
             assert re.match(expected_perfdata[1], perfdata[1])
-            # Warning
-            if len(expected_perfdata) == 3: 
-                assert re.match(expected_perfdata[2], perfdata[2])
-
+            # Check perfdata if they are expected
+            if len(expected_perfdata) > 2: 
+                assert perfdata[2:] == expected_perfdata[2:]
 
 #   _          _                 
 #  | |        | |                

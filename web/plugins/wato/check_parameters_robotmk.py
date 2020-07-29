@@ -452,7 +452,7 @@ def _parameter_valuespec_robotmk():
             help = _('Define patterns here to assign runtime thresholds to suites, tests and keywords. <br>'
                     'A runtime exceedance always results in a WARN state and is propagated to the overall suite status.<br>'
                     'Always keep in mind that runtime monitoring is not a feature of Robot but RobotMK. This means that a Robot suite can have an internal OK state but WARN in CheckMK.<br>'
-                    'Patterns always start at the beginning.'
+                    'Patterns always start at the beginning. CRIT threshold must be bigger than WARN; values of 0 disable the threshold.'
             ),
             elements = [
                 ("runtime_threshold_suites", ListOf(  # /L2
@@ -467,9 +467,14 @@ def _parameter_valuespec_robotmk():
                                 size=60,
                             ),
                             Float(
-                                title=("WARN threshold (s)"),
+                                title=("WARN threshold (sec)"),
                                 allow_empty=False,
-                                size=6,
+                                size=19,
+                            ),                            
+                            Float(
+                                title=("CRIT threshold (sec)"),
+                                allow_empty=False,
+                                size=19,
                             ),                            
                         ],
                     ),  # L3 / Tuple
@@ -489,9 +494,14 @@ def _parameter_valuespec_robotmk():
                                 size=60,
                             ),
                             Float(
-                                title=("WARN threshold (s)"),
+                                title=("WARN threshold (sec)"),
                                 allow_empty=False,
-                                size=6,
+                                size=19,
+                            ),                            
+                            Float(
+                                title=("CRIT threshold (sec)"),
+                                allow_empty=False,
+                                size=19,
                             ),                            
                         ],
                     ),  # L3 / Tuple
@@ -511,9 +521,14 @@ def _parameter_valuespec_robotmk():
                                 size=60,
                             ),
                             Float(
-                                title=("WARN threshold (s)"),
+                                title=("WARN threshold (sec)"),
                                 allow_empty=False,
-                                size=6,
+                                size=19,
+                            ),                            
+                            Float(
+                                title=("CRIT threshold (sec)"),
+                                allow_empty=False,
+                                size=19,
                             ),                            
                         ],
                     ),  # L3 / Tuple
@@ -532,6 +547,7 @@ def _parameter_valuespec_robotmk():
                 ("perfdata_creation_suites", ListOfStrings(  # /L2
                     title = _('<b>Suite</b> perfdata'),
                     orientation="horizontal",
+                    allow_empty=False,
                     size=60,
                     
                 )), # L2 
@@ -539,11 +555,13 @@ def _parameter_valuespec_robotmk():
                ("perfdata_creation_tests", ListOfStrings(  # /L2
                     title = _('<b>Test</b> perfdata'),
                     orientation="horizontal",
+                    allow_empty=False,
                     size=60,
                 )), # L2                
                 ("perfdata_creation_keywords", ListOfStrings(  # /L2
                     title = _('<b>Keyword</b> perfdata'),
                     orientation="horizontal",
+                    allow_empty=False,
                     size=60,
                 )), # L2                                         
             ],
