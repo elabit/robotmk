@@ -239,7 +239,12 @@ class RFObject(object):
             worst_stateid = max(map(lambda x: x[0], my_result_branches))
             worststate = STATES[worst_stateid]
             # duplicate the first line for short_output
-            my_out_firstline = my_out + ", %s: %s" % (worststate, errors)
+            # first line can contain the end timestamp 
+            endtime_str = ""
+            if bool(checkgroup_parameters.get('includedate')):
+                o_endtime = datetime.datetime.strptime(self.endtime, '%Y%m%d %H:%M:%S.%f')
+                endtime_str = ", last execution: %s" % o_endtime.strftime('%m/%d, %H:%M:%S')
+            my_out_firstline = "%s%s, %s: %s" % (my_out, endtime_str, worststate, errors)
             my_result_firstline = [(my_rc, my_out_firstline)]
         else:
             my_result_firstline = []

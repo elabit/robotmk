@@ -547,7 +547,16 @@ def _parameter_valuespec_robotmk():
                     size=60,
                 )), # L2                                         
             ],
-        )), # L1 / perfdata_creation                          
+        )), # L1 / perfdata_creation         
+        ("includedate", DropdownChoice(
+            title=_("Include execution date in first output line"),
+            help=_("If checked, the first output line of the check will also contain the timestamp when the suite was finished."),
+            choices=[
+                ('yes', _('yes')),
+                ('no', _('no')),
+            ],
+            default_value="no",
+        )),                    
     ],)
 
 rulespec_registry.register(
