@@ -10,8 +10,15 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Added
 
-- Check: Add WATO option: include execution timestamp into first line (#41)
+## [v0.1.3] - 2020-0-16
+### Added 
+
 - Check: Introduce CRITICAL state for thresholds (#22)
+- Check: Add WATO option: include execution timestamp into first line (#41)
+
+### Fixed
+
+- Check: Solved check crash when only perfdata rule active, not threshold (#40)
 
 ## [v0.1.2] - 2020-07-10
 
