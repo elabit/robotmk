@@ -25,9 +25,9 @@
                     'svc_status': 0,
                     'svc_output': ".*?",
                     'perfdata'  : [
-                        ('s1-s1_Subsuite1', '\d+\.\d+', '8.00'), 
-                        ('s1-s2_Subsuite2', '\d+\.\d+', '8.00'), 
-                        ('s1-s3_Subsuite3', '\d+\.\d+', '8.00'),
+                        ('s1-s1_Subsuite1', '\d+\.\d+', '8.00', '10.00'), 
+                        ('s1-s2_Subsuite2', '\d+\.\d+', '8.00', '10.00'), 
+                        ('s1-s3_Subsuite3', '\d+\.\d+', '8.00', '10.00'),
                         ('s1-s3-s2_Sub3_suite2', '\d+\.\d+'),
                     ]
                 },
@@ -36,18 +36,23 @@
                     'svc_status': 0,
                     'svc_output': ".*?",
                     'perfdata'  : [
-                        ('s1-s1-s1-t2_Sleep_the_second_time_for_0.1_sec', '\d+\.\d+', '8.00'),
-                        ('s1-s1-s2-t2_Sleep_the_second_time_for_0.1_sec', '\d+\.\d+', '8.00'),
-                        ('s1-s2-s1-t2_Sleep_the_second_time_for_0.1_sec', '\d+\.\d+', '8.00'),
-                        ('s1-s2-s2-t2_Sleep_the_second_time_for_0.1_sec', '\d+\.\d+', '8.00'),
-                        ('s1-s3-s1-t2_Sleep_the_second_time_for_0.1_sec', '\d+\.\d+', '8.00'),
-                        ('s1-s3-s2-t2_Sleep_the_second_time_for_0.1_sec', '\d+\.\d+', '8.00'),
+                        ('s1-s1-s1-t2_Sleep_the_second_time_for_0.1_sec', '\d+\.\d+', '8.00', '10.00'),
+                        ('s1-s1-s2-t2_Sleep_the_second_time_for_0.1_sec', '\d+\.\d+', '8.00', '10.00'),
+                        ('s1-s2-s1-t2_Sleep_the_second_time_for_0.1_sec', '\d+\.\d+', '8.00', '10.00'),
+                        ('s1-s2-s2-t2_Sleep_the_second_time_for_0.1_sec', '\d+\.\d+', '8.00', '10.00'),
+                        ('s1-s3-s1-t2_Sleep_the_second_time_for_0.1_sec', '\d+\.\d+', '8.00', '10.00'),
+                        ('s1-s3-s2-t2_Sleep_the_second_time_for_0.1_sec', '\d+\.\d+', '8.00', '10.00'),
                     ]
                 },  
                 # Test that Tests "third time.*" are WARNING
-                'runtime_test_2sec': {
+                'runtime_test_2sec_warn': {
                     'svc_status': 1,
                     'svc_output': ".*?\[S\] '1S 3S 2S 3T': PASS \(\d+\.\d+s\), WARNING: Test 'Sleep the third time for 3 sec' over runtime.*?",
+                },                              
+                # Test that Tests "third time.*" are CRITICAL
+                'runtime_test_2sec_crit': {
+                    'svc_status': 2,
+                    'svc_output': ".*?\[S\] '1S 3S 2S 3T': PASS \(\d+\.\d+s\), CRITICAL: Test 'Sleep the third time for 3 sec' over runtime.*?",
                 },                              
             }
         },
