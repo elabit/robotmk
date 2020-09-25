@@ -8,7 +8,9 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## Unreleased
 
-### Added
+### Changed
+
+- Plugin: Set tmpdir on Windows to a fixed path (#47)
 
 ## [v0.1.3] - 2020-0-16
 ### Added 

@@ -26,7 +26,8 @@ DEFAULTS = {
    'nt': {
       'agent_data_dir'  : 'C:/ProgramData/checkmk/agent',
       'agent_cfg_dir'   : 'C:/ProgramData/checkmk/agent/config',
-      'outputdir'       : "str(Path(os.environ['TEMP']).joinpath('robot'))"
+      'outputdir'       : "C:/Windows/temp",
+      'logdir'       : "C:/Windows/temp",
    },
    'posix': {
       'agent_data_dir'  : '/usr/lib/check_mk_agent',
@@ -34,7 +35,8 @@ DEFAULTS = {
       'outputdir'       : "str('/tmp/robot')"
    },
    'noarch': {
-      'robotmk_yml'     : 'robotmk.yml'
+      'robotmk_yml'     : 'robotmk.yml',
+      'enable_logging'  : True
    }
 }
 
@@ -120,7 +122,7 @@ def get_env_config():
    if os.name in ['nt', 'posix']:
       agent_data_dir = Path(os.environ.setdefault('AGENT_DATA_DIR', DEFAULTS[os.name]['agent_data_dir']))
       agent_cfg_dir  = Path(os.environ.setdefault('AGENT_CFG_DIR', DEFAULTS[os.name]['agent_cfg_dir']))
-      outputdir =      Path(os.environ.setdefault('OUTPUTDIR', eval(DEFAULTS[os.name]['outputdir'])))
+      outputdir =      Path(os.environ.setdefault('OUTPUTDIR', DEFAULTS[os.name]['outputdir']))
       env_cfg = {
          'outputdir'   : outputdir,
          'robotdir'    : agent_data_dir.joinpath('robot'),
