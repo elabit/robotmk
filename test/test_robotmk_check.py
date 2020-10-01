@@ -28,6 +28,7 @@ inventory_test_params = [
     ('1S_3S_2S_3T', 'discovery_level_0', 0),
     ('1S_3S_2S_3T', 'discovery_level_1', 1),
     ('1S_3S_2S_3T', 'discovery_level_2', 2),
+    ('archivetool', 'discovery_level_2', 2),
 ]
 @pytest.mark.parametrize("testsuite, inventory_rules, discovery_level", inventory_test_params)
 def test_inventory_mk(checks, monkeypatch, testsuite, inventory_rules, discovery_level):
@@ -56,26 +57,27 @@ check_test_params = [
     # 2 inventory_rule filename (without .py extension)
     # 3 discovery_level
     # 4 check item
-    # 5 checkgroup_parameters file name (without .py extension)
+    # 5 checkgroup_parameters file in test/fixtures/checkgroup_parameters (without .py extension)
 
     # The value of 3) is always what the patterns in 2) should result in
 
     # 1             2                    3  4              5
-    ('1S_3T',       'discovery_level_0', 0, '1S 3T',       None),
+    ('1S_3T',       'discovery_level_0', 0, '1S 3T',        None),
     ('1S_3T',       'discovery_level_0', 0, '1S 3T',       'MySleepSleep_0'),
     ('1S_3T',       'discovery_level_0', 0, '1S 3T',       'MySleepSleep_1'),
     ('1S_3T',       'discovery_level_0', 0, '1S 3T',       'MySleep_perfdata'),
-    ('1S_3S_2S_3T', 'discovery_level_0', 0, '1S 3S 2S 3T', None),
+    ('1S_3S_2S_3T', 'discovery_level_0', 0, '1S 3S 2S 3T',  None),
     ('1S_3S_2S_3T', 'discovery_level_0', 0, '1S 3S 2S 3T', 'Subsuite1_0'),
     ('1S_3S_2S_3T', 'discovery_level_0', 0, '1S 3S 2S 3T', 'Subsuite1_1'),
     ('1S_3S_2S_3T', 'discovery_level_0', 0, '1S 3S 2S 3T', 'Subsuites_perfdata'),
     ('1S_3S_2S_3T', 'discovery_level_0', 0, '1S 3S 2S 3T', 'Tests_perfdata'),
     ('1S_3S_2S_3T', 'discovery_level_0', 0, '1S 3S 2S 3T', 'runtime_test_2sec_warn'),
     ('1S_3S_2S_3T', 'discovery_level_0', 0, '1S 3S 2S 3T', 'runtime_test_2sec_crit'),
-    ('1S_3S_2S_3T', 'discovery_level_1', 1, 'Subsuite1',   None),
+    ('1S_3S_2S_3T', 'discovery_level_1', 1, 'Subsuite1',    None),
     ('1S_3S_2S_3T', 'discovery_level_1', 1, 'Subsuite3',   'Suite_Sub3_suites_2seconds'),
-    ('1S_3S_2S_3T', 'discovery_level_2', 2, 'Sub1 suite1', None),
-    ('1S_2T_fail',  'discovery_level_0', 0, '1S 2T fail',  None),
+    ('1S_3S_2S_3T', 'discovery_level_2', 2, 'Sub1 suite1',  None),
+    ('archivetool', 'discovery_level_2', 2, 'Robot ARCHIVETOOL Suche LKR AI', 'Perfdata_SDL2'),
+    ('1S_2T_fail',  'discovery_level_0', 0, '1S 2T fail',   None),
 ]
 @pytest.mark.parametrize("testsuite, inventory_rules, discovery_level, item, checkgroup_parameters", check_test_params)
 def test_check_mk(checks, monkeypatch, testsuite, inventory_rules, discovery_level, item, checkgroup_parameters):
