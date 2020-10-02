@@ -165,7 +165,7 @@ class RFObject(object):
         if isinstance(self, RFTest) and self.critical: 
             my_rc = 2
             pad_str = padding * u"\u2504"
-            my_out = ("%s %s %s '%s': %s (CRITICAL: %s)" % (pad_str, self.symbol_nok, self.abbr, self.name, self.status, self.text)).strip()
+            my_out = ("%s %s %s '%s': %s ((!!)): %s)" % (pad_str, self.symbol_nok, self.abbr, self.name, self.status, self.text)).strip()
             my_err = "%s '%s' failed with '%s'" % (str(self), self.name, self.text)
         else: 
             # RUNTIME EVALUTATION --- How long did Suites/Tests/Keywords run? 
@@ -175,14 +175,14 @@ class RFObject(object):
             # CRITICAL threshold exceeded?
             if bool(this_runtime_threshold) and elapsed_sec >= this_runtime_threshold[1]: 
                 my_rc = 2
-                runtime_str = "%.2fs, CRITICAL: > %.2fs" % (elapsed_sec, this_runtime_threshold[1])
+                runtime_str = "%.2fs, (!!): > %.2fs" % (elapsed_sec, this_runtime_threshold[1])
                 pad_str = padding * u"\u2504"
                 my_out = ("%s %s %s '%s': %s (%s)" % (pad_str, self.symbol_nok, self.abbr, self.name, self.status, runtime_str)).strip()
                 my_err = "%s '%s' over runtime" % (str(self), self.name)
             # WARNING threshold exceeded?
             elif bool(this_runtime_threshold) and elapsed_sec >= this_runtime_threshold[0]: 
                 my_rc = 1
-                runtime_str = "%.2fs, WARNING: > %.2fs" % (elapsed_sec, this_runtime_threshold[0])
+                runtime_str = "%.2fs, (!): > %.2fs" % (elapsed_sec, this_runtime_threshold[0])
                 pad_str = padding * u"\u2504"
                 my_out = ("%s %s %s '%s': %s (%s)" % (pad_str, self.symbol_nok, self.abbr, self.name, self.status, runtime_str)).strip()
                 my_err = "%s '%s' over runtime" % (str(self), self.name)

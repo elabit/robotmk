@@ -12,6 +12,10 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 - Plugin: Set tmpdir on Windows to a fixed path (#47)
 - Improved Logging (#48)
+- Check now makes use of HTML badges for WARN/CRIT (#52)
+
+### Fixed
+
 - No graphs when using a discovery level (#53)
 
 ## [v0.1.3] - 2020-0-16
