@@ -1,49 +1,37 @@
-#   List of dicts for DSL 0,1,2...
-#       inventory_suites: list of Suite names the inventory function should find
-#           check_suites: The name of the item to be checked by the check (see Argument #4 in 
-#           dict 'check_test_params' in front of the check test function
-#               checkgroup_parameters file in test/fixtures/checkgroup_parameters (without .py extension), 
-#               can containing anything which can be set in the check's WATO page
-#                   svc_status: The expected Nagios state of the suite
-#                   svc_output: A Regex which is expected to match the Output  
+#   1) List of dicts for DSL 0,1,2...
+#       2) inventory_suites: list of Suite names the inventory function should find
+#           3) check_item: The name of the item to be checked by the check (see Argument #4 in 
+#              dict 'check_test_params' in front of the check test function
+#               4) checkgroup_parameters file in test/fixtures/checkgroup_parameters (without .py extension), 
+#                  can containing anything which can be set in the check's WATO page
+#                   5) svc_status: The expected Nagios state of the suite
+#                   5) svc_output: A Regex which is expected to match the Output  
 
 [
     # discovery_suite_level 0
-    {},
+    {
+        'inventory_suites': ['Archivetool'],
+        'check_suites' : {
+            'Archivetool': {
+                # checkgroup_parameters file
+                'perfdata_all_tests': {
+                    'svc_status': 0,
+                    'svc_output': ".*'Archivetool': PASS.*, OK:.*'Archivetool': PASS.*'Archivetool': PASS.*",
+                },
+            }
+        },
+    },
     # discovery_suite_level 1
     {},
     # discovery_suite_level 2
     {
         'inventory_suites': ['DUMMY', 'ARCHIVETOOL Suche LKR AI', 'ARCHIVETOOL Suche LKR FR', 'ARCHIVETOOL Suche LKR OW', 'ARCHIVETOOL Suche LKR SG', 'ARCHIVETOOL Suche LKR SH', 'ARCHIVETOOL Suche LKR UR', 'ARCHIVETOOL Suche LKR ZH'],
         'check_suites' : {
-            '1S 3T': {
+            'Robot ARCHIVETOOL Suche LKR AI': {
                 # checkgroup_parameters file
-                None: {
+                'perfdata_all_tests': {
                     'svc_status': 0,
                     'svc_output': ".*'1S 3T': PASS",
-                },
-                # Check that Keyword MySleepSleep gets not recursed
-                'MySleepSleep_0': {
-                    'svc_status': 0,
-                    'svc_output': ".*\[T\] 'Test4 - 3 Nested Sleeps': PASS.*?\[K\] 'MySleepSleep': PASS \(\d+\.\d+s\)$"
-                },
-                # Check that Keyword MySleepSleep gets recursed only 1 level deep 
-                'MySleepSleep_1': {
-                    'svc_status': 0,
-                    'svc_output': ".*\[T\] 'Test4 - 3 Nested Sleeps': PASS.*?\[K\] 'MySleepSleep': PASS \(\d+\.\d+s\).*?\[K\] 'MySleep': PASS \(\d+\.\d+s\)$"
-                },
-                # Check Keyword perfdata for MySleep.*
-                'MySleep_perfdata': {
-                    'svc_status': 0,
-                    'svc_output': ".*",
-                    'perfdata'  : [
-                        ('s1-s1-t2-k1_MySleep', '\d+\.\d+'),
-                        ('s1-s1-t3-k1_MySleepSleep', '\d+\.\d+'),
-                        ('s1-s1-t3-k1-k1_MySleep', '\d+\.\d+'),
-                        ('s1-s1-t4-k1_MySleepSleepSleep', '\d+\.\d+'),
-                        ('s1-s1-t4-k1-k1_MySleepSleep', '\d+\.\d+'),
-                        ('s1-s1-t4-k1-k1-k1_MySleep', '\d+\.\d+'),
-                    ]
                 },
             }
         },

@@ -28,6 +28,7 @@ inventory_test_params = [
     ('1S_3S_2S_3T', 'discovery_level_0', 0),
     ('1S_3S_2S_3T', 'discovery_level_1', 1),
     ('1S_3S_2S_3T', 'discovery_level_2', 2),
+    ('archivetool', 'discovery_level_0', 0),
     ('archivetool', 'discovery_level_2', 2),
 ]
 @pytest.mark.parametrize("testsuite, inventory_rules, discovery_level", inventory_test_params)
@@ -56,8 +57,9 @@ check_test_params = [
     # 1 Test Suite folder
     # 2 inventory_rule filename (without .py extension)
     # 3 discovery_level
-    # 4 check item
-    # 5 checkgroup_parameters file in test/fixtures/checkgroup_parameters (without .py extension)
+    # 4 check item - that should be checked (see the item comment No. 3) in the suite's "expected.py")
+    # 5 checkgroup_parameters file in test/fixtures/checkgroup_parameters (without .py extension),
+    #   See the item comment No. 4) in the suite's "expected.py
 
     # The value of 3) is always what the patterns in 2) should result in
 
@@ -76,8 +78,9 @@ check_test_params = [
     ('1S_3S_2S_3T', 'discovery_level_1', 1, 'Subsuite1',    None),
     ('1S_3S_2S_3T', 'discovery_level_1', 1, 'Subsuite3',   'Suite_Sub3_suites_2seconds'),
     ('1S_3S_2S_3T', 'discovery_level_2', 2, 'Sub1 suite1',  None),
-    ('archivetool', 'discovery_level_2', 2, 'Robot ARCHIVETOOL Suche LKR AI', 'Perfdata_SDL2'),
     ('1S_2T_fail',  'discovery_level_0', 0, '1S 2T fail',   None),
+    ('archivetool', 'discovery_level_0', 0, 'Archivetool', 'perfdata_all_tests'),
+    ('archivetool', 'discovery_level_2', 2, 'Robot ARCHIVETOOL Suche LKR AI', 'perfdata_all_tests'),
 ]
 @pytest.mark.parametrize("testsuite, inventory_rules, discovery_level, item, checkgroup_parameters", check_test_params)
 def test_check_mk(checks, monkeypatch, testsuite, inventory_rules, discovery_level, item, checkgroup_parameters):
