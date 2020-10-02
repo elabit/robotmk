@@ -95,12 +95,6 @@
                     'svc_output': ".*\[S\] 'Sub1 suite1': PASS.*?\[S\] 'Sub1 suite1': PASS.*?\[T\] 'Sleep the first time for 0.1 sec': PASS.*?\[K\] 'Sleep': PASS",
                 }
             },
-            'Sub1 suite1': {
-                'Perfdata_SDL2': {
-                    'svc_status': 0,
-                    'svc_output': ".*\[S\] 'Sub1 suite1': PASS.*?\[S\] 'Sub1 suite1': PASS.*?\[T\] 'Sleep the first time for 0.1 sec': PASS.*?\[K\] 'Sleep': PASS",
-                }
-            },
         },
     },
 ]
