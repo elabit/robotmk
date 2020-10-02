@@ -51,6 +51,7 @@ def parse_robot(info):
     for xml in xmllist: 
         oxml = ET.fromstring(xml)
         suite, statistics, error =  (oxml.find('./suite'), oxml.find('./statistics'), oxml.find('./errors')) 
+        # find a matching pattern and use its discovery level 
         discovery_level = int(pattern_match(robot_discovery_level,suite.attrib['name'], 0))
         if not all(map(lambda x: x != None, [suite, statistics, error])):
             continue
@@ -71,6 +72,7 @@ def inventory_robot(robot_results):
 def check_robot(item, checkgroup_parameters, robot_result):
     if checkgroup_parameters == None: 
         checkgroup_parameters = {}
+    # list of pattern tuples which can apply the discovery level. 1st one matches.
     robot_discovery_level = get_setting('robot_discovery_level',[])
 
     for suite in robot_result:
