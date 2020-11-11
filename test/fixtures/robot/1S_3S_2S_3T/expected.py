@@ -80,7 +80,7 @@
                 # Two suites run for 3 seconds > 2 WARN
                 'Suite_Sub3_suites_2seconds': {
                     'svc_status': 1,
-                    'svc_output': ".*?\[S\] 'Subsuite3': PASS \(\d+\.\d+s\), WARNING: Suite 'Sub3 suite1' over runtime, Suite 'Sub3 suite2' over runtime.*?\[S\] 'Sub3 suite1': PASS \(\d+\.\d+s, WARNING: > \d+\.\d+s\).*?\[S\] 'Sub3 suite2': PASS \(\d+\.\d+s, WARNING: > \d+\.\d+s\)",
+                    'svc_output': ".*?\[S\] 'Subsuite3': PASS \(\d+\.\d+s\), WARNING: Suite 'Sub3 suite1' over runtime, Suite 'Sub3 suite2' over runtime.*?\[S\] 'Sub3 suite1': PASS \(\d+\.\d+s, \(!\): > \d+\.\d+s\).*?\[S\] 'Sub3 suite2': PASS \(\d+\.\d+s, \(!\): > \d+\.\d+s\)",
                 },
             }
         }
