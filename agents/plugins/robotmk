@@ -2,9 +2,11 @@
 
 # (c) 2020 Simon Meggle <simon.meggle@elabit.de>
 
-# This file is part of RobotMK
+# This file is part of RobotMK, a module for the integration of Robot
+# framework test results into Checkmk.
 # https://robotmk.org
 # https://github.com/simonmeggle/robotmk
+# https://robotframework.org/#tools
 
 # RobotMK is free software;  you can redistribute it and/or modify it
 # under the  terms of the  GNU General Public License  as published by
@@ -21,18 +23,21 @@ import os
 import sys
 import shutil
 from pathlib import Path
+from time import time
 import logging
 
 DEFAULTS = {
    'nt': {
       'agent_data_dir'  : 'C:/ProgramData/checkmk/agent',
       'agent_cfg_dir'   : 'C:/ProgramData/checkmk/agent/config',
+      'agent_spool_dir' : 'C:/ProgramData/checkmk/agent/spool',
       'outputdir'       : "C:/Windows/temp",
       'logdir'          : "C:/Windows/temp",
    },
    'posix': {
       'agent_data_dir'  : '/usr/lib/check_mk_agent',
       'agent_cfg_dir'   : '/etc/check_mk',
+      'agent_spool_dir' : '/var/lib/check_mk_agent/spool',
       'outputdir'       : "str('/tmp/robot')",
       'logdir'          : "/tmp/robotmk.log",
    },
@@ -86,9 +91,10 @@ def start():
 
       # Piggyback host
       if 'host' in suite_options:
-         host = suite_options.pop('host')
-         log_debug(f'Piggyback host: {host}')
+         piggybackhost = suite_options.pop('host')
+         log_debug(f'Piggyback host: {piggybackhost}')
       else:
+         piggybackhost = None
          log_debug('NO piggyback host defined.')
       
       # Preformat Variables to meet the Robot API requirement 
@@ -106,29 +112,75 @@ def start():
          log_error ('Please run robot command manually to see the error')
          break
       ######################## print output.xml to stdout #######################################
-      if 'host' in locals():
-         print(f'<<<<{host}>>>>')
-      print('<<<robotmk:sep(0)>>>')
+
       robot_xml = Path(suite_options['outputdir']).joinpath(suite).with_suffix('.xml')
+      process_result(suite, yml_cfg, robot_xml, piggybackhost)
+      log_info('#######################################################################')
+
+
+def process_result(suite, yml_cfg, robot_xml, piggybackhost):
+      if not os.path.exists(robot_xml): 
+         log_error(f'Cannot find Robot XML file {robot_xml}!')
+         exit(1)
+      now = str(time()).split('.')[0]
       try: 
          log_info(f'Reading result XML file {robot_xml}')
          with open (robot_xml, 'r') as f:
-            shutil.copyfileobj(f, sys.stdout)
-      except:
-            log_error(f'Cannot find Robot XML file {robot_xml}!')
+            #shutil.copyfileobj(f, sys.stdout)
+            xmldata = f.read()
+      except Exception as e:
+            log_error(f'Could not read {robot_xml}: {e}')
             exit(1)
-      log_info('#######################################################################')
+
+      if piggybackhost:
+         header_piggyback = f'<<<<{piggybackhost}>>>>\n'
+      else:
+         header_piggyback = ''
+
+      # WATO: key HXYM4gT3
+      # Keep it compatible: if key is not present, assume that the plugin was executed async by the agent. 
+      execution_type = yml_cfg.get('execution_type', 'cmk_async')
+
+      if execution_type == 'cmk_async':
+         log_info('Plugin was executed by CMK agent (mode: cmk_async), printing result to STDOUT')
+         resultstring = f'{header_piggyback}<<<robotmk:sep(0)>>>\n{xmldata}'
+         print(resultstring)
+      else: 
+         # win_task_spooldir = TBD!
+         if execution_type not in ('win_task_spooldir', 'external_spooldir'):
+            log_error(f'{yml_cfg["execution_type"]} is not a valid execution type!')
+            exit(1)
+         else:
+            log_info(f'Plugin was executed externally (mode: {yml_cfg["execution_type"]}), write result into spooldir')
+            cache_time = yml_cfg["cache_time"]
+            # Indicates CMK that this plugin has another timing that the agent polling
+            header_cached = f':cached({now},{cache_time})'
+            # Ex. 240_robotmk_footest = invalidate the result of this suite after 4 minutes
+            spoolfile = Path(yml_cfg['agent_spool_dir']).joinpath(f'{str(cache_time)}_robotmk_{suite}')
+            log_debug(f'Spoolfile name: {spoolfile}')
+            resultstring = f'{header_piggyback}<<<robotmk:sep(0){header_cached}>>>\n{xmldata}'  
+            try: 
+               with open (spoolfile, 'w') as f: 
+                  f.write(resultstring)
+            except Exception as e: 
+               log_error(f'Could not write spoolfile {spoolfile}!')
+               exit(1)
+
+         
+
 
 # returns the default config and overrides by env vars
 def get_env_config():
    if os.name in ['nt', 'posix']:
       agent_data_dir = Path(os.environ.setdefault('AGENT_DATA_DIR', DEFAULTS[os.name]['agent_data_dir']))
       agent_cfg_dir  = Path(os.environ.setdefault('AGENT_CFG_DIR', DEFAULTS[os.name]['agent_cfg_dir']))
+      agent_spool_dir  = Path(os.environ.setdefault('AGENT_SPOOL_DIR', DEFAULTS[os.name]['agent_spool_dir']))
       outputdir =      Path(os.environ.setdefault('OUTPUTDIR', DEFAULTS[os.name]['outputdir']))
       env_cfg = {
          'outputdir'   : outputdir,
          'robotdir'    : agent_data_dir.joinpath('robot'),
          'robotmk_yml' : agent_cfg_dir.joinpath(DEFAULTS['noarch']['robotmk_yml']),
+         'agent_spool_dir' : agent_spool_dir,
          'log'         : 'none',
          'console'     : 'none',
          'report'      : 'none',
@@ -197,8 +249,6 @@ def setup_logging():
          console.setFormatter(console_formatter)
          console.setLevel(logging.DEBUG)
          logger.addHandler(console)
-      
-      
 
 def log_debug(text):
    logger.debug(text)
@@ -212,13 +262,9 @@ def log_warning(text):
 def log_error(text):
    logger.error(text)
 
-
-
 def print_banner():
    log_info('')
-   log_info('#######################################################################')
    log_info('###########################     RobotMK     ###########################')
-   log_info('#######################################################################')
    log_info('               2020 Simon Meggle <simon.meggle@elabit.de> ')
    log_info('                      https://www.simon.meggle.de')
    log_info('')
