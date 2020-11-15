@@ -10,9 +10,20 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Changed
 
+### Fixed
+
+
+
+## [v0.1.4] - 2020-11-15
+### Added
+
+- Bakery/Check: Added spooldir mode; Robotmk plugin can be triggered externally, writes to spooldir of mk agent (#49)
+- Check now makes use of HTML badges for WARN/CRIT (#52)
+
+### Changed
+
 - Plugin: Set tmpdir on Windows to a fixed path (#47)
 - Improved Logging (#48)
-- Check now makes use of HTML badges for WARN/CRIT (#52)
 
 ### Fixed
 
