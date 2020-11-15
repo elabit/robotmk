@@ -17,11 +17,11 @@ The name `1S_3Snok_2S_3T` implies that on the second suite level an error will b
 
 ## How to add new tests
 
-### 1. create Robot suite
+### 1. create Robot suite (optional)
 First, create a new robot suite in a folder following the naming convention above. This folder can contain any number of suites/tests. 
 You should use suite/test/keyword names which are distinguishable, depending on the kind of test you want to write.
 
-### 2. create result data
+### 2. create result data (optional)
 The second step is to create the result data. The following command executes all robot tests and
 converts the XML result into JSON:  
 
@@ -36,6 +36,7 @@ This will create for each test suite:
 After this step, you have data to test directly in CheckMK/WATO as well as for development. 
 
 ### 3. Define the expected data
+
 Each test suite folder must contain a file `expected.py` which defines what the test should expect.
 
 ```
@@ -56,19 +57,10 @@ Each test suite folder must contain a file `expected.py` which defines what the 
 ```
 
 ### 4. Write the test
-#### Inventory tests
 
-In `test_robotmk_check.py` there is a list `inventory_test_params`. Each item in this list will generate _one_ test.
-The tuple elements of each item are
+In `test_robotmk_check.py` there is a list of tuples in front of each test function. 
 
-* name of the suite folder in `test/fixtures/robot/`
-* discovery suite level
+Pytest will create a test from each item out of this list. See the comment section before each list to see what the arguments are. 
 
-```
-inventory_test_params = [
-    ('1S_3T', 0),
-    ('1S_3S_2S_3T', 0),
-    ('1S_3S_2S_3T', 1),
-]
-```
+### 5. Execute the test
 

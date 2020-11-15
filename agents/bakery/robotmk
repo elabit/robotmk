@@ -21,40 +21,66 @@
 import cmk.utils.paths
 import logging
 import yaml
+import copy
 from cmk.utils.exceptions import MKGeneralException
 
+DEFAULTS = {
+    'windows': {
+        'newline'           : "\r\n",  
+        'robotdir'          : "C:\\ProgramData\\checkmk\\agent\\robot",  
+        'pluginname'        : 'robotmk.py',
+    },
+    'linux': {
+        'newline'           : "\n",   
+        'robotdir'          : "/usr/lib/check_mk_agent/robot", 
+        'pluginname'        : 'robotmk',
+    },
+    'noarch': {
+        'cache_time'        : 900,
+    }
+}
+
 def bake_robotmk(opsys, conf, conf_dir, plugins_dir):
-    robot_global_conf = conf.copy()
-    robot_test_suites = robot_global_conf.pop('suites')
+    lconf = copy.deepcopy(conf)
+    execution_type = lconf['execution'][0]
+    # this hash is the basis for building the YAML 
+    execution_conf = lconf['execution'][1][0]
+    # add the execution type to the config
+    execution_conf['execution_type'] = execution_type
+    # remove the suites, because we need to modify this first; append later
+    robot_test_suites = execution_conf.pop('suites')
     
-    robot_global_conf.setdefault('log', '')
-    robot_global_conf.setdefault('console', '')
-    robot_global_conf.setdefault('report', '')
-    robot_global_conf.setdefault('cache_time', 900)
+    execution_conf.setdefault('log', '')
+    execution_conf.setdefault('console', '')
+    execution_conf.setdefault('report', '')
+    execution_conf.setdefault('cache_time', DEFAULTS['noarch']['cache_time'])
+    execution_conf.setdefault('robotdir', DEFAULTS[opsys]['robotdir'])
+    os_newline = DEFAULTS[opsys]['newline']
+    # Linux: robotmk - Windows: robotmk.py
+    os_pluginname = DEFAULTS[opsys]['pluginname']
     cfg_file = conf_dir + "/robotmk.yml"
-    if opsys == "windows":
-        # TODO: Path validation
-        os_newline = "\r\n"
-        os_pluginname = "robotmk.py"
-        robot_global_conf.setdefault('robotdir', "C:\\ProgramData\\checkmk\\agent\\robot")
-        with Path(conf_dir, "check_mk.ini.plugins.zzz_%s" % os_pluginname).open("w") as out:
-            out.write(u"    execution %s = async\r\n" % os_pluginname)
-            out.write(u"    cache_age %s = %d\r\n" % (os_pluginname, robot_global_conf['cache_time']))
-            # Kill the plugin before the next async execution will start
-            out.write(u"    timeout %s = %d\r\n" % (os_pluginname, robot_global_conf['cache_time'] - 60))
-            out.write(u"\r\n")
-    elif opsys == "linux":
-        # TODO: Path validation
-        os_newline = "\n"
-        os_pluginname = "robotmk"
-        robot_global_conf.setdefault('robotdir', "/usr/lib/check_mk_agent/robot")
-        plugins_dir = Path(plugins_dir, "%s" % robot_global_conf['cache_time'])
-        plugins_dir.mkdir(parents=True, exist_ok=True)
-    else: 
-        raise MKGeneralException("Error in bakery plugin \"%s\": %s\n" %
-                                 ("robotmk", "RobotMK is supported on Windows and Linux only"))
-    
-    shutil.copy2(cmk.utils.paths.local_agents_dir + '/plugins/robotmk', str(plugins_dir) + '/' + os_pluginname)
+
+    # The plugin only gets deployed in async mode; when spooldir mode is used, 
+    # the rule "deploy custom files to agent" (package: robotomk) must be set,
+    # which installs the plugin into the bin folder inside the agent installation. 
+    if execution_type == "cmk_async": 
+        if opsys == "windows":
+            # async mode in Windows: write configfile
+            with Path(conf_dir, "check_mk.ini.plugins.zzz_%s" % os_pluginname).open("w") as out:
+                out.write(u"    execution %s = async\r\n" % os_pluginname)
+                out.write(u"    cache_age %s = %d\r\n" % (os_pluginname, execution_conf['cache_time']))
+                # Kill the plugin before the next async execution will start
+                out.write(u"    timeout %s = %d\r\n" % (os_pluginname, execution_conf['cache_time'] - 60))
+                out.write(u"\r\n")
+        elif opsys == "linux":
+            # async mode in Linux: "seconds"-subdir in plugins dir
+            plugins_dir = Path(plugins_dir, "%s" % execution_conf['cache_time'])
+            plugins_dir.mkdir(parents=True, exist_ok=True)
+        else: 
+            raise MKGeneralException("Error in bakery plugin \"%s\": %s\n" %
+                                    ("robotmk", "RobotMK is supported on Windows and Linux only"))
+        
+        shutil.copy2(cmk.utils.paths.local_agents_dir + '/plugins/robotmk', str(plugins_dir) + '/' + os_pluginname)
     
     # transform suites dict
     robot_test_suites_dict = { 'suites' : dict( (x,y) for x,y in (robot_test_suites)) }
@@ -68,7 +94,7 @@ def bake_robotmk(opsys, conf, conf_dir, plugins_dir):
 
     with open(cfg_file,"w") as output_file:
         output_file.write(agent_file_header)
-        yaml.safe_dump(robot_global_conf, output_file, line_break=os_newline, encoding='utf-8', allow_unicode=True)
+        yaml.safe_dump(execution_conf, output_file, line_break=os_newline, encoding='utf-8', allow_unicode=True)
         yaml.safe_dump(robot_test_suites_dict, output_file, line_break=os_newline, encoding='utf-8', allow_unicode=True)
 
 bakery_info["robotmk"] = {

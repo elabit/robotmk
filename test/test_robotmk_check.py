@@ -24,10 +24,12 @@ def test_check_info(checks):
 
 # Inventory test function
 inventory_test_params = [
-    ('1S_3T', 'discovery_level_0', 0),
-    ('1S_3S_2S_3T', 'discovery_level_0', 0),
-    ('1S_3S_2S_3T', 'discovery_level_1', 1),
-    ('1S_3S_2S_3T', 'discovery_level_2', 2),
+    ('1S_3T', 'dl_0', 0),
+    ('1S_3S_2S_3T', 'dl_0', 0),
+    ('1S_3S_2S_3T', 'dl_1', 1),
+    ('1S_3S_2S_3T', 'dl_2', 2),
+    ('archivetool', 'dl_0', 0),
+    ('archivetool', 'dl_2', 2),
 ]
 @pytest.mark.parametrize("testsuite, inventory_rules, discovery_level", inventory_test_params)
 def test_inventory_mk(checks, monkeypatch, testsuite, inventory_rules, discovery_level):
@@ -44,7 +46,7 @@ def test_multi_inventory_mk(checks, monkeypatch):
     mk_check_input = read_mk_input('1S_3T/input_check.json')
     # second suite
     mk_check_input.extend(read_mk_input('1S_3S_2S_3T/input_check.json'))
-    discovery_rules = read_mk_inventory_rules('discovery_level_0')
+    discovery_rules = read_mk_inventory_rules('dl_0')
     patch(checks.module, monkeypatch, discovery_rules)
     inventory = checks['robotmk'].inventory_mk(mk_check_input)
     assert_inventory(inventory, ['1S 3T', '1S 3S 2S 3T'])
@@ -55,27 +57,30 @@ check_test_params = [
     # 1 Test Suite folder
     # 2 inventory_rule filename (without .py extension)
     # 3 discovery_level
-    # 4 check item
-    # 5 checkgroup_parameters file name (without .py extension)
+    # 4 check item - that should be checked (see the item comment No. 3) in the suite's "expected.py")
+    # 5 checkgroup_parameters file in test/fixtures/checkgroup_parameters (without .py extension),
+    #   See the item comment No. 4) in the suite's "expected.py
 
-    # The value of 3) is always what the patterns in 2) should result in
+    # The value of 3) is the "item" = what the patterns in 2) should result in
 
     # 1             2                    3  4              5
-    ('1S_3T',       'discovery_level_0', 0, '1S 3T',       None),
-    ('1S_3T',       'discovery_level_0', 0, '1S 3T',       'MySleepSleep_0'),
-    ('1S_3T',       'discovery_level_0', 0, '1S 3T',       'MySleepSleep_1'),
-    ('1S_3T',       'discovery_level_0', 0, '1S 3T',       'MySleep_perfdata'),
-    ('1S_3S_2S_3T', 'discovery_level_0', 0, '1S 3S 2S 3T', None),
-    ('1S_3S_2S_3T', 'discovery_level_0', 0, '1S 3S 2S 3T', 'Subsuite1_0'),
-    ('1S_3S_2S_3T', 'discovery_level_0', 0, '1S 3S 2S 3T', 'Subsuite1_1'),
-    ('1S_3S_2S_3T', 'discovery_level_0', 0, '1S 3S 2S 3T', 'Subsuites_perfdata'),
-    ('1S_3S_2S_3T', 'discovery_level_0', 0, '1S 3S 2S 3T', 'Tests_perfdata'),
-    ('1S_3S_2S_3T', 'discovery_level_0', 0, '1S 3S 2S 3T', 'runtime_test_2sec_warn'),
-    ('1S_3S_2S_3T', 'discovery_level_0', 0, '1S 3S 2S 3T', 'runtime_test_2sec_crit'),
-    ('1S_3S_2S_3T', 'discovery_level_1', 1, 'Subsuite1',   None),
-    ('1S_3S_2S_3T', 'discovery_level_1', 1, 'Subsuite3',   'Suite_Sub3_suites_2seconds'),
-    ('1S_3S_2S_3T', 'discovery_level_2', 2, 'Sub1 suite1', None),
-    ('1S_2T_fail',  'discovery_level_0', 0, '1S 2T fail',  None),
+    ('1S_3T',       'dl_0', 0, '1S 3T',        None),
+    ('1S_3T',       'dl_0', 0, '1S 3T',       'MySleepSleep_0'),
+    ('1S_3T',       'dl_0', 0, '1S 3T',       'MySleepSleep_1'),
+    ('1S_3T',       'dl_0', 0, '1S 3T',       'MySleep_perfdata'),
+    ('1S_3S_2S_3T', 'dl_0', 0, '1S 3S 2S 3T',  None),
+    ('1S_3S_2S_3T', 'dl_0', 0, '1S 3S 2S 3T', 'Subsuite1_0'),
+    ('1S_3S_2S_3T', 'dl_0', 0, '1S 3S 2S 3T', 'Subsuite1_1'),
+    ('1S_3S_2S_3T', 'dl_0', 0, '1S 3S 2S 3T', 'Subsuites_perfdata'),
+    ('1S_3S_2S_3T', 'dl_0', 0, '1S 3S 2S 3T', 'Tests_perfdata'),
+    ('1S_3S_2S_3T', 'dl_0', 0, '1S 3S 2S 3T', 'runtime_test_2sec_warn'),
+    ('1S_3S_2S_3T', 'dl_0', 0, '1S 3S 2S 3T', 'runtime_test_2sec_crit'),
+    ('1S_3S_2S_3T', 'dl_1', 1, 'Subsuite1',    None),
+    ('1S_3S_2S_3T', 'dl_1', 1, 'Subsuite3',   'Suite_Sub3_suites_2seconds'),
+    ('1S_3S_2S_3T', 'dl_2', 2, 'Sub1 suite1',  None),
+    ('1S_2T_fail',  'dl_0', 0, '1S 2T fail',   None),
+    ('archivetool', 'dl_0', 0, 'Archivetool', 'perfdata_all_tests'),
+    ('archivetool', 'dl_2', 2, 'ARCHIVETOOL Suche LKR AI', 'perfdata_all_tests'),
 ]
 @pytest.mark.parametrize("testsuite, inventory_rules, discovery_level, item, checkgroup_parameters", check_test_params)
 def test_check_mk(checks, monkeypatch, testsuite, inventory_rules, discovery_level, item, checkgroup_parameters):
@@ -90,6 +95,7 @@ def test_check_mk(checks, monkeypatch, testsuite, inventory_rules, discovery_lev
     assert result[0]== expected_data['svc_status']
     expected_output = expected_data['svc_output']
     assert re.match(expected_output, result[1], re.DOTALL)
+    #iqLA3EOq
     if 'perfdata' in expected_data and expected_data['perfdata']: 
         expected_perfdata_list = expected_data['perfdata']
         expected_perflabels = [ x[0] for x in expected_perfdata_list]

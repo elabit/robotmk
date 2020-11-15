@@ -40,24 +40,28 @@ STATES = {
 # GRIFFEL WEG!! MUSS SEIN!
 inventory_robotmk_rules = []
 
-# info = one __or more__ robot XML results concatenated 
+# Input: one or more robot XML results, concatenated
+# returns:
+#   if discovery_level = 0 -> returns one RFSuite Object            
+#   if discovery_level > 0 -> depending on the structure, a list of custom result objects (RFSuite/RFTest or RFKeyword) 
 def parse_robot(info):
     robot_discovery_level = get_setting('robot_discovery_level',[])
     # stringify list of lists
     all_xmlstring = ''.join(map(str, [l[0] for l in info]))
     # identify XMLs
     xmllist = map(lambda x: '<?xml' + x, all_xmlstring.split('<?xml'))[1:]
-    robot_results = []
+    robot_metrics = []
     for xml in xmllist: 
         oxml = ET.fromstring(xml)
         suite, statistics, error =  (oxml.find('./suite'), oxml.find('./statistics'), oxml.find('./errors')) 
+        # find a matching pattern and use its discovery level 
         discovery_level = int(pattern_match(robot_discovery_level,suite.attrib['name'], 0))
         if not all(map(lambda x: x != None, [suite, statistics, error])):
             continue
-        robot_result = RobotMetrics(suite, statistics, error, discovery_level)
-        robot_results.extend(robot_result.data)
-    # list of RFSuite objects
-    return robot_results
+        robot_metric = RobotMetrics(suite, statistics, error, discovery_level)
+        robot_metrics.extend(robot_metric.data)
+    # list of RFSuite/RFTest or RFKeyword objects 
+    return robot_metrics
 
 def inventory_robot(robot_results):
     robot_service_prefix = get_setting('robot_service_prefix',[])
@@ -68,17 +72,22 @@ def inventory_robot(robot_results):
         # uncomment instead of yield to debug this method
         # print suite_name
 
-def check_robot(item, checkgroup_parameters, robot_result):
+def check_robot(item, checkgroup_parameters, robot_items):
     if checkgroup_parameters == None: 
         checkgroup_parameters = {}
+    # list of pattern tuples which can apply the discovery level. 1st one matches.
     robot_discovery_level = get_setting('robot_discovery_level',[])
 
-    for suite in robot_result:
+    for root_item in robot_items:
+        # If a Prefix was set, remove it before comparing
         item_without_prefix = strip_prefix(item)
-        if suite.name == item_without_prefix:
+        if root_item.name == item_without_prefix:
             discovery_level = int(pattern_match(robot_discovery_level, item_without_prefix, 0))
-            nagios_result = suite.nagios_result_recursive(checkgroup_parameters, discovery_level)
-            # worststate
+            # Remember what the type of this object tree is to be able to leave the 
+            # recursion at the right point. 
+            RFObject.root_class = type(root_item)
+            nagios_result = root_item.nagios_result_recursive(checkgroup_parameters, discovery_level)
+            # Each step/test/kw stores its own nagios-like result; get the max value
             rc = max(map(lambda x: x[0], nagios_result))
             # First element in nagios_result is a duplicate of the second; begin at index 1
             # Result elements have perfdata tuples on index 3; get only non-empty entries
@@ -152,26 +161,28 @@ class RFObject(object):
         padding = (discovery_level - self.level_absolute)* -1
         this_runtime_threshold = None
         elapsed_sec = None
-        # Corner case: check for a failed test; it has no elapsed_sec
+        # Corner case: is this a failed Test? If so, it has no elapsed_sec
         if isinstance(self, RFTest) and self.critical: 
             my_rc = 2
             pad_str = padding * u"\u2504"
-            my_out = ("%s %s %s '%s': %s (CRITICAL: %s)" % (pad_str, self.symbol_nok, self.abbr, self.name, self.status, self.text)).strip()
+            my_out = ("%s %s %s '%s': %s ((!!)): %s)" % (pad_str, self.symbol_nok, self.abbr, self.name, self.status, self.text)).strip()
             my_err = "%s '%s' failed with '%s'" % (str(self), self.name, self.text)
         else: 
             # RUNTIME EVALUTATION --- How long did Suites/Tests/Keywords run? 
             # thresholds set to 0 are ignored
             this_runtime_threshold = get_pattern_value('runtime_threshold')
             elapsed_sec = self.elapsedtime/float(1000)
+            # CRITICAL threshold exceeded?
             if bool(this_runtime_threshold) and elapsed_sec >= this_runtime_threshold[1]: 
                 my_rc = 2
-                runtime_str = "%.2fs, CRITICAL: > %.2fs" % (elapsed_sec, this_runtime_threshold[1])
+                runtime_str = "%.2fs, (!!): > %.2fs" % (elapsed_sec, this_runtime_threshold[1])
                 pad_str = padding * u"\u2504"
                 my_out = ("%s %s %s '%s': %s (%s)" % (pad_str, self.symbol_nok, self.abbr, self.name, self.status, runtime_str)).strip()
                 my_err = "%s '%s' over runtime" % (str(self), self.name)
+            # WARNING threshold exceeded?
             elif bool(this_runtime_threshold) and elapsed_sec >= this_runtime_threshold[0]: 
                 my_rc = 1
-                runtime_str = "%.2fs, WARNING: > %.2fs" % (elapsed_sec, this_runtime_threshold[0])
+                runtime_str = "%.2fs, (!): > %.2fs" % (elapsed_sec, this_runtime_threshold[0])
                 pad_str = padding * u"\u2504"
                 my_out = ("%s %s %s '%s': %s (%s)" % (pad_str, self.symbol_nok, self.abbr, self.name, self.status, runtime_str)).strip()
                 my_err = "%s '%s' over runtime" % (str(self), self.name)
@@ -184,9 +195,9 @@ class RFObject(object):
 
 
         # PERFDATA ---- Which elemens should produce performance data? 
-        this_perfdata_value = get_pattern_value('perfdata_creation')
+        perfdata_wanted = get_pattern_value('perfdata_creation')
         my_perfdata = None
-        if this_perfdata_value and elapsed_sec != None: 
+        if perfdata_wanted and elapsed_sec != None: 
             perflabel = "%s_%s" % (self.id, self.name.replace(' ', '_'))
             if this_runtime_threshold: 
                 my_perfdata = (
@@ -207,31 +218,35 @@ class RFObject(object):
         # t = this depth
         # nx = next depth
 
+        # next_depth_limit > 0  ->  we can descend
+        # next_depth_limit = 0  ->  we can descend, stop at next level
+        # next_depth_limit < 0  ->  we cannot descend anymore
+
         # i  t  nx
         # -----------
-        # n  n. n    #3
-        # n  0. -1   #4
-        # n  2. 1    #1 
-        #   
-        # 0. n  -1   #2
-        # 0  0. -1   #4
-        # 0  2. 1    #1 
-        #   
-        # 2  n  1    #2
-        # 2  0. -1   #4
-        # 2  2. 1    #1 
+        # n  n. n    # see note 3
+        # n  0. -1   # see note 4
+        # n  2. 1    # see note 1 
+        #    
+        # 0. n  -1   # see note 2
+        # 0  0. -1   # see note 4
+        # 0  2. 1    # see note 1 
+        #     
+        # 2  n  1    # see note 2
+        # 2  0. -1   # see note 4
+        # 2  2. 1    # see note 1 
 
         if this_depth_limit == None or this_depth_limit > 0: 
             if this_depth_limit > 0: 
-                #1 we can descend
+                # note 1: we can descend, calculate next deph from this level
                 next_depth_limit = this_depth_limit -1 
             else:  
-                # no pattern for this, decide from inherited value
+                # no pattern set for this level. Calculate next depth from inherited value
                 if depth_limit_inherited >= 0:    
-                    #2
+                    # note 2: 
                     next_depth_limit = depth_limit_inherited -1 
                 else: 
-                    #3
+                    # note 3: we can descend; on this level there is no limitation set.
                     next_depth_limit = None
         else: 
             #4 there's 0 defined, this overwrites inherited depth
@@ -247,8 +262,13 @@ class RFObject(object):
                 for subitem in sublist: 
                     my_result_branches.append(subitem)  
 
-        # Are we on the last recursion? 
-        if self.level_relative == 0 and str(self) == "Suite": 
+        # The recursion has reached the top node again, when 
+        # - we are on the top item of a suite or keyword hierarchy (tests are not nested). 
+        #   This is the case when the relative level went down to 0. 
+        # - the class type of this node is of the same type as the root_class.
+        #   (= dont' exit the recursion when the tree has a suite top node and
+        #   test has reached relative_level of 0... )
+        if self.level_relative == 0 and type(self) == self.root_class: 
             elements_with_errors = filter(lambda x: x[2], my_result_branches)
             errors = ', '.join([ x[2] for x in elements_with_errors])
             worst_stateid = max(map(lambda x: x[0], my_result_branches))
@@ -348,6 +368,8 @@ class RFKeyword(RFObject):
 # ==============================================================================
 # Visitor Class for Robot Result ===============================================
 # ==============================================================================
+# Takes a RF root suite object, returns one or more RFSuite/RFTest/RFKeyword result 
+# objects depending on the discovery_level  
 class RobotMetrics(object):
     def __init__(self, suite, statistics, error, discovery_level=0):
         self.discovery_level = discovery_level
@@ -391,9 +413,9 @@ class RobotMetrics(object):
         if keywords:
             subkw_objects = [ self.visit_keyword(keyword, statistics, error, level_absolute+1, 0, test.attrib['id'], ind+1) for ind, keyword in enumerate(keywords) ]
         
-        # ElementTree's XPath support is somehow... limited (no 'and')
+        # ElementTree's XPath support is somehow... limited (there is no 'and')
 
-        # Attention. Robot has another understanding of what's "ciritcal": "All test cases are considered critical by default". 
+        # Attention. Robot has another understanding of what's "critical": "All test cases are considered critical by default". 
         # (http://robotframework.org/robotframework/latest/RobotFrameworkUserGuide.html#setting-criticality)
         # For Robot, a FAILed test only can let the whole test run fail if it is marked as 'critical'.
         # For this reason, lets check for 'critical' as precondition and 'status' if it was an error.   
@@ -404,11 +426,14 @@ class RobotMetrics(object):
             critical = False
             text = ''
 
-
-        # level_relative = always 0, because tests are not nested. 
+        # level_relative: Suites and Keywords can be nested. WATO allows to set the maximum output depth
+        #   for both. This "relative" level starts individually at 0 for each Suite/Test so that we know
+        #   when it is time to exit the recursion.  
+        #   For Tests this value is always 0, because tests cannot be nested. 
         test_node = RFTest(
                 test.attrib['id'], 
                 level_absolute, 
+                # set relative level to 0 (no nesting possible)
                 0, 
                 test.attrib['name'],
                 test.find('status').attrib['status'], 

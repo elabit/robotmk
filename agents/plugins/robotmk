@@ -2,9 +2,11 @@
 
 # (c) 2020 Simon Meggle <simon.meggle@elabit.de>
 
-# This file is part of RobotMK
+# This file is part of RobotMK, a module for the integration of Robot
+# framework test results into Checkmk.
 # https://robotmk.org
 # https://github.com/simonmeggle/robotmk
+# https://robotframework.org/#tools
 
 # RobotMK is free software;  you can redistribute it and/or modify it
 # under the  terms of the  GNU General Public License  as published by
@@ -21,31 +23,35 @@ import os
 import sys
 import shutil
 from pathlib import Path
+from time import time
+import logging
 
 DEFAULTS = {
    'nt': {
       'agent_data_dir'  : 'C:/ProgramData/checkmk/agent',
       'agent_cfg_dir'   : 'C:/ProgramData/checkmk/agent/config',
-      'outputdir'       : "str(Path(os.environ['TEMP']).joinpath('robot'))"
+      'agent_spool_dir' : 'C:/ProgramData/checkmk/agent/spool',
+      'outputdir'       : "C:/Windows/temp",
+      'logdir'          : "C:/Windows/temp",
    },
    'posix': {
       'agent_data_dir'  : '/usr/lib/check_mk_agent',
       'agent_cfg_dir'   : '/etc/check_mk',
-      'outputdir'       : "str('/tmp/robot')"
+      'agent_spool_dir' : '/var/lib/check_mk_agent/spool',
+      'outputdir'       : "str('/tmp/robot')",
+      'logdir'          : "/tmp/robotmk.log",
    },
    'noarch': {
-      'robotmk_yml'     : 'robotmk.yml'
+      'robotmk_yml'     : 'robotmk.yml',
+      'enable_logging'  : True
    }
 }
-
-debug = 0
-if '--debug' in sys.argv: 
-   debug = 1
 
 # outputdir = final path where all outputfiles, logfiles and report files ends.
 # robotdir  = Location of Robot suite files/dirs
 def start():
-   log_debug('############### Starting preparation ###############')
+   setup_logging()
+   print_banner()
    # Default config (+ overrides by env)
    env_cfg = get_env_config()
    robotmk_yml = env_cfg.pop('robotmk_yml')
@@ -54,7 +60,7 @@ def start():
    Path(yml_cfg['outputdir']).mkdir(exist_ok=True)
    robotdir = Path(yml_cfg.pop('robotdir', None))
    if not os.path.exists(robotdir):
-      log_debug(f"ERROR: {robotdir} does not exist; no suites found to execute. Exiting.")
+      log_error(f"ERROR: {robotdir} does not exist; no suites found to execute. Exiting.")
       exit(1)
 
    #If no suites are defined we setup an empty suite dict.
@@ -65,28 +71,31 @@ def start():
    else: 
       yml_cfg.setdefault('suites',{})
    if len(yml_cfg['suites']) == 0:
-      log_debug(f'No suites specified in configuration file -> run all in {robotdir}:')
+      log_info(f'No suites specified in configuration file -> run all in {robotdir}:')
       for suite in robotdir.iterdir():
          log_debug(suite.name)
          yml_cfg['suites'].update({suite.name:{}})
 
    for suite,suite_options in yml_cfg['suites'].items():
-      log_debug(f'################# Start running suite: {suite} #####################')
-      log_debug(f'\tStarting robot suite: {robotdir.joinpath(suite)}')
+      log_info(f'--------- Robot suite: {robotdir.joinpath(suite)} ---------')
       #Lets test if the file or directory is available
       if not robotdir.joinpath(suite).exists():
-         log_debug(f'tSuite file or directory not found!')
+         log_warning(f'Suite file or directory not found!')
          continue
       if suite_options is None or len(suite_options) == 0: 
          suite_options = {}
-         log_debug(f'tNo suite_options set; Starting with default suite_options')
+         log_info(f'No suite_options set; Starting with default suite_options')
 
       # Update the suite cfg with global cfg   
       suite_options = apply_global_cfg(suite, suite_options, yml_cfg)
 
       # Piggyback host
       if 'host' in suite_options:
-         host = suite_options.pop('host')
+         piggybackhost = suite_options.pop('host')
+         log_debug(f'Piggyback host: {piggybackhost}')
+      else:
+         piggybackhost = None
+         log_debug('NO piggyback host defined.')
       
       # Preformat Variables to meet the Robot API requirement 
       # --variable name:value => ['name:value', 'name2:value2']
@@ -97,41 +106,90 @@ def start():
 
       ######################## Run robot run..... ###############################################
       rc = run(robotdir.joinpath(suite), **suite_options)
-      log_debug(f'Robot suite  {suite} finished with returncode: {rc}\n\tLess than 250 shows number of failed tests!')
+      log_info(f'Robot suite  {suite} finished with returncode: {rc}.')
       if rc > 250: 
-         print('\tRobot exited with error and no outputfile is generated.')
-         print ('\tPlease run robot command manually to see the error')
+         log_error('Robot exited with error and no outputfile is generated.')
+         log_error ('Please run robot command manually to see the error')
          break
       ######################## print output.xml to stdout #######################################
-      if 'host' in locals():
-         log_debug(f'Found piggy back host: {host}" in config')
-         print(f'<<<<{host}>>>>')
-      print('<<<robotmk:sep(0)>>>')
+
       robot_xml = Path(suite_options['outputdir']).joinpath(suite).with_suffix('.xml')
+      process_result(suite, yml_cfg, robot_xml, piggybackhost)
+      log_info('#######################################################################')
+
+
+def process_result(suite, yml_cfg, robot_xml, piggybackhost):
+      if not os.path.exists(robot_xml): 
+         log_error(f'Cannot find Robot XML file {robot_xml}!')
+         exit(1)
+      now = str(time()).split('.')[0]
       try: 
+         log_info(f'Reading result XML file {robot_xml}')
          with open (robot_xml, 'r') as f:
-            shutil.copyfileobj(f, sys.stdout)
-      except:
-            log_debug(f'ERROR: Cannot find Robot XML file {robot_xml}!')
+            #shutil.copyfileobj(f, sys.stdout)
+            xmldata = f.read()
+      except Exception as e:
+            log_error(f'Could not read {robot_xml}: {e}')
             exit(1)
+
+      if piggybackhost:
+         header_piggyback = f'<<<<{piggybackhost}>>>>\n'
+      else:
+         header_piggyback = ''
+
+      # WATO: key HXYM4gT3
+      # Keep it compatible: if key is not present, assume that the plugin was executed async by the agent. 
+      execution_type = yml_cfg.get('execution_type', 'cmk_async')
+
+      if execution_type == 'cmk_async':
+         log_info('Plugin was executed by CMK agent (mode: cmk_async), printing result to STDOUT')
+         resultstring = f'{header_piggyback}<<<robotmk:sep(0)>>>\n{xmldata}'
+         print(resultstring)
+      else: 
+         # win_task_spooldir = TBD!
+         if execution_type not in ('win_task_spooldir', 'external_spooldir'):
+            log_error(f'{yml_cfg["execution_type"]} is not a valid execution type!')
+            exit(1)
+         else:
+            log_info(f'Plugin was executed externally (mode: {yml_cfg["execution_type"]}), write result into spooldir')
+            cache_time = yml_cfg["cache_time"]
+            # Indicates CMK that this plugin has another timing that the agent polling
+            header_cached = f':cached({now},{cache_time})'
+            # Ex. 240_robotmk_footest = invalidate the result of this suite after 4 minutes
+            spoolfile = Path(yml_cfg['agent_spool_dir']).joinpath(f'{str(cache_time)}_robotmk_{suite}')
+            log_debug(f'Spoolfile name: {spoolfile}')
+            resultstring = f'{header_piggyback}<<<robotmk:sep(0){header_cached}>>>\n{xmldata}'  
+            try: 
+               with open (spoolfile, 'w') as f: 
+                  f.write(resultstring)
+            except Exception as e: 
+               log_error(f'Could not write spoolfile {spoolfile}!')
+               exit(1)
+
+         
+
 
 # returns the default config and overrides by env vars
 def get_env_config():
    if os.name in ['nt', 'posix']:
       agent_data_dir = Path(os.environ.setdefault('AGENT_DATA_DIR', DEFAULTS[os.name]['agent_data_dir']))
       agent_cfg_dir  = Path(os.environ.setdefault('AGENT_CFG_DIR', DEFAULTS[os.name]['agent_cfg_dir']))
-      outputdir =      Path(os.environ.setdefault('OUTPUTDIR', eval(DEFAULTS[os.name]['outputdir'])))
+      agent_spool_dir  = Path(os.environ.setdefault('AGENT_SPOOL_DIR', DEFAULTS[os.name]['agent_spool_dir']))
+      outputdir =      Path(os.environ.setdefault('OUTPUTDIR', DEFAULTS[os.name]['outputdir']))
       env_cfg = {
          'outputdir'   : outputdir,
          'robotdir'    : agent_data_dir.joinpath('robot'),
          'robotmk_yml' : agent_cfg_dir.joinpath(DEFAULTS['noarch']['robotmk_yml']),
+         'agent_spool_dir' : agent_spool_dir,
          'log'         : 'none',
          'console'     : 'none',
          'report'      : 'none',
          }
+      log_debug('Configuration defined by environment variables: ')
+      log_debug(env_cfg)
    else:
       # We are not on a supported OS
-      log_debug(f'OS Name {os.name} is not supported by robotmk')
+      log_error(f'OS Name {os.name} is not supported by robotmk')
       exit(1)
    return env_cfg
 
@@ -140,27 +198,28 @@ def get_env_config():
 # can also override global settings
 def read_yml(robotmk_yml, env_cfg):
    if os.access(robotmk_yml, os.R_OK):
-      log_debug(f'Found configuration file {robotmk_yml}')
       try:
+         log_debug(f'Reading configuration file {robotmk_yml}')
          with open(robotmk_yml, 'r') as stream:   
             env_cfg.update(yaml.safe_load(stream))
       except yaml.YAMLError as exc:
-         log_debug("\tError while parsing YAML file:")
-         if hasattr(exc, 'problem_mark') and debug:
+         log_error("Error while parsing YAML file:")
+         if hasattr(exc, 'problem_mark'):
             if exc.context != None:
-               log('\t  parser says:\n\t' + str(exc.problem_mark) + '\n\t  ' +
+               log_error('Parser says:\n\t' + str(exc.problem_mark) + '\n\t  ' +
                   str(exc.problem) + ' ' + str(exc.context) +
                   '\n\tPlease correct data and retry.')
             else:
-               log('\t  parser says\n\t' + str(exc.problem_mark) + '\n\t  ' +
+               log_error('\t  parser says\n\t' + str(exc.problem_mark) + '\n\t  ' +
                   str(exc.problem) + '\n\tPlease correct data and retry.')
          exit(1)
    else:
-      log_debug('No configuration file {robot_cfg} found, starting with defaults')
+      log_info('No configuration file {robot_cfg} found, starting with defaults')
    return env_cfg
 
 def apply_global_cfg(suite, suite_options, yml_cfg): 
-   if debug: 
+   # show Robot output on console while debugging
+   if '--verbose' in sys.argv:
       suite_options.update({'console':'verbose'})
    else:
       suite_options.update({'console':'none'})
@@ -171,12 +230,46 @@ def apply_global_cfg(suite, suite_options, yml_cfg):
    suite_options.setdefault('report',yml_cfg['report'])
    return suite_options
 
-def log_debug(text):
-   if debug:
-      print(f'{text}')
+def setup_logging():
+   if DEFAULTS['noarch']['enable_logging']:
+      global logger
+      logger = logging.getLogger('robotmk')
+      logger.setLevel(logging.DEBUG)
 
-def log(text):
-   print('{text}')
+      # File log
+      fh = logging.FileHandler(Path(DEFAULTS['nt']['logdir'] ).joinpath('robotmk.log'))
+      file_formatter = logging.Formatter(fmt='%(asctime)s %(levelname)s - %(message)s')
+      fh.setFormatter(file_formatter)
+      fh.setLevel(logging.DEBUG)
+      logger.addHandler(fh)
+      # stdout
+      if '--verbose' in sys.argv: 
+         console = logging.StreamHandler()
+         console_formatter = logging.Formatter(fmt='%(asctime)s %(levelname)s - %(message)s')
+         console.setFormatter(console_formatter)
+         console.setLevel(logging.DEBUG)
+         logger.addHandler(console)
+
+def log_debug(text):
+   logger.debug(text)
+
+def log_info(text):
+   logger.info(text)
+
+def log_warning(text):
+   logger.warning(text)
+
+def log_error(text):
+   logger.error(text)
+
+def print_banner():
+   log_info('')
+   log_info('###########################     RobotMK     ###########################')
+   log_info('               2020 Simon Meggle <simon.meggle@elabit.de> ')
+   log_info('                      https://www.simon.meggle.de')
+   log_info('')
+
+
 
 if __name__ == '__main__': 
    try:
