@@ -8,7 +8,8 @@ from shutil import copyfile
 
 parser = argparse.ArgumentParser(description='Generate ChecMK agent and check input from Robot XML result files')
 parser.add_argument("-f", "--file", help="Robot XML result file", required=True)
-parser.add_argument("-s", "--spooldir", help="CMK spooldir", default='/var/lib/check_mk_agent/spool', required=False)
+# default='/var/lib/check_mk_agent/spool'
+parser.add_argument("-s", "--spooldir", help="CMK spooldir", required=False)
 arg = parser.parse_args()
 filename = arg.file.replace('./', '')
 try:
@@ -22,9 +23,10 @@ try:
     with open(agent_input_filename, "w") as file:
         file.write('<<<robotmk:sep(0)>>>\n')
         file.writelines(xmldata)
-    spoolfile = '%s/robotmk_%s' % (arg.spooldir, suitename)
-    copyfile(agent_input_filename, spoolfile)
-    print "  -> %s" % spoolfile
+    if arg.spooldir: 
+        spoolfile = '%s/robotmk_%s' % (arg.spooldir, suitename)
+        copyfile(agent_input_filename, spoolfile)
+        print "  -> %s" % spoolfile
 
     # create data which CheckMK passes to the check ('list of lists')
     check_input_filename = "%s/input_check.json" % suitename
