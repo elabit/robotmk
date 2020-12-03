@@ -38,8 +38,8 @@ DEFAULTS = {
       'agent_data_dir'  : '/usr/lib/check_mk_agent',
       'agent_cfg_dir'   : '/etc/check_mk',
       'agent_spool_dir' : '/var/lib/check_mk_agent/spool',
-      'outputdir'       : "str('/tmp/robot')",
-      'logdir'          : "/tmp/robotmk.log",
+      'outputdir'       : "/tmp/robot",
+      'logdir'          : "/var/log/",
    },
    'noarch': {
       'robotmk_yml'     : 'robotmk.yml',
@@ -237,7 +237,7 @@ def setup_logging():
       logger.setLevel(logging.DEBUG)
 
       # File log
-      fh = logging.FileHandler(Path(DEFAULTS['nt']['logdir'] ).joinpath('robotmk.log'))
+      fh = logging.FileHandler(Path(DEFAULTS[os.name]['logdir'] ).joinpath('robotmk.log'))
       file_formatter = logging.Formatter(fmt='%(asctime)s %(levelname)s - %(message)s')
       fh.setFormatter(file_formatter)
       fh.setLevel(logging.DEBUG)
