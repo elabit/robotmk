@@ -1,0 +1,189 @@
+<<<robotmk:sep(0)>>>
+<?xml version="1.0" encoding="UTF-8"?>
+<robot generator="Robot 3.2.1 (Python 3.6.8 on linux)" generated="20201211 16:40:40.404" rpa="false">
+<suite id="s1" name="1 Alltest" source="/workspace/robotmk/test/fixtures/robot/1S_3T_all/1_alltest.robot">
+<test id="s1-t1" name="Test4 sleep and custom test msg">
+<kw name="Sleepingkw">
+<arguments>
+<arg>1</arg>
+</arguments>
+<kw name="Sleep" library="BuiltIn">
+<doc>Pauses the test executed for the given time.</doc>
+<arguments>
+<arg>${SEC}</arg>
+</arguments>
+<msg timestamp="20201211 16:40:41.429" level="INFO">Slept 1 second</msg>
+<status status="PASS" starttime="20201211 16:40:40.429" endtime="20201211 16:40:41.429"></status>
+</kw>
+<status status="PASS" starttime="20201211 16:40:40.428" endtime="20201211 16:40:41.430"></status>
+</kw>
+<kw name="Set Test Message" library="BuiltIn">
+<doc>Sets message for the current test case.</doc>
+<arguments>
+<arg>I have slept only one second.</arg>
+</arguments>
+<msg timestamp="20201211 16:40:41.430" level="INFO">Set test message to:
+I have slept only one second.</msg>
+<status status="PASS" starttime="20201211 16:40:41.430" endtime="20201211 16:40:41.430"></status>
+</kw>
+<status status="PASS" starttime="20201211 16:40:40.428" endtime="20201211 16:40:41.430" critical="yes">I have slept only one second.</status>
+</test>
+<test id="s1-t2" name="Test1 wrong assertion default msg">
+<kw name="Compare Numbers with default msg">
+<arguments>
+<arg>1</arg>
+<arg>2</arg>
+</arguments>
+<kw name="Should Be Equal As Integers" library="BuiltIn">
+<doc>Fails if objects are unequal after converting them to integers.</doc>
+<arguments>
+<arg>${NO1}</arg>
+<arg>${NO2}</arg>
+</arguments>
+<msg timestamp="20201211 16:40:41.432" level="FAIL">1 != 2</msg>
+<status status="FAIL" starttime="20201211 16:40:41.432" endtime="20201211 16:40:41.432"></status>
+</kw>
+<status status="FAIL" starttime="20201211 16:40:41.431" endtime="20201211 16:40:41.432"></status>
+</kw>
+<status status="FAIL" starttime="20201211 16:40:41.431" endtime="20201211 16:40:41.432" critical="yes">1 != 2</status>
+</test>
+<test id="s1-t3" name="Test2 wrong assertion custom msg">
+<kw name="Compare Numbers with custom msg">
+<arguments>
+<arg>1</arg>
+<arg>2</arg>
+</arguments>
+<kw name="Should Be Equal As Integers" library="BuiltIn">
+<doc>Fails if objects are unequal after converting them to integers.</doc>
+<arguments>
+<arg>${NO1}</arg>
+<arg>${NO2}</arg>
+<arg>Custom message, no, these numbers are not equal!</arg>
+</arguments>
+<msg timestamp="20201211 16:40:41.434" level="FAIL">Custom message, no, these numbers are not equal!: 1 != 2</msg>
+<status status="FAIL" starttime="20201211 16:40:41.434" endtime="20201211 16:40:41.434"></status>
+</kw>
+<status status="FAIL" starttime="20201211 16:40:41.433" endtime="20201211 16:40:41.434"></status>
+</kw>
+<status status="FAIL" starttime="20201211 16:40:41.433" endtime="20201211 16:40:41.434" critical="yes">Custom message, no, these numbers are not equal!: 1 != 2</status>
+</test>
+<test id="s1-t4" name="Test3 wrong assertion wrapped">
+<kw name="Run Keyword And Return Status" library="BuiltIn">
+<doc>Runs the given keyword with given arguments and returns the status as a Boolean value.</doc>
+<arguments>
+<arg>Compare Numbers with custom msg</arg>
+<arg>1</arg>
+<arg>2</arg>
+</arguments>
+<assign>
+<var>${passed}</var>
+</assign>
+<kw name="Compare Numbers with custom msg">
+<arguments>
+<arg>1</arg>
+<arg>2</arg>
+</arguments>
+<kw name="Should Be Equal As Integers" library="BuiltIn">
+<doc>Fails if objects are unequal after converting them to integers.</doc>
+<arguments>
+<arg>${NO1}</arg>
+<arg>${NO2}</arg>
+<arg>Custom message, no, these numbers are not equal!</arg>
+</arguments>
+<msg timestamp="20201211 16:40:41.436" level="FAIL">Custom message, no, these numbers are not equal!: 1 != 2</msg>
+<status status="FAIL" starttime="20201211 16:40:41.436" endtime="20201211 16:40:41.436"></status>
+</kw>
+<status status="FAIL" starttime="20201211 16:40:41.435" endtime="20201211 16:40:41.436"></status>
+</kw>
+<msg timestamp="20201211 16:40:41.436" level="INFO">${passed} = False</msg>
+<status status="PASS" starttime="20201211 16:40:41.435" endtime="20201211 16:40:41.436"></status>
+</kw>
+<status status="PASS" starttime="20201211 16:40:41.435" endtime="20201211 16:40:41.437" critical="yes"></status>
+</test>
+<test id="s1-t5" name="Test5 with sleep and custom test msg">
+<kw name="Sleepingkw">
+<arguments>
+<arg>2</arg>
+</arguments>
+<kw name="Sleep" library="BuiltIn">
+<doc>Pauses the test executed for the given time.</doc>
+<arguments>
+<arg>${SEC}</arg>
+</arguments>
+<msg timestamp="20201211 16:40:43.438" level="INFO">Slept 2 seconds</msg>
+<status status="PASS" starttime="20201211 16:40:41.438" endtime="20201211 16:40:43.438"></status>
+</kw>
+<status status="PASS" starttime="20201211 16:40:41.437" endtime="20201211 16:40:43.439"></status>
+</kw>
+<kw name="Set Test Message" library="BuiltIn">
+<doc>Sets message for the current test case.</doc>
+<arguments>
+<arg>I have slept two seconds.</arg>
+</arguments>
+<msg timestamp="20201211 16:40:43.439" level="INFO">Set test message to:
+I have slept two seconds.</msg>
+<status status="PASS" starttime="20201211 16:40:43.439" endtime="20201211 16:40:43.440"></status>
+</kw>
+<status status="PASS" starttime="20201211 16:40:41.437" endtime="20201211 16:40:43.440" critical="yes">I have slept two seconds.</status>
+</test>
+<test id="s1-t6" name="Sleeptests">
+<kw name="Sleepingkw">
+<arguments>
+<arg>1</arg>
+</arguments>
+<kw name="Sleep" library="BuiltIn">
+<doc>Pauses the test executed for the given time.</doc>
+<arguments>
+<arg>${SEC}</arg>
+</arguments>
+<msg timestamp="20201211 16:40:44.442" level="INFO">Slept 1 second</msg>
+<status status="PASS" starttime="20201211 16:40:43.442" endtime="20201211 16:40:44.443"></status>
+</kw>
+<status status="PASS" starttime="20201211 16:40:43.441" endtime="20201211 16:40:44.443"></status>
+</kw>
+<kw name="Sleepingkw">
+<arguments>
+<arg>1</arg>
+</arguments>
+<kw name="Sleep" library="BuiltIn">
+<doc>Pauses the test executed for the given time.</doc>
+<arguments>
+<arg>${SEC}</arg>
+</arguments>
+<msg timestamp="20201211 16:40:45.444" level="INFO">Slept 1 second</msg>
+<status status="PASS" starttime="20201211 16:40:44.443" endtime="20201211 16:40:45.444"></status>
+</kw>
+<status status="PASS" starttime="20201211 16:40:44.443" endtime="20201211 16:40:45.444"></status>
+</kw>
+<kw name="Sleepingkw">
+<arguments>
+<arg>1</arg>
+</arguments>
+<kw name="Sleep" library="BuiltIn">
+<doc>Pauses the test executed for the given time.</doc>
+<arguments>
+<arg>${SEC}</arg>
+</arguments>
+<msg timestamp="20201211 16:40:46.445" level="INFO">Slept 1 second</msg>
+<status status="PASS" starttime="20201211 16:40:45.445" endtime="20201211 16:40:46.445"></status>
+</kw>
+<status status="PASS" starttime="20201211 16:40:45.444" endtime="20201211 16:40:46.446"></status>
+</kw>
+<status status="PASS" starttime="20201211 16:40:43.440" endtime="20201211 16:40:46.446" critical="yes"></status>
+</test>
+<status status="FAIL" starttime="20201211 16:40:40.405" endtime="20201211 16:40:46.447"></status>
+</suite>
+<statistics>
+<total>
+<stat pass="4" fail="2">Critical Tests</stat>
+<stat pass="4" fail="2">All Tests</stat>
+</total>
+<tag>
+</tag>
+<suite>
+<stat pass="4" fail="2" id="s1" name="1 Alltest">1 Alltest</stat>
+</suite>
+</statistics>
+<errors>
+</errors>
+</robot>

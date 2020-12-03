@@ -30,12 +30,14 @@ inventory_test_params = [
     ('1S_3S_2S_3T', 'dl_2', 2),
     ('archivetool', 'dl_0', 0),
     ('archivetool', 'dl_2', 2),
+    ('RunKeywordAndReturnStatus', 'dl_0', 0),
 ]
 @pytest.mark.parametrize("testsuite, inventory_rules, discovery_level", inventory_test_params)
 def test_inventory_mk(checks, monkeypatch, testsuite, inventory_rules, discovery_level):
     mk_check_input = read_mk_input(testsuite + '/input_check.json')
     discovery_rules = read_mk_inventory_rules(inventory_rules)
-    expected_data = read_expected_data(testsuite + '/expected.py')[discovery_level]
+    expected_data_content = read_expected_data(testsuite + '/expected.py')
+    expected_data = expected_data_content[discovery_level]
     patch(checks.module, monkeypatch, discovery_rules)
     inventory = checks['robotmk'].inventory_mk(mk_check_input)
     assert_inventory(inventory, expected_data['inventory_suites'])
@@ -63,11 +65,12 @@ check_test_params = [
 
     # The value of 3) is the "item" = what the patterns in 2) should result in
 
-    # 1             2                    3  4              5
+    # 1             2       3  4              5
     ('1S_3T',       'dl_0', 0, '1S 3T',        None),
     ('1S_3T',       'dl_0', 0, '1S 3T',       'MySleepSleep_0'),
     ('1S_3T',       'dl_0', 0, '1S 3T',       'MySleepSleep_1'),
     ('1S_3T',       'dl_0', 0, '1S 3T',       'MySleep_perfdata'),
+    ('1S_3T_all',   'dl_0', 0, '1 Alltest',   '1S_3T_all'),
     ('1S_3S_2S_3T', 'dl_0', 0, '1S 3S 2S 3T',  None),
     ('1S_3S_2S_3T', 'dl_0', 0, '1S 3S 2S 3T', 'Subsuite1_0'),
     ('1S_3S_2S_3T', 'dl_0', 0, '1S 3S 2S 3T', 'Subsuite1_1'),
@@ -81,13 +84,16 @@ check_test_params = [
     ('1S_2T_fail',  'dl_0', 0, '1S 2T fail',   None),
     ('archivetool', 'dl_0', 0, 'Archivetool', 'perfdata_all_tests'),
     ('archivetool', 'dl_2', 2, 'ARCHIVETOOL Suche LKR AI', 'perfdata_all_tests'),
+    ('RunKeywordAndReturnStatus', 'dl_0', 0, 'RunKeywordAndReturnStatus', None),
 ]
 @pytest.mark.parametrize("testsuite, inventory_rules, discovery_level, item, checkgroup_parameters", check_test_params)
 def test_check_mk(checks, monkeypatch, testsuite, inventory_rules, discovery_level, item, checkgroup_parameters):
     mk_check_input = read_mk_input('%s/input_check.json' % testsuite)
     discovery_rules = read_mk_inventory_rules(inventory_rules)
-    # FIXME remove expected
-    expected_data = read_expected_data(testsuite + '/expected.py')[discovery_level]['check_suites'][item][checkgroup_parameters]
+    
+    expected_data_content = read_expected_data(testsuite + '/expected.py')
+    expected_data_dl = expected_data_content[discovery_level]
+    expected_data = expected_data_dl['check_suites'][item][checkgroup_parameters]
     patch(checks.module, monkeypatch, discovery_rules)
     params = read_mk_checkgroup_params(checkgroup_parameters)
 

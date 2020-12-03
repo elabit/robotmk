@@ -1,0 +1,76 @@
+<<<robotmk:sep(0)>>>
+<?xml version="1.0" encoding="UTF-8"?>
+<robot generator="Robot 3.2.1 (Python 3.6.8 on linux)" generated="20201203 12:19:16.861" rpa="false">
+<suite id="s1" name="RunKeywordAndReturnStatus" source="/workspace/robotmk/test/fixtures/robot/RunKeywordAndReturnStatus/RunKeywordAndReturnStatus.robot">
+<test id="s1-t1" name="TestCase One">
+<kw name="Run Keyword And Return Status" library="BuiltIn">
+<doc>Runs the given keyword with given arguments and returns the status as a Boolean value.</doc>
+<arguments>
+<arg>Keyword With A False Assertion</arg>
+</arguments>
+<assign>
+<var>${passed}</var>
+</assign>
+<kw name="Keyword With A False Assertion">
+<kw name="Should Be Equal" library="BuiltIn">
+<doc>Fails if the given objects are unequal.</doc>
+<arguments>
+<arg>1</arg>
+<arg>2</arg>
+<arg>msg=I am sure that those numbers are not equal.</arg>
+</arguments>
+<msg timestamp="20201203 12:19:16.888" level="FAIL">I am sure that those numbers are not equal.: 1 != 2</msg>
+<status status="FAIL" starttime="20201203 12:19:16.887" endtime="20201203 12:19:16.888"></status>
+</kw>
+<status status="FAIL" starttime="20201203 12:19:16.887" endtime="20201203 12:19:16.888"></status>
+</kw>
+<msg timestamp="20201203 12:19:16.888" level="INFO">${passed} = False</msg>
+<status status="PASS" starttime="20201203 12:19:16.887" endtime="20201203 12:19:16.888"></status>
+</kw>
+<kw name="Set Test Message" library="BuiltIn">
+<doc>Sets message for the current test case.</doc>
+<arguments>
+<arg>This Test has failed...</arg>
+</arguments>
+<msg timestamp="20201203 12:19:16.888" level="INFO">Set test message to:
+This Test has failed...</msg>
+<status status="PASS" starttime="20201203 12:19:16.888" endtime="20201203 12:19:16.888"></status>
+</kw>
+<status status="PASS" starttime="20201203 12:19:16.886" endtime="20201203 12:19:16.889" critical="yes">This Test has failed...</status>
+</test>
+<test id="s1-t2" name="Test Case Two">
+<kw name="Should Be Equal" library="BuiltIn">
+<doc>Fails if the given objects are unequal.</doc>
+<arguments>
+<arg>2</arg>
+<arg>2</arg>
+</arguments>
+<status status="PASS" starttime="20201203 12:19:16.889" endtime="20201203 12:19:16.890"></status>
+</kw>
+<kw name="Set Test Message" library="BuiltIn">
+<doc>Sets message for the current test case.</doc>
+<arguments>
+<arg>Test showed that both numbers are equal.</arg>
+</arguments>
+<msg timestamp="20201203 12:19:16.890" level="INFO">Set test message to:
+Test showed that both numbers are equal.</msg>
+<status status="PASS" starttime="20201203 12:19:16.890" endtime="20201203 12:19:16.890"></status>
+</kw>
+<status status="PASS" starttime="20201203 12:19:16.889" endtime="20201203 12:19:16.890" critical="yes">Test showed that both numbers are equal.</status>
+</test>
+<status status="PASS" starttime="20201203 12:19:16.862" endtime="20201203 12:19:16.891"></status>
+</suite>
+<statistics>
+<total>
+<stat pass="2" fail="0">Critical Tests</stat>
+<stat pass="2" fail="0">All Tests</stat>
+</total>
+<tag>
+</tag>
+<suite>
+<stat pass="2" fail="0" id="s1" name="RunKeywordAndReturnStatus">RunKeywordAndReturnStatus</stat>
+</suite>
+</statistics>
+<errors>
+</errors>
+</robot>
