@@ -1,5 +1,5 @@
 #   1) List of dicts for DSL 0,1,2...
-#       2) inventory_suites: list of Suite names the inventory function should find
+#       2) inventory_items: list of Suite names the inventory function should find
 #           3) check_suites: The name of the item to be checked by the check (see Argument #4 in 
 #              dict 'check_test_params' in front of the check test function
 #               4) checkgroup_parameters file in test/fixtures/checkgroup_parameters (without .py extension), 
@@ -10,7 +10,7 @@
 [
     # discovery_suite_level 0
     {
-        'inventory_suites': ['1S 3S 2S 3T'],
+        'inventory_items': ['1S 3S 2S 3T'],
         'check_suites' : {
             # Suite name
             '1S 3S 2S 3T': {
@@ -68,7 +68,7 @@
     },
     # discovery_suite_level 1
     {
-        'inventory_suites': ['Subsuite1', 'Subsuite2', 'Subsuite3'],
+        'inventory_items': ['Subsuite1', 'Subsuite2', 'Subsuite3'],
         'check_suites' : {
             'Subsuite1': {
                 None: {
@@ -87,7 +87,7 @@
     },
     # discovery_suite_level 2
     {
-        'inventory_suites': ['Sub1 suite1', 'Sub1 suite2', 'Sub2 suite1', 'Sub2 suite2', 'Sub3 suite1', 'Sub3 suite2'],
+        'inventory_items': ['Sub1 suite1', 'Sub1 suite2', 'Sub2 suite1', 'Sub2 suite2', 'Sub3 suite1', 'Sub3 suite2'],
         'check_suites' : {
             'Sub1 suite1': {
                 None: {

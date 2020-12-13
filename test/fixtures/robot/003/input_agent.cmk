@@ -1,0 +1,67 @@
+<<<robotmk:sep(0)>>>
+<?xml version="1.0" encoding="UTF-8"?>
+<robot generator="Robot 3.2.1 (Python 3.6.8 on linux)" generated="20201214 10:02:40.547" rpa="false">
+<suite id="s1" name="Testsuite" source="/workspace/robotmk/test/fixtures/robot/003/testsuite.robot">
+<test id="s1-t1" name="TestCase 1 CheckWrappedKeyword">
+<kw name="Run Keyword And Return Status" library="BuiltIn">
+<doc>Runs the given keyword with given arguments and returns the status as a Boolean value.</doc>
+<arguments>
+<arg>Keyword With A False Assertion</arg>
+</arguments>
+<assign>
+<var>${passed}</var>
+</assign>
+<kw name="Keyword With A False Assertion">
+<kw name="Should Be Equal" library="BuiltIn">
+<doc>Fails if the given objects are unequal.</doc>
+<arguments>
+<arg>1</arg>
+<arg>2</arg>
+<arg>msg=This is a custom message for kw exception.</arg>
+</arguments>
+<msg timestamp="20201214 10:02:40.572" level="FAIL">This is a custom message for kw exception.: 1 != 2</msg>
+<status status="FAIL" starttime="20201214 10:02:40.572" endtime="20201214 10:02:40.572"></status>
+</kw>
+<status status="FAIL" starttime="20201214 10:02:40.571" endtime="20201214 10:02:40.572"></status>
+</kw>
+<msg timestamp="20201214 10:02:40.573" level="INFO">${passed} = False</msg>
+<status status="PASS" starttime="20201214 10:02:40.571" endtime="20201214 10:02:40.573"></status>
+</kw>
+<status status="PASS" starttime="20201214 10:02:40.571" endtime="20201214 10:02:40.573" critical="yes"></status>
+</test>
+<test id="s1-t2" name="TestCase 2 CustomTestMessage">
+<kw name="Should Be Equal" library="BuiltIn">
+<doc>Fails if the given objects are unequal.</doc>
+<arguments>
+<arg>2</arg>
+<arg>2</arg>
+</arguments>
+<status status="PASS" starttime="20201214 10:02:40.574" endtime="20201214 10:02:40.574"></status>
+</kw>
+<kw name="Set Test Message" library="BuiltIn">
+<doc>Sets message for the current test case.</doc>
+<arguments>
+<arg>This is a custom test message.</arg>
+</arguments>
+<msg timestamp="20201214 10:02:40.574" level="INFO">Set test message to:
+This is a custom test message.</msg>
+<status status="PASS" starttime="20201214 10:02:40.574" endtime="20201214 10:02:40.574"></status>
+</kw>
+<status status="PASS" starttime="20201214 10:02:40.573" endtime="20201214 10:02:40.575" critical="yes">This is a custom test message.</status>
+</test>
+<status status="PASS" starttime="20201214 10:02:40.548" endtime="20201214 10:02:40.575"></status>
+</suite>
+<statistics>
+<total>
+<stat pass="2" fail="0">Critical Tests</stat>
+<stat pass="2" fail="0">All Tests</stat>
+</total>
+<tag>
+</tag>
+<suite>
+<stat pass="2" fail="0" id="s1" name="Testsuite">Testsuite</stat>
+</suite>
+</statistics>
+<errors>
+</errors>
+</robot>

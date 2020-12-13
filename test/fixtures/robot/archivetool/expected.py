@@ -1,5 +1,5 @@
 #   1) List of dicts for DSL 0,1,2...
-#       2) inventory_suites: list of Suite names the inventory function should find
+#       2) inventory_items: list of Suite names the inventory function should find
 #           3) check_item: The name of the item to be checked by the check (see Argument #4 in 
 #              dict 'check_test_params' in front of the check test function
 #               4) checkgroup_parameters file in test/fixtures/checkgroup_parameters (without .py extension), 
@@ -11,7 +11,7 @@
 [
     # discovery_suite_level 0
     {
-        'inventory_suites': ['Archivetool'],
+        'inventory_items': ['Archivetool'],
         'check_suites' : {
             'Archivetool': {
                 # checkgroup_parameters file
@@ -26,7 +26,7 @@
     {},
     # discovery_suite_level 2
     {
-        'inventory_suites': ['DUMMY', 'ARCHIVETOOL Suche LKR AI', 'ARCHIVETOOL Suche LKR FR', 'ARCHIVETOOL Suche LKR OW', 'ARCHIVETOOL Suche LKR SG', 'ARCHIVETOOL Suche LKR SH', 'ARCHIVETOOL Suche LKR UR', 'ARCHIVETOOL Suche LKR ZH'],
+        'inventory_items': ['DUMMY', 'ARCHIVETOOL Suche LKR AI', 'ARCHIVETOOL Suche LKR FR', 'ARCHIVETOOL Suche LKR OW', 'ARCHIVETOOL Suche LKR SG', 'ARCHIVETOOL Suche LKR SH', 'ARCHIVETOOL Suche LKR UR', 'ARCHIVETOOL Suche LKR ZH'],
         'check_suites' : {
             'ARCHIVETOOL Suche LKR AI': {
                 # checkgroup_parameters file

@@ -99,20 +99,12 @@ def check_robot(item, checkgroup_parameters, robot_items):
         item_without_prefix = strip_prefix(item)
         if robot_item.name == item_without_prefix:
             discovery_level = int(pattern_match(robot_discovery_level, item_without_prefix, 0))
-            # Remember what the type of this object tree is to be able to leave the 
-            # recursion at the right point. 
-            #RFObject.root_class = type(robot_item)
-
-            # rc, out, perfdata
-            nagios_result = robot_item.get_checkmk_result(robot_item, checkgroup_parameters)
-            #nagios_result = robot_item.nagios_result_recursive(checkgroup_parameters, discovery_level)
-            # Each step/test/kw stores its own nagios-like result; get the max value
-            rc = max(map(lambda x: x[0], nagios_result))
-            # First element in nagios_result is a duplicate of the second; begin at index 1
-            # Result elements have perfdata tuples on index 3; get only non-empty entries
-            perf = [ x[3] for x in nagios_result[1:] if x[3] ]
-            output = '\n'.join([ i[1] for i in nagios_result])
-            return rc, output, perf
+            item_result = robot_item.get_checkmk_result(robot_item, checkgroup_parameters)
+            (rc, output_lines, perfdata) = (
+                item_result['worststate'], 
+                '\n'.join(item_result['padded_lines_list']),
+                item_result['cmk_perfdata_list'])
+            return rc, output_lines, perfdata
 
 # ==============================================================================
 
@@ -149,18 +141,21 @@ class RobotItem(object):
         self._item_nagios_status = max(self._item_nagios_status, int(state))
 
     def __init__(self, xmlnode, lv_abs, lv_rel, parent, index=None):
+        self.xmlnode = xmlnode
         self.lv_abs = lv_abs
         self.lv_rel = lv_rel
         self.parent = parent
         self.id = self._get_id(xmlnode, index)
         self.status = xmlnode.find('status').attrib['status'] 
-        self.text = xmlnode.findtext('status')
-        self.msg = xmlnode.findtext('msg') 
+        self.text = xmlnode.findtext('./status')
+        self.msg = xmlnode.findtext('./msg') 
 
         self.name   = xmlnode.attrib['name']
-        self.elapsed_time = self._get_node_elapsed_time(xmlnode)
+        self.elapsed_time = self._get_node_elapsed_time()
         self._item_nagios_status = 0
         self.result = {}
+        # list containing all messages from cmk_runtime, cmk_metric of sub nodes
+        self.sub_messages = []
 
         # Bool flag to indicate whether this is a node where messages should be added
         # (not needed for Keywords)
@@ -192,14 +187,14 @@ class RobotItem(object):
                 subnodes.append(node)
         return subnodes
 
-    def _get_node_elapsed_time(self, xmlnode):
+    def _get_node_elapsed_time(self):
         """Returns the time between given timestamps of a node in seconds."""
-        start_time = xmlnode.find('status').attrib['starttime'] 
-        end_time =   xmlnode.find('status').attrib['endtime'] 
-        if start_time == end_time or not (start_time and end_time):
+        self.start_time = self.xmlnode.find('status').attrib['starttime'] 
+        self.end_time =   self.xmlnode.find('status').attrib['endtime'] 
+        if self.start_time == self.end_time or not (self.start_time and self.end_time):
             return 0
-        start_millis = timestamp_to_millis(start_time)
-        end_millis = timestamp_to_millis(end_time)
+        start_millis = timestamp_to_millis(self.start_time)
+        end_millis = timestamp_to_millis(self.end_time)
         # start/end_millis can be long but we want to return int when possible
         return int(end_millis - start_millis)/float(1000)
     
@@ -214,13 +209,12 @@ class RobotItem(object):
         self.result['abbreviation'] = self.abbreviation
         self.result['xpath_name'] = self.xpath_name
         
-
     # Evalute the Robot status of this item to a Nagios state & set message  
     def _eval_node_robotframework_status(self):
         self.result['robotframework'] = [(ROBOT_NAGIOS[self.status], self.text)]
 
     # create the "base line" with the node name and the RF status
-    def _set_node_padded_line(self):
+    def _set_node_padded_line(self, check_params):
         # Padded line contains the Robot status; everyhting following (...) is monitoring related
         # ---- [K] 'MyKeyword': PASS (...)"
         badge = ''
@@ -229,36 +223,65 @@ class RobotItem(object):
             badge = STATE_BADGES[self.result['robotframework'][0][0]]
             if len(badge) > 0: 
                 badge = " " + badge
-        if self.text: 
-            text = ' (%s)' % self.text
+        
+        # Set the message text
+        text = ''
+        text_bracket = ''
+        # In RF, tests have the same text as kw msg. In Robotmk, messages of subelements
+        # are anyhow handed upwards with the node_top.sub_messages list. TO avoid duplicates,
+        # we remove the node_top's text if it is identical with the kw's msg.   
+        if type(self) == RobotKeyword:
+            # use the msg field as text
+            text = xstr(self.msg)
+            if self.msg == self.node_top.text: 
+                # the kw failed, this is why the test has the msg as text. Remove it.
+                self.node_top.text = ''
         else: 
-            text = ''
+            # This is a Test or Suite; use the text field. 
+            text = xstr(self.text)
 
+        if len(text) > 0: 
+            text_bracket = ' (%s)' % text
+        # set the unicode symbol
         if self.result['robotframework'] > 0: 
             status_symbol = self.symbol_nok
         else: 
             status_symbol = self.symbol_ok
-
-        baseline = ("%s %s %s '%s': %s%s%s" % (
+        # If configured, the topmost node can contain additional data: 
+        # - last suite execution 
+        # - 
+        endtime_str = ""
+        if self.parent == None and bool(check_params.get('includedate')):
+            endtime = datetime.datetime.strptime(self.end_time, '%Y%m%d %H:%M:%S.%f')
+            endtime_str = " (last execution: %s) " % endtime.strftime('%m/%d %H:%M:%S')
+        baseline = ("%s %s %s '%s': %s%s%s%s" % (
             self.padstring, 
             status_symbol, 
             self.abbreviation, 
             self.name, 
             self.status, 
+            endtime_str,
             badge,
-            text)
+            text_bracket)
         ).strip()  
-
-        node_results = [self.result[x] for x in self.result_keys if self.result[x]]
+        # Collect messages from node checks (runtime, metrics, ...) 
+        node_results = [self.result[x] for x in self.result_keys if x in self.result]
         node_messages = [item[1] for sublist in node_results for item in sublist if item[1]]
         # TODO: Perhaps make this configurable one day? 
         # If this is a top_node, add the messages from subelements: 
         if self.is_topnode and len(self.sub_messages) > 0: 
             node_messages.extend(self.sub_messages) 
-        # Add messages to the top_node.submessages (which is for kws: Test, for tests: Suite)
-        self.node_top.sub_messages.append("%s '%s': %s" % (self.abbreviation, self.name, ', '.join(node_messages)))
-        # Final padded node baseline + messages
-        self.result['padded_lines_list'] = ["%s, checks: %s" % (baseline, ', '.join(node_messages))]
+        messages_str = ""
+        # In some corner case (e.g. Set Test Message), the Node's text is also 
+        # contained in the node_messages. Remove it from there. 
+        if text in node_messages: 
+            node_messages.remove(text)
+        if len(node_messages) > 0: 
+            # Add messages to the top_node.submessages (which is for kws: Test, for tests: Suite)
+            self.node_top.sub_messages.append("%s '%s': %s" % (self.abbreviation, self.name, ', '.join(node_messages)))
+            messages_str = ", checks: %s" % ', '.join(node_messages)
+        # Final Line
+        self.result['padded_lines_list'] = ["%s%s" % (baseline, messages_str)]
         
 
     # sets status and message for this node with exceeded runtime
@@ -277,7 +300,9 @@ class RobotItem(object):
                 text = "%s runtime=%.2fs >= %.2fs" % (STATE_BADGES[nagios_status], self.elapsed_time, runtime_threshold[0])
             else:
                 nagios_status = 0
-                text = "runtime=%.2fs" % self.elapsed_time
+                # For OK checks, do not display the result
+                # text = "runtime=%.2fs" % self.elapsed_time
+                text = ""
 
             cmk_runtime = (nagios_status, text)
             self.result['cmk_runtime_list'] = [cmk_runtime]
@@ -309,8 +334,8 @@ class RobotItem(object):
     # This 
     def _eval_node_cmk_metric(self, check_params):
         #metric = self._get_pattern_value('metric', check_params)
-        # fixme
-        metric = True
+        # TODO TBD
+        metric = False
         if metric: 
             dummy_value = randint(100,999)
             dummy_value = 400
@@ -338,7 +363,6 @@ class RobotItem(object):
         # OUTPUT DEPTH --- how deep can we descend in nested suites/keywords?  
         depth_limit = self._get_pattern_value('output_depth', check_params)
         
-
         # i = inherited depth limit
         # t = this depth limit
         # nx = next depth limit
@@ -362,22 +386,26 @@ class RobotItem(object):
         # 2  0. -1   # see note 4
         # 2  2. 1    # see note 1 
 
+
+        # Now calculate the depth level for the next sub-item
+        next_depth_limit = None
         if depth_limit == None or depth_limit > 0: 
             if depth_limit > 0: 
                 # note 1: depth_limit is set, we can descend, calculate next deph from this level
-                self.next_depth_limit = depth_limit -1 
+                next_depth_limit = depth_limit -1 
             else:  
                 if depth_limit_inherited >= 0:    
                     # note 2: No depth limit set, but inherited value. Calculate new one.
-                    self.next_depth_limit = depth_limit_inherited -1 
+                    next_depth_limit = depth_limit_inherited -1 
                 else: 
                     # note 3: No depth limit, no inherited limit. Set next limit also to None.
-                    self.next_depth_limit = None
+                    next_depth_limit = None
         else: 
             #4 there's 0 defined, this overwrites inherited depth
-            self.next_depth_limit = -1  
+            next_depth_limit = -1  
         # return True if descending is allowed
-        return self.next_depth_limit == None or next_depth_limit > -1       
+        descend_allowed = next_depth_limit == None or next_depth_limit > -1       
+        return descend_allowed, next_depth_limit
 
     # This method combines the results of subnodes with the result of the current node. 
     # It determines a "WORST STATE" which can be propagated
@@ -393,16 +421,18 @@ class RobotItem(object):
     #     be CRITICAL. 
 
     def _eval_total_result(self):
-        # A) WORST STATE
-        # grab all results of this node
-        node_results = [self.result[x] for x in self.result_keys if self.result[x]]
-        if node_results:
-            # the overall node state
-            self.result['worststate'] = max([item[0] for sublist in node_results for item in sublist])
+        # NODE WORST STATE - grab all results of this node
+        node_results = [s for r in self.result_keys if r in self.result for s in self.result[r] if len(s)>0]
+        if len(node_results) > 0:
+            # maximum of all node result states
+            node_worststate = max([x[0] for x in node_results])
         else: 
             # theere is no result => OK
-            self.result['worststate'] = 0
-
+            node_worststate = 0
+        # SUBNODES WORST STATE
+        subnodes_worststate = 0
+        subnodes_worststate = max([ s['worststate'] for s in self.subresults if self.subresults] or [0]) 
+        self.result['worststate'] = max(node_worststate, subnodes_worststate)
 
     # Add all lines of subnodes to the current one
     def _merge_sub_padded_lines(self):
@@ -438,12 +468,13 @@ class RobotItem(object):
         
         # do the recursion
         self.subresults = []
-        if self._descending_allowed(depth_limit_inherited, check_params): 
+        (descend_allowed, next_depth_limit) = self._descending_allowed(depth_limit_inherited, check_params)
+        if descend_allowed:
             for subnode in self.subnodes:
                 subresult = subnode.get_checkmk_result(
                     node_top, 
                     check_params, 
-                    self.next_depth_limit)
+                    next_depth_limit)
                 self.subresults.append(subresult)
                 
 
@@ -455,7 +486,7 @@ class RobotItem(object):
         self._eval_node_cmk_perfdata(check_params)
         self._eval_node_cmk_metric(check_params)
         # now generate the padded line incl. the message
-        self._set_node_padded_line()
+        self._set_node_padded_line(check_params)
 
         # MERGE padded_lines and perfdata of sub-items
         self._merge_sub_padded_lines()
@@ -465,38 +496,7 @@ class RobotItem(object):
         # Now that all information about this node have been collected, evaluate 
         self._eval_total_result()
         
-
-        # self.parent.results['nodes'].append(self.result)
-
-        
         return self.result
-        # RETURNING 
-        # FIXME: if is topnode
-        # FIXME: is this needed? 
-        # # The recursion has reached the top node again, when 
-        # # - we are on the top item of a suite or keyword hierarchy (tests are not nested). 
-        # #   This is the case when the relative level went down to 0. 
-        # # - the class type of this node is of the same type as the root_class.
-        # #   (= dont' exit the recursion when the tree has a suite top node and
-        # #   test has reached relative_level of 0... )
-        # if self.level_relative == 0 and type(self) == self.root_class: 
-        #     elements_with_errors = filter(lambda x: x[2], my_result_branches)
-        #     errors = ', '.join([ x[2] for x in elements_with_errors])
-        #     worst_stateid = max(map(lambda x: x[0], my_result_branches))
-        #     worststate = STATES[worst_stateid]
-        #     # duplicate the first line for short_output
-        #     # first line can contain the end timestamp 
-        #     endtime_str = ""
-        #     if bool(checkgroup_parameters.get('includedate')):
-        #         o_endtime = datetime.datetime.strptime(self.endtime, '%Y%m%d %H:%M:%S.%f')
-        #         endtime_str = ", last execution: %s" % o_endtime.strftime('%m/%d %H:%M:%S')
-        #     my_out_firstline = "%s%s, %s: %s" % (item_out, endtime_str, worststate, errors)
-        #     my_result_firstline = [(item_rc, my_out_firstline)]
-        # else:
-        #     my_result_firstline = []
-            
-        # my_result = [(item_rc, item_out, item_error, self.perfdata)]
-        # return my_result_firstline + my_result + my_result_branches
 
 
 class RobotSuite(RobotItem):
@@ -515,8 +515,7 @@ class RobotSuite(RobotItem):
 
     def __init__(self, xmlnode, lv_abs, lv_rel, parent, index):
         super(RobotSuite, self).__init__(xmlnode, lv_abs, lv_rel, parent)
-        # list containing all messages from cmk_runtime, cmk_metric of sub nodes
-        self.sub_messages = []
+
 
     def __str__(self):
         return "Suite"
@@ -538,8 +537,6 @@ class RobotTest(RobotItem):
 
     def __init__(self, xmlnode, lv_abs, lv_rel, parent, index):
         super(RobotTest, self).__init__(xmlnode, lv_abs, lv_rel, parent)
-        # list containing all messages from cmk_runtime, cmk_metric of sub nodes
-        self.sub_messages = []   
      
         # FIXME needed? 
         # Stores the information if a test has the critical tag (only test with 
@@ -588,384 +585,6 @@ def parse_suite_xml(root_xml, lv_disc):
 
 
 
-# ==============================================================================
-# Classes for robot result objects =============================================
-# ==============================================================================
-class RFObject(object):
-    RF_STATE2NAGIOSID = {
-        'PASS'  : 0,
-        'FAIL'  : 2
-    }
-    RF_STATE2NAGIOSSTATUS = {
-        'PASS'  : 'OK',
-        'FAIL'  : 'CRIT'
-    }
-
-    def __init__(self, id, level_absolute, level_relative, name, status, starttime, endtime, elapsedtime, branches=[]):
-        self.id = id
-        # level_absolute is the absolute position in the suite tree. A RFMetrics object 
-        # with a discovery_level of 2 for example can result in on or more suites
-        # which each have a level_absolute if 2.  
-        self.level_absolute = level_absolute
-        # level_relative begins starts for each suites/tests/keywords at 0 (to control output_depth for suites/kws)
-        self.level_relative = level_relative
-        self.name = name
-        self.status = status
-        self.starttime = starttime
-        self.endtime = endtime
-        self.elapsedtime = elapsedtime
-        # FIXME assert branches type
-        self.branches = branches
-
-    # A short abbreviation for Suite/Test/Keyword - [S]/[T]/[K]
-    @property
-    def abbreviation(self):
-        return '[%s]' % str(self)[:1].upper()
-
-    @property
-    def nagios_stateid(self):
-        return self.RF_STATE2NAGIOSID[self.status]
-
-    @property
-    def nagios_status(self):
-        return self.RF_STATE2NAGIOSSTATUS[self.status]
-
-    @property
-    def nagios_perfdata(self):
-        return ( self.name, self.elapsedtime)
-
-    # returns status and RC of this node and subnodes
-    def nagios_result_recursive(self, checkgroup_parameters, discovery_level, depth_limit_inherited=None ):
-        # If the pattern for <setting> matches, return the value (if tuple) or True
-        def get_pattern_value(setting):
-            setting_keyname = getattr(self, "%s_dict_key" % setting)
-            patterns = checkgroup_parameters.get(setting, {}).get(setting_keyname, [])
-            return pattern_match(patterns, self.name)
-
-        # Number of chars for indentation
-        padding = (discovery_level - self.level_absolute)* -1
-        this_runtime_threshold = None
-        elapsed_sec = None
-        # Corner case: is this a failed Test? If so, it has no elapsed_sec
-        if isinstance(self, RFTest) and self.critical: 
-            my_rc = 2
-            my_out = ("%s %s %s '%s': %s ((!!)): %s)" % (pad_str, self.symbol_nok, self.abbr, self.name, self.status, self.text)).strip()
-            my_err = "%s '%s' failed with '%s'" % (str(self), self.name, self.text)
-        else: 
-            # RUNTIME EVALUTATION --- How long did Suites/Tests/Keywords run? 
-            # thresholds set to 0 are ignored
-            this_runtime_threshold = get_pattern_value('runtime_threshold')
-            elapsed_sec = self.elapsedtime/float(1000)
-            # CRITICAL threshold exceeded?
-            if bool(this_runtime_threshold) and elapsed_sec >= this_runtime_threshold[1]: 
-                my_rc = 2
-                runtime_str = "%.2fs, (!!): > %.2fs" % (elapsed_sec, this_runtime_threshold[1])
-                my_out = ("%s %s %s '%s': %s (%s)" % (pad_str, self.symbol_nok, self.abbr, self.name, self.status, runtime_str)).strip()
-                my_err = "%s '%s' over runtime" % (str(self), self.name)
-            # WARNING threshold exceeded?
-            elif bool(this_runtime_threshold) and elapsed_sec >= this_runtime_threshold[0]: 
-                my_rc = 1
-                runtime_str = "%.2fs, (!): > %.2fs" % (elapsed_sec, this_runtime_threshold[0])
-                my_out = ("%s %s %s '%s': %s (%s)" % (pad_str, self.symbol_nok, self.abbr, self.name, self.status, runtime_str)).strip()
-                my_err = "%s '%s' over runtime" % (str(self), self.name)
-            else:
-                my_rc = self.nagios_stateid
-                runtime_str = "%.2fs" % elapsed_sec
-                my_out = ("%s %s %s '%s': %s (%s)" % (pad_str, self.symbol_ok, self.abbr, self.name, self.status, runtime_str)).strip()
-                my_err = ''
-
-
-        # PERFDATA ---- Which elemens should produce performance data? 
-        perfdata_wanted = get_pattern_value('perfdata_creation')
-        self.perfdata = None
-        if perfdata_wanted and elapsed_sec != None: 
-            perflabel = "%s_%s" % (self.id, self.name.replace(' ', '_'))
-            if this_runtime_threshold: 
-                self.perfdata = (
-                    perflabel, 
-                    "%.2f" % elapsed_sec, 
-                    "%.2f" % this_runtime_threshold[0], 
-                    "%.2f" % this_runtime_threshold[1], 
-                )
-            else: 
-                self.perfdata = (perflabel, "%.2f" % elapsed_sec)
-
-        
-
-        # OUTPUT DEPTH --- how deep can we descend in nested suites/keywords?  
-        this_depth_limit = get_pattern_value('output_depth')
-
-        # i = inherited depth
-        # t = this depth
-        # nx = next depth
-
-        # next_depth_limit > 0  ->  we can descend
-        # next_depth_limit = 0  ->  we can descend, stop at next level
-        # next_depth_limit < 0  ->  we cannot descend anymore
-
-        # i  t  nx
-        # -----------
-        # n  n. n    # see note 3
-        # n  0. -1   # see note 4
-        # n  2. 1    # see note 1 
-        #    
-        # 0. n  -1   # see note 2
-        # 0  0. -1   # see note 4
-        # 0  2. 1    # see note 1 
-        #     
-        # 2  n  1    # see note 2
-        # 2  0. -1   # see note 4
-        # 2  2. 1    # see note 1 
-
-        if this_depth_limit == None or this_depth_limit > 0: 
-            if this_depth_limit > 0: 
-                # note 1: we can descend, calculate next deph from this level
-                next_depth_limit = this_depth_limit -1 
-            else:  
-                # no pattern set for this level. Calculate next depth from inherited value
-                if depth_limit_inherited >= 0:    
-                    # note 2: 
-                    next_depth_limit = depth_limit_inherited -1 
-                else: 
-                    # note 3: we can descend; on this level there is no limitation set.
-                    next_depth_limit = None
-        else: 
-            #4 there's 0 defined, this overwrites inherited depth
-            next_depth_limit = -1
-
-        # list of tuples holding all sub elements
-        my_result_branches = []
-        # Let's descend
-        if next_depth_limit == None or next_depth_limit > -1: 
-            sublists = [ subel.nagios_result_recursive(checkgroup_parameters, discovery_level, next_depth_limit) for subel in self.branches ]
-            # avoid nesting, flat the list
-            for sublist in sublists: 
-                for subitem in sublist: 
-                    my_result_branches.append(subitem)  
-
-        # The recursion has reached the top node again, when 
-        # - we are on the top item of a suite or keyword hierarchy (tests are not nested). 
-        #   This is the case when the relative level went down to 0. 
-        # - the class type of this node is of the same type as the root_class.
-        #   (= dont' exit the recursion when the tree has a suite top node and
-        #   test has reached relative_level of 0... )
-        if self.level_relative == 0 and type(self) == self.root_class: 
-            elements_with_errors = filter(lambda x: x[2], my_result_branches)
-            errors = ', '.join([ x[2] for x in elements_with_errors])
-            worst_stateid = max(map(lambda x: x[0], my_result_branches))
-            worststate = STATES[worst_stateid]
-            # duplicate the first line for short_output
-            # first line can contain the end timestamp 
-            endtime_str = ""
-            if bool(checkgroup_parameters.get('includedate')):
-                o_endtime = datetime.datetime.strptime(self.endtime, '%Y%m%d %H:%M:%S.%f')
-                endtime_str = ", last execution: %s" % o_endtime.strftime('%m/%d %H:%M:%S')
-            my_out_firstline = "%s%s, %s: %s" % (my_out, endtime_str, worststate, errors)
-            my_result_firstline = [(my_rc, my_out_firstline)]
-        else:
-            my_result_firstline = []
-            
-        my_result = [(my_rc, my_out, my_err, self.perfdata)]
-        return my_result_firstline + my_result + my_result_branches
-
-class RFSuite(RFObject):
-    def __init__(self, id, level_absolute, level_relative, name, status, starttime, endtime, elapsedtime, branches=[], text=''):
-        super(RFSuite, self).__init__(id, level_absolute, level_relative, name, status, starttime, endtime, elapsedtime, branches)
-        self.text = text
-
-    def __str__(self):
-        return "Suite"
-
-    @property
-    def symbol_ok(self):
-        return u"\u25ef"
-    @property
-    def symbol_nok(self):
-        return u"\u2b24"
-
-    @property
-    def output_depth_dict_key(self):
-        return "output_depth_suites"
-    @property
-    def runtime_threshold_dict_key(self):
-        return "runtime_threshold_suites"
-    @property
-    def perfdata_creation_dict_key(self):
-        return "perfdata_creation_suites"
-
-class RFTest(RFObject):
-    def __init__(self, id, level_absolute, level_relative, name, status, starttime, endtime, elapsedtime, branches=[], critical=False, text=''):
-        super(RFTest, self).__init__(id, level_absolute, level_relative, name, status, starttime, endtime, elapsedtime, branches)
-        # FIXME: needed? 
-        self.critical = critical
-        self.text = text
-
-    def __str__(self):
-        return "Test"
-    @property
-    def symbol_ok(self):
-        return u"\u25a1"
-    @property
-    def symbol_nok(self):
-        return u"\u25a0"
-
-    # not really needed, 'cause tests cannot be nested, hence there is no depth. 
-    # This is only to suppress nasty warnings. 
-    @property
-    def output_depth_dict_key(self):
-        return "output_depth_tests"
-    @property
-    def runtime_threshold_dict_key(self):
-        return "runtime_threshold_tests"
-    @property
-    def perfdata_creation_dict_key(self):
-        return "perfdata_creation_tests"        
-
-class RFKeyword(RFObject):
-    def __init__(self, id, level_absolute, level_relative, name, status, starttime, endtime, elapsedtime, branches=[], text=''):
-        super(RFKeyword, self).__init__(id, level_absolute, level_relative, name, status, starttime, endtime, elapsedtime, branches)
-        self.text = text
-
-    def __str__(self):
-        return "Keyword"
-
-    @property
-    def symbol_ok(self):
-        return u"\u25cb"
-    @property
-    def symbol_nok(self):
-        return u"\u25cf"
-
-    # which key in dict output_depth is holding the values for keywords
-    @property
-    def output_depth_dict_key(self):
-        return "output_depth_keywords"
-    @property
-    def runtime_threshold_dict_key(self):
-        return "runtime_threshold_keywords"
-    @property
-    def perfdata_creation_dict_key(self):
-        return "perfdata_creation_keywords"
-
-# ==============================================================================
-# Visitor Class for Robot Result ===============================================
-# ==============================================================================
-# Takes a RF root suite object, returns one or more RFSuite/RFTest/RFKeyword result 
-# objects depending on the discovery_level  
-class RobotMetrics(object):
-    def __init__(self, suite, statistics, error, discovery_level=0):
-        self.discovery_level = discovery_level
-        # data is holding the discovered items
-        self.data = []
-        self.visit_suite(suite, statistics, error)
-
-    def visit_suite(self, suite, statistics, error, level_absolute=0):
-        # (A suite can have suites and tests in it)
-        subsuites = suite.findall('suite')
-        subtests = suite.findall('test')
-        # Subsuites
-        if subsuites:
-            sub_objects = [ self.visit_suite(subsuite, statistics, error, level_absolute+1) for subsuite in subsuites ]
-        # Testcases
-        elif subtests:
-            sub_objects = [ self.visit_test(test, statistics, error, level_absolute+1) for test in subtests ]
-
-        suite_node = RFSuite(
-            suite.attrib['id'], 
-            level_absolute, 
-            level_absolute - self.discovery_level, 
-            suite.attrib['name'], 
-            suite.find('status').attrib['status'], 
-            suite.find('status').attrib['starttime'], 
-            suite.find('status').attrib['endtime'], 
-            get_elapsed_time(
-                suite.find('status').attrib['starttime'], 
-                suite.find('status').attrib['endtime'] 
-            ),
-            sub_objects,
-            suite.find('status').text
-        )
-
-
-        if level_absolute == self.discovery_level:
-            self.data.append(suite_node)
-        else:
-            return suite_node
-
-    def visit_test(self, test, statistics, error, level_absolute):
-        # (A test can only have keywords in it)
-        keywords = test.findall('kw')
-        if keywords:
-            subkw_objects = [ self.visit_keyword(keyword, statistics, error, level_absolute+1, 0, test.attrib['id'], ind+1) for ind, keyword in enumerate(keywords) ]
-        
-        # ElementTree's XPath support is somehow... limited (there is no 'and')
-
-        # Attention. Robot has another understanding of what's "critical": "All test cases are considered critical by default". 
-        # (http://robotframework.org/robotframework/latest/RobotFrameworkUserGuide.html#setting-criticality)
-        # For Robot, a FAILed test only can let the whole test run fail if it is marked as 'critical'.
-        # For this reason, lets check for 'critical' as precondition and 'status' if it was an error.   
-        
-        # FIXME: Needed? 
-        # if test.find('status[@status="FAIL"]') != None and test.find('status[@critical="yes"]') != None: 
-        #     critical = True
-        #     text = test.find('status[@critical="yes"]').text
-        # else:
-        #     critical = False
-        #     text = ''
-
-
-        # level_relative: Suites and Keywords can be nested. WATO allows to set the maximum output depth
-        #   for both. This "relative" level starts individually at 0 for each Suite/Test so that we know
-        #   when it is time to exit the recursion.  
-        #   For Tests this value is always 0, because tests cannot be nested. 
-        test_node = RFTest(
-                test.attrib['id'], 
-                level_absolute, 
-                # set relative level to 0 (no nesting possible)
-                0, 
-                test.attrib['name'],
-                test.find('status').attrib['status'], 
-                test.find('status').attrib['starttime'], 
-                test.find('status').attrib['endtime'], 
-                get_elapsed_time(
-                    test.find('status').attrib['starttime'], 
-                    test.find('status').attrib['endtime'] 
-                ),
-                subkw_objects, 
-                #critical,
-                test.find('status').text
-
-        )
-        if level_absolute == self.discovery_level:
-            self.data.append(test_node)
-        else:
-            return test_node
-
-    def visit_keyword(self, keyword, statistics, error, level_absolute, level_relative, parent_id, ind):
-        keyword_id = "%s-k%s" % (parent_id, ind)
-
-        # (A keyword can have keywords in it)
-        keywords = keyword.findall('kw')
-        subkw_objects = ()
-        if keywords:
-            subkw_objects = [ self.visit_keyword(subkeyword, statistics, error, level_absolute+1, level_relative+1, keyword_id, ind+1) for ind, subkeyword in enumerate(keywords) ]
-
-        keyword_node = RFKeyword(
-                keyword_id, 
-                level_absolute, 
-                level_relative, 
-                keyword.attrib['name'], 
-                keyword.find('status').attrib['status'], 
-                keyword.find('status').attrib['starttime'], 
-                keyword.find('status').attrib['endtime'], 
-                get_elapsed_time(keyword.find('status').attrib['starttime'], keyword.find('status').attrib['endtime'] ),
-                subkw_objects,
-                keyword.find('status').text
-        )
-        if level_absolute == self.discovery_level:
-            self.data.append(keyword_node)
-        else:
-            return keyword_node
 
 #   _          _                 
 #  | |        | |                
@@ -1017,17 +636,6 @@ def strip_prefix(suitename):
     else:
         return suitename
 
-# all following borrowed from robot-framework
-def get_elapsed_time(start_time, end_time):
-    """Returns the time between given timestamps in milliseconds."""
-    if start_time == end_time or not (start_time and end_time):
-        return 0
-    if start_time[:-4] == end_time[:-4]:
-        return int(end_time[-3:]) - int(start_time[-3:])
-    start_millis = timestamp_to_millis(start_time)
-    end_millis = timestamp_to_millis(end_time)
-    # start/end_millis can be long but we want to return int when possible
-    return int(end_millis - start_millis)
 
 def timestamp_to_millis(timestamp):
     Y, M, D, h, m, s, millis = split_timestamp(timestamp)
@@ -1049,6 +657,13 @@ def roundup(number, ndigits=0, return_type=None):
     if not return_type:
         return_type = float if ndigits > 0 else int
     return return_type(result)
+
+# Return an empty string for the string cast of None
+def xstr(s):
+    if s is None:
+        return ''
+    else:
+        return s
 
 
 #                   _       

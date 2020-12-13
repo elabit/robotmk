@@ -2,6 +2,7 @@
 
 from pytest_check_mk import OK, WARNING, CRITICAL, UNKNOWN
 import os
+import sys
 import pytest
 import ast
 import re
@@ -24,34 +25,40 @@ def test_check_info(checks):
 
 # Inventory test function
 inventory_test_params = [
-    ('1S_3T', 'dl_0', 0),
-    ('1S_3S_2S_3T', 'dl_0', 0),
-    ('1S_3S_2S_3T', 'dl_1', 1),
-    ('1S_3S_2S_3T', 'dl_2', 2),
-    ('archivetool', 'dl_0', 0),
-    ('archivetool', 'dl_2', 2),
-    ('RunKeywordAndReturnStatus', 'dl_0', 0),
+    ('001',         'dl_0', 0),
+    ('001',         'dl_1', 1),
+    ('001',         'dl_2', 2),
 ]
+
+    # mk_check_input = read_mk_input('%s/input_check.json' % testsuite)
+    # discovery_rules = read_mk_inventory_rules(testsuite, inventory_rules)
+    # expected_data = read_expected_data(testsuite, discovery_level, item, checkgroup_parameters)
+    
+    # patch(checks.module, monkeypatch, discovery_rules)
+    # params = read_mk_checkgroup_params(testsuite, checkgroup_parameters)
+
+    # result = checks['robotmk'].check_mk(item, params, mk_check_input) 
+    # expected_output = expected_data['svc_output']
+
 @pytest.mark.parametrize("testsuite, inventory_rules, discovery_level", inventory_test_params)
 def test_inventory_mk(checks, monkeypatch, testsuite, inventory_rules, discovery_level):
-    mk_check_input = read_mk_input(testsuite + '/input_check.json')
-    discovery_rules = read_mk_inventory_rules(inventory_rules)
-    expected_data_content = read_expected_data(testsuite + '/expected.py')
-    expected_data = expected_data_content[discovery_level]
+    mk_check_input = read_mk_input(testsuite)
+    discovery_rules = read_mk_inventory_rules(testsuite, inventory_rules)
+    expected_data = read_expected_data(testsuite, discovery_level)
     patch(checks.module, monkeypatch, discovery_rules)
     inventory = checks['robotmk'].inventory_mk(mk_check_input)
-    assert_inventory(inventory, expected_data['inventory_suites'])
+    assert_inventory(inventory, expected_data['inventory_items'])
 
-# Multiple Suite Inventory test function
-def test_multi_inventory_mk(checks, monkeypatch):
-    # first suite
-    mk_check_input = read_mk_input('1S_3T/input_check.json')
-    # second suite
-    mk_check_input.extend(read_mk_input('1S_3S_2S_3T/input_check.json'))
-    discovery_rules = read_mk_inventory_rules('dl_0')
-    patch(checks.module, monkeypatch, discovery_rules)
-    inventory = checks['robotmk'].inventory_mk(mk_check_input)
-    assert_inventory(inventory, ['1S 3T', '1S 3S 2S 3T'])
+# # Multiple Suite Inventory test function
+# def test_multi_inventory_mk(checks, monkeypatch):
+#     # first suite
+#     mk_check_input = read_mk_input('002')
+#     # second suite
+#     mk_check_input.extend(read_mk_input('003'))
+#     discovery_rules = read_mk_inventory_rules('001', inven)
+#     patch(checks.module, monkeypatch, discovery_rules)
+#     inventory = checks['robotmk'].inventory_mk(mk_check_input)
+#     assert_inventory(inventory, ['1S 3T', '1S 3S 2S 3T'])
 
 
 # Check test function
@@ -66,40 +73,38 @@ check_test_params = [
     # The value of 3) is the "item" = what the patterns in 2) should result in
 
     # 1             2       3  4              5
-    ('1S_3T',       'dl_0', 0, '1S 3T',        None),
-    ('1S_3T',       'dl_0', 0, '1S 3T',       'MySleepSleep_0'),
-    ('1S_3T',       'dl_0', 0, '1S 3T',       'MySleepSleep_1'),
-    ('1S_3T',       'dl_0', 0, '1S 3T',       'MySleep_perfdata'),
-    ('1S_3T_all',   'dl_0', 0, '1 Alltest',   '1S_3T_all'),
-    ('1S_3S_2S_3T', 'dl_0', 0, '1S 3S 2S 3T',  None),
-    ('1S_3S_2S_3T', 'dl_0', 0, '1S 3S 2S 3T', 'Subsuite1_0'),
-    ('1S_3S_2S_3T', 'dl_0', 0, '1S 3S 2S 3T', 'Subsuite1_1'),
-    ('1S_3S_2S_3T', 'dl_0', 0, '1S 3S 2S 3T', 'Subsuites_perfdata'),
-    ('1S_3S_2S_3T', 'dl_0', 0, '1S 3S 2S 3T', 'Tests_perfdata'),
-    ('1S_3S_2S_3T', 'dl_0', 0, '1S 3S 2S 3T', 'runtime_test_2sec_warn'),
-    ('1S_3S_2S_3T', 'dl_0', 0, '1S 3S 2S 3T', 'runtime_test_2sec_crit'),
-    ('1S_3S_2S_3T', 'dl_1', 1, 'Subsuite1',    None),
-    ('1S_3S_2S_3T', 'dl_1', 1, 'Subsuite3',   'Suite_Sub3_suites_2seconds'),
-    ('1S_3S_2S_3T', 'dl_2', 2, 'Sub1 suite1',  None),
-    ('1S_2T_fail',  'dl_0', 0, '1S 2T fail',   None),
-    ('archivetool', 'dl_0', 0, 'Archivetool', 'perfdata_all_tests'),
-    ('archivetool', 'dl_2', 2, 'ARCHIVETOOL Suche LKR AI', 'perfdata_all_tests'),
-    ('RunKeywordAndReturnStatus', 'dl_0', 0, 'RunKeywordAndReturnStatus', None),
+    # Discovery level 0,1,2 = Suite, Test, Keyword 
+    ('001',         'dl_0', 0, 'Testsuite',    None),
+    ('001',         'dl_1', 1, 'Testcase 1',   None),
+    ('001',         'dl_2', 2, 'Sleep',        None),
+    # Thresholds
+    ('001',         'dl_0', 0, 'Testsuite',    '001-thresholds_test_warn'),
+    ('001',         'dl_0', 0, 'Testsuite',    '002-thresholds_test_crit'),
+    ('001',         'dl_0', 0, 'Testsuite',    '003-thresholds_kw_warn'),
+    ('001',         'dl_0', 0, 'Testsuite',    '004-thresholds_kw_crit'),
+    ('001',         'dl_0', 0, 'Testsuite',    '005-thresholds_suite_warn'),
+    ('001',         'dl_0', 0, 'Testsuite',    '006-thresholds_suite_crit'),
+    ('001',         'dl_0', 0, 'Testsuite',    '007-thresholds_perfdata_all'),
+    ('001',         'dl_0', 0, 'Testsuite',    '008-includedate'),
+    # Output depth
+    ('002',         'dl_0', 0, 'Testsuite',    '001-output_depth_kw0'),
+    ('002',         'dl_0', 0, 'Testsuite',    '002-output_depth_kw1'),
+    ('002',         'dl_0', 0, 'Testsuite',    '003-output_depth_kw2'),
+    # Check if FAILed keyword gets catched by "Run Keyword And Return Status"
+    ('003',         'dl_0', 0, 'Testsuite',    None),
 ]
 @pytest.mark.parametrize("testsuite, inventory_rules, discovery_level, item, checkgroup_parameters", check_test_params)
 def test_check_mk(checks, monkeypatch, testsuite, inventory_rules, discovery_level, item, checkgroup_parameters):
-    mk_check_input = read_mk_input('%s/input_check.json' % testsuite)
-    discovery_rules = read_mk_inventory_rules(inventory_rules)
+    mk_check_input = read_mk_input(testsuite)
+    discovery_rules = read_mk_inventory_rules(testsuite, inventory_rules)
+    expected_data = read_expected_data(testsuite, discovery_level, item, checkgroup_parameters)
     
-    expected_data_content = read_expected_data(testsuite + '/expected.py')
-    expected_data_dl = expected_data_content[discovery_level]
-    expected_data = expected_data_dl['check_suites'][item][checkgroup_parameters]
     patch(checks.module, monkeypatch, discovery_rules)
-    params = read_mk_checkgroup_params(checkgroup_parameters)
+    params = read_mk_checkgroup_params(testsuite, checkgroup_parameters)
 
     result = checks['robotmk'].check_mk(item, params, mk_check_input) 
-    assert result[0]== expected_data['svc_status']
     expected_output = expected_data['svc_output']
+    assert result[0]== expected_data['svc_status']
     assert re.match(expected_output, result[1], re.DOTALL)
     #iqLA3EOq
     if 'perfdata' in expected_data and expected_data['perfdata']: 
@@ -124,28 +129,53 @@ def test_check_mk(checks, monkeypatch, testsuite, inventory_rules, discovery_lev
 #               | |              
 #               |_|              
 
-def read_mk_input(file):
-    datafile = 'test/fixtures/robot/' + file
+def read_mk_input(testsuite):
+    datafile = "test/fixtures/robot/%s/input_check.json" % (testsuite)
     return eval(open(datafile, 'r').read())
 
-def read_mk_checkgroup_params(file):
+# Load the WATO check settings
+def read_mk_checkgroup_params(testsuite, file):
     if file: 
-        paramfile = 'test/fixtures/checkgroup_parameters/%s.py' % file
-        try: 
-            params = eval(open(paramfile, 'r').read())
-        except: 
-            params = None
-        return params
+        datafile = "test/fixtures/robot/%s/check_params/%s.py" % (testsuite, file)
+        data = ast.literal_eval(open(datafile, 'r').read())
+        return data
     else: 
         return None
 
-def read_mk_inventory_rules(rulefile):
-    return eval(open('test/fixtures/inventory_robotmk_rules/%s.py' % rulefile).read())
-
-def read_expected_data(file):
-    datafile = 'test/fixtures/robot/' + file
+def read_mk_inventory_rules(testsuite, file):
+    datafile = "test/fixtures/robot/%s/inventory_rules/%s.py" % (testsuite, file)
     data = ast.literal_eval(open(datafile, 'r').read())
+    # return eval(open('test/fixtures/inventory_robotmk_rules/%s.py' % rulefile).read())
     return data
+
+def read_expected_data(testsuite, discovery_level, item=None, checkgroup_parameters=None):
+    datafile = "test/fixtures/robot/%s/expected.py" % testsuite
+    data = eval_file(datafile)
+    try: 
+        expected_data_dl = data[discovery_level]
+    except: 
+        print "ERROR: %s does not contain a valid entry for discovery level '%s'!" % (datafile, discovery_level)
+        sys.exit(1)
+    if item != None:
+        try:
+            expected_data = expected_data_dl['items'][item][checkgroup_parameters]
+        except: 
+            print "ERROR: %s does not contain a valid entry for either item '%s', discovery level %s and/or checkgroup_params '%s'!" % (
+                datafile, item, discovery_level, checkgroup_parameters)
+            sys.exit(1)
+    # for inventory
+    else: 
+        expected_data = expected_data_dl
+    return expected_data
+
+def eval_file(datafile):
+    try: 
+        data = ast.literal_eval(open(datafile, 'r').read())
+        return data
+    except: 
+        print "ERROR: File %s not readable!" % (datafile)
+        sys.exit(1)
+
 
 def patch(module, monkeypatch, data):
     # patch the data

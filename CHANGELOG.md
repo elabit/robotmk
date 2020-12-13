@@ -8,7 +8,17 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## Unreleased
 
+### Added
+
+
 ### Changed
+
+- WATO option "includedate": in the past, it contained the end timestamp of the node
+  itself. This could lead to misunderstandings if discovery level > 0 was used, because
+  last execution for services generated from tests were different. In fact this was true, 
+  but the interesting fact is when the _suite_ was executed last, not a subsuite or test. 
+  For this reason, the date is now the timestamp of the whole suite execution end.  
+
 
 ### Fixed
 
