@@ -125,7 +125,7 @@ def process_result(suite, yml_cfg, robot_xml, piggybackhost):
       now = str(time()).split('.')[0]
       try: 
          log_info(f'Reading result XML file {robot_xml}')
-         with open (robot_xml, 'r') as f:
+         with open (robot_xml, 'r', encoding='utf-8') as f:
             #shutil.copyfileobj(f, sys.stdout)
             xmldata = f.read()
       except Exception as e:
@@ -144,7 +144,11 @@ def process_result(suite, yml_cfg, robot_xml, piggybackhost):
       if execution_type == 'cmk_async':
          log_info('Plugin was executed by CMK agent (mode: cmk_async), printing result to STDOUT')
          resultstring = f'{header_piggyback}<<<robotmk:sep(0)>>>\n{xmldata}'
-         print(resultstring)
+         #resultstring = f'{header_piggyback}<<<robotmk:sep(0)>>>\n{xmldata.encode()}'
+         utf8stdout = open(1, 'w', encoding='utf-8', closefd=False) # fd 1 is stdout
+         print(resultstring, file=utf8stdout)
+
+         #print(resultstring)
       else: 
          # win_task_spooldir = TBD!
          if execution_type not in ('win_task_spooldir', 'external_spooldir'):
@@ -160,7 +164,7 @@ def process_result(suite, yml_cfg, robot_xml, piggybackhost):
             log_debug(f'Spoolfile name: {spoolfile}')
             resultstring = f'{header_piggyback}<<<robotmk:sep(0){header_cached}>>>\n{xmldata}'  
             try: 
-               with open (spoolfile, 'w') as f: 
+               with open (spoolfile, 'w', encoding='utf-8') as f: 
                   f.write(resultstring)
             except Exception as e: 
                log_error(f'Could not write spoolfile {spoolfile}!')
