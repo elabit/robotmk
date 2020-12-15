@@ -6,6 +6,7 @@ import sys
 import pytest
 import ast
 import re
+import codecs
 
 test_for = 'robotmk'
 
@@ -92,6 +93,7 @@ check_test_params = [
     ('002',         'dl_0', 0, 'Testsuite',    '003-output_depth_kw2'),
     # Check if FAILed keyword gets catched by "Run Keyword And Return Status"
     ('003',         'dl_0', 0, 'Testsuite',    None),
+    # ('999_gin',     'dl_0', 0, 'E2E-Gin',    None),
 ]
 @pytest.mark.parametrize("testsuite, inventory_rules, discovery_level, item, checkgroup_parameters", check_test_params)
 def test_check_mk(checks, monkeypatch, testsuite, inventory_rules, discovery_level, item, checkgroup_parameters):
@@ -131,20 +133,20 @@ def test_check_mk(checks, monkeypatch, testsuite, inventory_rules, discovery_lev
 
 def read_mk_input(testsuite):
     datafile = "test/fixtures/robot/%s/input_check.json" % (testsuite)
-    return eval(open(datafile, 'r').read())
+    return eval(codecs.open(datafile, 'r', 'utf-8').read())
 
 # Load the WATO check settings
 def read_mk_checkgroup_params(testsuite, file):
     if file: 
         datafile = "test/fixtures/robot/%s/check_params/%s.py" % (testsuite, file)
-        data = ast.literal_eval(open(datafile, 'r').read())
+        data = ast.literal_eval(codecs.open(datafile, 'r', 'utf-8').read())
         return data
     else: 
         return None
 
 def read_mk_inventory_rules(testsuite, file):
     datafile = "test/fixtures/robot/%s/inventory_rules/%s.py" % (testsuite, file)
-    data = ast.literal_eval(open(datafile, 'r').read())
+    data = ast.literal_eval(codecs.open(datafile, 'r', 'utf-8').read())
     # return eval(open('test/fixtures/inventory_robotmk_rules/%s.py' % rulefile).read())
     return data
 
@@ -170,7 +172,7 @@ def read_expected_data(testsuite, discovery_level, item=None, checkgroup_paramet
 
 def eval_file(datafile):
     try: 
-        data = ast.literal_eval(open(datafile, 'r').read())
+        data = ast.literal_eval(codecs.open(datafile, 'r', 'utf-8').read())
         return data
     except: 
         print "ERROR: File %s not readable!" % (datafile)

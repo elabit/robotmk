@@ -58,11 +58,13 @@ inventory_robotmk_rules = []
 def parse_robot(info):
     robot_discovery_level = get_setting('robot_discovery_level',[])
     # stringify list of lists
-    all_xmlstring = ''.join(map(str, [l[0] for l in info]))
+    all_xmlstring = ''.join([l[0] for l in info])
     # identify XMLs
     xmllist = map(lambda x: '<?xml' + x, all_xmlstring.split('<?xml'))[1:]
     robot_items = []
-    for xml in xmllist: 
+    for xmlitem in xmllist: 
+        # XML etree has its own UTF-8 decoding
+        xml = xmlitem.encode('utf-8')
         oxml = ET.fromstring(xml)
         suite, statistics, error =  (oxml.find('./suite'), oxml.find('./statistics'), oxml.find('./errors')) 
         # find a matching pattern and use its discovery level 
@@ -331,10 +333,9 @@ class RobotItem(object):
             self.result['cmk_perfdata_list'] = []
 
     # WIP: see https://github.com/simonmeggle/robotmk/issues/60
-    # This 
     def _eval_node_cmk_metric(self, check_params):
         #metric = self._get_pattern_value('metric', check_params)
-        # TODO TBD
+        # TODO THIS WILL BE IMPLEMENTED 
         metric = False
         if metric: 
             dummy_value = randint(100,999)
