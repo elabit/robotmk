@@ -12,3 +12,7 @@ geckodriver*.log
 .tox
 test/fixtures/robot/1S_1T/*.xml
 test/fixtures/robot/1S_1T/*.html
+tmuxp.yaml
+*log.html
+*output.xml
+*report.html

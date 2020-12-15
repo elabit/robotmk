@@ -7,9 +7,12 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 
 ## Unreleased
-
 ### Added
+### Changed
+### Fixed
 
+## [v0.1.5 - 2020-12-15]
+### Added
 
 ### Changed
 
@@ -21,8 +24,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 
 ### Fixed
-
-
+- Support UTF-8 (closes #55)
+- States are now only propagated for non RF-status, closes #58, closes 57
 
 ## [v0.1.4] - 2020-11-15
 ### Added
