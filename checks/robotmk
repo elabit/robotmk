@@ -439,6 +439,13 @@ class RobotItem(object):
     def _merge_sub_padded_lines(self):
         for r in self.subresults: 
             for s in r['padded_lines_list']: 
+                # If the CMK shlex jumps in and claims unclosed quotes: 
+                # uncomment this to see all lines which were truncated by RF
+                # which leads to unclosed quotes. Shlex does not care if the unclosed
+                # quotation is within closed double quotes, unfortunately... 
+
+                # if int(s.count("'")) % 2 != 0 : 
+                #     print(s)
                 self.result['padded_lines_list'].append(s)
         # sub_padded_lines_list = [s['padded_lines_list'] for s in self.subresults ]
         # self.result['padded_lines_list'].extend(sub_padded_lines_list)
