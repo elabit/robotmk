@@ -28,6 +28,8 @@ from pprint import pprint
 import xml.etree.ElementTree as ET
 from operator import add, sub
 from random import randint
+import base64
+import zlib
 
 iam = "robotmk"
 
@@ -57,13 +59,42 @@ inventory_robotmk_rules = []
 #   if discovery_level > 0 -> depending on the structure, a list of custom result objects (RFSuite/RFTest or RFKeyword) 
 def parse_robot(info):
     robot_discovery_level = get_setting('robot_discovery_level',[])
-    # stringify list of lists
-    all_xmlstring = ''.join([l[0] for l in info])
+    
+    # Robotmk uses sep(0) in section headers; that means that there is no auto-splitting
+    # of a line by comma, spaces etc. - each line is a list with exactly ONE item. 
+    # This works for the encodings UTF8 and base64 - in both cases "item" contains the 
+    # unicode representation. 
+    # zlib data, on the other hand, is a binary stream, alleviated by the agent plugin via base64. 
+    # In this case, "item" is binary and can contain Nullbytes by accident, which 
+    # CMK uses to split the line into fields. If that happens, we glue them together
+    # again and insert the Nullbyte. 
+    all_xmlstring = ''.join(['\x00'.join(line[:]) for line in info])
+    # There are 3 supported encoding types (pseudocode): 
+    # raw data         CMK-decoded as   decode as   decode as
+    # unicode          utf-8            --          --
+    # base64_codec     bytestring 1)    utf-8 2)    --
+    # zlib_codec       bytestring 1)    zlib  3)    utf-8 4)
+    # 
+    # Checkmk does only _one_ encoding step (=the one named in the section header).
+    # This means that only for utf8, the check receives a decoded unicode string. 
+    # In case of base64/zlib, it gets a decoded base64/zlib string (1) - but it is still a bytestring!
+    if type(all_xmlstring) != unicode: 
+        try: 
+            # 2) try if this bytestring properly decodes to utf-8
+            all_xmlstring = all_xmlstring.decode('utf-8')
+        except: 
+            try: 
+                # 3) try to decompress with zlib, then 4) decode to utf-8
+                zlib_decomp = zlib.decompress(all_xmlstring)
+                all_xmlstring = zlib_decomp.decode('utf-8')
+            except Exception:
+                raise MKGeneralException("Cannot decode check input data (is neither UTF-8, nor zlib-compressed UTF-8")
+
     # identify XMLs
     xmllist = map(lambda x: '<?xml' + x, all_xmlstring.split('<?xml'))[1:]
     robot_items = []
     for xmlitem in xmllist: 
-        # XML etree has its own UTF-8 decoding
+        # XML etree has its own UTF-8 decoding, handover as bytestring
         xml = xmlitem.encode('utf-8')
         oxml = ET.fromstring(xml)
         suite, statistics, error =  (oxml.find('./suite'), oxml.find('./statistics'), oxml.find('./errors')) 
@@ -71,8 +102,6 @@ def parse_robot(info):
         discovery_level = int(pattern_match(robot_discovery_level,suite.attrib['name'], 0))
         if not all(map(lambda x: x != None, [suite, statistics, error])):
             continue
-        #robot_metric = RobotMetrics(suite, statistics, error, discovery_level)
-        # robot_metric = RobotContainer(suite, discovery_level)
         robot_item = parse_suite_xml(suite, discovery_level)
         robot_items.extend(robot_item.discovered)
     # list of RFSuite/RFTest or RFKeyword objects 
@@ -242,6 +271,8 @@ class RobotItem(object):
             # This is a Test or Suite; use the text field. 
             text = xstr(self.text)
 
+        text = remove_nasty_chars(text)
+
         if len(text) > 0: 
             text_bracket = ' (%s)' % text
         # set the unicode symbol
@@ -260,7 +291,7 @@ class RobotItem(object):
             self.padstring, 
             status_symbol, 
             self.abbreviation, 
-            self.name, 
+            remove_nasty_chars(self.name), 
             self.status, 
             endtime_str,
             badge,
@@ -276,12 +307,12 @@ class RobotItem(object):
         messages_str = ""
         # In some corner case (e.g. Set Test Message), the Node's text is also 
         # contained in the node_messages. Remove it from there. 
-        if text in node_messages: 
+        if text in node_messages:
             node_messages.remove(text)
         if len(node_messages) > 0: 
             # Add messages to the top_node.submessages (which is for kws: Test, for tests: Suite)
             self.node_top.sub_messages.append("%s '%s': %s" % (self.abbreviation, self.name, ', '.join(node_messages)))
-            messages_str = ", checks: %s" % ', '.join(node_messages)
+            messages_str = ", %s" % ', '.join(node_messages)
         # Final Line
         self.result['padded_lines_list'] = ["%s%s" % (baseline, messages_str)]
         
@@ -439,13 +470,6 @@ class RobotItem(object):
     def _merge_sub_padded_lines(self):
         for r in self.subresults: 
             for s in r['padded_lines_list']: 
-                # If the CMK shlex jumps in and claims unclosed quotes: 
-                # uncomment this to see all lines which were truncated by RF
-                # which leads to unclosed quotes. Shlex does not care if the unclosed
-                # quotation is within closed double quotes, unfortunately... 
-
-                # if int(s.count("'")) % 2 != 0 : 
-                #     print(s)
                 self.result['padded_lines_list'].append(s)
         # sub_padded_lines_list = [s['padded_lines_list'] for s in self.subresults ]
         # self.result['padded_lines_list'].extend(sub_padded_lines_list)
@@ -553,13 +577,6 @@ class RobotTest(RobotItem):
             self.critical = True
         else: 
             self.critical = False
-                # FIXME: Needed? 
-        # if test.find('status[@status="FAIL"]') != None and test.find('status[@critical="yes"]') != None: 
-        #     critical = True
-        #     text = test.find('status[@critical="yes"]').text
-        # else:
-        #     critical = False
-        #     text = ''
 
     def __str__(self):
         return "Test"
@@ -590,8 +607,6 @@ def parse_suite_xml(root_xml, lv_disc):
     # create the topmost suite from the root XML
     root_suite = RobotSuite(root_xml, 0, 0, None, None)
     return root_suite
-
-
 
 
 #   _          _                 
@@ -673,6 +688,20 @@ def xstr(s):
     else:
         return s
 
+def remove_nasty_chars(instr):
+    # Replace all chars which can cause problem in Multisite
+    # no quotes, no brackets
+    outstr = re.sub('[\[\]/()?+;*@{}\'"]', '', instr)
+    outstr = outstr.replace('$', '')
+    outstr = outstr.replace('\\', '')
+    # Newlines better replace by space
+    outstr = outstr.replace('\n', ' ')
+    # dash for pipe
+    outstr = re.sub('\|', '-', outstr)
+    # outstr = re.sub('STATIONS', 'XXXXXXXXXXXXX', outstr)
+
+    return outstr
+    # return "FOO"
 
 #                   _       
 #                  (_)      
@@ -681,8 +710,7 @@ def xstr(s):
 #  | | | | | | (_| | | | | |
 #  |_| |_| |_|\__,_|_|_| |_|
                           
-                          
-
+# Keep this for documentation; do not use the __main__ call anymore for testing. 
 
 if __name__ == "__main__":    
     global check_info

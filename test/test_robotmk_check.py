@@ -93,7 +93,7 @@ check_test_params = [
     ('002',         'dl_0', 0, 'Testsuite',    '003-output_depth_kw2'),
     # Check if FAILed keyword gets catched by "Run Keyword And Return Status"
     ('003',         'dl_0', 0, 'Testsuite',    None),
-    # ('999_gin',     'dl_0', 0, 'E2E-Gin',    None),
+    ('999_gin',     'dl_0', 0, 'E2E-Gin',    None),
 ]
 @pytest.mark.parametrize("testsuite, inventory_rules, discovery_level, item, checkgroup_parameters", check_test_params)
 def test_check_mk(checks, monkeypatch, testsuite, inventory_rules, discovery_level, item, checkgroup_parameters):

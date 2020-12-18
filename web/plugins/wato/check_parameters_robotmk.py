@@ -233,12 +233,55 @@ def agent_config_listof_testsuites(helptext):
                 ],
             )
         ]),
-        title=_("Specify Robot Framework test suites"),
+        title=_("<b>Robot Framework test suites</b>"),
         help=_(helptext),
         add_label=_("Add test suite"),
         movable=True,
     )
 )
+
+# Section header for encoding: https://checkmk.de/check_mk-werks.php?werk_id=1425
+# Available encodings: https://docs.python.org/2.4/lib/standard-encodings.html
+dropdown_robotmk_output_encoding=CascadingDropdown(
+    title=_("Agent output encoding"),
+    help=_("This setting controls how the XML results of Robot Framework are encoded. <br>"
+        " - <b>UTF-8</b>: for small to medium tests. Easy to read and debug (100% plain text). This is the default Checkmk setting.<br>"
+        " - <b>BASE-64</b>: for a more condensed agent output. Saves line breaks (but <i>not</i> space).<br>"
+        " - <b>Zlib</b>: for large results, compressed at maximum level. "
+    ),
+    choices=[
+        ('utf_8', _('UTF-8')),
+        ('base64_codec', _('BASE-64')),
+        ('zlib_codec', _('Zlib (compressed)')),
+    ],
+    default_value="plain_utf8",
+)
+
+
+
+dropdown_robotmk_log_rotation=CascadingDropdown(
+    title=_("Number of days to keep Robot log files on the host"),
+    help=_("This settings helps to keep the test host clean by <b>deleting the log files</b> after a certain amount of days. Log files are: <br>"
+    "<tt>robotframework-$SUITENAME-$timestamp-output.xml<br>"
+    "<tt>robotframework-$SUITENAME-$timestamp-log.html<br>"
+    "<tt>robotframework-$SUITENAME-$timestamp-report.html<br>"
+    ),
+    choices=[
+        ('0', _('0 (always delete last log)')),
+        ('1', _('1')),
+        ('3', _('3')),
+        ('7', _('7')),
+        ('14', _('14')),
+        ('30', _('30')),
+        ('90', _('90')),
+        ('365', _('365')),
+        ('never', _('Keep all log files')),
+    ],
+    default_value="14",
+    sorted=False
+)
+
+
 
 
 dropdown_robotmk_execution_choices=CascadingDropdown(
@@ -277,28 +320,34 @@ dropdown_robotmk_execution_choices=CascadingDropdown(
 
 
 def _valuespec_agent_config_robotmk():
-    return         Alternative(
-            title=_("RobotMK (Linux, Windows)"),
-            help=_(
-                "This will deploy the agent plugin to execute Robot Framework E2E test on the remote host "
-                "and a .YML configuration file with the list of test suites to execute."),
-            style="dropdown",
-            elements=[
-                Dictionary(
-                    title=_("Deploy the RobotMK plugin"),
-                    elements=[
-                        ("execution",
-                        dropdown_robotmk_execution_choices
-                        ),
-                    ],
-                    optional_keys=["auth_instances"],
-                ),
-                FixedValue(
-                    None,
-                    title=_("Do not deploy the RobotMK plugin"),
-                    totext=_("(No Robot Framework tests on this machine)"),
-                ),   
-            ])
+    return Alternative(
+        title=_("RobotMK (Linux, Windows)"),
+        help=_(
+            "This will deploy the agent plugin to execute Robot Framework E2E test on the remote host "
+            "and a .YML configuration file with the list of test suites to execute."),
+        style="dropdown",
+        elements=[
+            Dictionary(
+                title=_("Deploy the RobotMK plugin"),
+                elements=[
+                    ("execution_mode",
+                    dropdown_robotmk_execution_choices
+                    ),
+                    ("agent_output_encoding",
+                    dropdown_robotmk_output_encoding
+                    ),
+                    ("log_rotation",
+                    dropdown_robotmk_log_rotation
+                    ),
+                ],
+                optional_keys=["auth_instances"],
+            ),
+            FixedValue(
+                None,
+                title=_("Do not deploy the RobotMK plugin"),
+                totext=_("(No Robot Framework tests on this machine)"),
+            ),   
+        ])
 
 
 rulespec_registry.register(

@@ -20,31 +20,31 @@
                 },
                 '001-thresholds_test_warn': {
                     'svc_status': 1,
-                    'svc_output': ".*'Testsuite': PASS, checks: \[T\] 'Testcase 1': \(!\) runtime=1.00s >= 0.50s.*'Testcase 1': PASS, checks: \(!\) runtime=1.00s >= 0.50s",
+                    'svc_output': ".*'Testsuite': PASS, \[T\] 'Testcase 1': \(!\) runtime=1.00s >= 0.50s.*'Testcase 1': PASS, \(!\) runtime=1.00s >= 0.50s",
                 },
                 '002-thresholds_test_crit': {
                     'svc_status': 2,
-                    'svc_output': ".*'Testsuite': PASS, checks: \[T\] 'Testcase 1': \(!!\) runtime=1.00s >= 0.80s.*'Testcase 1': PASS, checks: \(!!\) runtime=1.00s >= 0.80s",
+                    'svc_output': ".*'Testsuite': PASS, \[T\] 'Testcase 1': \(!!\) runtime=1.00s >= 0.80s.*'Testcase 1': PASS, \(!!\) runtime=1.00s >= 0.80s",
                 },
                 '003-thresholds_kw_warn': {
                     'svc_status': 1,
-                    'svc_output': ".*'Testsuite': PASS, checks: \[T\] 'Testcase 1': \[K\] 'Sleep': \(!\) runtime=1.00s >= 0.50s.*'Testcase 1': PASS, checks: \[K\] 'Sleep': \(!\) runtime=1.00s >= 0.50s.*"
+                    'svc_output': ".*'Testsuite': PASS, \[T\] 'Testcase 1': \[K\] 'Sleep': \(!\) runtime=1.00s >= 0.50s.*'Testcase 1': PASS, \[K\] 'Sleep': \(!\) runtime=1.00s >= 0.50s.*"
                 },
                 '004-thresholds_kw_crit': {
                     'svc_status': 2,
-                    'svc_output': ".*'Testsuite': PASS, checks: \[T\] 'Testcase 1': \[K\] 'Sleep': \(!!\) runtime=1.00s >= 0.80s.*'Testcase 1': PASS, checks: \[K\] 'Sleep': \(!!\) runtime=1.00s >= 0.80s.*"
+                    'svc_output': ".*'Testsuite': PASS, \[T\] 'Testcase 1': \[K\] 'Sleep': \(!!\) runtime=1.00s >= 0.80s.*'Testcase 1': PASS, \[K\] 'Sleep': \(!!\) runtime=1.00s >= 0.80s.*"
                 },
                 '005-thresholds_suite_warn': {
                     'svc_status': 1,
-                    'svc_output': ".*'Testsuite': PASS, checks: \(!\) runtime=1.03s >= 0.50s.*",
+                    'svc_output': ".*'Testsuite': PASS, \(!\) runtime=1.03s >= 0.50s.*",
                 },
                 '006-thresholds_suite_crit': {
                     'svc_status': 2,
-                    'svc_output': ".*'Testsuite': PASS, checks: \(!!\) runtime=1.03s >= 0.80s.*",
+                    'svc_output': ".*'Testsuite': PASS, \(!!\) runtime=1.03s >= 0.80s.*",
                 },
                 '007-thresholds_perfdata_all': {
                     'svc_status': 2,
-                    'svc_output': ".*'Testsuite': PASS, checks: \(!!\) runtime=1.03s >= 0.80s, \[T\] 'Testcase 1': \(!!\) runtime=1.00s >= 0.80s, \[K\] 'Sleep': \(!!\) runtime=1.00s >= 0.80s.*",
+                    'svc_output': ".*'Testsuite': PASS, \(!!\) runtime=1.03s >= 0.80s, \[T\] 'Testcase 1': \(!!\) runtime=1.00s >= 0.80s, \[K\] 'Sleep': \(!!\) runtime=1.00s >= 0.80s.*",
                     'perfdata'  : [
                         ('s1_Testsuite', '1.03', '0.50', '0.80'), 
                         ('s1-t1_Testcase_1', '1.00', '0.50', '0.80'), 
