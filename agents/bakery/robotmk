@@ -40,41 +40,55 @@ DEFAULTS = {
     }
 }
 
+
+# global: 
+# suites:
+
+
 def bake_robotmk(opsys, conf, conf_dir, plugins_dir):
     lconf = copy.deepcopy(conf)
-    execution_type = lconf['execution'][0]
-    # this hash is the basis for building the YAML 
-    execution_conf = lconf['execution'][1][0]
-    # add the execution type to the config
-    execution_conf['execution_type'] = execution_type
-    # remove the suites, because we need to modify this first; append later
-    robot_test_suites = execution_conf.pop('suites')
-    
-    execution_conf.setdefault('log', '')
-    execution_conf.setdefault('console', '')
-    execution_conf.setdefault('report', '')
-    execution_conf.setdefault('cache_time', DEFAULTS['noarch']['cache_time'])
-    execution_conf.setdefault('robotdir', DEFAULTS[opsys]['robotdir'])
     os_newline = DEFAULTS[opsys]['newline']
-    # Linux: robotmk - Windows: robotmk.py
     os_pluginname = DEFAULTS[opsys]['pluginname']
+    global_conf = {}
+    robot_conf  = {}
+
+    # everything defined below "Type of execution"
+    execution_conf = lconf['execution_mode'][1][0]
+    global_conf['execution_mode'] = lconf['execution_mode'][0]
+    global_conf['cache_time'] =     execution_conf.get('cache_time') or DEFAULTS['noarch']['cache_time']
+    global_conf['robotdir'] =       execution_conf.get('robotdir') or DEFAULTS[opsys]['robotdir']
+    global_conf['agent_output_encoding'] = lconf['agent_output_encoding']
+    global_conf['log_rotation'] = lconf['log_rotation']
+
+    global_conf['robotframework'] = {
+        'log' :     '',
+        'console' :     '',
+        'report' :      '',   
+    }
+
+    # remove the suites, because we need to modify this first; append later
+    if 'suites' in execution_conf: 
+        robot_test_suites = execution_conf.pop('suites')
+    else: 
+        robot_test_suites = {}
+
     cfg_file = conf_dir + "/robotmk.yml"
 
     # The plugin only gets deployed in async mode; when spooldir mode is used, 
-    # the rule "deploy custom files to agent" (package: robotomk) must be set,
+    # the rule "deploy custom files to agent" (package: robotmk) must be set,
     # which installs the plugin into the bin folder inside the agent installation. 
-    if execution_type == "cmk_async": 
+    if global_conf['execution_mode'] == "cmk_async": 
         if opsys == "windows":
             # async mode in Windows: write configfile
             with Path(conf_dir, "check_mk.ini.plugins.zzz_%s" % os_pluginname).open("w") as out:
                 out.write(u"    execution %s = async\r\n" % os_pluginname)
-                out.write(u"    cache_age %s = %d\r\n" % (os_pluginname, execution_conf['cache_time']))
+                out.write(u"    cache_age %s = %d\r\n" % (os_pluginname, global_conf['cache_time']))
                 # Kill the plugin before the next async execution will start
-                out.write(u"    timeout %s = %d\r\n" % (os_pluginname, execution_conf['cache_time'] - 60))
+                out.write(u"    timeout %s = %d\r\n" % (os_pluginname, global_conf['cache_time'] - 60))
                 out.write(u"\r\n")
         elif opsys == "linux":
             # async mode in Linux: "seconds"-subdir in plugins dir
-            plugins_dir = Path(plugins_dir, "%s" % execution_conf['cache_time'])
+            plugins_dir = Path(plugins_dir, "%s" % global_conf['cache_time'])
             plugins_dir.mkdir(parents=True, exist_ok=True)
         else: 
             raise MKGeneralException("Error in bakery plugin \"%s\": %s\n" %
@@ -91,10 +105,10 @@ def bake_robotmk(opsys, conf, conf_dir, plugins_dir):
         for (k2,v2) in v1.items():
             if k2 == 'variable':
                 v1.update({ 'variable': dict(v2) })
-
+    global_conf_dict = {'global' : global_conf}
     with open(cfg_file,"w") as output_file:
         output_file.write(agent_file_header)
-        yaml.safe_dump(execution_conf, output_file, line_break=os_newline, encoding='utf-8', allow_unicode=True)
+        yaml.safe_dump(global_conf_dict, output_file, line_break=os_newline, encoding='utf-8', allow_unicode=True)
         yaml.safe_dump(robot_test_suites_dict, output_file, line_break=os_newline, encoding='utf-8', allow_unicode=True)
 
 bakery_info["robotmk"] = {
