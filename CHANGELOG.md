@@ -14,6 +14,13 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ## [v0.1.5 - 2020-12-15]
 ### Added
 
+- Log/Report/XML files of RF tests are now saved with a timestamp to make debugging easier.
+  New WATO option for the check plugin to set the number of days log files should be kept. (solves #56)
+- Besides UTF-8, there are two more options in WATO to encode the data between agent and server: 
+  BASE-64 and zlib compression. The latter is implemented with regard to the upcoming integration 
+  of RF HTML logs into Checkmk. As soon they are containing screenshot data, compression is needed.
+  Solves #65.
+
 ### Changed
 
 - WATO option "includedate": in the past, it contained the end timestamp of the node
@@ -24,8 +31,13 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 
 ### Fixed
+
 - Support UTF-8 (closes #55)
-- States are now only propagated for non RF-status, closes #58, closes 57
+- RF States of Keywords are now preserved and not propagated upwards. This is neccessary because
+  keywords like 'Run Keyword And Return Status' can wrap kw execution; a failed kw will not fail 
+  the whole test. With this commit, the cmk-side evaluation of the RF restult tree respects the RF
+  state of each node, but does not propagate it. (solves #57 and #58)
+- Bakery crashes when RobotMK rule does not contain specific suites (closes #45)
 
 ## [v0.1.4] - 2020-11-15
 ### Added
@@ -41,7 +53,6 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ### Fixed
 
 - No graphs when using a discovery level (#53)
-
 ## [v0.1.3] - 2020-0-16
 ### Added 
 
