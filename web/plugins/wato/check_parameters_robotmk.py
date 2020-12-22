@@ -437,6 +437,19 @@ def _item_spec_robotmk():
                             "generate services from, use the service discovery rule "
                             "<i>Robot Framework Service Discovery</i>.<br>"))
 
+
+dropdown_robotmk_show_submessages=CascadingDropdown(
+    title=_("Show the messages of sub-nodes"),
+        help=_("By default, suites and tests do not show messages of sub-items to save space. Depending on the suite it can make sense to activate this setting to get a more descriptive output line."),
+        choices=[
+            ('yes', _('yes')),
+            ('no', _('no')),
+        ],
+        default_value="no",
+)
+
+ 
+
 def _parameter_valuespec_robotmk():
     return Dictionary(elements=[
         ("output_depth", Dictionary(  # L1 
@@ -624,7 +637,8 @@ def _parameter_valuespec_robotmk():
                 ('no', _('no')),
             ],
             default_value="no",
-        )),                    
+        )),               
+        ("show_submessages", dropdown_robotmk_show_submessages),     
     ],)
 
 rulespec_registry.register(

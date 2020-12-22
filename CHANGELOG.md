@@ -18,8 +18,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   New WATO option for the check plugin to set the number of days log files should be kept. (solves #56)
 - Besides UTF-8, there are two more options in WATO to encode the data between agent and server: 
   BASE-64 and zlib compression. The latter is implemented with regard to the upcoming integration 
-  of RF HTML logs into Checkmk. As soon they are containing screenshot data, compression is needed.
-  Solves #65.
+  of RF HTML logs into Checkmk. As soon they are containing screenshot data, compression is needed. Solves #65.
+- Added WATO option to enable/disable the presence of sub-nodes in tests and suites. 
 
 ### Changed
 
@@ -32,7 +32,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Fixed
 
-- Support UTF-8 (closes #55)
+- Support UTF-8, solves problem with german umlaut etc. (closes #55)
 - RF States of Keywords are now preserved and not propagated upwards. This is neccessary because
   keywords like 'Run Keyword And Return Status' can wrap kw execution; a failed kw will not fail 
   the whole test. With this commit, the cmk-side evaluation of the RF restult tree respects the RF

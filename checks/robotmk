@@ -300,10 +300,13 @@ class RobotItem(object):
         # Collect messages from node checks (runtime, metrics, ...) 
         node_results = [self.result[x] for x in self.result_keys if x in self.result]
         node_messages = [item[1] for sublist in node_results for item in sublist if item[1]]
-        # TODO: Perhaps make this configurable one day? 
+
         # If this is a top_node, add the messages from subelements: 
-        if self.is_topnode and len(self.sub_messages) > 0: 
-            node_messages.extend(self.sub_messages) 
+        if self.is_topnode:
+            if bool(check_params.get('show_submessages')):
+                if len(self.sub_messages) > 0:
+                    node_messages.extend(self.sub_messages) 
+
         messages_str = ""
         # In some corner case (e.g. Set Test Message), the Node's text is also 
         # contained in the node_messages. Remove it from there. 
