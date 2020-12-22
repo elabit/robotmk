@@ -242,7 +242,7 @@ class RobotItem(object):
         
     # Evalute the Robot status of this item to a Nagios state & set message  
     def _eval_node_robotframework_status(self):
-        self.result['robotframework'] = [(ROBOT_NAGIOS[self.status], self.text)]
+        self.result['robotframework'] = [(ROBOT_NAGIOS[self.status], remove_nasty_chars(self.text))]
 
     # create the "base line" with the node name and the RF status
     def _set_node_padded_line(self, check_params):
@@ -351,7 +351,7 @@ class RobotItem(object):
         runtime_threshold = self._get_pattern_value('runtime_threshold', check_params)
         perfdata_wanted = self._get_pattern_value('perfdata_creation', check_params)
         if perfdata_wanted and self.elapsed_time != None: 
-            perflabel = "%s_%s" % (self.id, self.name.replace(' ', '_'))
+            perflabel = get_perflabel("%s_%s" % (self.id, self.name))
             if runtime_threshold: 
                 cmk_perfdata = (
                     perflabel, 
@@ -691,10 +691,17 @@ def xstr(s):
     else:
         return s
 
+# create a valid perfdata label which does contain only numbers, letters, 
+# dash and underscore. Everything else becomes a underscore. 
+def get_perflabel(instr): 
+    outstr =  re.sub('[^A-Za-z0-9]', '_', instr)
+    return re.sub('_+', '_', outstr)
+
+
 def remove_nasty_chars(instr):
     # Replace all chars which can cause problem in Multisite
     # no quotes, no brackets
-    outstr = re.sub('[\[\]/()?+;*@{}\'"]', '', instr)
+    outstr = re.sub('[\[\]?+;*@{}\'"]', '', instr)
     outstr = outstr.replace('$', '')
     outstr = outstr.replace('\\', '')
     # Newlines better replace by space
@@ -702,7 +709,6 @@ def remove_nasty_chars(instr):
     # dash for pipe
     outstr = re.sub('\|', '-', outstr)
     # outstr = re.sub('STATIONS', 'XXXXXXXXXXXXX', outstr)
-
     return outstr
     # return "FOO"
 

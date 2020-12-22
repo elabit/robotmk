@@ -47,8 +47,8 @@
                     'svc_output': ".*'Testsuite': PASS, \(!!\) runtime=1.03s >= 0.80s, \[T\] 'Testcase 1': \(!!\) runtime=1.00s >= 0.80s, \[K\] 'Sleep': \(!!\) runtime=1.00s >= 0.80s.*",
                     'perfdata'  : [
                         ('s1_Testsuite', '1.03', '0.50', '0.80'), 
-                        ('s1-t1_Testcase_1', '1.00', '0.50', '0.80'), 
-                        ('s1-t1-k1_Sleep', '1.00', '0.50', '0.80'),
+                        ('s1_t1_Testcase_1', '1.00', '0.50', '0.80'), 
+                        ('s1_t1_k1_Sleep', '1.00', '0.50', '0.80'),
                     ]
                 },
                 '008-includedate': {

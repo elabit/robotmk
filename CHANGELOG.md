@@ -19,7 +19,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - Besides UTF-8, there are two more options in WATO to encode the data between agent and server: 
   BASE-64 and zlib compression. The latter is implemented with regard to the upcoming integration 
   of RF HTML logs into Checkmk. As soon they are containing screenshot data, compression is needed. Solves #65.
-- Added WATO option to enable/disable the presence of sub-nodes in tests and suites. 
+- Added WATO option `show_submessages` to enable/disable the presence of sub-node messages in tests and suites. 
 
 ### Changed
 
@@ -38,6 +38,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   the whole test. With this commit, the cmk-side evaluation of the RF restult tree respects the RF
   state of each node, but does not propagate it. (solves #57 and #58)
 - Bakery crashes when RobotMK rule does not contain specific suites (closes #45)
+- Multisite crashes ("no closing quotation") when nasty chars from keyword names get into perflabels (closes #64)
 
 ## [v0.1.4] - 2020-11-15
 ### Added

@@ -8,5 +8,6 @@
     'runtime_threshold_suites': [('.*', 0.5, 0.8)],
     'runtime_threshold_tests': [('.*', 0.5, 0.8)],
     'runtime_threshold_keywords': [('.*', 0.5, 0.8)],
-  }  
+  },
+  'show_submessages': 'yes', 
 }
