@@ -52,15 +52,7 @@ DEFAULTS = {
    }
 }
 
-# 
-def cleanup_logs(logpath, max_fileage):
-   robot_logfiles = [file for file in glob.glob(str(logpath.joinpath('robotframework-*'))) if re.match('.*_\d{10}-(report|log|output)\.(xml|html)', file)]
-   for item in robot_logfiles:
-      if os.path.isfile(item):
-         filedate = datetime.fromtimestamp(os.path.getmtime(item))         
-         if filedate > datetime.now() - timedelta(days = int(max_fileage)):
-            log_debug(f'Deleting too old log file {item}...')
-            os.remove(item)
+
 
 # outputdir = final path where all outputfiles, logfiles and report files ends.
 # robotdir  = Location of Robot suite files/dirs
@@ -123,7 +115,7 @@ def start():
 
       ######################## Run robot run..... ###############################################
       rc = run(robotdir.joinpath(suite), **suite_options)
-      log_info(f'Robot suite  {suite} finished with returncode: {rc}.')
+      log_info(f'RC of suite "{suite}": {rc}')
       if rc > 250: 
          log_error('Robot exited with error and no outputfile is generated.')
          log_error ('Please run robot command manually to see the error')
@@ -132,7 +124,7 @@ def start():
 
       robot_output_xml = Path(suite_options['outputdir']).joinpath(suite_options['output'])
       process_result(suite, robotmk_yml_cfg, robot_output_xml, piggybackhost)
-      log_info('#######################################################################')
+   log_info('#######################################################################')
 
 # reads the Robot XML result file
 def read_robot_xml(robot_xml):
@@ -171,8 +163,9 @@ def xml2zlib(xmldata):
    xml_zlib_b64 = base64.b64encode(xml_zlib)
    return xml_zlib_b64
 
-def encode_output(agent_output_encoding, robot_xml):
+def load_encoded_output(agent_output_encoding, robot_xml):
    xmldata = read_robot_xml(robot_xml)
+   log_info("Encoding XML data as %s" % agent_output_encoding)
    if agent_output_encoding == 'utf_8':
       xml_encoded = xmldata.encode('utf-8')
    
@@ -192,7 +185,7 @@ def encode_output(agent_output_encoding, robot_xml):
 def process_result(suite, robotmk_yml_cfg, robot_xml, piggybackhost):
       # get xml as utf8/base64/zlib
       encoding = robotmk_yml_cfg['global']['agent_output_encoding']
-      (xml_encoded, agent_output_encoding) = encode_output(encoding, robot_xml)
+      (xml_encoded, agent_output_encoding) = load_encoded_output(encoding, robot_xml)
       # The preamble indicates the check how the data should be interpreted/decompressed
       # preamble = ('rmk-encoding=%s:' % (agent_output_encoding)).encode()
       # # xml_encoded_preamble = preamble + xml_encoded
@@ -213,7 +206,7 @@ def process_result(suite, robotmk_yml_cfg, robot_xml, piggybackhost):
       execution_mode =  robotmk_yml_cfg['global']['execution_mode']
       agent_spool_dir = robotmk_yml_cfg['global']['agent_spool_dir']
       if execution_mode == 'cmk_async':
-         log_info('Plugin was executed by CMK agent (mode: cmk_async), printing result to STDOUT')
+         log_info('Printing result to STDOUT (execution mode: cmk_async)')
          header = f'{header_piggyback}<<<robotmk:sep(0){header_encoding}>>>\n'.encode('utf-8')
          try:
             with os.fdopen(sys.stdout.fileno(), "wb", closefd=False) as stdout:
@@ -221,18 +214,18 @@ def process_result(suite, robotmk_yml_cfg, robot_xml, piggybackhost):
                stdout.write(xml_encoded)
                stdout.write(os.linesep.encode('utf-8'))
                stdout.flush()                  
+               log_info("Output written to STDOUT.")
          except Exception:
             log_error('Could not write result to STDOUT!')
             exit(1)
       elif execution_mode in ('win_task_spooldir', 'external_spooldir'):
-         log_info(f'Plugin was executed externally (mode: {execution_mode}), write result into spooldir')
+         log_info(f'Writing result into spooldir (execution mode: {execution_mode})')
          now = str(time()).split('.')[0]
          cache_time = robotmk_yml_cfg['global']["cache_time"]
          # Indicates CMK that this plugin has another timing that the agent polling
          # Ex. 240_robotmk_footest = invalidate the result of this suite after 4 minutes
          spoolfile_name = f'{str(cache_time)}_robotmk_{suite}'
          spoolfile = Path(agent_spool_dir).joinpath(spoolfile_name)
-         log_debug(f'Spoolfile name: {spoolfile}')
          header_cached = f':cached({now},{cache_time})'
          header = f'{header_piggyback}<<<robotmk:sep(0){header_cached}{header_encoding}>>>{os.linesep}'.encode('utf-8')
          try: 
@@ -240,6 +233,7 @@ def process_result(suite, robotmk_yml_cfg, robot_xml, piggybackhost):
                f.write(header)
                f.write(xml_encoded)
                #f.write(os.linesep.encode('utf-8'))
+               log_info(f"Spoolfile {spoolfile} written.")
          except Exception:
             log_error(f'Could not write spoolfile {spoolfile}!')
             exit(1)
@@ -377,6 +371,20 @@ def setup_logging():
          console.setFormatter(console_formatter)
          console.setLevel(logging.DEBUG)
          logger.addHandler(console)
+
+# Delete too old log files
+def cleanup_logs(logpath, max_fileage):
+   # match all files in outputdir: 
+   # robotframework-suitename_1608046187-report.html
+   # robotframework-suitename_1608046187-log.html
+   # robotframework-suitename_1608046187-output.xml
+   robot_logfiles = [file for file in glob.glob(str(logpath.joinpath('robotframework-*'))) if re.match('.*_\d{10}-(report|log|output)\.(xml|html)', file)]
+   for item in robot_logfiles:
+      if os.path.isfile(item):
+         filedate = datetime.fromtimestamp(os.path.getmtime(item))         
+         if filedate < datetime.now() - timedelta(days = int(max_fileage)):
+            log_debug(f'Deleting too old log file {item}...')
+            os.remove(item)
 
 def log_debug(text):
    logger.debug(text)
