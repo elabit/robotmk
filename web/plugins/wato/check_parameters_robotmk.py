@@ -247,7 +247,7 @@ dropdown_robotmk_output_encoding=CascadingDropdown(
     help=_("This setting controls how the XML results of Robot Framework are encoded. <br>"
         " - <b>UTF-8</b>: for small to medium tests. Easy to read and debug (100% plain text). This is the default Checkmk setting.<br>"
         " - <b>BASE-64</b>: for a more condensed agent output. Saves line breaks (but <i>not</i> space).<br>"
-        " - <b>Zlib</b>: for large results, compressed at maximum level. "
+        " - <b>Zlib</b>: for large results, compressed at maximum level (>95%). "
     ),
     choices=[
         ('utf_8', _('UTF-8')),

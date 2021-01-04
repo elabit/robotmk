@@ -159,7 +159,10 @@ def xml2base64(xmldata):
 # base64:    5856 bytes    0,85 % -> compression 99,15%
 def xml2zlib(xmldata):
    xml_utf8 = xmldata.encode('utf-8')
-   xml_zlib = zlib.compress(xml_utf8, 9)
+   # As only the agent output is compressed (not the header), the check will see one very long byte stream. 
+   # A separator is used between two or more robotmk results, so that the 
+   # check can determine the beginning of a new result which must be decompressed separately. 
+   xml_zlib = zlib.compress(xml_utf8, 9) + '---zlib-sep---'.encode('utf8')
    xml_zlib_b64 = base64.b64encode(xml_zlib)
    return xml_zlib_b64
 
@@ -228,11 +231,12 @@ def process_result(suite, robotmk_yml_cfg, robot_xml, piggybackhost):
          spoolfile = Path(agent_spool_dir).joinpath(spoolfile_name)
          header_cached = f':cached({now},{cache_time})'
          header = f'{header_piggyback}<<<robotmk:sep(0){header_cached}{header_encoding}>>>{os.linesep}'.encode('utf-8')
+         
          try: 
             with open(spoolfile, 'wb') as f:
                f.write(header)
                f.write(xml_encoded)
-               #f.write(os.linesep.encode('utf-8'))
+               f.write(os.linesep.encode('utf-8'))
                log_info(f"Spoolfile {spoolfile} written.")
          except Exception:
             log_error(f'Could not write spoolfile {spoolfile}!')
