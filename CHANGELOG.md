@@ -11,7 +11,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ### Changed
 ### Fixed
 
-## [v0.1.5 - 2020-12-15]
+## [v0.1.5 - 2021-01-04]
 ### Added
 
 - Log/Report/XML files of RF tests are now saved with a timestamp to make debugging easier.
