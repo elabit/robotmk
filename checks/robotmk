@@ -68,7 +68,7 @@ def parse_robot(info):
     # In this case, "item" is binary and can contain Nullbytes by accident, which 
     # CMK uses to split the line into fields. If that happens, we glue them together
     # again and insert the Nullbyte. 
-    all_xmlstring = ''.join(['\x00'.join(line[:]) for line in info])
+    info_joined = ''.join(['\x00'.join(line[:]) for line in info])
     # There are 3 supported encoding types (pseudocode): 
     # raw data         CMK-decoded as   decode as   decode as
     # unicode          utf-8            --          --
@@ -78,20 +78,27 @@ def parse_robot(info):
     # Checkmk does only _one_ encoding step (=the one named in the section header).
     # This means that only for utf8, the check receives a decoded unicode string. 
     # In case of base64/zlib, it gets a decoded base64/zlib string (1) - but it is still a bytestring!
-    if type(all_xmlstring) != unicode: 
+    if type(info_joined) == unicode:
+        info_joined_utf8 = info_joined
+    else: 
         try: 
             # 2) try if this bytestring properly decodes to utf-8
-            all_xmlstring = all_xmlstring.decode('utf-8')
+            info_joined_utf8 = info_joined.decode('utf-8')
         except: 
             try: 
+                # Split the Bytestring at the mark '---zlib-sep---' (to get singular results) then 
                 # 3) try to decompress with zlib, then 4) decode to utf-8
-                zlib_decomp = zlib.decompress(all_xmlstring)
-                all_xmlstring = zlib_decomp.decode('utf-8')
+                info_joined_decomp = ''.join( [zlib.decompress(i) for i in info_joined.split('---zlib-sep---') if len(i)] )
+                info_joined_utf8 = info_joined_decomp.decode('utf-8')
             except Exception:
                 raise MKGeneralException("Cannot decode check input data (is neither UTF-8, nor zlib-compressed UTF-8")
 
-    # identify XMLs
-    xmllist = map(lambda x: '<?xml' + x, all_xmlstring.split('<?xml'))[1:]
+    try: 
+        # identify XMLs
+        xmllist = map(lambda x: '<?xml' + x, info_joined_utf8.split('<?xml'))[1:]
+    except Exception:
+        raise MKGeneralException("Cannot detect XML header in agent output!")
+
     robot_items = []
     for xmlitem in xmllist: 
         # XML etree has its own UTF-8 decoding, handover as bytestring
