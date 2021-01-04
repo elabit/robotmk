@@ -216,5 +216,6 @@ Thanks to the following people who help to make RobotMK better by submitting cod
 
 Thanks to the companies which support the development of RobotMK: 
 
-* [ITERATIO GmbH](http://iteratio.com/), Cologne - Hardy DÜTTMANN
-* 
+* [ITERATIO GmbH](http://iteratio.com/), Cologne (GER) - Hardy DÜTTMANN
+* [comNET GmbH](https://www.comnetgmbh.com), Hannover (GER) - Thorben Söhl
+* [Abraxas Informatik AG](https://www.abraxas.ch/), St. Gallen (CH) -  Jens Dunkelberg
