@@ -16,3 +16,5 @@ tmuxp.yaml
 *log.html
 *output.xml
 *report.html
+agents/custom/*
+dist/*
