@@ -2,20 +2,23 @@
     {
         'condition': {}, 
         'value': {
-            'robot_discovery_level': [
+            'robot_discovery_settings': [
                 (
                     'invalidpatternwillnevermatch', 
-                    '3'
+                    '3',
+                    ''
                 ), 
                 (
                     '.*', 
-                    '2'
+                    '2',
+                    ''
                 )
             ], 
             'robot_service_prefix': [
                 (
                     'invalidpatternwillnevermatch', 
-                    'FOO'
+                    'FOO',
+                    ''
                 ),
             ]
         }, 

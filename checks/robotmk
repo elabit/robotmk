@@ -19,6 +19,7 @@
 # Boston, MA 02110-1301 USA.
 
 import tempfile
+from collections import namedtuple
 import os
 import re
 import time
@@ -58,7 +59,7 @@ inventory_robotmk_rules = []
 #   if discovery_level = 0 -> returns one RFSuite Object            
 #   if discovery_level > 0 -> depending on the structure, a list of custom result objects (RFSuite/RFTest or RFKeyword) 
 def parse_robot(info):
-    robot_discovery_level = get_setting('robot_discovery_level',[])
+    robot_discovery_settings = get_setting('robot_discovery_settings',[])
     
     # Robotmk uses sep(0) in section headers; that means that there is no auto-splitting
     # of a line by comma, spaces etc. - each line is a list with exactly ONE item. 
@@ -106,10 +107,11 @@ def parse_robot(info):
         oxml = ET.fromstring(xml)
         suite, statistics, error =  (oxml.find('./suite'), oxml.find('./statistics'), oxml.find('./errors')) 
         # find a matching pattern and use its discovery level 
-        discovery_level = int(pattern_match(robot_discovery_level,suite.attrib['name'], 0))
+        setting = pattern_match(robot_discovery_settings, suite.attrib['name'], (0, '') )
+        discovery_setting = namedtuple('DiscoverySetting', 'level blacklist_pattern')._make(setting)
         if not all(map(lambda x: x != None, [suite, statistics, error])):
             continue
-        robot_item = parse_suite_xml(suite, discovery_level)
+        robot_item = parse_suite_xml(suite, discovery_setting)
         robot_items.extend(robot_item.discovered)
     # list of RFSuite/RFTest or RFKeyword objects 
     return robot_items
@@ -128,15 +130,19 @@ def inventory_robot(robot_items):
 def check_robot(item, checkgroup_parameters, robot_items):
     if checkgroup_parameters == None: 
         checkgroup_parameters = {}
-    # list of pattern tuples which can apply the discovery level. 1st one matches.
-    robot_discovery_level = get_setting('robot_discovery_level',[])
+    
+    robot_discovery_settings = get_setting('robot_discovery_settings',[])
 
     for robot_item in robot_items:
         # If there is a custom prefix defined in Checkmk, we have to strip it off
         # so that it can be compared to the Robot item
         item_without_prefix = strip_prefix(item)
         if robot_item.name == item_without_prefix:
-            discovery_level = int(pattern_match(robot_discovery_level, item_without_prefix, 0))
+            # # find a matching pattern and use its discovery level 
+            # setting = pattern_match(robot_discovery_settings, item_without_prefix, (0, '') )
+            # discovery_setting = namedtuple('DiscoverySetting', 'level blacklist_pattern')._make(setting)
+
+            # discovery_level = int(pattern_match(robot_discovery_level, item_without_prefix, 0))
             item_result = robot_item.get_checkmk_result(robot_item, checkgroup_parameters)
             (rc, output_lines, perfdata) = (
                 item_result['worststate'], 
@@ -153,7 +159,7 @@ class RobotItem(object):
         'test' : 'RobotTest',
         'kw'   : 'RobotKeyword'
     }  
-    lv_disc = 0
+    # FIXME needed? lv_disc = 0
     # list of suites/tests/kw which were discovered (depending on discovery_level)
     discovered = []
     indentation_char = u"\u2504"
@@ -164,7 +170,7 @@ class RobotItem(object):
     # - the kw below have a padding of (2-3)*-1 = 1 chars 
     @property
     def padstring(self): 
-        return (RobotItem.lv_disc - self.lv_abs) * -1 * self.indentation_char
+        return (int(RobotItem.discovery_setting.level) - self.lv_abs) * -1 * self.indentation_char
 
     # Abbreviation for Suite/Test/Keyword - [S]/[T]/[K]
     @property
@@ -203,8 +209,11 @@ class RobotItem(object):
             self.lv_rel = 0
 
         self.subnodes = self._get_subnodes(xmlnode)
-        if self.lv_abs == self.lv_disc: 
-            self.discovered.append(self)
+        # Add this node if it is on the "to discover" level and if it is not blacklisted
+        if self.lv_abs == int(self.discovery_setting.level): 
+            # Empty blacklist = inventorize all
+            if self.discovery_setting.blacklist_pattern == '' or not re.match(self.discovery_setting.blacklist_pattern, self.name): 
+                self.discovered.append(self)
 
     def _get_id(self, xmlnode, index):
         """suites and tests have a id attribute. Fake this for keywords.
@@ -609,9 +618,9 @@ class RobotKeyword(RobotItem):
     def __str__(self):
         return "Keyword"
 
-def parse_suite_xml(root_xml, lv_disc):
+def parse_suite_xml(root_xml, discovery_setting):
     # Store discovery level
-    RobotItem.lv_disc = lv_disc
+    RobotItem.discovery_setting = discovery_setting
     # clear the class var
     RobotItem.discovered = []
     # create the topmost suite from the root XML
@@ -629,7 +638,7 @@ def parse_suite_xml(root_xml, lv_disc):
 #               |_|   
 
 # Determine if a list of patterns matches.
-# If list elements are tuples of (pattern,value), return the value
+# If list elements are tuples, all values from index 1
 # If list elements are patterns, return bool
 # If nothing matches return the default
 def pattern_match(patterns, name, default=None):

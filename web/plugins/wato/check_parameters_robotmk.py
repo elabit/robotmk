@@ -362,7 +362,7 @@ def _valuespec_inventory_robotmk_rules():
         title=_("Robot Framework Service Discovery"),
         
         elements=[
-            ("robot_discovery_level",
+            ("robot_discovery_settings",
                 ListOf(
                     Tuple(elements=[
                         TextAscii(
@@ -384,12 +384,18 @@ def _valuespec_inventory_robotmk_rules():
                                 u"Each Robot result consists of one suite which is either the "
                                 u".robot file name or the folder name containg the tests.<br>"
                                 u"By default, RobotMK creates 1 service from this single root node.<br>"
-                                u"Choosing another level enables you to <b>split the Robot result</b> into "
-                                u"as many services as you want.<br>"
-                                u"Keep in mind that the deeper you choose this level, the more likely "
-                                u"it is that you will also get services out from tests and keywords (if this is what you want...)."
+                                u"Choosing another level enables you to <b>split the Robot result</b> into as many services as you want.<br>"
+                                u"This is perfect for <b>suites</b> and <b>tests</b>. Even if possible, you should <i>not</i> create services from <b>keywords</b>!"
                             ),        
                         ),
+                        TextAscii(
+                            title=("Node Blacklist"),
+                            allow_empty=True,
+                            size=25,
+                            default_value="",
+                            help=_("By default, RobotMK will create services for <i>all</i> nodes on the discovery level. A <b>blacklist</b> pattern selectively hinders RobotMK to inventorize certain services.<br>"
+                                "Note: An empty string is interpreted as an empty blacklist = inventorize all (default).")
+                        ),                        
                     ]),  #Tuple
                     title=_("Discovery level of services from Robot output"),
 
