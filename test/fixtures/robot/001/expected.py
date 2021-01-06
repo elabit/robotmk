@@ -15,7 +15,7 @@
                 'inventory_items': ['Testsuite'],
             },
             'dl_0_prefix': {
-                'inventory_items': ['TESTPREFIXTestsuite'],
+                'inventory_items': ['TESTPREFIX Testsuite'],
             },
         },
         'items' : {
