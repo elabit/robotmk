@@ -11,6 +11,13 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ### Changed
 ### Fixed
 
+## [v0.1.8 - 2021-01-06]
+
+### Fixed
+
+- When using a custom service prefix for discovery, the pattern `%SPACE%` can now
+  be used at the prefix end to prevent Multisite cropping the string. (Solves #69)
+
 ## [v0.1.7 - 2021-01-05]
 
 ### Fixed/Changed

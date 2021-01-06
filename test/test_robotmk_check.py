@@ -27,6 +27,7 @@ def test_check_info(checks):
 # Inventory test function
 inventory_test_params = [
     ('001',         'dl_0', 0),
+    # Tests if %SPACE% gets appended as Whitespace to service prefix
     ('001',         'dl_0_prefix', 0),
     ('001',         'dl_1', 1),
     ('001',         'dl_2', 2),
