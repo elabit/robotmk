@@ -10,7 +10,14 @@
 [
     # discovery_suite_level 0
     {
-        'inventory_items': ['Testsuite'],
+        'inventory_items': {
+            'dl_0': {
+                'inventory_items': ['Testsuite'],
+            },
+            'dl_0_prefix': {
+                'inventory_items': ['TESTPREFIXTestsuite'],
+            },
+        },
         'items' : {
             'Testsuite': {
                 # checkgroup_parameters file
@@ -60,7 +67,11 @@
     },
     # discovery_suite_level 1
     {
-        'inventory_items': ['Testcase 1'],
+        'inventory_items': {
+            'dl_1': {
+                'inventory_items': ['Testcase 1'],
+            },
+        },        
         'items' : {
             'Testcase 1': {
                 # checkgroup_parameters file
@@ -73,7 +84,11 @@
     },
     # discovery_suite_level 2
     {
-        'inventory_items': ['Sleep'],
+        'inventory_items': {
+            'dl_2': {
+                'inventory_items': ['Sleep'],
+            },
+        },          
         'items' : {
             'Sleep': {
                 # checkgroup_parameters file

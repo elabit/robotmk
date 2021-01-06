@@ -138,11 +138,6 @@ def check_robot(item, checkgroup_parameters, robot_items):
         # so that it can be compared to the Robot item
         item_without_prefix = strip_prefix(item)
         if robot_item.name == item_without_prefix:
-            # # find a matching pattern and use its discovery level 
-            # setting = pattern_match(robot_discovery_settings, item_without_prefix, (0, '') )
-            # discovery_setting = namedtuple('DiscoverySetting', 'level blacklist_pattern')._make(setting)
-
-            # discovery_level = int(pattern_match(robot_discovery_level, item_without_prefix, 0))
             item_result = robot_item.get_checkmk_result(robot_item, checkgroup_parameters)
             (rc, output_lines, perfdata) = (
                 item_result['worststate'], 
@@ -159,7 +154,6 @@ class RobotItem(object):
         'test' : 'RobotTest',
         'kw'   : 'RobotKeyword'
     }  
-    # FIXME needed? lv_disc = 0
     # list of suites/tests/kw which were discovered (depending on discovery_level)
     discovered = []
     indentation_char = u"\u2504"
@@ -541,7 +535,6 @@ class RobotItem(object):
 
         # MERGE padded_lines and perfdata of sub-items
         self._merge_sub_padded_lines()
-        # FIXME aktivieren !
         self._merge_sub_perfdata()
 
         # Now that all information about this node have been collected, evaluate 
@@ -656,7 +649,6 @@ def pattern_match(patterns, name, default=None):
                 return True
     return default
 
-# FIXME: docs
 def get_robotmk_pattern_value(setting):
     setting_keyname = getattr(self, "%s_dict_key" % setting)
     patterns = checkgroup_parameters.get(setting, {}).get(setting_keyname, [])
@@ -745,7 +737,7 @@ check_info['robotmk'] = {
     "parse_function": parse_robot,
     "inventory_function": inventory_robot,
     "check_function": check_robot,
-    "service_description": "Robot",
+    "service_description": "",
     "group": "robotmk",
     "has_perfdata": True
 }

@@ -20,32 +20,23 @@ test_for = 'robotmk'
 # Info test function                       
 def test_check_info(checks):
     info = checks['robotmk'].check_info
-    assert info['service_description'] == "Robot"
+    assert info['service_description'] == ""
     assert info['group'] == "robotmk"
 
 
 # Inventory test function
 inventory_test_params = [
     ('001',         'dl_0', 0),
+    ('001',         'dl_0_prefix', 0),
     ('001',         'dl_1', 1),
     ('001',         'dl_2', 2),
 ]
-
-    # mk_check_input = read_mk_input('%s/input_check.json' % testsuite)
-    # discovery_rules = read_mk_inventory_rules(testsuite, inventory_rules)
-    # expected_data = read_expected_data(testsuite, discovery_level, item, checkgroup_parameters)
-    
-    # patch(checks.module, monkeypatch, discovery_rules)
-    # params = read_mk_checkgroup_params(testsuite, checkgroup_parameters)
-
-    # result = checks['robotmk'].check_mk(item, params, mk_check_input) 
-    # expected_output = expected_data['svc_output']
 
 @pytest.mark.parametrize("testsuite, inventory_rules, discovery_level", inventory_test_params)
 def test_inventory_mk(checks, monkeypatch, testsuite, inventory_rules, discovery_level):
     mk_check_input = read_mk_input(testsuite)
     discovery_rules = read_mk_inventory_rules(testsuite, inventory_rules)
-    expected_data = read_expected_data(testsuite, discovery_level)
+    expected_data = read_expected_data(testsuite, discovery_level, parameter_filename=inventory_rules)
     patch(checks.module, monkeypatch, discovery_rules)
     inventory = checks['robotmk'].inventory_mk(mk_check_input)
     assert_inventory(inventory, expected_data['inventory_items'])
@@ -152,7 +143,7 @@ def read_mk_inventory_rules(testsuite, file):
     # return eval(open('test/fixtures/inventory_robotmk_rules/%s.py' % rulefile).read())
     return data
 
-def read_expected_data(testsuite, discovery_level, item=None, checkgroup_parameters=None):
+def read_expected_data(testsuite, discovery_level, item=None, parameter_filename=None):
     datafile = "test/fixtures/robot/%s/expected.py" % testsuite
     data = eval_file(datafile)
     try: 
@@ -162,14 +153,15 @@ def read_expected_data(testsuite, discovery_level, item=None, checkgroup_paramet
         sys.exit(1)
     if item != None:
         try:
-            expected_data = expected_data_dl['items'][item][checkgroup_parameters]
+            expected_data = expected_data_dl['items'][item][parameter_filename]
         except: 
             print "ERROR: %s does not contain a valid entry for either item '%s', discovery level %s and/or checkgroup_params '%s'!" % (
-                datafile, item, discovery_level, checkgroup_parameters)
+                datafile, item, discovery_level, parameter_filename)
             sys.exit(1)
     # for inventory
     else: 
-        expected_data = expected_data_dl
+        expected_data = expected_data_dl['inventory_items'][parameter_filename]
+        # expected_data = expected_data_dl
     return expected_data
 
 def eval_file(datafile):

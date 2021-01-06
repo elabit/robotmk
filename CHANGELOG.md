@@ -11,6 +11,14 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ### Changed
 ### Fixed
 
+## [v0.1.7 - 2021-01-05]
+
+### Fixed/Changed
+
+- Service prefix "Robot" is eliminated. By default, there is *no* prefix at all. 
+  It can be overriden by a custom one. By installing this version, your existing Robot 
+  services will get new descriptions (=without "Robot"), RRD data tied to the old 
+  name will be lost. (closes #50)
 
 ## [v0.1.6 - 2021-01-05]
 
