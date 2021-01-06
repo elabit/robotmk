@@ -416,8 +416,8 @@ def _valuespec_inventory_robotmk_rules():
                             title=("Service name prefix"),
                             allow_empty=True,
                             size=25,
-                            default_value="Robot ",
-                            help=_("How Robot service names should start")
+                            default_value="Robot%SPACE%",
+                            help=_("How Robot service names should start. If there should be a whitespace between prefix and name, mask it with <tt>%SPACE%</tt>.")
                         ),                              
                     ]),  #Tuple_elements
                     title=_("Service prefix for discovered Robot services"),

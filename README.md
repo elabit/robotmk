@@ -178,17 +178,55 @@ The manual step to update the submodule is:
 git submodule update --init --recursive
 ```
 
-## TODO
+### Debugging the RobotMK check
+
+`ipdb` is a great cmdline debugger for Python. In the following example it is shown how to execute the RobotMK check within the cmk context. 
+A breakpoint in line 120 is set with "b":  
+
+```
+OMD[cmk]:~$ python -m ipdb bin/cmk -IIv test2Win10simdows
+> /opt/omd/sites/cmk/bin/cmk(34)<module>()
+     33
+---> 34 import os
+     35 import sys
+
+ipdb> b /omd/sites/cmk/local/share/check_mk/checks/robotmk:120
+Breakpoint 1 at /omd/sites/cmk/local/share/check_mk/checks/robotmk:120
+ipdb> r
+Discovering services on: test2Win10simdows
+test2Win10simdows:
++ FETCHING DATA
+ [agent] Execute data source
+ [piggyback] Execute data source
+No piggyback files for 'test2Win10simdows'. Skip processing.
+No piggyback files for '192.168.116.8'. Skip processing.
++ EXECUTING DISCOVERY PLUGINS (1751)
+ps.perf does not support discovery. Skipping it.
+> /omd/sites/cmk/local/share/check_mk/checks/robotmk(120)inventory_robot()
+    119 def inventory_robot(robot_items):
+1-> 120     robot_service_prefix = get_setting('robot_service_prefix',[])
+    121     for robot_item in robot_items:
+```
+
+## Next developments
 
 See the [Github Issues](https://github.com/simonmeggle/robotmk/issues) page for a complete list of feature requests, known bugs etc.
 
 Next development steps will be: 
 
-* Improve the Robot test scheduling/execution on the remote side. Fiddling with cache_time and a guessed maximum runtime of all tests in total is a compromise at best. I am planning to develop a "juggler" plugin mode, which allows to define an execution interval for each Robot test. Robot tests are started then as detached processes. The juggler always knows how many tests can be started at once.
+* Feedback from customers has shown that there is a need for checking the check of Robotmk itself. 
+  This means to monitor if the plugin writes spoolfiles in the proper interval. If not, 
+  this is currently very hard to detect because only the MK discovery check warns that the 
+  `<<<robotmk>>>` agent section is missing. This meta-process will be called `robotmk-master`. 
+  Read more about this in [issue 59](https://github.com/simonmeggle/robotmk/issues/59)
+* It is helpful to have also Robot Logs at hand when there is an alarm. It is planned
+  that the RobotMK plugin also collects the Robot HTML logs and transfers them to the
+  CMK server. HTML logs could also include (embedded?) screenshots, animated GIF screen-recordings etc. 
+  The goal is to implement a service action button which guides you directly to the most
+  recent Robot Log. Read more about this idea in [issue #1](https://github.com/simonmeggle/robotmk/issues/1).   
 * Create a complete Docker-based test setup which covers all test scenarios. Why not test RobotMK's functionality with Robot/Selenium itself.
-* Robot produces nice HTML reports. Why not transport them to the CheckMK server and store in a dedicated shared folder. Then link CheckMK Robot checks to the corresponding HTML reports.  
 * Create a Docker container to execute Robot tests also in Containers. Expand the agent plugin to trigger Robot containers with API calls to Kubernetes and Docker Swarm to distribute E2E tests.  
-* Create dynamic area-stacked performance graphs in the CheckMK grapher. (No, I won't do this for PNP4Nagios)
+* Create dynamic area-stacked performance graphs in the CheckMK grapher. (No, I won't do this for PNP4Nagios...)
 
 ## Contributing
 

@@ -120,7 +120,8 @@ def inventory_robot(robot_items):
     robot_service_prefix = get_setting('robot_service_prefix',[])
     for robot_item in robot_items:
         prefix = pattern_match(robot_service_prefix, robot_item.name, '')
-        item_name = "%s%s" % (prefix, robot_item.name)
+        prefix_subst = prefix.replace('%SPACE%', ' ')
+        item_name = "%s%s" % (prefix_subst, robot_item.name)
         yield item_name, None
         # uncomment instead of yield to debug this method
         # print suite_name
@@ -665,8 +666,9 @@ def get_setting(setting, defaultvalue):
 def strip_prefix(suitename):
     robot_service_prefix = get_setting('robot_service_prefix',[])
     prefix = pattern_match(robot_service_prefix, suitename, '')
-    if suitename.startswith(prefix):
-        return suitename[len(prefix):]
+    prefix_subst = prefix.replace('%SPACE%', ' ')
+    if suitename.startswith(prefix_subst):
+        return suitename[len(prefix_subst):]
     else:
         return suitename
 
