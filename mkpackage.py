@@ -7,6 +7,9 @@ import os
 import sys
 from shutil import copyfile, rmtree
 import re
+from collections import namedtuple
+
+rootpath = Path(os.path.dirname(os.path.realpath(__file__)))
 
 ostream = os.popen('git describe --tags')
 tag = ostream.read().strip()
@@ -15,11 +18,22 @@ if not re.match('^v([0-9]+)\.([0-9]+)\.([0-9]+)(?:-([0-9A-Za-z-]+(?:\.[0-9A-Za-z
     print "ERROR: Last git tag does not match the expected version format! Exiting."
     sys.exit(1)
 
-rootpath = Path(os.path.dirname(os.path.realpath(__file__)))
-# place a copy of robotmk plugin in custom
-custompath = rootpath.joinpath('agents/custom/robotmk-plugin/bin')
-custompath.mkdir(parents=True, exist_ok=True)
-copyfile(str(rootpath.joinpath('agents/plugins/robotmk')), str(custompath.joinpath('robotmk.py')))
+Target = namedtuple('Target', 'path, filename')
+
+customfiles = {
+    'windows': {
+        'agents/plugins/robotmk': Target('agents/custom/robotmk-windows/lib/bin', 'robotmk.py')
+    },
+    'linux': {
+        'agents/plugins/robotmk': Target('agents/custom/robotmk-linux/bin', 'robotmk')
+    },
+}
+
+for os in customfiles: 
+    for file in customfiles[os]:
+        custompath = customfiles[os][file].path
+        Path(custompath).mkdir(parents=True, exist_ok=True)
+        copyfile(file, str(Path(custompath).joinpath(customfiles[os][file].filename)))
 
 blacklist = [
     'local/lib',
@@ -51,4 +65,4 @@ dist({
     'version.min_required': '1.6',
 }, blacklist=blacklist)
 
-rmtree(str(custompath))
+rmtree(str('agents/custom'))
