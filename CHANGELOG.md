@@ -11,6 +11,11 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ### Changed
 ### Fixed
 
+- Bakery set a wrong binary path on Windows (robotmk plugin was placed in agentdata root dir); created 
+  custom file packages for linux and windows. Renamed the custom file packages to `robotmk-windows` and 
+  `robotmk-linux` (solves #73)
+- Bakery: fixed wrong key value for utf-8 (closes #72)
+
 ## [v0.1.8 - 2021-01-06]
 
 ### Fixed

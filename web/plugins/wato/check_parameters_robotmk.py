@@ -68,7 +68,7 @@ helptext_execution_mode_spooldir="""
     In this mode there is no plugin execution by the agent; <b>schedule it manually</b> with Jenkins, cron, Windows task scheduler etc.<br>
     The <i>agent plugin cache time</i> should be higher than the scheduling interval.<br>
     The result of the plugin will be written into the <tt>SPOOLDIR</tt> of the Checkmk agent.<br>
-    <b>Important note</b>: You need to utilize the rule <i>Deploy custom files to agent</i> to deliver the file package '<i>robotmk-plugin</i>'. The RobotMK plugin will be installed then in the <tt>bin</tt> folder (instead of <tt>plugin</tt>) on the agent.<br><br>
+    <b>Important note</b>: You need to utilize the rule <i>Deploy custom files to agent</i> to deliver the file package '<i>robotmk-windows/linux</i>'. The RobotMK plugin will be installed then in the <tt>bin</tt> folder (instead of <tt>plugin</tt>) on the agent.<br><br>
     <b>Use cases</b> for this mode: <br>
       - Applications which need a desktop<br>
       - Applications which require to be run with a certain user account<br>
