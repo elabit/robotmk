@@ -39,6 +39,16 @@ from cmk.gui.cee.plugins.wato.agent_bakery import (
     RulespecGroupMonitoringAgentsAgentPlugins
 )
 
+
+#   _           _                   
+#  | |         | |                  
+#  | |__   __ _| | _____ _ __ _   _ 
+#  | '_ \ / _` | |/ / _ \ '__| | | |
+#  | |_) | (_| |   <  __/ |  | |_| |
+#  |_.__/ \__,_|_|\_\___|_|   \__, |
+#                              __/ |
+#                             |___/ 
+
 helptext_listof_testsuites_spooldir="""
     By default (if you do not add any suite), the RobotMK plugin will execute <i>all</i> <tt>.robot</tt> files in the <i>Robot suites directory</i> without any parametrization.<br>
     To specify suites, additional parameters and execution order, click <i>Add test suite</i>.<br>    
@@ -357,6 +367,17 @@ rulespec_registry.register(
         valuespec=_valuespec_agent_config_robotmk,
     ))
 
+
+
+#       _ _                                   
+#      | (_)                                  
+#    __| |_ ___  ___ _____   _____ _ __ _   _ 
+#   / _` | / __|/ __/ _ \ \ / / _ \ '__| | | |
+#  | (_| | \__ \ (_| (_) \ V /  __/ |  | |_| |
+#   \__,_|_|___/\___\___/ \_/ \___|_|   \__, |
+#                                        __/ |
+#                                       |___/ 
+
 def _valuespec_inventory_robotmk_rules():
     return Dictionary(
         title=_("Robot Framework Service Discovery"),
@@ -454,7 +475,14 @@ dropdown_robotmk_show_submessages=CascadingDropdown(
         default_value="no",
 )
 
- 
+#        _               _    
+#       | |             | |   
+#    ___| |__   ___  ___| | __
+#   / __| '_ \ / _ \/ __| |/ /
+#  | (__| | | |  __/ (__|   < 
+#   \___|_| |_|\___|\___|_|\_\
+                            
+                             
 
 def _parameter_valuespec_robotmk():
     return Dictionary(elements=[
