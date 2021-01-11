@@ -264,7 +264,7 @@ dropdown_robotmk_output_encoding=CascadingDropdown(
         ('base64_codec', _('BASE-64')),
         ('zlib_codec', _('Zlib (compressed)')),
     ],
-    default_value="plain_utf8",
+    default_value="utf_8",
 )
 
 
