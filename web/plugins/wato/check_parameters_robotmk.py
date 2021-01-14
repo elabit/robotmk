@@ -475,6 +475,101 @@ dropdown_robotmk_show_submessages=CascadingDropdown(
         default_value="no",
 )
 
+listof_runtime_threshold_suites=ListOf(  
+    Tuple(  
+        title = _('<b>Suite</b> thresholds'),
+        show_titles=True,
+        orientation="horizontal",
+        elements = [
+            TextAscii(
+                title=("<b>Suite</b> pattern"),
+                allow_empty=False,
+                size=60,
+            ),
+            Float(
+                title=("WARN threshold (sec)"),
+                allow_empty=False,
+                size=19,
+            ),                            
+            Float(
+                title=("CRIT threshold (sec)"),
+                allow_empty=False,
+                size=19,
+            ),                            
+        ],
+    ), 
+    add_label=_("Add"),
+    movable=False,
+    title=_("<b>Suite</b> thresholds")
+)
+
+listof_runtime_threshold_tests=ListOf(  
+    Tuple(  
+        title = _('<b>Test</b> thresholds'),
+        show_titles=True,
+        orientation="horizontal",
+        elements = [
+            TextAscii(
+                title=("<b>Test</b> pattern"),
+                allow_empty=False,
+                size=60,
+            ),
+            Float(
+                title=("WARN threshold (sec)"),
+                allow_empty=False,
+                size=19,
+            ),                            
+            Float(
+                title=("CRIT threshold (sec)"),
+                allow_empty=False,
+                size=19,
+            ),                            
+        ],
+    ),  
+    add_label=_("Add"),
+    movable=False,
+    title=_("<b>Test</b> thresholds")
+)
+
+listof_runtime_threshold_keywords=ListOf(  
+    Tuple(  
+        title = _('<b>Keyword</b> thresholds'),
+        show_titles=True,
+        orientation="horizontal",
+        elements = [
+            TextAscii(
+                title=("<b>Keyword</b> pattern"),
+                allow_empty=False,
+                size=60,
+            ),
+            Float(
+                title=("WARN threshold (sec)"),
+                allow_empty=False,
+                size=19,
+            ),                            
+            Float(
+                title=("CRIT threshold (sec)"),
+                allow_empty=False,
+                size=19,
+            ),                            
+        ],
+    ),  # L3 / Tuple
+    add_label=_("Add"),
+    movable=False,
+    title=_("<b>Keyword</b> thresholds")
+)
+
+dropdown_robotmk_show_all_runtimes=CascadingDropdown(
+    title=_("Show monitored runtimes also when in OK state ETZAGETS10"),
+        help=_("By default, Robotmk only displays the runtime of Robot suites/tests/keywords where a threshold was exceeded. This helps to keep the output much cleaner. <br> "
+            "To baseline newly created Robot tests for a certain time, it can be helpful to show even OK runtime values."),
+        choices=[
+            ('yes', _('yes')),
+            ('no', _('no')),
+        ],
+        default_value="no",
+)
+
 #        _               _    
 #       | |             | |   
 #    ___| |__   ___  ___| | __
@@ -551,89 +646,13 @@ def _parameter_valuespec_robotmk():
                     'Always keep in mind that runtime monitoring is not a feature of Robot but RobotMK. This means that a Robot suite can have an internal OK state but WARN in CheckMK.<br>'
                     'Patterns always start at the beginning. CRIT threshold must be bigger than WARN; values of 0 disable the threshold.'
             ),
-            elements = [
-                ("runtime_threshold_suites", ListOf(  # /L2
-                    Tuple(  # L3
-                        title = _('<b>Suite</b> thresholds'),
-                        show_titles=True,
-                        orientation="horizontal",
-                        elements = [
-                            TextAscii(
-                                title=("<b>Suite</b> pattern"),
-                                allow_empty=False,
-                                size=60,
-                            ),
-                            Float(
-                                title=("WARN threshold (sec)"),
-                                allow_empty=False,
-                                size=19,
-                            ),                            
-                            Float(
-                                title=("CRIT threshold (sec)"),
-                                allow_empty=False,
-                                size=19,
-                            ),                            
-                        ],
-                    ),  # L3 / Tuple
-                    add_label=_("Add"),
-                    movable=False,
-                    title=_("<b>Suite</b> thresholds")
-                )), # L2 
-               ("runtime_threshold_tests", ListOf(  # /L2
-                    Tuple(  # L3
-                        title = _('<b>Test</b> thresholds'),
-                        show_titles=True,
-                        orientation="horizontal",
-                        elements = [
-                            TextAscii(
-                                title=("<b>Test</b> pattern"),
-                                allow_empty=False,
-                                size=60,
-                            ),
-                            Float(
-                                title=("WARN threshold (sec)"),
-                                allow_empty=False,
-                                size=19,
-                            ),                            
-                            Float(
-                                title=("CRIT threshold (sec)"),
-                                allow_empty=False,
-                                size=19,
-                            ),                            
-                        ],
-                    ),  # L3 / Tuple
-                    add_label=_("Add"),
-                    movable=False,
-                    title=_("<b>Test</b> thresholds")
-                )), # L2                 
-                ("runtime_threshold_keywords", ListOf(  # /L2
-                    Tuple(  # L3
-                        title = _('<b>Keyword</b> thresholds'),
-                        show_titles=True,
-                        orientation="horizontal",
-                        elements = [
-                            TextAscii(
-                                title=("<b>Keyword</b> pattern"),
-                                allow_empty=False,
-                                size=60,
-                            ),
-                            Float(
-                                title=("WARN threshold (sec)"),
-                                allow_empty=False,
-                                size=19,
-                            ),                            
-                            Float(
-                                title=("CRIT threshold (sec)"),
-                                allow_empty=False,
-                                size=19,
-                            ),                            
-                        ],
-                    ),  # L3 / Tuple
-                    add_label=_("Add"),
-                    movable=False,
-                    title=_("<b>Keyword</b> thresholds")
-                )), # L2                                       
+            elements = [                
+                ("runtime_threshold_suites", listof_runtime_threshold_suites),   
+                ("runtime_threshold_tests", listof_runtime_threshold_tests),   
+                ("runtime_threshold_keywords", listof_runtime_threshold_keywords),   
+                ("show_all_runtimes", dropdown_robotmk_show_all_runtimes),                                      
             ],
+            
         )), # L1 / runtime_threshold  
 
         ("perfdata_creation", Dictionary(
@@ -673,6 +692,7 @@ def _parameter_valuespec_robotmk():
             default_value="no",
         )),               
         ("show_submessages", dropdown_robotmk_show_submessages),     
+             
     ],)
 
 rulespec_registry.register(

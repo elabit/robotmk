@@ -251,9 +251,9 @@ class RobotItem(object):
         self.result['abbreviation'] = self.abbreviation
         self.result['xpath_name'] = self.xpath_name
         
-    # Evalute the Robot status of this item to a Nagios state & set message  
+    # Evalute the Robot status of this item to a Nagios state & set message 
     def _eval_node_robotframework_status(self):
-        self.result['robotframework'] = [(ROBOT_NAGIOS[self.status], remove_nasty_chars(self.text))]
+        self.result['result_robotframework'] = (ROBOT_NAGIOS[self.status], remove_nasty_chars(self.text))
 
     # create the "base line" with the node name and the RF status
     def _set_node_padded_line(self, check_params):
@@ -262,7 +262,7 @@ class RobotItem(object):
         badge = ''
         # For RF-state, do not display badges in keywords (kws are allowed to fail)
         if type(self) != RobotKeyword:
-            badge = STATE_BADGES[self.result['robotframework'][0][0]]
+            badge = STATE_BADGES[self.result['result_robotframework'][0]]
             if len(badge) > 0: 
                 badge = " " + badge
         
@@ -287,7 +287,7 @@ class RobotItem(object):
         if len(text) > 0: 
             text_bracket = ' (%s)' % text
         # set the unicode symbol
-        if self.result['robotframework'] > 0: 
+        if self.result['result_robotframework'] > 0: 
             status_symbol = self.symbol_nok
         else: 
             status_symbol = self.symbol_ok
@@ -309,8 +309,9 @@ class RobotItem(object):
             text_bracket)
         ).strip()  
         # Collect messages from node checks (runtime, metrics, ...) 
-        node_results = [self.result[x] for x in self.result_keys if x in self.result]
-        node_messages = [item[1] for sublist in node_results for item in sublist if item[1]]
+        NodeResult = namedtuple('NodeResult', 'check,resultuple')
+        node_results = [ NodeResult(check, self.result[check]) for check in self.result_keys if self.result.get(check, False) ]
+        node_messages = [node_result.resultuple[1] for node_result in node_results if node_result.resultuple[1] ]
 
         # If this is a top_node, add the messages from subelements: 
         if self.is_topnode:
@@ -325,12 +326,20 @@ class RobotItem(object):
             node_messages.remove(text)
         if len(node_messages) > 0: 
             # Add messages to the top_node.submessages (which is for kws: Test, for tests: Suite)
-            self.node_top.sub_messages.append("%s '%s': %s" % (self.abbreviation, self.name, ', '.join(node_messages)))
+            # But not all... We do not want messages from cmk_runtime messages if the runtime was 
+            # not exceeded. 
+            # 
+            # Perhaps a more generic way is needed to hinder metrics to be propagated under
+            # certain conditions. 
+
+            # -> Für sowas gehört man auf den Scheiterhaufen!
+            top_messages = [node_result.resultuple[1] for node_result in node_results if (node_result.resultuple[1] and node_result.check != 'result_cmk_runtime') or (node_result.resultuple[1] and node_result.check == 'result_cmk_runtime' and node_result.resultuple[0] > 0) ]
+            if top_messages: 
+                self.node_top.sub_messages.append("%s '%s': %s" % (self.abbreviation, self.name, ', '.join(top_messages)))
             messages_str = ", %s" % ', '.join(node_messages)
         # Final Line
         self.result['padded_lines_list'] = ["%s%s" % (baseline, messages_str)]
         
-
     # sets status and message for this node with exceeded runtime
     # Runtime monitoring is not related to Robot Framework and introduces the WARN
     # state. Therefore, it can happen that a s/t/k is CRIT/WARN but the RF status is PASS. 
@@ -347,14 +356,16 @@ class RobotItem(object):
                 text = "%s runtime=%.2fs >= %.2fs" % (STATE_BADGES[nagios_status], self.elapsed_time, runtime_threshold[0])
             else:
                 nagios_status = 0
-                # For OK checks, do not display the result
-                # text = "runtime=%.2fs" % self.elapsed_time
-                text = ""
+                if bool(check_params.get('runtime_threshold', False).get('show_all_runtimes', False)):
+                    text = "runtime=%.2fs" % self.elapsed_time
+                else: 
+                    text = ""
 
             cmk_runtime = (nagios_status, text)
-            self.result['cmk_runtime_list'] = [cmk_runtime]
+            self.result['result_cmk_runtime'] = cmk_runtime
         else: 
-            self.result['cmk_runtime_list'] = []
+            self.result['result_cmk_runtime'] = None
+
 
     def _eval_node_cmk_perfdata(self, check_params):
         # PERFDATA ---- Which elemens should produce performance data? 
@@ -372,10 +383,10 @@ class RobotItem(object):
                 )
             else: 
                 cmk_perfdata = (perflabel, "%.2f" % self.elapsed_time)
-
+            # perfdata is a list because it gets expanded by perfdata of sub-nodes
             self.result['cmk_perfdata_list'] = [cmk_perfdata]
         else: 
-            self.result['cmk_perfdata_list'] = []
+            self.result['cmk_perfdata_list'] = None
 
     # WIP: see https://github.com/simonmeggle/robotmk/issues/60
     def _eval_node_cmk_metric(self, check_params):
@@ -401,9 +412,9 @@ class RobotItem(object):
                 text = "value %s=%s" % (dummy_name, dummy_value)
             # TODO: add perfdata if needed
             cmk_metric = (nagios_status, text)
-            self.result['cmk_metric_list'] = [cmk_metric]
+            self.result['result_cmk_metric'] = cmk_metric
         else:
-            cmk_metric = []
+            cmk_metric = None
 
     def _descending_allowed(self, depth_limit_inherited, check_params):
         # OUTPUT DEPTH --- how deep can we descend in nested suites/keywords?  
@@ -468,7 +479,7 @@ class RobotItem(object):
 
     def _eval_total_result(self):
         # NODE WORST STATE - grab all results of this node
-        node_results = [s for r in self.result_keys if r in self.result for s in self.result[r] if len(s)>0]
+        node_results = [ self.result[check] for check in self.result_keys if self.result.get(check, False) ]
         if len(node_results) > 0:
             # maximum of all node result states
             node_worststate = max([x[0] for x in node_results])
@@ -491,9 +502,9 @@ class RobotItem(object):
 
     # Add all perfdata of subnodes to the current one
     def _merge_sub_perfdata(self):
-        for r in self.subresults: 
-            for s in r['cmk_perfdata_list']: 
-                self.result['cmk_perfdata_list'].append(s)
+        for subresult in self.subresults: 
+            if subresult['cmk_perfdata_list'] != None: 
+                self.result['cmk_perfdata_list'].extend(subresult['cmk_perfdata_list'])
         return
         
     # recursive function to retrieve status and submessages of a node
@@ -556,7 +567,7 @@ class RobotSuite(RobotItem):
     runtime_threshold_dict_key = "runtime_threshold_suites"
     perfdata_creation_dict_key = "perfdata_creation_suites"
     # What should be evaluated to get the node's status? 
-    result_keys = 'robotframework cmk_runtime_list cmk_metric_list'.split()
+    result_keys = 'result_robotframework result_cmk_runtime result_cmk_metric'.split()
 
     def __init__(self, xmlnode, lv_abs, lv_rel, parent, index):
         super(RobotSuite, self).__init__(xmlnode, lv_abs, lv_rel, parent)
@@ -578,7 +589,7 @@ class RobotTest(RobotItem):
     runtime_threshold_dict_key = "runtime_threshold_tests"
     perfdata_creation_dict_key = "perfdata_creation_tests" 
     # What should be evaluated to get the node's status? 
-    result_keys = 'robotframework cmk_runtime_list cmk_metric_list'.split()
+    result_keys = 'result_robotframework result_cmk_runtime result_cmk_metric'.split()
 
     def __init__(self, xmlnode, lv_abs, lv_rel, parent, index):
         super(RobotTest, self).__init__(xmlnode, lv_abs, lv_rel, parent)
@@ -606,7 +617,7 @@ class RobotKeyword(RobotItem):
     runtime_threshold_dict_key = "runtime_threshold_keywords"
     perfdata_creation_dict_key = "perfdata_creation_keywords"
     # What should be evaluated to get the node's status? 
-    result_keys = 'cmk_runtime_list cmk_metric_list'.split()
+    result_keys = 'result_cmk_runtime result_cmk_metric'.split()
     def __init__(self, xmlnode, lv_abs, lv_rel, parent, index):
         super(RobotKeyword, self).__init__(xmlnode, lv_abs, lv_rel, parent, index)
     def __str__(self):

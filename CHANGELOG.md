@@ -15,6 +15,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   custom file packages for linux and windows. Renamed the custom file packages to `robotmk-windows` and 
   `robotmk-linux` (solves #73)
 - Bakery: fixed wrong key value for utf-8 (closes #72)
+- WATO option for check: print monitored runtime even if OK (closes #70)
 
 ## [v0.1.8 - 2021-01-06]
 

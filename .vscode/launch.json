@@ -17,7 +17,8 @@
             "type": "python",
             "request": "launch",
             "program": "${file}",
-            "console": "integratedTerminal"
+            "console": "integratedTerminal",
+            "justMyCode": false
         },
         {
             "name": "RobotMK bakery",
@@ -41,7 +42,7 @@
             "request": "launch",
             "program": "${workspaceFolder}/agents/plugins/robotmk",
             "console": "integratedTerminal",
-            "python": "${workspaceFolder}/.tox/plugin/bin/python",
+            // "python": "${workspaceFolder}/.tox/plugin/bin/python",
             // allow to inspect also foreign code
             "justMyCode": false
         },

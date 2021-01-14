@@ -1,0 +1,22 @@
+*** Test Cases ***
+Test1
+	Sleep 	0.01
+Test2
+	Sleep2nested    0.02
+Test3
+	Sleep3nested	0.03
+Test4
+	Sleep4nested	0.04  
+
+*** Keywords ***
+Sleep2nested
+	[Arguments]	${time}
+	Sleep	${time}
+
+Sleep3nested
+	[Arguments]	${time}
+	Sleep2nested	${time}
+
+Sleep4nested
+	[Arguments]	${time}
+	Fail  
