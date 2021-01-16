@@ -2,9 +2,12 @@
 
 *A complete solution to integrate **Robot Framework** End2End tests into **CheckMK***
 
-[![Build Status](https://travis-ci.com/simonmeggle/robotmk.svg?branch=develop)](https://travis-ci.com/simonmeggle/robotmk)
+[![Build Status](https://travis-ci.com/simonmeggle/robotmk.svg?branch=develop)](https://travis-ci.com/simonmeggle/robotmk) ![.github/workflows/github-markdown-toc.yml](https://github.com/simonmeggle/robotmk/workflows/.github/workflows/github-markdown-toc.yml/badge.svg)
 
 ![desc](img/robot_robotmk_checkmk.png)
+
+<!--ts-->
+<!--te-->
 
 ## Description
 
@@ -16,7 +19,7 @@
 * [CheckMK](https://checkmk.com) is a state-of-the-art IT infrastructure monitoring system. 
 * **RobotMK** integrates the results of Robot Framework into Checkmk. It bridges the gap between infrastructure and application testing. 
 
-**Why do you need RobotMK?** 
+**Why do I need RobotMK?** 
 
 A monitoring system like Checkmk does a very good job to monitor your business' IT infrastructure with checks for Servers, Network devices, etc. 
 
