@@ -1,6 +1,6 @@
 # RobotMK
 
-*A tool to integrate Robot Framework End2End tests into CheckMK*
+*A complete solution to integrate **Robot Framework** End2End tests into **CheckMK***
 
 [![Build Status](https://travis-ci.com/simonmeggle/robotmk.svg?branch=develop)](https://travis-ci.com/simonmeggle/robotmk)
 
@@ -8,41 +8,79 @@
 
 ## Description
 
-**What is RobotMK?** RobotMK allows you to integrate the results of the great [Robot Framework](https://robotframework.org/) into the great monitoring system [CheckMK](https://checkmk.com). Great. 
+**What is RobotMK?** 
 
-**Why do you need RobotMK?** A monitoring system like checkMK does a very good job to monitor your business' IT infrastructure with checks for CPU, Memory, Network devices, etc. The reason why you are running IT is that you provide a service to users. Therefore you also should monitor what your users use, and most important: do it like they do. Use a real browser, mouse and keyboard strokes. Test from End (the user) to End (your IT infrastructure as a whole). This is called "End2End"-Testing.
+`"Robot Framework + CheckMK = RobotMK"`
+
+* [Robot Framework](https://robotframework.org/) is a generic testing framework. It can test any kind of application with the help of *libraries*. 
+* [CheckMK](https://checkmk.com) is a state-of-the-art IT infrastructure monitoring system. 
+* **RobotMK** integrates the results of Robot Framework into Checkmk. It bridges the gap between infrastructure and application testing. 
+
+**Why do you need RobotMK?** 
+
+A monitoring system like Checkmk does a very good job to monitor your business' IT infrastructure with checks for Servers, Network devices, etc. 
+
+But in the end - the reason why you are running IT is to *provide a service* to users. 
+
+Therefore you shouldn't only monitor infrastructure, but also *the services*. And most important: do it like they do. Use a real browser, mouse and keyboard strokes. Test from End (the user) to End (your IT infrastructure as a whole). This is called **"End2End"-Testing**.
 
 Robot Framework can automate End2End-Tests for you (and much more). Integrating those tests into CheckMK is a great supplement.
 
-**RobotMK** acts as a bridge between Robot Framework and CheckMK. It consists of those components: 
+**RobotMK** acts as a bridge between Robot Framework and CheckMK. 
 
-* RobotMK **bakery rule**: Use the CheckMK WATO rule editor to decide which remote hosts should be deployed with the RobotMK plugin. Define which suites should be executed there and the individual parameters. 
-* RobotMK **plugin**: integrated into the CheckMK monitoring agent, it executes Robot tests on the client side. It gets controlled by the robotmk YML file which is created by the bakery. 
-* RobotMK **check**: evaluates the Result coming from Robot tests. Define thresholds for any step within the test. Control which steps should produce performance data for nice graphs. Decide how to split up Robot results into different services ("checks" in CheckMK) - without splitting the robot test. 
+## State of development
+
+**Is RobotMK stable? Can it be used in production?**
+
+Fortunately, the development of RobotMK is driven by customers who believe in the project and use already it in their daily business. This is where worthful feedback and feature requests come from. 
+
+Even if they already use RobotMK in production there's no point denying the project is still in an early phase (= major version 0.x). 
+
+As bugs are getting solved and new features are coming in, there is no guarantee that after installing a new version of RobotMK settings, output formats etc. will be the same or at least compatible with the previous version. We try to communicate this in the [CHANGELOG](./CHANGELOG.md) as detailled as possible. 
+
+
+## Key features/components
+
+* RobotMK **bakery rule** - configures E2E clients:
+  * Use the CheckMK WATO rule editor to decide which remote hosts should be deployed with the RobotMK plugin.
+  * Define which suites should be executed there and the individual parameters. 
+* RobotMK **plugin** - executes RF tests: 
+  * integrated into the CheckMK monitoring agent, it is a kind of wrapper for RF tests on the client side. It gets controlled by the robotmk YML file which is created by the bakery. 
+* RobotMK **check** - evaluates RF results:
+  * evaluates the RF result coming from the Checkmk agent. 
+  * 100% configurable by web (WATO), 100% Robot compatible: RobotMK does not require any adaptation to existing Robot tests; they can be integrated in CheckMK without any intervention.
+  * powerful pattern-based definition system for "most general" and/or fine granular control of
+    * runtime thresholds: get alarms for suites/tests/keywords running too long. 
+    * performance data: get graphs for any runtime. Even insidious performance changes can thus be detected.
+    * service discovery level: rule-based splitting of Robot Framework results into different Checkmk services ("checks" in CheckMK) - without splitting the robot test. 
+    * reduction of the output to the essential needs for an optimum result.
 
 Read the [feature page](https://robotmk.org) of RobotMK to learn about its history, features and advantages. 
 
-## Key features
+## Usage scenarios
 
-* **Centralized control** via WATO: RobotMK is configured via a powerful rule system in the web administration interface of CheckMK (WATO).
-* **100% Robot-compatible**: RobotMK does not require any adaptation to existing Robot tests; they can be integrated in CheckMK without any intervention.
-* **Runtime monitoring**: ​RobotMK monitors the runtimes of whole suites, tests and keywords assisted by the pattern-based rule system. Even insidious performance changes can thus be detected.
-* **Pattern-based reduction of the output** to the essential ensures an optimum result.
-* **Flexible**: Create as many CheckMK checks as you want out of one single Robot test by using the **discovery level**.  
-* selective **performance data**: granular control over the creation of performance graphs
+**RobotMK** is great for: 
+
+* having both monitoring business-critical applications and infrastructure check within the same monitoring tool (Checkmk)
+* monitoring modern apps: Angular, React, Android/iOS based, ... Robot Framework has a long list of well-curated libraries
+* monitoring old legacy apps: even the oldest applications can be monitored with Robot Framework by using a image recognition based library. 
+* monitoring 3rd party services: there are bunch of libraries to write tests based on REST, SOAP, TCP sockets, SSH, FTP, ...  
 
 ## Requirements
 
-CheckMK 1.6 Enterprise edition (CEE) is recommended to distribute the RobotMK YAML configuration to the monitoring agent. If you are using CRE, consider a worthwile [switch to CEE](https://www.iteratio.com/). 
+RobotMK works with any CheckMK 1.6x version and edition (CEE and CRE).
 
-If you a fine to write the YAML configuration by hand, CRE is also appropriate. 
+*  Enterprise edition (CEE) is recommended if you want to benefit from the agent bakery system which creates agent installation packages and the RobotMK YAML configuration files. 
+* Raw Edition (CRE) also works if you are fine to write this files by hand/generate by some other tool (Ansible etc.). (Nevertheless, consider a worthwile [switch to CEE](https://www.iteratio.com/))
 
 ## Installation
 
 You can choose between two ways of installing RobotMK: 
 
-* by hand (cloning the repository, coping files by hand)
-* Installing as [MKP](https://checkmk.com/cms_mkps.html) from [CMK Exchange](https://exchange.checkmk.com/) (recommended)
+* Installing as [MKP](https://checkmk.com/cms_mkps.html) is the preferred way. 
+  * The most recent release can be downloaded here on the [Releases](https://github.com/simonmeggle/robotmk/releases) page
+  * The latest MKP *reviewed by tribe29* (the Checkmk guys) can be fetched from [CMK Exchange](https://exchange.checkmk.com/) (not always up to date)
+* Installation by hand is only recommended for advanced users who love to get dirty hands. 
 
 ![mkp-installation](img/mkpinstall.gif)
 
@@ -55,7 +93,17 @@ OMD[cmk]:~$ cmk -L | grep robot
 robotmk     tcp    (no man page present)
 ```
 
+## Documentation
+
+All Robotmk rules come with a very **detailled and comprehensive context help**. This covers 95% of all information which is needed to work with Robotmk. 
+
+The context help can be shown by clicking on the **book icon** in the top right corner of every RobotMK rule:  
+
+![How to show the context help](img/show_context_help.gif)
+
 ## Usage
+
+*Caveat: the following information can contain minor differences to the current development state*
 
 ### Configure what to execute
 
