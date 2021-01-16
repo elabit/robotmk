@@ -9,6 +9,11 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ## Unreleased
 ### Added
 ### Changed
+### Fixed
+
+## [v0.1.9 - 2021-01-16]
+
+### Changed
 
 - WATO option for check: print monitored runtime even if OK (closes #70)
 
