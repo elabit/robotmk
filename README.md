@@ -7,6 +7,35 @@
 ![desc](img/robot_robotmk_checkmk.png)
 
 <!--ts-->
+   * [RobotMK](#robotmk)
+      * [Description](#description)
+      * [State of development](#state-of-development)
+      * [Key features/components](#key-featurescomponents)
+      * [Usage scenarios](#usage-scenarios)
+      * [Requirements](#requirements)
+      * [Installation](#installation)
+      * [Documentation](#documentation)
+      * [Usage](#usage)
+         * [Configure what to execute](#configure-what-to-execute)
+         * [Integrate the new Robot E2E check into CheckMK](#integrate-the-new-robot-e2e-check-into-checkmk)
+         * [Configure the E2E check](#configure-the-e2e-check)
+         * [Discovery level: split up a Robot tests into many CMK services](#discovery-level-split-up-a-robot-tests-into-many-cmk-services)
+      * [Development setup](#development-setup)
+         * [Installation](#installation-1)
+         * [Python versions](#python-versions)
+         * [tox](#tox)
+         * [running tests with tox](#running-tests-with-tox)
+         * [Submodule init](#submodule-init)
+         * [Debugging the RobotMK check](#debugging-the-robotmk-check)
+      * [Next developments](#next-developments)
+      * [Contributing](#contributing)
+      * [License](#license)
+      * [Credits/Thanks](#creditsthanks)
+         * [Contributions](#contributions)
+         * [Supporters](#supporters)
+
+<!-- Added by: runner, at: Sat Jan 16 09:19:59 UTC 2021 -->
+
 <!--te-->
 
 ## Description
