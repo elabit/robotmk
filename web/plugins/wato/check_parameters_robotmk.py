@@ -560,7 +560,7 @@ listof_runtime_threshold_keywords=ListOf(
 )
 
 dropdown_robotmk_show_all_runtimes=CascadingDropdown(
-    title=_("Show monitored runtimes also when in OK state ETZAGETS10"),
+    title=_("Show monitored runtimes also when in OK state"),
         help=_("By default, Robotmk only displays the runtime of Robot suites/tests/keywords where a threshold was exceeded. This helps to keep the output much cleaner. <br> "
             "To baseline newly created Robot tests for a certain time, it can be helpful to show even OK runtime values."),
         choices=[
