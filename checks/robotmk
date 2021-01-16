@@ -374,7 +374,7 @@ class RobotItem(object):
             # perfdata is a list because it gets expanded by perfdata of sub-nodes
             self.result['cmk_perfdata_list'] = [cmk_perfdata]
         else: 
-            self.result['cmk_perfdata_list'] = None
+            self.result['cmk_perfdata_list'] = []
 
     # WIP: see https://github.com/simonmeggle/robotmk/issues/60
     def _eval_node_cmk_metric(self, check_params):
