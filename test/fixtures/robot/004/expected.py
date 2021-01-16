@@ -13,22 +13,10 @@
         'inventory_items': ['Testsuite'],
         'items' : {
             'Testsuite': {
-                # # checkgroup_parameters file
-                # None: {
-                #     'svc_status': 0,
-                #     'svc_output': ".*'Testsuite': PASS.*'Testcase 1': PASS.*'Sleep': PASS \(Slept 1 second\)",
-                # },
-                '001-output_depth_kw0': {
-                    'svc_status': 0,
-                    'svc_output': ".*--K-- 'MyFooKeyword': PASS$",
-                },
-                '002-output_depth_kw1': {
-                    'svc_status': 0,
-                    'svc_output': ".*--K-- 'MyFooKeyword': PASS\\n--K-- 'MyBarKeyword': PASS$",
-                },
-                '003-output_depth_kw2': {
-                    'svc_status': 0,
-                    'svc_output': ".*--K-- 'MyFooKeyword': PASS\\n--K-- 'MyBarKeyword': PASS\\n--K-- 'MyBazKeyword': PASS$",
+                # checkgroup_parameters file
+                None: {
+                    'svc_status': 2,
+                    'svc_output': "--xS-- 'Testsuite': FAIL --CRIT--\\n--xT-- 'Test1': FAIL --CRIT-- \(Foo\)\\n--K-- 'KwNested4': FAIL\\n--K-- 'KwNested3': FAIL\\n--K-- 'KwNested2': FAIL\\n--K-- 'KwNested': FAIL\\n--K-- 'Fail': FAIL \(Foo\)"
                 },
             }
         },

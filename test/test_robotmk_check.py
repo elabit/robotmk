@@ -71,6 +71,8 @@ check_test_params = [
     ('001',         'dl_1', 1, 'Testcase 1',   None),
     ('001',         'dl_2', 2, 'Sleep',        None),
     # Thresholds
+    ('001',         'dl_0', 0, 'Testsuite',    '000-thresholds_test_ok'),
+    ('001',         'dl_0', 0, 'Testsuite',    '000-thresholds_test_okshowallruntimes'),
     ('001',         'dl_0', 0, 'Testsuite',    '001-thresholds_test_warn'),
     ('001',         'dl_0', 0, 'Testsuite',    '002-thresholds_test_crit'),
     ('001',         'dl_0', 0, 'Testsuite',    '003-thresholds_kw_warn'),
@@ -85,6 +87,8 @@ check_test_params = [
     ('002',         'dl_0', 0, 'Testsuite',    '003-output_depth_kw2'),
     # Check if FAILed keyword gets catched by "Run Keyword And Return Status"
     ('003',         'dl_0', 0, 'Testsuite',     None),
+    # Failed keyword
+    ('004',         'dl_0', 0, 'Testsuite',    None),
     # ('999_gin',     'dl_0', 0, 'E2E-Gin',       None),
     # ('999_gin',     'dl_0', 0, 'E2E-Gin',      '001-perfdata_keywords'),
     # ('999_gin',     'dl_2', 2, '2-Dossier Karte Wasser_Abfluss_BAFU',      '002-submessages'),
@@ -101,7 +105,7 @@ def test_check_mk(checks, monkeypatch, testsuite, inventory_rules, discovery_lev
     result = checks['robotmk'].check_mk(item, params, mk_check_input) 
     expected_output = expected_data['svc_output']
     assert result[0]== expected_data['svc_status']
-    assert re.match(expected_output, result[1], re.DOTALL)
+    assert re.match(expected_output.decode('unicode-escape'), result[1], flags=re.DOTALL|re.UNICODE)
     #iqLA3EOq
     if 'perfdata' in expected_data and expected_data['perfdata']: 
         expected_perfdata_list = expected_data['perfdata']
@@ -163,7 +167,7 @@ def read_expected_data(testsuite, discovery_level, item=None, parameter_filename
     else: 
         expected_data = expected_data_dl['inventory_items'][parameter_filename]
         # expected_data = expected_data_dl
-    return expected_data
+    return subst_iterdict(expected_data)
 
 def eval_file(datafile):
     try: 
@@ -189,4 +193,28 @@ def assert_inventory(inventory, suites):
     _suites = map(lambda x: x[0], inventory)
     assert suites == _suites
 
-
+# Replace placeholders for runtime with proper regex
+def subst_iterdict(d):
+    for k,v in d.items():        
+        if isinstance(v, dict):
+            subst_iterdict(v)
+        else:            
+            if isinstance(v, (str, unicode)):
+                d[k] = v.replace(
+                    '--RUNTIME--', 'runtime=\d+\.\d+s').replace(
+                    '--WARN--', '\(!\)').replace(
+                    '--CRIT--', '\(!!\)').replace(
+                    # tribes (x = unicode symbol "failed")
+                    '--S--', '((\u2504)+\s)?\u25ef \[S\]').replace(
+                    '--xS--', '((\u2504)+\s)?\u2b24 \[S\]').replace(
+                    '--T--', '((\u2504)+\s)?\u25a1 \[T\]').replace(
+                    '--xT--', '((\u2504)+\s)?\u25a0 \[T\]').replace(
+                    '--K--', '((\u2504)+\s)?\u25cb \[K\]').replace(
+                    '--xK--', '((\u2504)+\s)?\u25cf \[K\]').replace(
+                    # S/T/K abbreviations in brackets
+                    '--s--', '\[S\]').replace(
+                    '--t--', '\[T\]').replace(
+                    '--k--', '\[K\]').replace(
+                    '--LASTEXECUTION--', '\(last execution: \d{2}\/\d{2} \d{2}:\d{2}:\d{2}\)')
+                pass
+    return d

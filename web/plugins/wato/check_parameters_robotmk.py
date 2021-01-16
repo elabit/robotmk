@@ -39,6 +39,16 @@ from cmk.gui.cee.plugins.wato.agent_bakery import (
     RulespecGroupMonitoringAgentsAgentPlugins
 )
 
+
+#   _           _                   
+#  | |         | |                  
+#  | |__   __ _| | _____ _ __ _   _ 
+#  | '_ \ / _` | |/ / _ \ '__| | | |
+#  | |_) | (_| |   <  __/ |  | |_| |
+#  |_.__/ \__,_|_|\_\___|_|   \__, |
+#                              __/ |
+#                             |___/ 
+
 helptext_listof_testsuites_spooldir="""
     By default (if you do not add any suite), the RobotMK plugin will execute <i>all</i> <tt>.robot</tt> files in the <i>Robot suites directory</i> without any parametrization.<br>
     To specify suites, additional parameters and execution order, click <i>Add test suite</i>.<br>    
@@ -58,7 +68,7 @@ helptext_execution_mode_spooldir="""
     In this mode there is no plugin execution by the agent; <b>schedule it manually</b> with Jenkins, cron, Windows task scheduler etc.<br>
     The <i>agent plugin cache time</i> should be higher than the scheduling interval.<br>
     The result of the plugin will be written into the <tt>SPOOLDIR</tt> of the Checkmk agent.<br>
-    <b>Important note</b>: You need to utilize the rule <i>Deploy custom files to agent</i> to deliver the file package '<i>robotmk-plugin</i>'. The RobotMK plugin will be installed then in the <tt>bin</tt> folder (instead of <tt>plugin</tt>) on the agent.<br><br>
+    <b>Important note</b>: You need to utilize the rule <i>Deploy custom files to agent</i> to deliver the file package '<i>robotmk-windows/linux</i>'. The RobotMK plugin will be installed then in the <tt>bin</tt> folder (instead of <tt>plugin</tt>) on the agent.<br><br>
     <b>Use cases</b> for this mode: <br>
       - Applications which need a desktop<br>
       - Applications which require to be run with a certain user account<br>
@@ -254,7 +264,7 @@ dropdown_robotmk_output_encoding=CascadingDropdown(
         ('base64_codec', _('BASE-64')),
         ('zlib_codec', _('Zlib (compressed)')),
     ],
-    default_value="plain_utf8",
+    default_value="utf_8",
 )
 
 
@@ -357,6 +367,17 @@ rulespec_registry.register(
         valuespec=_valuespec_agent_config_robotmk,
     ))
 
+
+
+#       _ _                                   
+#      | (_)                                  
+#    __| |_ ___  ___ _____   _____ _ __ _   _ 
+#   / _` | / __|/ __/ _ \ \ / / _ \ '__| | | |
+#  | (_| | \__ \ (_| (_) \ V /  __/ |  | |_| |
+#   \__,_|_|___/\___\___/ \_/ \___|_|   \__, |
+#                                        __/ |
+#                                       |___/ 
+
 def _valuespec_inventory_robotmk_rules():
     return Dictionary(
         title=_("Robot Framework Service Discovery"),
@@ -454,7 +475,109 @@ dropdown_robotmk_show_submessages=CascadingDropdown(
         default_value="no",
 )
 
- 
+listof_runtime_threshold_suites=ListOf(  
+    Tuple(  
+        title = _('<b>Suite</b> thresholds'),
+        show_titles=True,
+        orientation="horizontal",
+        elements = [
+            TextAscii(
+                title=("<b>Suite</b> pattern"),
+                allow_empty=False,
+                size=60,
+            ),
+            Float(
+                title=("WARN threshold (sec)"),
+                allow_empty=False,
+                size=19,
+            ),                            
+            Float(
+                title=("CRIT threshold (sec)"),
+                allow_empty=False,
+                size=19,
+            ),                            
+        ],
+    ), 
+    add_label=_("Add"),
+    movable=False,
+    title=_("<b>Suite</b> thresholds")
+)
+
+listof_runtime_threshold_tests=ListOf(  
+    Tuple(  
+        title = _('<b>Test</b> thresholds'),
+        show_titles=True,
+        orientation="horizontal",
+        elements = [
+            TextAscii(
+                title=("<b>Test</b> pattern"),
+                allow_empty=False,
+                size=60,
+            ),
+            Float(
+                title=("WARN threshold (sec)"),
+                allow_empty=False,
+                size=19,
+            ),                            
+            Float(
+                title=("CRIT threshold (sec)"),
+                allow_empty=False,
+                size=19,
+            ),                            
+        ],
+    ),  
+    add_label=_("Add"),
+    movable=False,
+    title=_("<b>Test</b> thresholds")
+)
+
+listof_runtime_threshold_keywords=ListOf(  
+    Tuple(  
+        title = _('<b>Keyword</b> thresholds'),
+        show_titles=True,
+        orientation="horizontal",
+        elements = [
+            TextAscii(
+                title=("<b>Keyword</b> pattern"),
+                allow_empty=False,
+                size=60,
+            ),
+            Float(
+                title=("WARN threshold (sec)"),
+                allow_empty=False,
+                size=19,
+            ),                            
+            Float(
+                title=("CRIT threshold (sec)"),
+                allow_empty=False,
+                size=19,
+            ),                            
+        ],
+    ),  # L3 / Tuple
+    add_label=_("Add"),
+    movable=False,
+    title=_("<b>Keyword</b> thresholds")
+)
+
+dropdown_robotmk_show_all_runtimes=CascadingDropdown(
+    title=_("Show monitored runtimes also when in OK state"),
+        help=_("By default, Robotmk only displays the runtime of Robot suites/tests/keywords where a threshold was exceeded. This helps to keep the output much cleaner. <br> "
+            "To baseline newly created Robot tests for a certain time, it can be helpful to show even OK runtime values."),
+        choices=[
+            ('yes', _('yes')),
+            ('no', _('no')),
+        ],
+        default_value="no",
+)
+
+#        _               _    
+#       | |             | |   
+#    ___| |__   ___  ___| | __
+#   / __| '_ \ / _ \/ __| |/ /
+#  | (__| | | |  __/ (__|   < 
+#   \___|_| |_|\___|\___|_|\_\
+                            
+                             
 
 def _parameter_valuespec_robotmk():
     return Dictionary(elements=[
@@ -523,89 +646,13 @@ def _parameter_valuespec_robotmk():
                     'Always keep in mind that runtime monitoring is not a feature of Robot but RobotMK. This means that a Robot suite can have an internal OK state but WARN in CheckMK.<br>'
                     'Patterns always start at the beginning. CRIT threshold must be bigger than WARN; values of 0 disable the threshold.'
             ),
-            elements = [
-                ("runtime_threshold_suites", ListOf(  # /L2
-                    Tuple(  # L3
-                        title = _('<b>Suite</b> thresholds'),
-                        show_titles=True,
-                        orientation="horizontal",
-                        elements = [
-                            TextAscii(
-                                title=("<b>Suite</b> pattern"),
-                                allow_empty=False,
-                                size=60,
-                            ),
-                            Float(
-                                title=("WARN threshold (sec)"),
-                                allow_empty=False,
-                                size=19,
-                            ),                            
-                            Float(
-                                title=("CRIT threshold (sec)"),
-                                allow_empty=False,
-                                size=19,
-                            ),                            
-                        ],
-                    ),  # L3 / Tuple
-                    add_label=_("Add"),
-                    movable=False,
-                    title=_("<b>Suite</b> thresholds")
-                )), # L2 
-               ("runtime_threshold_tests", ListOf(  # /L2
-                    Tuple(  # L3
-                        title = _('<b>Test</b> thresholds'),
-                        show_titles=True,
-                        orientation="horizontal",
-                        elements = [
-                            TextAscii(
-                                title=("<b>Test</b> pattern"),
-                                allow_empty=False,
-                                size=60,
-                            ),
-                            Float(
-                                title=("WARN threshold (sec)"),
-                                allow_empty=False,
-                                size=19,
-                            ),                            
-                            Float(
-                                title=("CRIT threshold (sec)"),
-                                allow_empty=False,
-                                size=19,
-                            ),                            
-                        ],
-                    ),  # L3 / Tuple
-                    add_label=_("Add"),
-                    movable=False,
-                    title=_("<b>Test</b> thresholds")
-                )), # L2                 
-                ("runtime_threshold_keywords", ListOf(  # /L2
-                    Tuple(  # L3
-                        title = _('<b>Keyword</b> thresholds'),
-                        show_titles=True,
-                        orientation="horizontal",
-                        elements = [
-                            TextAscii(
-                                title=("<b>Keyword</b> pattern"),
-                                allow_empty=False,
-                                size=60,
-                            ),
-                            Float(
-                                title=("WARN threshold (sec)"),
-                                allow_empty=False,
-                                size=19,
-                            ),                            
-                            Float(
-                                title=("CRIT threshold (sec)"),
-                                allow_empty=False,
-                                size=19,
-                            ),                            
-                        ],
-                    ),  # L3 / Tuple
-                    add_label=_("Add"),
-                    movable=False,
-                    title=_("<b>Keyword</b> thresholds")
-                )), # L2                                       
+            elements = [                
+                ("runtime_threshold_suites", listof_runtime_threshold_suites),   
+                ("runtime_threshold_tests", listof_runtime_threshold_tests),   
+                ("runtime_threshold_keywords", listof_runtime_threshold_keywords),   
+                ("show_all_runtimes", dropdown_robotmk_show_all_runtimes),                                      
             ],
+            
         )), # L1 / runtime_threshold  
 
         ("perfdata_creation", Dictionary(
@@ -645,6 +692,7 @@ def _parameter_valuespec_robotmk():
             default_value="no",
         )),               
         ("show_submessages", dropdown_robotmk_show_submessages),     
+             
     ],)
 
 rulespec_registry.register(

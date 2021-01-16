@@ -11,6 +11,22 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ### Changed
 ### Fixed
 
+## [v0.1.9 - 2021-01-16]
+
+### Changed
+
+- WATO option for check: print monitored runtime even if OK (closes #70)
+
+### Fixed
+
+- Bakery set a wrong binary path on Windows (robotmk plugin was placed in agentdata root dir); created 
+  custom file packages for linux and windows. Renamed the custom file packages to `robotmk-windows` and 
+  `robotmk-linux` (solves #73)
+- Bakery: fixed wrong key value for utf-8 (closes #72)
+- Plugin: Robot Logfile rotation "never" crashes (TypeError) (closes #77)
+- Badges and Unicode symbols for S/T/K do not represent worst state (closes #78)
+- Time of last execution does not work on discovery level (#74)
+
 ## [v0.1.8 - 2021-01-06]
 
 ### Fixed
