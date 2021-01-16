@@ -10,4 +10,5 @@ KwNested3
 KwNested2
 	KwNested
 KwNested
-	Fail  msg=Foo
+	# This message should appear on the test !
+	Fail  msg=Error during Login!

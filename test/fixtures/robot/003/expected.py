@@ -15,20 +15,8 @@
             'Testsuite': {
                 # checkgroup_parameters file
                 None: {
-                    'svc_status': 0,
-                    'svc_output': ".*'Testsuite': PASS.*'TestCase 1 CheckWrappedKeyword': PASS.*\\[K\\] 'Run Keyword And Return Status': PASS \\(passed = False\\).*\\[K\\] 'Keyword With A False Assertion': FAIL.*Should Be Equal': FAIL \\(This is a custom.*'TestCase 2 CustomTestMessage': PASS \\(This is a custom test message.*"
-                },
-                '001-output_depth_kw0': {
-                    'svc_status': 0,
-                    'svc_output': ".*'MyFooKeyword': PASS$",
-                },
-                '002-output_depth_kw1': {
-                    'svc_status': 0,
-                    'svc_output': ".*'MyBarKeyword': PASS$",
-                },
-                '003-output_depth_kw2': {
-                    'svc_status': 0,
-                    'svc_output': ".*'MyBazKeyword': PASS$",
+                    'svc_status': 2,
+                    'svc_output': "--xS-- 'Testsuite': FAIL --CRIT--\\n--xT-- 'TestCase 1 Unwrapped False Assertion': FAIL --CRIT-- \(This assertion failed.: 1 != 2\)\\n--K-- 'KeywordWithFalseAssertion': FAIL\\n--K-- 'Should Be Equal': FAIL \(This assertion failed.: 1 != 2\)\\n--T-- 'TestCase 2 Wrapped False Assertion': PASS\\n--K-- 'Run Keyword And Return Status': PASS \(passed = False\)\\n--K-- 'KeywordWithFalseAssertion': FAIL\\n--K-- 'Should Be Equal': FAIL \(This assertion failed.: 1 != 2\)\\n--xT-- 'TestCase 3 UnWrapped Fail': FAIL --CRIT-- \(This is the message of a thrown Fail.\)\\n--K-- 'FailWithMessage': FAIL\\n--K-- 'Fail': FAIL \(This is the message of a thrown Fail.\)\\n--T-- 'TestCase 4 Wrapped Fail': PASS\\n--K-- 'Run Keyword And Return Status': PASS \(passed = False\)\\n--K-- 'FailWithMessage': FAIL\\n--K-- 'Fail': FAIL \(This is the message of a thrown Fail.\)\\n--T-- 'TestCase 5 WithTestMessage': PASS \(This is a custom test message.\)\\n--K-- 'Set Test Message': PASS.*",
                 },
             }
         },

@@ -251,88 +251,76 @@ class RobotItem(object):
         self.result['abbreviation'] = self.abbreviation
         self.result['xpath_name'] = self.xpath_name
         
-    # Evalute the Robot status of this item to a Nagios state & set message 
+    # Evaluate the Robot status of this item to a Nagios state & set message 
     def _eval_node_robotframework_status(self):
-        self.result['result_robotframework'] = (ROBOT_NAGIOS[self.status], remove_nasty_chars(self.text))
+        if type(self) == RobotKeyword:
+            # TODO: When is self.msg set for keywords? 
+            statustext = self.msg
+        else: 
+            statustext = self.text
+
+        self.result['result_robotframework'] = (ROBOT_NAGIOS[self.status], remove_nasty_chars(statustext))
 
     # create the "base line" with the node name and the RF status
     def _set_node_padded_line(self, check_params):
-        # Padded line contains the Robot status; everyhting following (...) is monitoring related
+        # TODO: What are requirements for a line? 
+
+        # I. Begin with the baseline formatting. The baseline is pure related to the Robot result
         # ---- [K] 'MyKeyword': PASS (...)"
-        badge = ''
-        # For RF-state, do not display badges in keywords (kws are allowed to fail)
-        if type(self) != RobotKeyword:
-            badge = STATE_BADGES[self.result['result_robotframework'][0]]
-            if len(badge) > 0: 
-                badge = " " + badge
         
         # Set the message text
-        text = ''
+        text = self.result['result_robotframework'][1]
         text_bracket = ''
-        # In RF, tests have the same text as kw msg. In Robotmk, messages of subelements
-        # are anyhow handed upwards with the node_top.sub_messages list. TO avoid duplicates,
-        # we remove the node_top's text if it is identical with the kw's msg.   
-        if type(self) == RobotKeyword:
-            # use the msg field as text
-            text = xstr(self.msg)
-            if self.msg == self.node_top.text: 
-                # the kw failed, this is why the test has the msg as text. Remove it.
-                self.node_top.text = ''
-        else: 
-            # This is a Test or Suite; use the text field. 
-            text = xstr(self.text)
-
-        text = remove_nasty_chars(text)
-
         if len(text) > 0: 
             text_bracket = ' (%s)' % text
-        # set the unicode symbol
-        if self.result['result_robotframework'] > 0: 
-            status_symbol = self.symbol_nok
-        else: 
-            status_symbol = self.symbol_ok
+
         # If configured, the topmost node can contain additional data: 
         # - last suite execution 
         # - 
         endtime_str = ""
-        if self.parent == None and bool(check_params.get('includedate')):
+        # FIXME: This is bug #74! Is it solved? 
+        if self.is_topnode and bool(check_params.get('includedate')):
             endtime = datetime.datetime.strptime(self.end_time, '%Y%m%d %H:%M:%S.%f')
             endtime_str = " (last execution: %s) " % endtime.strftime('%m/%d %H:%M:%S')
         baseline = ("%s %s %s '%s': %s%s%s%s" % (
             self.padstring, 
-            status_symbol, 
+            '--SYMBOL--', 
             self.abbreviation, 
             remove_nasty_chars(self.name), 
             self.status, 
             endtime_str,
-            badge,
+            '--BADGE--',
             text_bracket)
         ).strip()  
-        # Collect messages from node checks (runtime, metrics, ...) 
+
+        # Baseline completed.
+        # II. Now add results from further checks of this node (runtime, metrics, ...) 
         NodeResult = namedtuple('NodeResult', 'check,resultuple')
         node_results = [ NodeResult(check, self.result[check]) for check in self.result_keys if self.result.get(check, False) ]
         node_messages = [node_result.resultuple[1] for node_result in node_results if node_result.resultuple[1] ]
 
         # If this is a top_node, add the messages from subelements: 
         if self.is_topnode:
+            # TODO: What are examples of submessages (documentation!)
             if bool(check_params.get('show_submessages')):
                 if len(self.sub_messages) > 0:
                     node_messages.extend(self.sub_messages) 
+            if len(text)>0: 
+                node_messages.append(text)
+            # In some cases (e.g. Set Test Message), the Node's text already got the 
+            # msg set by RF. Add only all others
+            node_messages = [ msg for msg in node_messages if msg != text ]
 
+        # III. Create submessages for the top_node.  (which is for kws: Test, for tests: Suite)
         messages_str = ""
-        # In some corner case (e.g. Set Test Message), the Node's text is also 
-        # contained in the node_messages. Remove it from there. 
-        if text in node_messages:
-            node_messages.remove(text)
         if len(node_messages) > 0: 
-            # Add messages to the top_node.submessages (which is for kws: Test, for tests: Suite)
             # But not all... We do not want messages from cmk_runtime messages if the runtime was 
             # not exceeded. 
             # 
             # Perhaps a more generic way is needed to hinder metrics to be propagated under
             # certain conditions. 
 
-            # -> Für sowas gehört man auf den Scheiterhaufen!
+            # Add NOK runtimes and all others  
             top_messages = [node_result.resultuple[1] for node_result in node_results if (node_result.resultuple[1] and node_result.check != 'result_cmk_runtime') or (node_result.resultuple[1] and node_result.check == 'result_cmk_runtime' and node_result.resultuple[0] > 0) ]
             if top_messages: 
                 self.node_top.sub_messages.append("%s '%s': %s" % (self.abbreviation, self.name, ', '.join(top_messages)))
@@ -489,7 +477,29 @@ class RobotItem(object):
         # SUBNODES WORST STATE
         subnodes_worststate = 0
         subnodes_worststate = max([ s['worststate'] for s in self.subresults if self.subresults] or [0]) 
-        self.result['worststate'] = max(node_worststate, subnodes_worststate)
+        total_worststate = max(node_worststate, subnodes_worststate)
+        self.result['worststate'] = total_worststate
+
+        # now that the worstate is known, we can replace the badge and unicode symbol placeholder
+        # set the unicode symbol
+        if total_worststate > 0: 
+            status_symbol = self.symbol_nok
+        else: 
+            status_symbol = self.symbol_ok
+
+        # For RF-state, do not display badges in keywords (kws are allowed to fail)
+        badge = ''
+        if type(self) != RobotKeyword:
+            badge = STATE_BADGES[total_worststate]
+            if len(badge) > 0: 
+                badge = " " + badge
+        # The first item is the line of this node (self) which we need to edit 
+        this_node_paddedline = self.result['padded_lines_list'][0]
+        this_node_paddedline_replaced = this_node_paddedline.replace(
+            '--BADGE--', badge).replace(
+            '--SYMBOL--', status_symbol)
+        self.result['padded_lines_list'][0] = this_node_paddedline_replaced
+
 
     # Add all lines of subnodes to the current one
     def _merge_sub_padded_lines(self):
@@ -550,8 +560,11 @@ class RobotItem(object):
         self._merge_sub_perfdata()
 
         # Now that all information about this node have been collected, evaluate 
+        # and set the badge and unicode symbol for S/T/K
         self._eval_total_result()
-        
+
+
+
         return self.result
 
 
@@ -722,7 +735,7 @@ def get_perflabel(instr):
 def remove_nasty_chars(instr):
     # Replace all chars which can cause problem in Multisite
     # no quotes, no brackets
-    outstr = re.sub('[\[\]?+;*@{}\'"]', '', instr)
+    outstr = re.sub('[\[\]?+;*@{}\'"]', '', xstr(instr))
     outstr = outstr.replace('$', '')
     outstr = outstr.replace('\\', '')
     # Newlines better replace by space

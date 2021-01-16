@@ -204,9 +204,14 @@ def subst_iterdict(d):
                     '--RUNTIME--', 'runtime=\d+\.\d+s').replace(
                     '--WARN--', '\(!\)').replace(
                     '--CRIT--', '\(!!\)').replace(
-                    '--S--', '((\u2504)+\s)?\u2b24 \[S\]').replace(
-                    '--T--', '((\u2504)+\s)?\u25a0 \[T\]').replace(
-                    '--K--', '((\u2504)+\s)?\u25cf \[K\]').replace(
+                    # tribes (x = unicode symbol "failed")
+                    '--S--', '((\u2504)+\s)?\u25ef \[S\]').replace(
+                    '--xS--', '((\u2504)+\s)?\u2b24 \[S\]').replace(
+                    '--T--', '((\u2504)+\s)?\u25a1 \[T\]').replace(
+                    '--xT--', '((\u2504)+\s)?\u25a0 \[T\]').replace(
+                    '--K--', '((\u2504)+\s)?\u25cb \[K\]').replace(
+                    '--xK--', '((\u2504)+\s)?\u25cf \[K\]').replace(
+                    # S/T/K abbreviations in brackets
                     '--s--', '\[S\]').replace(
                     '--t--', '\[T\]').replace(
                     '--k--', '\[K\]').replace(

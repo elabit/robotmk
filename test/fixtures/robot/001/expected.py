@@ -27,39 +27,39 @@
                 },
                 '000-thresholds_test_ok': {
                     'svc_status': 0,
-                    'svc_output': ".*--S-- 'Testsuite': PASS.*--T-- 'Testcase 1': PASS\\n.*--K-- 'Sleep'.*",
+                    'svc_output': "--S-- 'Testsuite': PASS.*--T-- 'Testcase 1': PASS\\n.*--K-- 'Sleep'.*",
                 },
                 '000-thresholds_test_okshowallruntimes': {
                     'svc_status': 0,
-                    'svc_output': ".*--S-- 'Testsuite': PASS.*--T-- 'Testcase 1': PASS, --RUNTIME--.* ",
+                    'svc_output': "--S-- 'Testsuite': PASS.*--T-- 'Testcase 1': PASS, --RUNTIME--.* ",
                 },
                 '001-thresholds_test_warn': {
                     'svc_status': 1,
-                    'svc_output': ".*--S-- 'Testsuite': PASS, --t-- 'Testcase 1': --WARN-- --RUNTIME-- >= 0.50s.*--T-- 'Testcase 1': PASS, --WARN-- --RUNTIME-- >= 0.50s.*",
+                    'svc_output': "--xS-- 'Testsuite': PASS --WARN--, --t-- 'Testcase 1': --WARN-- --RUNTIME-- >= 0.50s\\n--xT-- 'Testcase 1': PASS --WARN--, --WARN-- --RUNTIME-- >= 0.50s.*",
                 },
                 '002-thresholds_test_crit': {
                     'svc_status': 2,
-                    'svc_output': ".*--S-- 'Testsuite': PASS, --t-- 'Testcase 1': --CRIT-- --RUNTIME-- >= 0.80s.*--T-- 'Testcase 1': PASS, --CRIT-- --RUNTIME-- >= 0.80s.*",
+                    'svc_output': "--xS-- 'Testsuite': PASS --CRIT--, --t-- 'Testcase 1': --CRIT-- --RUNTIME-- >= 0.80s\\n--xT-- 'Testcase 1': PASS --CRIT--, --CRIT-- --RUNTIME-- >= 0.80s.*",
                 },
                 '003-thresholds_kw_warn': {
                     'svc_status': 1,
-                    'svc_output': ".*--S-- 'Testsuite': PASS\\n.*--T-- 'Testcase 1': PASS, --k-- 'Sleep': --WARN-- --RUNTIME-- >= 0.50s\\n.*--K-- 'Sleep': PASS \(Slept 1 second\), --WARN-- --RUNTIME-- >= 0.50.*"
+                    'svc_output': "--xS-- 'Testsuite': PASS --WARN--\\n--xT-- 'Testcase 1': PASS --WARN--, --k-- 'Sleep': --WARN-- --RUNTIME-- >= 0.50s\\n--xK-- 'Sleep': PASS \(Slept 1 second\), --WARN-- --RUNTIME-- >= 0.50.*"
                 },
                 '004-thresholds_kw_crit': {
                     'svc_status': 2,
-                    'svc_output': ".*--S-- 'Testsuite': PASS\\n.*--T-- 'Testcase 1': PASS, --k-- 'Sleep': --CRIT-- --RUNTIME-- >= 0.80s\\n.*--K-- 'Sleep': PASS \(Slept 1 second\), --CRIT-- --RUNTIME-- >= 0.80.*"
+                    'svc_output': "--xS-- 'Testsuite': PASS --CRIT--\\n--xT-- 'Testcase 1': PASS --CRIT--, --k-- 'Sleep': --CRIT-- --RUNTIME-- >= 0.80s\\n--xK-- 'Sleep': PASS \(Slept 1 second\), --CRIT-- --RUNTIME-- >= 0.80.*"
                 },
                 '005-thresholds_suite_warn': {
                     'svc_status': 1,
-                    'svc_output': ".*--S-- 'Testsuite': PASS, --WARN-- --RUNTIME-- >= 0.50s.*",
+                    'svc_output': "--xS-- 'Testsuite': PASS --WARN--, --WARN-- --RUNTIME-- >= 0.50s.*",
                 },
                 '006-thresholds_suite_crit': {
                     'svc_status': 2,
-                    'svc_output': ".*--S-- 'Testsuite': PASS, --CRIT-- --RUNTIME-- >= 0.80s.*",
+                    'svc_output': "--xS-- 'Testsuite': PASS --CRIT--, --CRIT-- --RUNTIME-- >= 0.80s.*",
                 },
                 '007-thresholds_perfdata_all': {
                     'svc_status': 2,
-                    'svc_output': ".*--S-- 'Testsuite': PASS, --CRIT-- --RUNTIME-- >= 0.80s, --t-- 'Testcase 1': --CRIT-- --RUNTIME-- >= 0.80s\\n.*--T-- 'Testcase 1': PASS, --CRIT-- --RUNTIME-- >= 0.80s, --k-- 'Sleep': --CRIT-- --RUNTIME-- >= 0.80s.*",
+                    'svc_output': "--xS-- 'Testsuite': PASS --CRIT--, --CRIT-- --RUNTIME-- >= 0.80s, --t-- 'Testcase 1': --CRIT-- --RUNTIME-- >= 0.80s\\n--xT-- 'Testcase 1': PASS --CRIT--, --CRIT-- --RUNTIME-- >= 0.80s, --k-- 'Sleep': --CRIT-- --RUNTIME-- >= 0.80s.*",
                     'perfdata'  : [
                         ('s1_Testsuite', '1.03', '0.50', '0.80'), 
                         ('s1_t1_Testcase_1', '1.00', '0.50', '0.80'), 
@@ -68,7 +68,7 @@
                 },
                 '008-includedate': {
                     'svc_status': 0,
-                    'svc_output': ".*--S-- 'Testsuite': PASS --LASTEXECUTION--.*",
+                    'svc_output': "--S-- 'Testsuite': PASS --LASTEXECUTION-- \\n--T-- 'Testcase 1': PASS --LASTEXECUTION-- .*",
                 },
             }
         },
