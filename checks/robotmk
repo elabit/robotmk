@@ -735,7 +735,7 @@ def get_perflabel(instr):
 def remove_nasty_chars(instr):
     # Replace all chars which can cause problem in Multisite
     # no quotes, no brackets
-    outstr = re.sub('[\[\]?+;*@{}\'"]', '', xstr(instr))
+    outstr = re.sub('[\[\]?+*@{}\'"]', '', xstr(instr))
     outstr = outstr.replace('$', '')
     outstr = outstr.replace('\\', '')
     # Newlines better replace by space
