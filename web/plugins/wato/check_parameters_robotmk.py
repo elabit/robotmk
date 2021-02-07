@@ -39,6 +39,8 @@ from cmk.gui.cee.plugins.wato.agent_bakery import (
     RulespecGroupMonitoringAgentsAgentPlugins
 )
 
+# TODO: Add logging True/False
+
 
 #   _           _                   
 #  | |         | |                  
@@ -49,22 +51,26 @@ from cmk.gui.cee.plugins.wato.agent_bakery import (
 #                              __/ |
 #                             |___/ 
 
-helptext_listof_testsuites_spooldir="""
+# TODO: Helptexts execution modes
+
+helptext_listof_testsuites_external="""
     By default (if you do not add any suite), the RobotMK plugin will execute <i>all</i> <tt>.robot</tt> files in the <i>Robot suites directory</i> without any parametrization.<br>
     To specify suites, additional parameters and execution order, click <i>Add test suite</i>.<br>    
     Keep in mind to set a proper <i>cache time</i>. It should be higher than the estimated maximum runtime of all suites."""
 
-helptext_listof_testsuites_cmkasync="""
+helptext_listof_testsuites_agent_serial="""
     By default (if you do not add any suite), the RobotMK plugin will execute <i>all</i> <tt>.robot</tt> files in the <i>Robot suites directory</i> without any parametrization.<br>
     To specify suites, additional parameters and execution order, click <i>Add test suite</i>.<br>    
     Keep in mind to set a proper <i>execution interval</i>. It should be higher than the estimated maximum runtime of all suites."""
 
-helptext_execution_mode_cmk_async="""
+helptext_execution_mode_agent_serial="""
     The plugin will be placed within the agent's <tt>plugin</tt> directory.<br>
     It will be <b>executed</b> asynchronously <b>by the agent</b> in the given <i>execution interval</i>.<br>
     The Checkmk agent will read the result from <tt>STDOUT</tt> of the RobotMK plugin.<br><br>
     <b>Use cases</b> for this mode: in general, all Robot tests which can run headless and do not require a certain OS user."""
-helptext_execution_mode_spooldir="""
+helptext_execution_mode_agent_parallel="""
+    FIXME"""
+helptext_execution_mode_external="""
     In this mode there is no plugin execution by the agent; <b>schedule it manually</b> with Jenkins, cron, Windows task scheduler etc.<br>
     The <i>agent plugin cache time</i> should be higher than the scheduling interval.<br>
     The result of the plugin will be written into the <tt>SPOOLDIR</tt> of the Checkmk agent.<br>
@@ -74,7 +80,7 @@ helptext_execution_mode_spooldir="""
       - Applications which require to be run with a certain user account<br>
       - The need for more control about when to execute a Robot test and when not"""
 
-agent_config_cache_time_cmk_async=(
+agent_config_cache_time_agent_serial=(
     "cache_time",
     Age(
         title=_("Execution interval (default: 15min)"),
@@ -86,7 +92,7 @@ agent_config_cache_time_cmk_async=(
         default_value=900,
     )
 )
-agent_config_cache_time_spooldir=(
+agent_config_cache_time_external=(
     "cache_time",
     Age(
         title=_("Cache time (default: 15min)"),
@@ -97,7 +103,6 @@ agent_config_cache_time_spooldir=(
         default_value=900,
     )
 )
-
 agent_config_robotdir = (
     "robotdir",
     TextUnicode(
@@ -112,6 +117,137 @@ agent_config_robotdir = (
         default_value=""
     )
 ) 
+agent_config_testsuites_id=TextUnicode(
+    title=_("Suite identifier"),
+    help=_("Unique identifier for this suite.<br>"
+        "Used internally by RobotMK to distinguish different parametrizations of the same suite."),
+    allow_empty=False,
+    size=30,
+)
+agent_config_testsuites_dirname=TextUnicode(
+    title=_("Robot test file/dir name"),
+    help=_("Name of the <tt>.robot</tt> file or the name of a directory containing <tt>.robot</tt> files to execute.<br>"
+        "It is higly recommended to organize Robot suites in <i>directories</i>. <br>"
+        "All names/paths are expected to be relative to the <i>robot suites directory</i>."),
+    allow_empty=False,
+    size=50,
+)
+
+agent_config_testsuites_paramsdict=Dictionary(
+    elements=[    
+        ("name",
+        TextUnicode(
+            title=_("Top level suite name (<tt>--name</tt>)"),
+            help=_("Set the name of the top level suite. By default the name is created based on the executed file or directory.<br>"
+                "This sets the name of a fresh discovered Robot service; an already existing service will hide away and will be found by the discovery under a new name."),
+            allow_empty=False,
+            size=50,
+        )), 
+        ("suite",
+        ListOfStrings(
+            title=_("Select suites (<tt>--suite</tt>)"),
+            help=_("Select suites by name. <br>When this option is used with"
+                    " <tt>--test</tt>, <tt>--include</tt> or <tt>--exclude</tt>, only tests in"
+                    " matching suites and also matching other filtering"
+                    " criteria are selected. <br>"
+                    " Name can be a simple pattern similarly as with <tt>--test</tt> and it can contain parent"
+                    " name separated with a dot. <br>"
+                    " For example, <tt>X.Y</tt> selects suite <tt>Y</tt> only if its parent is <tt>X</tt>.<br>"),
+            size=40,
+        )),                                                 
+        ("test",
+        ListOfStrings(
+            title=_("Select test (<tt>--test</tt>)"),
+            help=_("Select tests by name or by long name containing also"
+                    " parent suite name like <tt>Parent.Test</tt>. <br>Name is case"
+                    " and space insensitive and it can also be a simple"
+                    " pattern where <tt>*</tt> matches anything, <tt>?</tt> matches any"
+                    " single character, and <tt>[chars]</tt> matches one character"
+                    " in brackets.<br>"),
+            size=40,
+        )),                                            
+        ("include",
+        ListOfStrings(
+            title=_("Include tests by tag (<tt>--include</tt>)"),
+            help=_("Select tests by tag. (<a href=\"https://robotframework.org/robotframework/latest/RobotFrameworkUserGuide.html#tagging-test-cases\">About tagging test cases</a>)<br>Similarly as name with <tt>--test</tt>,"
+                    "tag is case and space insensitive and it is possible"
+                    "to use patterns with <tt>*</tt>, <tt>?</tt> and <tt>[]</tt> as wildcards.<br>"
+                    "Tags and patterns can also be combined together with"
+                    "<tt>AND</tt>, <tt>OR</tt>, and <tt>NOT</tt> operators.<br>"
+                    "Examples: <br><tt>foo</tt><br><tt>bar*</tt><br><tt>fooANDbar*</tt><br>"),
+            size=40,
+        )),
+        ("exclude",
+        ListOfStrings(
+            title=_("Exclude tests by tag (<tt>--exclude</tt>)"),
+            help=_("Select test cases not to run by tag. (<a href=\"https://robotframework.org/robotframework/latest/RobotFrameworkUserGuide.html#tagging-test-cases\">About tagging test cases</a>)<br>These tests are"
+                    " not run even if included with <tt>--include</tt>. <br>Tags are"
+                    " matched using same rules as with <tt>--include</tt>.<br>"),                                                
+            size=40,
+        )),
+        ("critical",
+        ListOfStrings(
+            title=_("Critical test tag (<tt>--critical</tt>)"),
+            help=_("Tests having the given tag are considered critical. (<b>This is no threshold</b>, see <a href=\"https://robotframework.org/robotframework/latest/RobotFrameworkUserGuide.html#setting-criticality\">About setting criticality</a>)<br>"
+                    "If no critical tags are set, all tests are critical.<br>"
+                    "Tags can be given as a pattern same way as with <tt>--include</tt>.<br>"),
+            size=40,
+        )),
+        ("noncritical",
+        ListOfStrings(
+            title=_("Non-Critical test tag (<tt>--noncritical</tt>)"),
+            help=_("Tests having the given tag are considered non-critical, even if also <tt>--critical</tt> is set. (<b>This is no threshold</b>, see <a href=\"https://robotframework.org/robotframework/latest/RobotFrameworkUserGuide.html#setting-criticality\">About setting criticality</a>)<br>"
+                    "Tags can be given as a pattern same way as with <tt>--include</tt>.<br>"),
+            size=40,
+        )),
+        ("variable",
+        ListOf(
+            Tuple(
+                elements=[
+                    TextAscii(
+                        title=_("Variable name:")
+                    ),
+                    TextAscii(
+                        title=_("Value:"),
+                    ),
+                ],
+                orientation="horizontal",
+            ),
+            movable=False,
+            title=_("Variables (<tt>--variable</tt>)"),
+            help=_("Set variables in the test data. <br>Only scalar variables with string"
+            " value are supported and name is given without <tt>${}</tt>. <br>"
+            " (See <tt>--variablefile</tt> for a more powerful variable setting mechanism.)<br>")
+        )),
+        ("variablefile",
+        ListOfStrings(
+            title=_("Load variables from file (<tt>--variablefile</tt>)"),
+            help=_("Python or YAML file file to read variables from. (<a href=\"https://robotframework.org/robotframework/latest/RobotFrameworkUserGuide.html#variable-files\">About variable files</a>)<br>Possible arguments to the variable file can be given"
+                    " after the path using colon or semicolon as separator.<br>"
+                    "Examples:<br> "                                               
+                    "<tt>path/vars.yaml</tt><br>"
+                    "<tt>set_environment.py:testing</tt><br>"),                                                
+            size=40,
+        )),
+        ("exitonfailure",
+        DropdownChoice(
+            title=_("Exit on failure (<tt>--exitonfailure</tt>)"),
+            help=_("Stops test execution if any critical test fails. (<a href=\"https://robotframework.org/robotframework/latest/RobotFrameworkUserGuide.html#stopping-when-first-test-case-fails\">About failed tests</a>)"),
+            choices=[
+                ('yes', _('yes')),
+                ('no', _('no')),
+            ],
+            default_value="no",
+        )),   
+        ("host",
+        MonitoredHostname(
+            title=_("Piggyback host"),
+            help=
+            _("Piggyback allows to assign the results of this particular Robot test to another host."),
+            allow_empty=False,
+        )),                                                                                     
+    ],
+)
 
 # Make the help text of SuitList dependent on the type of execution
 def agent_config_listof_testsuites(helptext):
@@ -119,129 +255,9 @@ def agent_config_listof_testsuites(helptext):
     "suites",
     ListOf(
         Tuple(elements=[
-            TextUnicode(
-                title=_("Robot test file/dir name"),
-                help=_("Robot Framework can execute <tt>.robot</tt> files as well as nested directories "
-                    "which itself contain <tt>.robot</tt> files. All names are expected to be relative to the <i>robot dir</i>."),
-                allow_empty=False,
-                size=50,
-            ), 
-
-            Dictionary(
-                elements=[    
-                    ("name",
-                    TextUnicode(
-                        title=_("Top level suite name (<tt>--name</tt>)"),
-                        help=_("Set the name of the top level suite. By default the name is created based on the executed file or directory.<br>"
-                            "This sets the name of a fresh discovered Robot service; an already existing service will hide away and will be found by the discovery under a new name."),
-                        allow_empty=False,
-                        size=50,
-                    )), 
-                    ("suite",
-                    ListOfStrings(
-                        title=_("Select suites (<tt>--suite</tt>)"),
-                        help=_("Select suites by name. <br>When this option is used with"
-                                " <tt>--test</tt>, <tt>--include</tt> or <tt>--exclude</tt>, only tests in"
-                                " matching suites and also matching other filtering"
-                                " criteria are selected. <br>"
-                                " Name can be a simple pattern similarly as with <tt>--test</tt> and it can contain parent"
-                                " name separated with a dot. <br>"
-                                " For example, <tt>X.Y</tt> selects suite <tt>Y</tt> only if its parent is <tt>X</tt>.<br>"),
-                        size=40,
-                    )),                                                 
-                    ("test",
-                    ListOfStrings(
-                        title=_("Select test (<tt>--test</tt>)"),
-                        help=_("Select tests by name or by long name containing also"
-                                " parent suite name like <tt>Parent.Test</tt>. <br>Name is case"
-                                " and space insensitive and it can also be a simple"
-                                " pattern where <tt>*</tt> matches anything, <tt>?</tt> matches any"
-                                " single character, and <tt>[chars]</tt> matches one character"
-                                " in brackets.<br>"),
-                        size=40,
-                    )),                                            
-                    ("include",
-                    ListOfStrings(
-                        title=_("Include tests by tag (<tt>--include</tt>)"),
-                        help=_("Select tests by tag. (<a href=\"https://robotframework.org/robotframework/latest/RobotFrameworkUserGuide.html#tagging-test-cases\">About tagging test cases</a>)<br>Similarly as name with <tt>--test</tt>,"
-                                "tag is case and space insensitive and it is possible"
-                                "to use patterns with <tt>*</tt>, <tt>?</tt> and <tt>[]</tt> as wildcards.<br>"
-                                "Tags and patterns can also be combined together with"
-                                "<tt>AND</tt>, <tt>OR</tt>, and <tt>NOT</tt> operators.<br>"
-                                "Examples: <br><tt>foo</tt><br><tt>bar*</tt><br><tt>fooANDbar*</tt><br>"),
-                        size=40,
-                    )),
-                    ("exclude",
-                    ListOfStrings(
-                        title=_("Exclude tests by tag (<tt>--exclude</tt>)"),
-                        help=_("Select test cases not to run by tag. (<a href=\"https://robotframework.org/robotframework/latest/RobotFrameworkUserGuide.html#tagging-test-cases\">About tagging test cases</a>)<br>These tests are"
-                                " not run even if included with <tt>--include</tt>. <br>Tags are"
-                                " matched using same rules as with <tt>--include</tt>.<br>"),                                                
-                        size=40,
-                    )),
-                    ("critical",
-                    ListOfStrings(
-                        title=_("Critical test tag (<tt>--critical</tt>)"),
-                        help=_("Tests having the given tag are considered critical. (<b>This is no threshold</b>, see <a href=\"https://robotframework.org/robotframework/latest/RobotFrameworkUserGuide.html#setting-criticality\">About setting criticality</a>)<br>"
-                                "If no critical tags are set, all tests are critical.<br>"
-                                "Tags can be given as a pattern same way as with <tt>--include</tt>.<br>"),
-                        size=40,
-                    )),
-                    ("noncritical",
-                    ListOfStrings(
-                        title=_("Non-Critical test tag (<tt>--noncritical</tt>)"),
-                        help=_("Tests having the given tag are considered non-critical, even if also <tt>--critical</tt> is set. (<b>This is no threshold</b>, see <a href=\"https://robotframework.org/robotframework/latest/RobotFrameworkUserGuide.html#setting-criticality\">About setting criticality</a>)<br>"
-                                "Tags can be given as a pattern same way as with <tt>--include</tt>.<br>"),
-                        size=40,
-                    )),
-                    ("variable",
-                    ListOf(
-                        Tuple(
-                            elements=[
-                                TextAscii(
-                                    title=_("Variable name:")
-                                ),
-                                TextAscii(
-                                    title=_("Value:"),
-                                ),
-                            ],
-                            orientation="horizontal",
-                        ),
-                        movable=False,
-                        title=_("Variables (<tt>--variable</tt>)"),
-                        help=_("Set variables in the test data. <br>Only scalar variables with string"
-                        " value are supported and name is given without <tt>${}</tt>. <br>"
-                        " (See <tt>--variablefile</tt> for a more powerful variable setting mechanism.)<br>")
-                    )),
-                    ("variablefile",
-                    ListOfStrings(
-                        title=_("Load variables from file (<tt>--variablefile</tt>)"),
-                        help=_("Python or YAML file file to read variables from. (<a href=\"https://robotframework.org/robotframework/latest/RobotFrameworkUserGuide.html#variable-files\">About variable files</a>)<br>Possible arguments to the variable file can be given"
-                                " after the path using colon or semicolon as separator.<br>"
-                                "Examples:<br> "                                               
-                                "<tt>path/vars.yaml</tt><br>"
-                                "<tt>set_environment.py:testing</tt><br>"),                                                
-                        size=40,
-                    )),
-                    ("exitonfailure",
-                    DropdownChoice(
-                        title=_("Exit on failure (<tt>--exitonfailure</tt>)"),
-                        help=_("Stops test execution if any critical test fails. (<a href=\"https://robotframework.org/robotframework/latest/RobotFrameworkUserGuide.html#stopping-when-first-test-case-fails\">About failed tests</a>)"),
-                        choices=[
-                            ('yes', _('yes')),
-                            ('no', _('no')),
-                        ],
-                        default_value="no",
-                    )),   
-                    ("host",
-                    MonitoredHostname(
-                        title=_("Piggyback host"),
-                        help=
-                        _("Piggyback allows to assign the results of this particular Robot test to another host."),
-                        allow_empty=False,
-                    )),                                                                                     
-                ],
-            )
+            agent_config_testsuites_id,
+            agent_config_testsuites_dirname, 
+            agent_config_testsuites_paramsdict,
         ]),
         title=_("<b>Robot Framework test suites</b>"),
         help=_(helptext),
@@ -297,29 +313,43 @@ dropdown_robotmk_log_rotation=CascadingDropdown(
 dropdown_robotmk_execution_choices=CascadingDropdown(
     title=_("Type of execution"),
     choices=[
-        ("cmk_async", _("Async mode: Agent executes RobotMK plugin"),
+        ("agent_serial", _("Serial mode: RobotMK executes suites serially (agent-triggered)"),
             Tuple(
             elements=[
                 Dictionary(
-                    help=_(helptext_execution_mode_cmk_async),
+                    help=_(helptext_execution_mode_agent_serial),
                     elements=[
-                        agent_config_cache_time_cmk_async,
+                        agent_config_cache_time_agent_serial,
                         agent_config_robotdir,
-                        agent_config_listof_testsuites(helptext=helptext_listof_testsuites_cmkasync),  
+                        agent_config_listof_testsuites(helptext=helptext_listof_testsuites_agent_serial),  
                     ]
                 )
             ]
             )
         ),
-        ("external_spooldir", _("Spooldir mode: RobotMK plugin executed externally"),
+        ("agent_parallel", _("Parallel mode: RobotMK schedules Robot suites individually (agent-triggered) - NOT YET IMPLEMENTED"),
             Tuple(
             elements=[
                 Dictionary(
-                    help=_(helptext_execution_mode_spooldir),
+                    help=_(helptext_execution_mode_agent_parallel),
                     elements=[
-                        agent_config_cache_time_spooldir,
+                        agent_config_cache_time_agent_serial,
                         agent_config_robotdir,
-                        agent_config_listof_testsuites(helptext=helptext_listof_testsuites_spooldir),  
+                        agent_config_listof_testsuites(helptext=helptext_listof_testsuites_agent_serial),  
+                    ]
+                )
+            ]
+            )
+        ),
+        ("external", _("External mode: RobotMK plugin gets triggered by some external tool"),
+            Tuple(
+            elements=[
+                Dictionary(
+                    help=_(helptext_execution_mode_external),
+                    elements=[
+                        agent_config_cache_time_external,
+                        agent_config_robotdir,
+                        agent_config_listof_testsuites(helptext=helptext_listof_testsuites_external),  
                     ]
                 )
             ]

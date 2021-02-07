@@ -21,8 +21,12 @@
 import cmk.utils.paths
 import logging
 import yaml
+import re
 import copy
 from cmk.utils.exceptions import MKGeneralException
+
+# TODO: set logging True/False
+
 
 DEFAULTS = {
     'windows': {
@@ -77,7 +81,7 @@ def bake_robotmk(opsys, conf, conf_dir, plugins_dir):
     # The plugin only gets deployed in async mode; when spooldir mode is used, 
     # the rule "deploy custom files to agent" (package: robotmk) must be set,
     # which installs the plugin into the bin folder inside the agent installation. 
-    if global_conf['execution_mode'] == "cmk_async": 
+    if global_conf['execution_mode'] == "agent_serial": 
         if opsys == "windows":
             # async mode in Windows: write configfile
             with Path(conf_dir, "check_mk.ini.plugins.zzz_%s" % os_pluginname).open("w") as out:
@@ -91,16 +95,26 @@ def bake_robotmk(opsys, conf, conf_dir, plugins_dir):
             plugins_dir = Path(plugins_dir, "%s" % global_conf['cache_time'])
             plugins_dir.mkdir(parents=True, exist_ok=True)
         else: 
-            raise MKGeneralException("Error in bakery plugin \"%s\": %s\n" %
-                                    ("robotmk", "RobotMK is supported on Windows and Linux only"))
+            raise MKGeneralException("Error in bakery plugin 'robotmk': %s\n" % "RobotMK is supported on Windows and Linux only")
         
         shutil.copy2(cmk.utils.paths.local_agents_dir + '/plugins/robotmk', str(plugins_dir) + '/' + os_pluginname)
-    
+    else: 
+        # TODO: agent_parallel
+        pass
+
     # transform suites dict
-    robot_test_suites_dict = { 'suites' : dict( (x,y) for x,y in (robot_test_suites)) }
+    suites_dict = {}
+    for suite in robot_test_suites: 
+        suite_id, suite_path, suite_data = suite
+        suite_id = make_suiteid(suite_id)
+        if suite_id in suites_dict:
+            raise MKGeneralException("Error in bakery plugin 'robotmk': Robot suite ID %s is not unique!\n" % suite_id)
+        suite_data['path'] = suite_path
+        suites_dict[suite_id] = suite_data
+    robot_test_suites_dict = { 'suites' : suites_dict }
 
     # In the end, what counts is how the variable section in the bakery rule looks like. 
-    # It looks nices, but produces a list of tuples which we now transform into a dict. 
+    # It looks nice, but produces a list of tuples. Eat the frog, transform into a dict. 
     for (k1,v1) in robot_test_suites_dict['suites'].items():
         for (k2,v2) in v1.items():
             if k2 == 'variable':
@@ -115,3 +129,7 @@ bakery_info["robotmk"] = {
     "bake_function": bake_robotmk,
     "os": ["linux", "windows"],
 }
+
+def make_suiteid(instr): 
+    outstr =  re.sub('[^A-Za-z0-9]', '_', instr)
+    return re.sub('_+', '_', outstr).lower()

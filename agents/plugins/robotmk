@@ -53,7 +53,6 @@ DEFAULTS = {
 }
 
 
-
 # outputdir = final path where all outputfiles, logfiles and report files ends.
 # robotdir  = Location of Robot suite files/dirs
 def start():
@@ -223,7 +222,7 @@ def process_result(suite, robotmk_yml_cfg, robot_xml, piggybackhost):
             exit(1)
       elif execution_mode in ('win_task_spooldir', 'external_spooldir'):
          log_info(f'Writing result into spooldir (execution mode: {execution_mode})')
-         now = str(time()).split('.')[0]
+         now = str(int(time()))
          cache_time = robotmk_yml_cfg['global']["cache_time"]
          # Indicates CMK that this plugin has another timing that the agent polling
          # Ex. 240_robotmk_footest = invalidate the result of this suite after 4 minutes
@@ -244,22 +243,6 @@ def process_result(suite, robotmk_yml_cfg, robot_xml, piggybackhost):
       else: 
          log_error(f'{robotmk_yml_cfg["execution_mode"]} is not a valid execution type!')
          exit(1)
-# global:
-#   agent_output_encoding: plain_utf8
-#   cache_time: 1800
-#   execution_mode: cmk_async
-#   robotdir: foodir
-#   robotframework:
-#     console: ''
-#     log: ''
-#     report: ''
-# suites:
-#   async_suite1:
-#     variable:
-#       aa: aa
-#   suite266:
-#     variable:
-#       bb: bb  
 
 # for a given value name, return the corresponding env var value or the OS default
 def get_env_or_default(value): 
@@ -292,31 +275,7 @@ def get_global_env_config():
       exit(1)
    return global_env_cfg
 
-# Reads robotmk YML cfg file, updates and returns env cfg
-# Main purpose is to read in the suites to execute; 
-# can also override global settings
-def read_yml(robotmk_yml, global_env_cfg):
-   if os.access(robotmk_yml, os.R_OK):
-      try:
-         log_debug(f'Reading configuration file {robotmk_yml}')
-         with open(robotmk_yml, 'r') as stream:  
-            yml_config = yaml.safe_load(stream)
-            global_yml_config =  yml_config['global']
-            global_env_cfg.update(global_yml_config)
-      except yaml.YAMLError as exc:
-         log_error("Error while parsing YAML file:")
-         if hasattr(exc, 'problem_mark'):
-            if exc.context != None:
-               log_error('Parser says:\n\t' + str(exc.problem_mark) + '\n\t  ' +
-                  str(exc.problem) + ' ' + str(exc.context) +
-                  '\n\tPlease correct data and retry.')
-            else:
-               log_error('\t  parser says\n\t' + str(exc.problem_mark) + '\n\t  ' +
-                  str(exc.problem) + '\n\tPlease correct data and retry.')
-         exit(1)
-   else:
-      log_info('No configuration file {robot_cfg} found, starting with defaults')
-   return global_env_cfg
+
 
 # Reads robotmk YML cfg file
 def read_robotmk_yml(file):
