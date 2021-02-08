@@ -20,22 +20,25 @@
 
 # redirect stdout while testing: https://www.devdungeon.com/content/using-stdin-stdout-and-stderr-python
 
-#my-vars
 from pathlib import Path
+from collections import defaultdict
 import os
 import re
 from argparse import ArgumentParser
-from datetime import datetime
-
+from datetime import datetime, timezone, timedelta
 from time import time
 import json 
 import inspect
+import base64
+import zlib
 import logging
 from logging.handlers import TimedRotatingFileHandler
-import pty
-import errno
+# import pty
+# import errno
 
 local_tz = datetime.utcnow().astimezone().tzinfo
+ROBOTMK_VERSION = "v0.2.0"
+
 
 class RMKConfig():
     _PRESERVED_WORDS = [
@@ -50,19 +53,21 @@ class RMKConfig():
 
     def __init__(self, calling_cls):
         self.calling_cls = calling_cls
-        envdict = self.read_env2dictionary()
-        robotmk_dict = self.read_robotmk_yml()
         # merge I: combine the os and noarch defaults
         defaults_dict = self.__merge_defaults()
         # merge II: YML config overwrites the defaults
-        robotmk_dict_merged = mergedeep.merge(robotmk_dict, defaults_dict)
+        robotmk_dict = self.read_robotmk_yml()
+        robotmk_dict_merged_default = mergedeep.merge(robotmk_dict, defaults_dict)
         # merge III: environment vars overwrite the YML config
-        self.cfg_dict = mergedeep.merge(robotmk_dict_merged, envdict)
-
+        envdict = self.read_env2dictionary()
+        robotmk_dict_merged_env = mergedeep.merge(robotmk_dict_merged_default, envdict)
+        
+        self.cfg_dict = robotmk_dict_merged_env
         # now that YML and ENV are read, see if there is any suite defined. 
         # If not, the fallback is generate suite dict entries for every dir 
         # in robotdir. 
-        self.suites_dict = self.__suites_from_robotdirs()
+        if len(self.suites_dict) == 0:
+            self.suites_dict = self.__suites_from_robotdirs()
         pass
 
     def __merge_defaults(self):
@@ -74,16 +79,15 @@ class RMKConfig():
 
 
     def __suites_from_robotdirs(self):
-        if len(self.suites_dict) == 0:
-            self.calling_cls.loginfo(
+        self.calling_cls.loginfo(
             'No suites defined in YML and ENV; seeking for dirs in %s/...' %
             self.global_dict['robotdir'])
-            suites_dict = {
-                suitedir.name: {
-                    'robotpath': suitedir.name
-                } for suitedir in 
-                Path(self.global_dict['robotdir']).iterdir()}
-            return suites_dict
+        suites_dict = {
+            suitedir.name: {
+                'robotpath': suitedir.name
+            } for suitedir in 
+            Path(self.global_dict['robotdir']).iterdir()}
+        return suites_dict
 
     @property
     def global_dict(self):
@@ -138,7 +142,8 @@ class RMKConfig():
 
         Args:
             prefix (str): Only scan environment variables starting with this
-            prefix preserved_words (list): List of words not to split at
+                prefix 
+            preserved_words (list): List of words not to split at
                 underscores
             suite_subkeys (list): List of words which can occurr after suite id
         Returns:
@@ -153,7 +158,7 @@ class RMKConfig():
                 candidates = []
                 for subkey in suite_subkeys:
                     # suite ids have to be treated as preserved words
-                    match = re.match(rf'.*SUITES_(.*)_{subkey.upper()}',
+                    match = re.match(rf'.*suites_(.*)_{subkey}',
                                      varname_strip)
                     if match:
                         candidates.append(match.group(1))
@@ -168,7 +173,7 @@ class RMKConfig():
                         varname_strip = varname_strip.replace(
                             pw, pw.replace('_', '#'))
             list_of_keys = [
-                key.replace('#', '_').lower()
+                key.replace('#', '_')
                 for key in varname_strip.split('_')]
             nested_dict = cls.gen_nested_dict(list_of_keys, os.environ[varname])
             env_dict = mergedeep.merge(env_dict, nested_dict)
@@ -264,7 +269,7 @@ class RMKSuite():
             'global': cfg_dict['global'],
             'suite': cfg_dict['suites'][id]
         }
-        self.spoolfile = RMKSpoolfile(self)
+        self.statefile = RMKStatefile(self)
 
     def __str__(self):
         return self.id
@@ -279,6 +284,14 @@ class RMKSuite():
             'log':    f'{suite_filename}_log.html',
             'report': f'{suite_filename}_report.html',
         })
+
+    def clear_filenames(self): 
+        '''Reset the log file names if Robot Framework exited with RC > 250
+        The files presumed to exist do not in this case. 
+        '''        
+        self.outfile_htmllog = None
+        self.outfile_htmlreport = None
+        self.outfile_xml = None
 
     def robotize_variables(self): 
         # Preformat Variables to meet the Robot API requirement 
@@ -317,32 +330,97 @@ class RMKSuite():
 
     @property
     def outfile_xml(self): 
-        return str(Path(self.global_dict['outputdir']).joinpath(
+        if not self.suite_dict['output'] is None: 
+            return str(Path(self.global_dict['outputdir']).joinpath(
             self.suite_dict['output']))
+        else: 
+            return None
 
     @property
     def outfile_htmllog(self): 
-        return str(Path(self.global_dict['outputdir']).joinpath(
+        if not self.suite_dict['log'] is None: 
+            return str(Path(self.global_dict['outputdir']).joinpath(
             self.suite_dict['log']))
+        else: 
+            return None
 
     @property
     def outfile_htmlreport(self): 
-        return str(Path(self.global_dict['outputdir']).joinpath(
+        if not self.suite_dict['report'] is None: 
+            return str(Path(self.global_dict['outputdir']).joinpath(
             self.suite_dict['report']))
+        else: 
+            return None
+
+    @outfile_xml.setter
+    def outfile_xml(self, text): 
+        self.suite_dict['output'] = None
+
+    @outfile_htmllog.setter
+    def outfile_htmllog(self, text): 
+        self.suite_dict['log'] = None
+
+    @outfile_htmlreport.setter
+    def outfile_htmlreport(self, text): 
+        self.suite_dict['report'] = None
 
 
 
 
-
-#my-rmkspoolfile
-class RMKSpoolfile():
+#my-rmkstatefile
+class RMKStatefile():
     def __init__(self, suite):
         self.suite = suite
+        self.data = None
+        
+    def read(self): 
+        '''Read the suite statefile and supplement with staleness info
+        Returns:
+            dict: Status data
+        '''        
+        try: 
+            with open(self.path) as statefile:
+                self.data = json.load(statefile) 
+        except IOError: 
+            pass
+            #TODO: ERROR
+
+        self.data['result_age'] = self.age.seconds
+        self.data['result_overdue'] = self.overdue
+        self.data['result_is_stale'] = self.is_stale()
+        return self.data
+
+
+    def is_stale(self):
+        return self.age.seconds > int(self.cache_time)
+
+    @property
+    def age(self):
+        '''Return the seconds since last execution and now()
+        Returns:
+            diff: timedelta
+        '''        
+        if self.data is None: 
+            self.data = self.read()
+        age = datetime.now(timezone.utc) - parser.isoparse(
+            self.data['last_end_time'])
+        return age
+
+    @property
+    # how many seconds the result is older than the cache
+    def overdue(self): 
+        return (datetime.now(timezone.utc) - \
+            parser.isoparse(self.data['last_end_time']) - \
+            timedelta(seconds=int(self.cache_time))).seconds
+
+    @property
+    def cache_time(self): 
+        return self.data['cache_time']
 
     @property
     def mtime(self):
         '''Returns:
-            [int]: mtime of the suite's spool file. 0 if not present.'''  
+            [int]: mtime of the suite's statefile. 0 if not present.'''  
         try:
             mtime = datetime.fromtimestamp(
                 os.path.getmtime(str(self.path)))
@@ -357,19 +435,19 @@ class RMKSpoolfile():
         return Path(self.suite.global_dict['outputdir']).joinpath(filename)
 
     def write(self):
-        '''Writes the spoolfile content for a executed suite'''
+        '''Writes the statefile content for a executed suite'''
         result_dict = {
-            self.suite.id : {
-                "last_start_time": self.suite.start_time.isoformat(), 
-                "last_end_time": self.suite.start_time.isoformat(),
-                "runtime": self.suite.runtime,
-                "last_rc": self.suite.rc,
-                "xml": self.suite.outfile_xml,
-                "htmllog": self.suite.outfile_htmllog,
-        	}
+            "id": self.suite.id, 
+            "last_start_time": self.suite.start_time.isoformat(), 
+            "last_end_time": self.suite.start_time.isoformat(),
+            "cache_time": self.suite.global_dict['cache_time'],
+            "runtime": self.suite.runtime,
+            "last_rc": self.suite.rc,
+            "xml": self.suite.outfile_xml,
+            "htmllog": self.suite.outfile_htmllog,
         }
         with open(self.path, 'w', encoding='utf-8') as outfile: 
-            json.dump(result_dict, outfile, indent=4, sort_keys=False)
+            json.dump(result_dict, outfile, indent=2, sort_keys=False)
         
 
 
@@ -397,6 +475,7 @@ class RobotMK():
 
     def __init__(self): 
         self.__setup_logging(calling_cls=self, verbose=self.cmdline_args.verbose)
+        self.loginfo("="*20 + " START " + "="*20)
         self.config = RMKConfig(calling_cls=self)
 
     @classmethod
@@ -477,10 +556,9 @@ class RobotMK():
 #class RobotMK >>>
 
 #my-rmkplugin
-class RMKplugin(RobotMK):
-    def __init__(self, suites_cmdline): 
+class RMKPlugin(RobotMK):
+    def __init__(self): 
         super().__init__()
-        self.update_suites2start(suites_cmdline)
         pass
 
     def update_suites2start(self, suites_cmdline):
@@ -521,43 +599,111 @@ class RMKplugin(RobotMK):
 
 
     #my-startsuites
-    def start_suites(self):
+    def start_suites(self, suites_cmdline):
+        self.update_suites2start(suites_cmdline)
         suites = self.config.suites
         self.loginfo(
             ' => Suites to start: %s' % ', '.join([str(s) for s in suites]))
         for suite in suites:
             id = suite.id
             self.loginfo(f"---------- Suite: {id} ----------")
-            # suite_dict = self.config.suites_dict[id]
             self.logdebug(f'Starting suite')
             rc = suite.start()
             self.loginfo(f'Suite finished with RC {rc} after {suite.runtime} sec')
             if rc > 250: 
                 self.logerror('RC > 250 = Robot exited with fatal error. There are no logs written.')
                 self.logerror('Please run the robot command manually to debug.')
-            suite.spoolfile.write()
+                suite.clear_filenames()
+            self.loginfo(f'Writing statefile {suite.statefile.path}')
+            suite.statefile.write()
         
+class RMKCtrl(RobotMK):
+    #TODO: Cleanup the XML!
 
+    keys_to_encode = ['xml', 'htmllog']
+    header = '<<<robotmk>>>'
 
-class RMKctrl(RobotMK):
     def __init__(self):
         super().__init__()
-        
-        self.result_spoolfiles = []
 
-    def check_spoolfiles(self):
-        '''Check the state of spool files for staleness'''    
+    def agent_output(self): 
+        output = []
+        encoding = self.config.global_dict['agent_output_encoding']
+        metadata = {
+            "encoding": encoding, 
+            "robotmk_version": ROBOTMK_VERSION
+        }
+        allstates = self.check_states(encoding)
+        for host in allstates.keys():  
+            states = allstates[host]  
+            host_state = {
+                "metadata": metadata, 
+                "states": states,
+            }
+            json_serialized = json.dumps(host_state, sort_keys=False, indent=2)
+            json_w_header = f'<<<robotmk>>>\n{json_serialized}\n'
+            if host != "localhost": 
+                json_w_header = f'<<<<{host}>>>>\n{json_w_header}\n<<<<>>>>\n'
+            output.append(json_w_header)
+        return str(output)
+
+
+    def check_states(self, encoding):
+        '''Check the state files of suites; encode specific keys'''  
+        states = defaultdict(list)
         for suite in self.config.suites:
-            cache_time = int(suite.global_dict['cache_time'])
-            now = int(time())
-            self.result_spoolfiles.append("%s;%d;%d;%d" % (
-                suite.id,
-                cache_time,
-                suite.spoolfile.mtime,
-                # overdue seconds
-                now - suite.spoolfile.mtime - cache_time,
-            ))
+            # if (piggyback)host is set, results gets assigned to other CMK host
+            host = suite.suite_dict.get('host', 'localhost')
+            state = suite.statefile.read()
+            for k in self.keys_to_encode: 
+                if bool(state[k]):  
+                    content = self.read_file(state[k])
+                    state[k] = self.encode(
+                        content, 
+                        suite.global_dict['agent_output_encoding'])
+            states[host].append(state)
+        return states
 
+    def encode(self, data, encoding):
+        data = data.encode('utf-8')
+        if encoding == 'base64_codec':
+            data_encoded = self.to_base64(data)
+        elif encoding == 'zlib_codec':
+            # zlib bytestream is base64 wrapped to avoid nasty bytes wihtin the
+            # agent output. The check has first to decode the base64 "shell"
+            data_encoded = self.to_zlib(data)
+        else: 
+            #TODO: ERROR wrong encoding!
+            pass
+        # as we are serializing the data to JSON, let's convert the bytestring
+        # again back to UTF-8
+        return data_encoded.decode('utf-8')
+
+    def to_base64(self, data):
+        data_base64  = base64.b64encode(data)
+        return data_base64
+
+    # opens the Robot XML file and returns the compressed xml result.
+    # Caveat: to keep the zlib stream integrity, it must be converted to a 
+    # "safe" stream afterwards. 
+    # Reason: if there is a byte in the zlib stream which is a newline byte
+    # by accident, Checkmk splits the byte string at this point - the 
+    # byte gets lost, stream integrity bungled.
+    # Even if base64 blows up the data, this double encoding still saves space: 
+    # in:      692800 bytes  100    %
+    # zlib:      4391 bytes    0,63 % -> compression 99,37%
+    # base64:    5856 bytes    0,85 % -> compression 99,15%
+    def to_zlib(self, data):
+        # As only the agent output is compressed (not the header), the check will see one very long byte stream. 
+        # TODO: Remove the separator from check
+        data_zlib = zlib.compress(data, 9)
+        data_zlib_b64 = self.to_base64(data_zlib)
+        return data_zlib_b64
+
+    def read_file(self, path): 
+        with open(path, 'r') as file: 
+            content = file.read()
+        return content
 
 def test_for_modules():
     try:
@@ -567,34 +713,30 @@ def test_for_modules():
         import robot
         global mergedeep
         import mergedeep
+        global parser
+        from dateutil import parser
     except ModuleNotFoundError as e:
         logger.error(f'Could not start because of a missing module: {str(e)}')
         exit(1)
 
 
-
 if __name__ == '__main__':
     test_for_modules()
     RobotMK.get_args()
-    # Read the configuration from robotmk.yml & environment
-    if RobotMK.cmdline_args.suites is None:
-        # "Controller" Mode
-        #TODO: Read Spoolfiles, generate Output
-        #TODO: Monitor Spoolfile for staleness
-        rmk_ctrl = RMKctrl()
-        
-        rmk_ctrl.check_spoolfiles()
-        pass
-
+    cmdline_suites = RobotMK.cmdline_args.suites
+    instance = None
+    if cmdline_suites is None:
+        instance = RMKCtrl() 
+        print(instance.agent_output())
+        #This is the point where the controleler will not only monitor state
+        #files, but also start new plugin executions!
     else:
-        # "Plugin" Mode       
-        rmk_plugin = RMKplugin(RobotMK.cmdline_args.suites)
-        rmk_plugin.start_suites()
-
+        instance = RMKPlugin()
+        instance.start_suites(cmdline_suites)
+    instance.loginfo("="*20 + " FINISHED " + "="*20)
 else: 
-    # imported as module
+    # when imported as module
     import mergedeep
     import robot
     import yaml
-
-# <<<robotmk>>>  =  Robot Suite Results
+    from dateutil import parser
