@@ -18,21 +18,24 @@
 # to the Free Software Foundation, Inc., 51 Franklin St,  Fifth Floor,
 # Boston, MA 02110-1301 USA.
 
+# redirect stdout while testing: https://www.devdungeon.com/content/using-stdin-stdout-and-stderr-python
 
+#my-vars
 from pathlib import Path
 import os
 import re
 from argparse import ArgumentParser
 from datetime import datetime
+
 from time import time
 import json 
 import inspect
 import logging
 from logging.handlers import TimedRotatingFileHandler
+import pty
+import errno
 
-# TODO: Write spoolfile also in async mode
-# TODO: Overwrite also Defaults with env vars. 
-
+local_tz = datetime.utcnow().astimezone().tzinfo
 
 class RMKConfig():
     _PRESERVED_WORDS = [
@@ -47,37 +50,63 @@ class RMKConfig():
 
     def __init__(self, calling_cls):
         self.calling_cls = calling_cls
-
         envdict = self.read_env2dictionary()
-        robotmk_yml = Path(self.get_robotmk_var(
-            'agent_config_dir')).joinpath(
-            self.get_robotmk_var('robotmk_yml'))
-        robotmk_dict = self.read_robotmk_yml(robotmk_yml)
+        robotmk_dict = self.read_robotmk_yml()
         # merge I: combine the os and noarch defaults
-        defaults = calling_cls._DEFAULTS
-        defaults_dict = {
-            'global': mergedeep.merge(defaults[os.name], defaults['noarch'])
-        }
+        defaults_dict = self.__merge_defaults()
         # merge II: YML config overwrites the defaults
         robotmk_dict_merged = mergedeep.merge(robotmk_dict, defaults_dict)
         # merge III: environment vars overwrite the YML config
-        self._merged_dict = mergedeep.merge(robotmk_dict_merged, envdict)
+        self.cfg_dict = mergedeep.merge(robotmk_dict_merged, envdict)
+
+        # now that YML and ENV are read, see if there is any suite defined. 
+        # If not, the fallback is generate suite dict entries for every dir 
+        # in robotdir. 
+        self.suites_dict = self.__suites_from_robotdirs()
+        pass
+
+    def __merge_defaults(self):
+        defaults = self.calling_cls._DEFAULTS
+        merged_defaults = {
+            'global': mergedeep.merge(defaults[os.name], defaults['noarch'])
+        }
+        return merged_defaults
+
+
+    def __suites_from_robotdirs(self):
+        if len(self.suites_dict) == 0:
+            self.calling_cls.loginfo(
+            'No suites defined in YML and ENV; seeking for dirs in %s/...' %
+            self.global_dict['robotdir'])
+            suites_dict = {
+                suitedir.name: {
+                    'robotpath': suitedir.name
+                } for suitedir in 
+                Path(self.global_dict['robotdir']).iterdir()}
+            return suites_dict
 
     @property
     def global_dict(self):
-        return self._merged_dict['global']
+        return self.cfg_dict['global']
 
     @property
     def suites_dict(self):
-        return self._merged_dict['suites']
+        return self.cfg_dict['suites']
 
     @suites_dict.setter
     def suites_dict(self, suites_dict):
-        self._merged_dict['suites'] = suites_dict
+        self.cfg_dict['suites'] = suites_dict
+
+    # @property
+    # def suites(self):
+    #     return list(self.suites_dict.keys())
 
     @property
     def suites(self):
-        return list(self.suites_dict.keys())
+        # suites = {id: RMKSuite(id, self.config) for id in self.config.suites}
+        # return RMKSuites(self.cfg_dict)
+        return [ RMKSuite(id, self.cfg_dict) for id in self.cfg_dict['suites']]
+
 
     @staticmethod
     def gen_nested_dict(keys, value):
@@ -185,12 +214,15 @@ class RMKConfig():
                 pass
         return value
 
-    def read_robotmk_yml(self, file):
-        if os.access(file, os.R_OK):
-            self.calling_cls.logdebug(f'Reading configuration file {file}')
+    def read_robotmk_yml(self):
+        robotmk_yml = Path(self.get_robotmk_var(
+            'agent_config_dir')).joinpath(
+            self.get_robotmk_var('robotmk_yml'))
+        if os.access(robotmk_yml, os.R_OK):
+            self.calling_cls.logdebug(f'Reading configuration file {robotmk_yml}')
             #TEST: Reading a valid robotmk.yml
             try:
-                with open(file, 'r') as stream:
+                with open(robotmk_yml, 'r') as stream:
                     robotmk_yml_config = yaml.safe_load(stream)
                 return robotmk_yml_config
             except yaml.YAMLError as exc:
@@ -205,45 +237,44 @@ class RMKConfig():
             return {}
 
 
-class RMKSuites():
-    # TODO: Suites container needed?
-    def __init__(self, config):
-        self._suites = [
-            RMKSuite(id, config)
-            for id in config.suites ]
-        pass
+# class RMKSuites():
+#     def __init__(self, cfg_dict):
+#         self.suites = [
+#             RMKSuite(id, cfg_dict)
+#             for id in cfg_dict['suites']]
+#         pass
 
-    @property
-    def suites(self):
-        return self._suites
-
-    def run(self):
-        '''Execute this suite
-        '''        
-        pass
+#     def run(self):
+#         #TODO: use this
+#         '''Execute this suite
+#         '''        
+#         pass
         
 #my-rmksuite
+#TODO: for global and individual settings, add custom properties which try to 
+#read both 
 class RMKSuite():
-    def __init__(self, id, config):
-        self._start_time = None
-        self._end_time = None
+    def __init__(self, id, cfg_dict):
+        self.start_time = None
+        self.end_time = None
         self.id = id
-        global_config = config.global_dict
-        self.cache_time = global_config['cache_time']
-        suite_config = config.suites_dict[id]
-        self.path = suite_config.pop('path', id)
-        self._config = {
-            'global': global_config,
-            'suite': suite_config
+        # path is the only non-RF key in suite dict. Move this up
+        self.robotpath = cfg_dict['suites'][id].pop('path', id)
+        self.cfg_dict = {
+            'global': cfg_dict['global'],
+            'suite': cfg_dict['suites'][id]
         }
         self.spoolfile = RMKSpoolfile(self)
 
+    def __str__(self):
+        return self.id
+
     def update_filenames(self):
-        self.now = int(time())
-        suite_filename = "robotframework_%s_%s" % (self.id, str(self.now))
-        # path is the only non-RF key in suite dict. Move this up
-        self._config['suite'].update({
-            'outputdir':  self._config['global']['outputdir'],
+        now = int(time())
+        suite_filename = "robotframework_%s_%s" % (self.id, str(now))
+        #TODO: Make it possible to use global and suite config 
+        self.suite_dict.update({
+            'outputdir':  self.global_dict['outputdir'],
             'output': f'{suite_filename}_output.xml',
             'log':    f'{suite_filename}_log.html',
             'report': f'{suite_filename}_report.html',
@@ -253,60 +284,52 @@ class RMKSuite():
         # Preformat Variables to meet the Robot API requirement 
         # --variable name:value --variable name2:value2 
         # => ['name:value', 'name2:value2'] (list of dicts to list of k:v)
-        if 'variable' in self.config['suite']: 
-            self.config['suite']['variable'] = list(
+        if 'variable' in self.suite_dict: 
+            self.suite_dict['variable'] = list(
                 map(
                     lambda x: f'{x[0]}:{x[1]}',
-                    self.config['suite']['variable'].items()
+                    self.suite_dict['variable'].items()
                 ))
 
     def start(self):
         self.robotize_variables()
         self.update_filenames()
-        self.start_time = datetime.now().isoformat()
+        self.start_time = datetime.now(tz=local_tz)
         rc = robot.run(
-            Path(self.config['global']['robotdir']).joinpath(self.path),
-            **self.config['suite'])
+            self.path,
+            **self.suite_dict)
         self.rc = rc
-        self.end_time = datetime.now().isoformat()
+        self.end_time = datetime.now(tz=local_tz)
+        self.runtime = (self.end_time - self.start_time).total_seconds()
         return rc
 
     @property
-    def config(self):
-        return self._config
+    def path(self): 
+        return Path(self.global_dict['robotdir']).joinpath(self.robotpath)
+
+    @property
+    def suite_dict(self):
+        return self.cfg_dict['suite']
+
+    @property
+    def global_dict(self):
+        return self.cfg_dict['global']
 
     @property
     def outfile_xml(self): 
-        return str(Path(self.config['global']['outputdir']).joinpath(
-            self.config['suite']['output']))
+        return str(Path(self.global_dict['outputdir']).joinpath(
+            self.suite_dict['output']))
 
     @property
     def outfile_htmllog(self): 
-        return str(Path(self.config['global']['outputdir']).joinpath(
-            self.config['suite']['log']))
+        return str(Path(self.global_dict['outputdir']).joinpath(
+            self.suite_dict['log']))
 
     @property
     def outfile_htmlreport(self): 
-        return str(Path(self.config['global']['outputdir']).joinpath(
-            self.config['suite']['report']))
+        return str(Path(self.global_dict['outputdir']).joinpath(
+            self.suite_dict['report']))
 
-    @property
-    def start_time(self):
-        return self._start_time
-
-    @start_time.setter
-    def start_time(self, t):
-        #TODO: start time validation
-        self._start_time = t
-
-    @property
-    def end_time(self):
-        return self._end_time
-
-    @end_time.setter
-    def end_time(self, t):
-        #TODO: end time validation
-        self._end_time = t
 
 
 
@@ -330,17 +353,16 @@ class RMKSpoolfile():
 
     @property
     def path(self):
-        cache_time = self.suite.config['global']['cache_time']
         filename = f'robotmk_{self.suite.id}.json'
-        return Path(self.suite.config['global']['outputdir']
-                ).joinpath(filename)
+        return Path(self.suite.global_dict['outputdir']).joinpath(filename)
 
     def write(self):
         '''Writes the spoolfile content for a executed suite'''
         result_dict = {
             self.suite.id : {
-                "last_start_time": self.suite.start_time, 
-                "last_end_time": self.suite.start_time,
+                "last_start_time": self.suite.start_time.isoformat(), 
+                "last_end_time": self.suite.start_time.isoformat(),
+                "runtime": self.suite.runtime,
                 "last_rc": self.suite.rc,
                 "xml": self.suite.outfile_xml,
                 "htmllog": self.suite.outfile_htmllog,
@@ -348,7 +370,7 @@ class RMKSpoolfile():
         }
         with open(self.path, 'w', encoding='utf-8') as outfile: 
             json.dump(result_dict, outfile, indent=4, sort_keys=False)
-        pass
+        
 
 
 class RobotMK():
@@ -374,9 +396,8 @@ class RobotMK():
     }
 
     def __init__(self): 
-        self.__setup_logging(self.__class__, self.cmdline_args.verbose)
-        self._config = RMKConfig(calling_cls=self)
-        
+        self.__setup_logging(calling_cls=self, verbose=self.cmdline_args.verbose)
+        self.config = RMKConfig(calling_cls=self)
 
     @classmethod
     def get_args(cls):
@@ -400,9 +421,9 @@ class RobotMK():
         cls.cmdline_args = parser.parse_args()
 
     
-    def __setup_logging(self, cls, verbose=False):
+    def __setup_logging(self, calling_cls, verbose=False):
         if self._DEFAULTS['noarch']['logging']:
-            instance_name = cls.__name__
+            instance_name = calling_cls.__class__.__name__
             logger = logging.getLogger(instance_name)
             logger.setLevel(logging.DEBUG)
     
@@ -452,19 +473,19 @@ class RobotMK():
         self.logger.error(text)
 
 
-    @property
-    def config(self):
-        return self._config
+
+#class RobotMK >>>
 
 #my-rmkplugin
 class RMKplugin(RobotMK):
     def __init__(self, suites_cmdline): 
         super().__init__()
-        self._suites2start = self.get_suites2start(suites_cmdline)
+        self.update_suites2start(suites_cmdline)
         pass
 
-    def get_suites2start(self, suites_cmdline):
-        '''Determine the list of suites to start.
+    def update_suites2start(self, suites_cmdline):
+        '''Updates suites_dict so that it reflects the suites given comma-
+        separated on the commandline. 
         * '--run' / '--run all': run all suites in cfg; if no suites in config, 
                                  run all suites in robotdir
         * '--run suite1,suite3': only run specific suites                         
@@ -473,18 +494,7 @@ class RMKplugin(RobotMK):
             suites_cmdline (list): comma separated list of suite names 
         '''
         suites_cmdline = [ x.strip() for x in suites_cmdline.split(',')]
-        # magic word "all": start all suites as configured
-        if len(suites_cmdline) == 1 and suites_cmdline[0] == "all":
-            # if config.suites empty => execute all => set dummies for dirs within robot dir
-            if len(self.config.suites) == 0:
-                self.loginfo('Cfg contains no suites; seeking for dirs in %s' %
-                              self.config.global_dict['robotdir'])
-                self.config.suites_dict = {
-                    suitedir.name: {
-                        'path': suitedir.name
-                    } for suitedir in 
-                    Path(self.config.global_dict['robotdir']).iterdir()}
-        else: 
+        if not(len(suites_cmdline) == 1 and suites_cmdline[0] == "all"):
             # Suites given as arg but no cfg
             suites_inarg_notincfg = [suite for suite in suites_cmdline 
                                  if suite not in self.config.suites]
@@ -497,7 +507,7 @@ class RMKplugin(RobotMK):
                         'path': suiteid
                     } for suiteid in suites_inarg_notincfg}
 
-            # Remove suites from cfg if not given as argument
+            # Remove suites from cfg which are not given as argument
             cfgsuites = self.config.suites
             for suite in cfgsuites:
                 if suite not in suites_cmdline: 
@@ -507,21 +517,21 @@ class RMKplugin(RobotMK):
                     self.loginfo(f"( ) Adding suite '{suite}' (in cfg and in arguments)")
 
             self.config.suites_dict.update(suites_inarg_notincfg_dict)
-            pass
         
-        suites = {id: RMKSuite(id, self.config)
-                  for id in self.config.suites}
-        self.loginfo(' => Suites to start: %s' % ', '.join(suites.keys()))
-        return suites
+
 
     #my-startsuites
     def start_suites(self):
-        '''Execute the suites2start'''    
-        for suiteid in self._suites2start:
-            self.loginfo(f"---------- Suite: {suiteid} ----------")
-            suite = self._suites2start[suiteid]
+        suites = self.config.suites
+        self.loginfo(
+            ' => Suites to start: %s' % ', '.join([str(s) for s in suites]))
+        for suite in suites:
+            id = suite.id
+            self.loginfo(f"---------- Suite: {id} ----------")
+            # suite_dict = self.config.suites_dict[id]
+            self.logdebug(f'Starting suite')
             rc = suite.start()
-            self.loginfo(f'Suite finished, RC: {rc}')
+            self.loginfo(f'Suite finished with RC {rc} after {suite.runtime} sec')
             if rc > 250: 
                 self.logerror('RC > 250 = Robot exited with fatal error. There are no logs written.')
                 self.logerror('Please run the robot command manually to debug.')
@@ -532,13 +542,13 @@ class RMKplugin(RobotMK):
 class RMKctrl(RobotMK):
     def __init__(self):
         super().__init__()
+        
         self.result_spoolfiles = []
-
 
     def check_spoolfiles(self):
         '''Check the state of spool files for staleness'''    
         for suite in self.config.suites:
-            cache_time = int(suite.config['global']['cache_time'])
+            cache_time = int(suite.global_dict['cache_time'])
             now = int(time())
             self.result_spoolfiles.append("%s;%d;%d;%d" % (
                 suite.id,
@@ -569,7 +579,6 @@ if __name__ == '__main__':
     # Read the configuration from robotmk.yml & environment
     if RobotMK.cmdline_args.suites is None:
         # "Controller" Mode
-        #TODO: Mock spoolfiles
         #TODO: Read Spoolfiles, generate Output
         #TODO: Monitor Spoolfile for staleness
         rmk_ctrl = RMKctrl()
@@ -578,9 +587,7 @@ if __name__ == '__main__':
         pass
 
     else:
-        # "Plugin" Mode
-        #TODO: old plugin should write metadata spoolfiles to tmpdir
-        
+        # "Plugin" Mode       
         rmk_plugin = RMKplugin(RobotMK.cmdline_args.suites)
         rmk_plugin.start_suites()
 
