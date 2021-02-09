@@ -227,7 +227,7 @@ class RMKConfig():
             self.calling_cls.logdebug(f'Reading configuration file {robotmk_yml}')
             #TEST: Reading a valid robotmk.yml
             try:
-                with open(robotmk_yml, 'r') as stream:
+                with open(robotmk_yml, 'r', encoding='utf-8') as stream:
                     robotmk_yml_config = yaml.safe_load(stream)
                 return robotmk_yml_config
             except yaml.YAMLError as exc:
@@ -638,14 +638,14 @@ class RMKCtrl(RobotMK):
             states = allstates[host]  
             host_state = {
                 "metadata": metadata, 
-                "states": states,
+                "suites": states,
             }
             json_serialized = json.dumps(host_state, sort_keys=False, indent=2)
-            json_w_header = f'<<<robotmk>>>\n{json_serialized}\n'
+            json_w_header = f'<<<robotmk:sep(0)>>>\n{json_serialized}\n'
             if host != "localhost": 
                 json_w_header = f'<<<<{host}>>>>\n{json_w_header}\n<<<<>>>>\n'
             output.append(json_w_header)
-        return str(output)
+        return ''.join(output)
 
 
     def check_states(self, encoding):
@@ -701,7 +701,7 @@ class RMKCtrl(RobotMK):
         return data_zlib_b64
 
     def read_file(self, path): 
-        with open(path, 'r') as file: 
+        with open(path, 'r', encoding='utf-8') as file: 
             content = file.read()
         return content
 
@@ -727,7 +727,8 @@ if __name__ == '__main__':
     instance = None
     if cmdline_suites is None:
         instance = RMKCtrl() 
-        print(instance.agent_output())
+        data = instance.agent_output()
+        print(data)
         #This is the point where the controleler will not only monitor state
         #files, but also start new plugin executions!
     else:
