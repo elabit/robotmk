@@ -24,7 +24,7 @@ from pathlib import Path
 from collections import defaultdict
 import os
 import re
-from argparse import ArgumentParser
+from argparse import ArgumentParser, RawTextHelpFormatter
 from datetime import datetime, timezone, timedelta
 from time import time
 import json 
@@ -33,8 +33,7 @@ import base64
 import zlib
 import logging
 from logging.handlers import TimedRotatingFileHandler
-# import pty
-# import errno
+from textwrap import dedent
 
 local_tz = datetime.utcnow().astimezone().tzinfo
 ROBOTMK_VERSION = "v0.2.0"
@@ -480,18 +479,56 @@ class RobotMK():
 
     @classmethod
     def get_args(cls):
-        parser = ArgumentParser()
-        parser.add_argument('--run',
-                            '-r',
-                            dest='suites',
-                            const='all',
-                            default=None,
-                            action='store',
-                            nargs='?',
-                            type=str,
-                            help="""Run all Robot Framework suites as configured in robotmk.yml.
-                                    Suite IDs can be given as comma separated list to restrict execution.
-                                    Suites are executed serially, one by one.""")
+        parser = ArgumentParser(
+            formatter_class=RawTextHelpFormatter,
+            epilog=dedent("""\
+                # Operation modes 
+                Without any arguments, Robotmk works in 'controller mode'. It determines the suites
+                which are defined in robotmk.yml to run on this machine. If there are no suites de-
+                fined, the suite names are taken from the directory names within the robot suites 
+                directory. 
+                If called in 'plugin mode', robotmk executes Robot Framework suites. With "--run", 
+                the default is "all" = run all suites defined (either by YML or by directory 
+                inspection). If suites are specified as option to "--run", only those are run.
+                
+                # Configuration by environment variables
+                Any setting can also be given by environment variables. 
+                Example:
+                
+                cat robotmk.yml
+                global:
+                    robotdir: /another/path/for/suites
+                suites: 
+                    test_one:
+                        variable:
+                            language: german
+                            env: prod
+
+                This can be set equivalentely with environment variables: 
+
+                ROBOTMK_global_robotdir="/another/path/for/suites"
+                ROBOTMK_suites_test_one_variable_language="german"
+                ROBOTMK_suites_test_one_variable_env="prod"
+
+                The rules are: 
+                  * variables must start with 'ROBOTMK_'
+                  * case matters
+                  * separate dict keys with underscores
+                  * suite names with underscores (ex. test_one) are detected by
+                    its surrounding protected keys.
+                """))
+        parser.add_argument(
+            '--run',
+            '-r',
+            dest='suites',
+            const='all',
+            default=None,
+            action='store',
+            nargs='?',
+            type=str,
+            help="""Plugin mode. Runs all Robot Framework suites as configured in robotmk.yml.
+                    Suite IDs can be given as comma separated list to restrict execution.
+                    Suites are executed serially, one by one.""")
         parser.add_argument('--verbose',
                             '-v',
                             default=False,
@@ -604,6 +641,7 @@ class RMKPlugin(RobotMK):
         suites = self.config.suites
         self.loginfo(
             ' => Suites to start: %s' % ', '.join([str(s) for s in suites]))
+        tic = datetime.now(timezone.utc)
         for suite in suites:
             id = suite.id
             self.loginfo(f"---------- Suite: {id} ----------")
@@ -616,7 +654,27 @@ class RMKPlugin(RobotMK):
                 suite.clear_filenames()
             self.loginfo(f'Writing statefile {suite.statefile.path}')
             suite.statefile.write()
-        
+        tac = datetime.now(timezone.utc)
+        deltatime = tac - tic
+        self.write_statefile(suites, deltatime)
+
+    def write_statefile (self, suites, deltatime):
+        runtime_total = deltatime.total_seconds()
+        runtime_suites = sum([s.runtime for s in suites])
+        json_dict = {
+            'runtime_total': runtime_total,
+            'runtime_suites': runtime_suites,
+            'runtime_robotmk': runtime_total - runtime_suites,
+            'suites': [(s.id, s.runtime) for s in suites]
+        }
+        with open(Path(
+            self.config.global_dict['outputdir']).joinpath(
+            'robotmk_plugin.json'), 'w',
+            encoding='utf-8') as plugin_statefile:
+            json.dump(json_dict, plugin_statefile, indent=2)
+        pass
+
+
 class RMKCtrl(RobotMK):
     #TODO: Cleanup the XML!
 
@@ -631,7 +689,8 @@ class RMKCtrl(RobotMK):
         encoding = self.config.global_dict['agent_output_encoding']
         metadata = {
             "encoding": encoding, 
-            "robotmk_version": ROBOTMK_VERSION
+            "robotmk_version": ROBOTMK_VERSION,
+            "runtime": "FIXME"
         }
         allstates = self.check_states(encoding)
         for host in allstates.keys():  

@@ -36,7 +36,6 @@ import json
 
 ROBOTMK_VERSION = "v0.2.0"
 
-iam = "robotmk"
 
 STATES = {
     0: 'OK',
@@ -55,30 +54,9 @@ STATE_BADGES = {
     2 : '(!!)'
 }
 
+iam = "robotmk"
 # DO NOT DELETE
 inventory_robotmk_rules = []
-
-# Input: one or more robot XML results, concatenated
-# returns:
-#   if discovery_level = 0 -> returns one RFSuite Object            
-#   if discovery_level > 0 -> depending on the structure, a list of custom result objects (RFSuite/RFTest or RFKeyword) 
-    # There are 3 supported encoding types (pseudocode): 
-    # raw data         CMK-decoded as   decode as   decode as
-    # unicode          utf-8            --          --
-    # base64_codec     bytestring 1)    utf-8 2)    --
-    # zlib_codec       bytestring 1)    zlib  3)    utf-8 4)
-    # 
-    # Checkmk does only _one_ encoding step (=the one named in the section header).
-    # This means that only for utf8, the check receives a decoded unicode string. 
-    # In case of base64/zlib, it gets a decoded base64/zlib string (1) - but it is still a bytestring!
-
-
-class RMKState():
-    def __init__(self, state, metadata):
-        self.state = state
-
-    def decode(self, data, encoding):
-        pass
 
 def parse_robot(info):
     keys_to_decode = ['xml', 'htmllog']
@@ -91,7 +69,7 @@ def parse_robot(info):
 
     metadata = info_dict['metadata']
     suites = info_dict['suites']
-
+    #TODO: DRY
     for suite in suites: 
         for k in keys_to_decode: 
             d = suite[k]
@@ -106,9 +84,11 @@ def parse_robot(info):
                 else: 
                     d_decomp = d
                 suite[k] = d_decomp
-        #TODO: Eval if XML data present
-        xml = ET.fromstring(suite['xml'])
-        xml_root_suite = xml.find('./suite')
+        try: 
+            xml = ET.fromstring(suite['xml'])
+            xml_root_suite = xml.find('./suite')
+        except Exception: 
+            raise MKGeneralException("Cannot detect XML data in Robomk output.")
         setting = pattern_match(robot_discovery_settings, xml_root_suite.attrib['name'], (0, '') )
         discovery_setting = namedtuple('DiscoverySetting', 'level blacklist_pattern')._make(setting)
         root_item = parse_suite_xml(xml_root_suite, discovery_setting)
@@ -186,10 +166,6 @@ def check_robot(item, checkgroup_parameters, parsed):
         else: 
             first_line.append("Version %s (server and client)" % ROBOTMK_VERSION)
         out = ', '.join(first_line) + '\n' + ''.join(out_lines)
-        # HEARTBEAT
-        # youngest = parser.isoparse(max([ h['last_end_time'] for h in parsed['suites'] ]))
-        # now = datetime.datetime.utcnow()
-        # heartbeat = now - youngest
         return rc, out, [
             perfdata_suites_total,
             perfdata_suites_stale
