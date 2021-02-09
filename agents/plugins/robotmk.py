@@ -471,11 +471,15 @@ class RobotMK():
             'logging': True
         }
     }
-
+    
     def __init__(self): 
         self.__setup_logging(calling_cls=self, verbose=self.cmdline_args.verbose)
         self.loginfo("="*20 + " START " + "="*20)
         self.config = RMKConfig(calling_cls=self)
+        self.execution_mode = self.config.global_dict['execution_mode']
+        self.plugin_statefile = Path(
+                self.config.global_dict['outputdir']
+                ).joinpath('robotmk_plugin_%s.json' % self.execution_mode)
 
     @classmethod
     def get_args(cls):
@@ -562,6 +566,29 @@ class RobotMK():
                 console.setLevel(logging.DEBUG)
                 self.logger.addHandler(console)
 
+    def write_plugin_statefile (self, suites):
+        '''Writes a JSON statefile containing metadata about the plugin runtime'''
+        #TODO: Remove cmk_async, deprecated
+        if self.execution_mode in ['agent_serial', 'cmk_async']:
+            # tic & tac are taken before and after start_suites
+            deltatime = self.tac - self.tic
+            runtime_total = deltatime.total_seconds()
+            runtime_suites = sum([s.runtime for s in suites])
+            json_dict = {
+                'runtime_total': runtime_total,
+                'runtime_suites': runtime_suites,
+                'runtime_robotmk': runtime_total - runtime_suites,
+                'suites': [(s.id, s.runtime) for s in suites],
+                'execution_mode': self.execution_mode,
+            }
+        elif self.execution_mode == 'agent_parallel': 
+            # NOT YET IMPLEMENTED
+            pass
+        with open(self.plugin_statefile, 'w', encoding='utf-8') as plugin_statefile:
+            json.dump(json_dict, plugin_statefile, indent=2)
+
+
+
     def asinstance(f):
         '''Ensures that a function only gets called by instances
         Args:
@@ -641,7 +668,7 @@ class RMKPlugin(RobotMK):
         suites = self.config.suites
         self.loginfo(
             ' => Suites to start: %s' % ', '.join([str(s) for s in suites]))
-        tic = datetime.now(timezone.utc)
+        self.tic = datetime.now(timezone.utc)
         for suite in suites:
             id = suite.id
             self.loginfo(f"---------- Suite: {id} ----------")
@@ -654,25 +681,10 @@ class RMKPlugin(RobotMK):
                 suite.clear_filenames()
             self.loginfo(f'Writing statefile {suite.statefile.path}')
             suite.statefile.write()
-        tac = datetime.now(timezone.utc)
-        deltatime = tac - tic
-        self.write_statefile(suites, deltatime)
+        self.tac = datetime.now(timezone.utc)
+        self.write_plugin_statefile(suites)
 
-    def write_statefile (self, suites, deltatime):
-        runtime_total = deltatime.total_seconds()
-        runtime_suites = sum([s.runtime for s in suites])
-        json_dict = {
-            'runtime_total': runtime_total,
-            'runtime_suites': runtime_suites,
-            'runtime_robotmk': runtime_total - runtime_suites,
-            'suites': [(s.id, s.runtime) for s in suites]
-        }
-        with open(Path(
-            self.config.global_dict['outputdir']).joinpath(
-            'robotmk_plugin.json'), 'w',
-            encoding='utf-8') as plugin_statefile:
-            json.dump(json_dict, plugin_statefile, indent=2)
-        pass
+
 
 
 class RMKCtrl(RobotMK):
@@ -690,8 +702,9 @@ class RMKCtrl(RobotMK):
         metadata = {
             "encoding": encoding, 
             "robotmk_version": ROBOTMK_VERSION,
-            "runtime": "FIXME"
         }
+        plugin_state = json.loads(self.read_file(self.plugin_statefile, '{}'))
+        metadata.update(plugin_state)
         allstates = self.check_states(encoding)
         for host in allstates.keys():  
             states = allstates[host]  
@@ -753,15 +766,18 @@ class RMKCtrl(RobotMK):
     # zlib:      4391 bytes    0,63 % -> compression 99,37%
     # base64:    5856 bytes    0,85 % -> compression 99,15%
     def to_zlib(self, data):
-        # As only the agent output is compressed (not the header), the check will see one very long byte stream. 
         # TODO: Remove the separator from check
         data_zlib = zlib.compress(data, 9)
         data_zlib_b64 = self.to_base64(data_zlib)
         return data_zlib_b64
 
-    def read_file(self, path): 
-        with open(path, 'r', encoding='utf-8') as file: 
-            content = file.read()
+    def read_file(self, path, default=None): 
+        content = None
+        try: 
+            with open(path, 'r', encoding='utf-8') as file: 
+                content = file.read()
+        except: 
+            content = default
         return content
 
 def test_for_modules():
