@@ -69,7 +69,6 @@ def parse_robot(info):
 
     metadata = info_dict['metadata']
     suites = info_dict['suites']
-    #TODO: DRY
     for suite in suites: 
         for k in keys_to_decode: 
             d = suite[k]
@@ -113,8 +112,8 @@ def inventory_robot(parsed):
 def check_robot(item, checkgroup_parameters, parsed):
     if checkgroup_parameters == None: 
         checkgroup_parameters = {}
-    
     robot_discovery_settings = get_setting('robot_discovery_settings',[])
+    #TODO: DRY
     if item == 'Robotmk': 
         # this is the meta check
         suites_total = len(parsed['suites'])
