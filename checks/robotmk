@@ -25,14 +25,17 @@ import re
 import time
 import ast
 import datetime
+from dateutil import parser 
 from pprint import pprint
 import xml.etree.ElementTree as ET
 from operator import add, sub
 from random import randint
 import base64
 import zlib
+import json
 
-iam = "robotmk"
+ROBOTMK_VERSION = "v0.2.0"
+
 
 STATES = {
     0: 'OK',
@@ -51,100 +54,155 @@ STATE_BADGES = {
     2 : '(!!)'
 }
 
+iam = "robotmk"
 # DO NOT DELETE
 inventory_robotmk_rules = []
 
-# Input: one or more robot XML results, concatenated
-# returns:
-#   if discovery_level = 0 -> returns one RFSuite Object            
-#   if discovery_level > 0 -> depending on the structure, a list of custom result objects (RFSuite/RFTest or RFKeyword) 
 def parse_robot(info):
+    keys_to_decode = ['xml', 'htmllog']
     robot_discovery_settings = get_setting('robot_discovery_settings',[])
-    
-    # Robotmk uses sep(0) in section headers; that means that there is no auto-splitting
-    # of a line by comma, spaces etc. - each line is a list with exactly ONE item. 
-    # This works for the encodings UTF8 and base64 - in both cases "item" contains the 
-    # unicode representation. 
-    # zlib data, on the other hand, is a binary stream, alleviated by the agent plugin via base64. 
-    # In this case, "item" is binary and can contain Nullbytes by accident, which 
-    # CMK uses to split the line into fields. If that happens, we glue them together
-    # again and insert the Nullbyte. 
-    info_joined = ''.join(['\x00'.join(line[:]) for line in info])
-    # There are 3 supported encoding types (pseudocode): 
-    # raw data         CMK-decoded as   decode as   decode as
-    # unicode          utf-8            --          --
-    # base64_codec     bytestring 1)    utf-8 2)    --
-    # zlib_codec       bytestring 1)    zlib  3)    utf-8 4)
-    # 
-    # Checkmk does only _one_ encoding step (=the one named in the section header).
-    # This means that only for utf8, the check receives a decoded unicode string. 
-    # In case of base64/zlib, it gets a decoded base64/zlib string (1) - but it is still a bytestring!
-    if type(info_joined) == unicode:
-        info_joined_utf8 = info_joined
-    else: 
-        try: 
-            # 2) try if this bytestring properly decodes to utf-8
-            info_joined_utf8 = info_joined.decode('utf-8')
-        except: 
-            try: 
-                # Split the Bytestring at the mark '---zlib-sep---' (to get singular results) then 
-                # 3) try to decompress with zlib, then 4) decode to utf-8
-                info_joined_decomp = ''.join( [zlib.decompress(i) for i in info_joined.split('---zlib-sep---') if len(i)] )
-                info_joined_utf8 = info_joined_decomp.decode('utf-8')
-            except Exception:
-                raise MKGeneralException("Cannot decode check input data (is neither UTF-8, nor zlib-compressed UTF-8")
-
     try: 
-        # identify XMLs
-        xmllist = map(lambda x: '<?xml' + x, info_joined_utf8.split('<?xml'))[1:]
-    except Exception:
-        raise MKGeneralException("Cannot detect XML header in agent output!")
+        info_joined = ''.join([l[0] for l in info])
+        info_dict = json.loads(info_joined)
+    except Exception: 
+        raise MKGeneralException("Can not load Robotmk JSON data! (json.loads())")
 
-    robot_items = []
-    for xmlitem in xmllist: 
-        # XML etree has its own UTF-8 decoding, handover as bytestring
-        xml = xmlitem.encode('utf-8')
-        oxml = ET.fromstring(xml)
-        suite, statistics, error =  (oxml.find('./suite'), oxml.find('./statistics'), oxml.find('./errors')) 
-        # find a matching pattern and use its discovery level 
-        setting = pattern_match(robot_discovery_settings, suite.attrib['name'], (0, '') )
+    metadata = info_dict['metadata']
+    suites = info_dict['suites']
+    #TODO: DRY
+    for suite in suites: 
+        for k in keys_to_decode: 
+            d = suite[k]
+            if bool(d): 
+                if metadata['encoding'] == 'zlib_codec':
+                    d = d.encode('utf-8')
+                    d_byte = base64.b64decode(d)
+                    d_decomp = zlib.decompress(d_byte)
+                elif metadata['encoding'] == 'base64_codec':
+                    d = d.encode('utf-8')
+                    d_decomp = base64.b64decode(d)
+                else: 
+                    d_decomp = d
+                suite[k] = d_decomp
+        try: 
+            xml = ET.fromstring(suite['xml'])
+            xml_root_suite = xml.find('./suite')
+        except Exception: 
+            raise MKGeneralException("Cannot detect XML data in Robomk output.")
+        setting = pattern_match(robot_discovery_settings, xml_root_suite.attrib['name'], (0, '') )
         discovery_setting = namedtuple('DiscoverySetting', 'level blacklist_pattern')._make(setting)
-        if not all(map(lambda x: x != None, [suite, statistics, error])):
-            continue
-        robot_item = parse_suite_xml(suite, discovery_setting)
-        robot_items.extend(robot_item.discovered)
-    # list of RFSuite/RFTest or RFKeyword objects 
-    return robot_items
+        root_item = parse_suite_xml(xml_root_suite, discovery_setting)
+        suite['discovered_items'] = root_item.discovered
 
-def inventory_robot(robot_items):
+    return info_dict
+
+def inventory_robot(parsed):
     robot_service_prefix = get_setting('robot_service_prefix',[])
-    for robot_item in robot_items:
-        prefix = pattern_match(robot_service_prefix, robot_item.name, '')
-        prefix_subst = prefix.replace('%SPACE%', ' ')
-        item_name = "%s%s" % (prefix_subst, robot_item.name)
-        yield item_name, None
-        # uncomment instead of yield to debug this method
-        # print suite_name
+    #TODO: Error handling for no suites/metadata keys? 
+    for root_suite in parsed['suites']:
+        for discovered_item in root_suite['discovered_items']:
+            prefix = pattern_match(robot_service_prefix, discovered_item.name, '')
+            prefix_subst = prefix.replace('%SPACE%', ' ')
+            item_name = "%s%s" % (prefix_subst, discovered_item.name)
+            yield item_name, None
+    yield "Robotmk", None
 
 # item = CMK service to check 
-# robot_items = list of suite/test/kw objects
-def check_robot(item, checkgroup_parameters, robot_items):
+# parsed = dict of metadata/suites; suites = dict of root suites incl. the
+#          discovered items 
+def check_robot(item, checkgroup_parameters, parsed):
     if checkgroup_parameters == None: 
         checkgroup_parameters = {}
     
     robot_discovery_settings = get_setting('robot_discovery_settings',[])
-
-    for robot_item in robot_items:
-        # If there is a custom prefix defined in Checkmk, we have to strip it off
-        # so that it can be compared to the Robot item
-        item_without_prefix = strip_prefix(item)
-        if robot_item.name == item_without_prefix:
-            item_result = robot_item.get_checkmk_result(robot_item, checkgroup_parameters)
-            (rc, output_lines, perfdata) = (
-                item_result['worststate'], 
-                '\n'.join(item_result['padded_lines_list']),
-                item_result['cmk_perfdata_list'])
-            return rc, output_lines, perfdata
+    if item == 'Robotmk': 
+        # this is the meta check
+        suites_total = len(parsed['suites'])
+        rc = 0
+        first_line = []
+        out_lines = []
+        # STALE RESULT CHECK 
+        stales = []
+        for root_suite in parsed['suites']:
+            if root_suite['result_is_stale'] == True: 
+                last_end = parser.isoparse(
+                    root_suite['last_end_time']
+                    ).strftime('%Y-%m-%d %H:%M:%S')
+                overdue_sec = datetime.timedelta(
+                    seconds=root_suite['result_overdue']
+                )
+                stales.append((
+                    root_suite['id'],
+                    "(!!) Suite '%s': (last execution end: %s, " % (root_suite['id'], last_end) + \
+                    "cache time: %ss, overdue since %ss)\n" % (
+                                str(root_suite['cache_time']),
+                                overdue_sec)
+                ))
+        if len(stales) > 0: 
+            rc = max(rc,2)
+            first_line.append(
+                "%d of %d Robot suites have outdated results! (!!) (%s)" % (
+                    len(stales),
+                    suites_total,
+                    ', '.join([s[0] for s in stales]) )
+            )
+            out_lines.extend([s[1] for s in stales])
+        else: 
+            first_line.append("%d suite(s) planned, all state files up to date" % suites_total)
+        perfdata_suites_total = (
+                    'suites_total', 
+                    "%d" % suites_total
+                )
+        perfdata_suites_stale = (
+                    'suites_stale', 
+                    "%d" % len(stales)
+                )
+        # VERSION CHECK 
+        client_version = parsed['metadata']['robotmk_version']
+        if client_version != ROBOTMK_VERSION: 
+            first_line.append("Version mismatch (!) (server: %s, client: %s)" % \
+                (client_version, ROBOTMK_VERSION))
+            rc = max(rc,1)
+        else: 
+            first_line.append("Version %s (server and client)" % ROBOTMK_VERSION)
+        out = ', '.join(first_line) + '\n' + ''.join(out_lines)
+        return rc, out, [
+            perfdata_suites_total,
+            perfdata_suites_stale
+        ]
+    else: 
+        # any other regular s/t/k check
+        for root_suite in parsed['suites']:
+            for discovered_item in root_suite['discovered_items']:
+                # If there is a custom prefix defined in Checkmk, we have to strip it off
+                # so that it can be compared to the Robot item
+                item_without_prefix = strip_prefix(item)
+                if discovered_item.name == item_without_prefix:
+                    if root_suite['result_is_stale'] == False: 
+                        # fresh result
+                        item_result = discovered_item.get_checkmk_result(
+                            discovered_item, checkgroup_parameters)
+                        (rc, output_lines, perfdata) = (
+                            item_result['worststate'], 
+                            '\n'.join(item_result['padded_lines_list']),
+                            item_result['cmk_perfdata_list'])
+                        return rc, output_lines, perfdata
+                    else: 
+                        # stale results get UNKNOWN
+                        #TODO: (Perhaps make this configurable (OK/UNKNOWN))
+                        last_end = parser.isoparse(
+                            root_suite['last_end_time']
+                            ).strftime('%Y-%m-%d %H:%M:%S')
+                        overdue_sec = datetime.timedelta(
+                            seconds=root_suite['result_overdue']
+                        )
+                        out = "Result of suite '%s' is too old " % root_suite['id'] + \
+                            "(last execution end: %s, " % last_end + \
+                            "cache time: %ss, overdue since %ss" % (
+                                str(root_suite['cache_time']),
+                                overdue_sec)
+                        
+                        return 3, out
 
 # ==============================================================================
 
