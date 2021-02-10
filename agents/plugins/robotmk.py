@@ -580,6 +580,7 @@ class RobotMK():
                 'runtime_robotmk': runtime_total - runtime_suites,
                 'suites': [(s.id, s.runtime) for s in suites],
                 'execution_mode': self.execution_mode,
+                'global_cache_time': self.config.global_dict['cache_time'],
             }
         elif self.execution_mode == 'agent_parallel': 
             # NOT YET IMPLEMENTED
@@ -697,11 +698,18 @@ class RMKCtrl(RobotMK):
         super().__init__()
 
     def agent_output(self): 
+        '''Determines the agent output; this is a JSON dict with two keys: 
+        - metadata: beneath static information like the robotmk version and encoding, 
+                    it also includes the plugin's statefile (total execution 
+                    time, cache time, executed suites etc.)
+        '''        
         output = []
         encoding = self.config.global_dict['agent_output_encoding']
         metadata = {
             "encoding": encoding, 
             "robotmk_version": ROBOTMK_VERSION,
+            "execution_mode": self.execution_mode,
+            "global_cache_time": self.config.global_dict['cache_time']
         }
         plugin_state = json.loads(self.read_file(self.plugin_statefile, '{}'))
         metadata.update(plugin_state)

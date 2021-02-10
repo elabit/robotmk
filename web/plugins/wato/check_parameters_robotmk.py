@@ -40,6 +40,7 @@ from cmk.gui.cee.plugins.wato.agent_bakery import (
 )
 
 # TODO: Add logging True/False
+# TODO: warn/crit threholds for total_runtime
 
 
 #   _           _                   

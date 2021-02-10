@@ -10,6 +10,9 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ### Added
 
 - Plugin: Added daily log RobotMK file rotation (#88)
+- New Robotmk Service: Perfometer Thresholds Graphs
+
+
 
 ### Changed
 ### Fixed

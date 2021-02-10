@@ -104,6 +104,7 @@ def inventory_robot(parsed):
             prefix_subst = prefix.replace('%SPACE%', ' ')
             item_name = "%s%s" % (prefix_subst, discovered_item.name)
             yield item_name, None
+    # This is the service reporting overall runtimes, stale spooliles etc. 
     yield "Robotmk", None
 
 # item = CMK service to check 
@@ -114,13 +115,13 @@ def check_robot(item, checkgroup_parameters, parsed):
         checkgroup_parameters = {}
     robot_discovery_settings = get_setting('robot_discovery_settings',[])
     #TODO: DRY
+    # this is the meta check
     if item == 'Robotmk': 
-        # this is the meta check
         suites_total = len(parsed['suites'])
         rc = 0
         first_line = []
         out_lines = []
-        # STALE RESULT CHECK 
+        # 1. Check for stale spool files 
         stales = []
         for root_suite in parsed['suites']:
             if root_suite['result_is_stale'] == True: 
@@ -140,14 +141,18 @@ def check_robot(item, checkgroup_parameters, parsed):
         if len(stales) > 0: 
             rc = max(rc,2)
             first_line.append(
-                "%d of %d Robot suites have outdated results! (!!) (%s)" % (
+                "%d of %d Robot suites have outdated results (!!) (%s)" % (
                     len(stales),
                     suites_total,
-                    ', '.join([s[0] for s in stales]) )
+                    quoted_listitems(stales)
+                ) 
             )
             out_lines.extend([s[1] for s in stales])
         else: 
-            first_line.append("%d suite(s) planned, all state files up to date" % suites_total)
+            first_line.append("%d suite(s) planned (%s), all state files up to date" % (
+                suites_total,
+                quoted_listitems(parsed['suites']),
+                ))
         perfdata_suites_total = (
                     'suites_total', 
                     "%d" % suites_total
@@ -156,18 +161,81 @@ def check_robot(item, checkgroup_parameters, parsed):
                     'suites_stale', 
                     "%d" % len(stales)
                 )
-        # VERSION CHECK 
+
+
+        # 2. If in mode "agent_serial", the total_runtime of the plugin must be
+        # observed. 
+        # TODO: remove cmk_async (=legacy)
+        # TODO: Perfometer? 
+        if parsed['metadata']["execution_mode"] in ['agent_serial', 'cmk_async']:
+            plugin_runtime_total = round(parsed['metadata']["runtime_total"],1)
+            global_cache_time = parsed['metadata']["global_cache_time"]
+            #FIXME: This are w/c threshold PLACEHOLDERS !!
+            plugin_runtime_total_warn_s = global_cache_time * 0.9
+            plugin_runtime_total_crit_s = global_cache_time * 0.95
+            pct_runtime_usage = round(
+                (100/float(global_cache_time)) * 
+                plugin_runtime_total,1)
+            if plugin_runtime_total > plugin_runtime_total_warn_s:
+                if plugin_runtime_total > plugin_runtime_total_crit_s:
+                    badge = '(!!) '
+                    rc = max(rc,2)
+                else: 
+                    badge = '(!) '
+                    rc = max(rc,1)
+            else: 
+                    badge = ''
+                    rc = max(rc,0)
+            first_line.append(
+                "%stotal runtime is %.1f%% (%.1fs) of " % (
+                    badge, 
+                    pct_runtime_usage, 
+                    plugin_runtime_total) + \
+                "result cache_time (%ds)" % global_cache_time )
+                
+            perfdata_plugin_runtime_total = (
+                        'plugin_runtime_total', 
+                        plugin_runtime_total,
+                        plugin_runtime_total_warn_s,
+                        plugin_runtime_total_crit_s,
+                        0,
+                        global_cache_time
+                        #TODO: Add warn/crit thresholds here
+                    )
+            perfdata_plugin_cache_time = (
+                        'plugin_cache_time', 
+                        "%d" % global_cache_time
+                    )
+            perfdata_plugin_runtime_robotmk = (
+                        'plugin_runtime_robotmk', 
+                        "%.3f" % parsed['metadata']["runtime_robotmk"]
+                    )
+            perfdata_plugin_runtime_suites = (
+                        'plugin_runtime_suites', 
+                        "%.3f" % parsed['metadata']["runtime_suites"]
+                    )
+
+        # 3. Execution mode
+        first_line.append("plugin mode: %s" % parsed['metadata']["execution_mode"])
+
+        # 4. VERSION CHECK 
         client_version = parsed['metadata']['robotmk_version']
         if client_version != ROBOTMK_VERSION: 
-            first_line.append("Version mismatch (!) (server: %s, client: %s)" % \
+            first_line.append("Robotmk version mismatch (!) (server: %s, client: %s)" % \
                 (client_version, ROBOTMK_VERSION))
             rc = max(rc,1)
         else: 
-            first_line.append("Version %s (server and client)" % ROBOTMK_VERSION)
+            first_line.append("Robotmk version %s (server and client)" % ROBOTMK_VERSION)
+
+        # putting things together
         out = ', '.join(first_line) + '\n' + ''.join(out_lines)
         return rc, out, [
             perfdata_suites_total,
-            perfdata_suites_stale
+            perfdata_suites_stale,
+            perfdata_plugin_cache_time,
+            perfdata_plugin_runtime_total,
+            perfdata_plugin_runtime_robotmk,
+            perfdata_plugin_runtime_suites,
         ]
     else: 
         # any other regular s/t/k check
@@ -711,6 +779,9 @@ def parse_suite_xml(root_xml, discovery_setting):
 #  |_| |_|\___|_| .__/ \___|_|   
 #               | |              
 #               |_|   
+
+def quoted_listitems(inlist): 
+    return ', '.join(["'%s'"% s['id'] for s in inlist])
 
 # Determine if a list of patterns matches.
 # If list elements are tuples, all values from index 1
