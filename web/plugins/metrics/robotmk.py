@@ -42,12 +42,12 @@ metric_info['plugin_cache_time'] = {
 # Suites counter
 metric_info['suites_total'] = {
     'title' : _('Suites Total'),
-    'unit' : '',
+    'unit' : 'count',
     'color' : '#66a887',
 }
 metric_info['suites_stale'] = {
     'title' : _('Suites Stale'),
-    'unit' : '',
+    'unit' : 'count',
     'color' : '#a8665d',
 }
 
@@ -70,7 +70,7 @@ graph_info['robotmk_suite_state'] = {
     "title": _("Robotmk Suites"),
     "metrics": [
         ("suites_total", "area"),
-        ("suites_stale", "stack"),
+        ("suites_stale", "area"),
     ],
     }
 
