@@ -144,14 +144,14 @@ def check_robot(item, checkgroup_parameters, parsed):
                 "%d of %d Robot suites have outdated results (!!) (%s)" % (
                     len(stales),
                     suites_total,
-                    quoted_listitems(stales)
+                    quoted_listitems([stale[0] for stale in stales])
                 ) 
             )
             out_lines.extend([s[1] for s in stales])
         else: 
             first_line.append("%d suite(s) planned (%s), all state files up to date" % (
                 suites_total,
-                quoted_listitems(parsed['suites']),
+                quoted_listitems([s['id'] for s in parsed['suites']]),
                 ))
         perfdata_suites_total = (
                     'suites_total', 
@@ -187,7 +187,7 @@ def check_robot(item, checkgroup_parameters, parsed):
                     badge = ''
                     rc = max(rc,0)
             first_line.append(
-                "%stotal runtime is %.1f%% (%.1fs) of " % (
+                "%stotal runtime uses %.1f%% (%.1fs) of " % (
                     badge, 
                     pct_runtime_usage, 
                     plugin_runtime_total) + \
@@ -781,7 +781,7 @@ def parse_suite_xml(root_xml, discovery_setting):
 #               |_|   
 
 def quoted_listitems(inlist): 
-    return ', '.join(["'%s'"% s['id'] for s in inlist])
+    return ', '.join(["'%s'"% s for s in inlist])
 
 # Determine if a list of patterns matches.
 # If list elements are tuples, all values from index 1
