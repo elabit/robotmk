@@ -52,25 +52,6 @@ from cmk.gui.cee.plugins.wato.agent_bakery import (
 #                              __/ |
 #                             |___/ 
 
-# TODO: Helptexts execution modes
-# TODO: no bin deployment anymore
-# global:
-#   agent_output_encoding: zlib_codec
-#   suites_execution_interval: 900
-#   cache_time: 960
-#   execution_mode: cmk_async
-#   logging: True
-#   log_rotation: '14'
-#   robotdir: /usr/lib/check_mk_agent/robot
-#   robotframework:
-#     console: ''
-#     log: ''
-# suites:
-#     1S_3S_2S_3T: {}
-#     1S_3T:
-#       host: robothost2
-#     sampletest:
-#       host: robothost2
 
 
 # EXECUTION MODE Help Texts --------------------------------
@@ -100,9 +81,12 @@ helptext_execution_mode_external="""
       - Applications which require to be run with a certain user account<br>
       - The need for more control about when to execute a Robot test and when not"""
 
-# Cache & execution interval (agent_serial)
+
+
+
+# GLOBAL EXECUTION INTERVAL: only serial ===========================================================
 agent_config_global_suites_execution_interval_agent_serial=Age(
-        title=_("Global suites <b>execution interval</b>"),
+        title=_("Runner <b>execution interval</b>"),
         help=_("Sets the interval in which the Robotmk <b>controller</b> will trigger the Robotmk <b>runner</b> to execute <b>all suites in series</b>.<br>"
         "The default is 15min but strongly depends on the maximum probable runtime of all <i>test suites</i>.<br>Choose an interval which is a good comprimise between frequency and execution runtime headroom.<br>"),
         minvalue=1,
@@ -110,8 +94,9 @@ agent_config_global_suites_execution_interval_agent_serial=Age(
         default_value=900,
 )
 
+# GLOBAL CACHE TIME: serial & external =============================================================
 agent_config_global_cache_time_agent_serial=Age(
-        title=_("Global <b>cache time</b>"),
+        title=_("Result <b>cache time</b>"),
         help=_("Suite state files are updated by the <b>runner</b> after each execution (<i>global suites execution interval</i>).<br>"
         "The <b>controller</b> monitors the age of those files and expects them to be not older than the <i>global cache time</i>. <br>"
         "Each suite with a state file older than its <i>cache time</i> will be reported as 'stale'.<br>"
@@ -120,31 +105,21 @@ agent_config_global_cache_time_agent_serial=Age(
         maxvalue=65535,
         default_value=960,
 )
-
-# Cache & execution interval (agent_parallel)
-agent_config_suite_suites_execution_interval_agent_parallel=Age(
-    title=_("Suite execution interval (default: 15min)"),
-    help=_("Sets the interval in which the Robotmk <b>controller</b> will trigger the Robotmk <b>runner</b> to execute <b>this suite</b>.<br>"),
-    minvalue=1,
-    maxvalue=65535,
-    default_value=900,
-)
-
-agent_config_suite_suites_cache_time_agent_parallel=Age(
-    title=_("Suite cache time"),
-    help=_("Sets <b>suite specific cache times</b> when <b>individual execution intervals are used</b>."),
-    minvalue=1,
-    maxvalue=65535,
-    default_value=960,
-)
-
-# Cache time (external)
 agent_config_global_cache_time_external=Age(
     title=_("Global suite cache time"),
     help=_("Suite state files are updated every time when the <b>runner</b> has executed the suites.<br>"
     "The <b>controller</b> monitors the age of those files and expects them to be not older than the <i>global cache time</i> or the <i>suite cache time</i> (if set). <br>"
     "Each suite with a state file older than its <i>cache time</i> will be reported as 'stale'.<br>"
     "For obvious reasons, this cache time must always be set higher than the execution interval."),
+    minvalue=1,
+    maxvalue=65535,
+    default_value=960,
+)
+
+# SUITE CACHE TIMES: parallel & external ===========================================================
+agent_config_suite_suites_cache_time_agent_parallel=Age(
+    title=_("Suite cache time"),
+    help=_("Sets the <b>suite specific</b> cache time. (Must be higher than the <i>suite execution interval</i>)"),
     minvalue=1,
     maxvalue=65535,
     default_value=960,
@@ -158,9 +133,22 @@ agent_config_suite_suites_cache_time_external=Age(
     default_value=960,
 )
 
+# SUITE EXECUTION INTERVAL: only parallel ==========================================================
+agent_config_suite_suites_execution_interval_agent_parallel=Age(
+    title=_("Suite execution interval"),
+    help=_("Sets the interval in which the Robotmk <b>controller</b> will trigger the Robotmk <b>runner</b> to execute <b>this particular suite</b>.<br>"),
+    minvalue=1,
+    maxvalue=65535,
+    default_value=900,
+)
 
-
-
+agent_config_testsuites_id=TextUnicode(
+    title=_("Suite identifier"),
+    help=_("Unique identifier for this suite.<br>"
+        "Used internally by Robotmk to distinguish different parametrizations of the same suite."),
+    allow_empty=False,
+    size=30,
+)
 
 agent_config_robotdir = (
     "robotdir",
@@ -176,23 +164,6 @@ agent_config_robotdir = (
         default_value=""
     )
 ) 
-agent_config_testsuites_id=TextUnicode(
-    title=_("Suite identifier"),
-    help=_("Unique identifier for this suite.<br>"
-        "Used internally by Robotmk to distinguish different parametrizations of the same suite."),
-    allow_empty=False,
-    size=30,
-)
-
-agent_config_testsuites_dirname=TextUnicode(
-    title=_("Robot test file/dir name"),
-    help=_("Name of the <tt>.robot</tt> file or the name of a directory containing <tt>.robot</tt> files to execute.<br>"
-        "It is highly recommended to organize Robot suites in <i>directories</i> and to specify the directories here without leading/trailing (back)slashes.<br>"
-        "All names/paths are expected to be relative to the <i>robot suites directory</i>."),
-    allow_empty=False,
-    size=50,
-)
-
 
 agent_config_testsuites_piggybackhost=Dictionary(
     elements=[    
@@ -203,6 +174,16 @@ agent_config_testsuites_piggybackhost=Dictionary(
             allow_empty=False,
         )),                                                                                             
     ]
+)
+
+
+agent_config_testsuites_dirname=TextUnicode(
+    title=_("Robot test file/dir name"),
+    help=_("Name of the <tt>.robot</tt> file or the name of a directory containing <tt>.robot</tt> files to execute.<br>"
+        "It is highly recommended to organize Robot suites in <i>directories</i> and to specify the directories here without leading/trailing (back)slashes.<br>"
+        "All names/paths are expected to be relative to the <i>robot suites directory</i>."),
+    allow_empty=False,
+    size=50,
 )
 
 def gen_agent_config_testsuites_paramsdict(): 
@@ -362,17 +343,17 @@ def gen_testsuite_tuple(mode):
             agent_config_testsuites_id,
             agent_config_testsuites_dirname, 
             agent_config_testsuites_piggybackhost,
-            agent_config_suite_suites_execution_interval_agent_parallel,
-            agent_config_suite_suites_cache_time_agent_parallel,
             agent_config_testsuites_robotframework_params_dict,
+            agent_config_suite_suites_cache_time_agent_parallel,
+            agent_config_suite_suites_execution_interval_agent_parallel,
         ])
     if mode =='external':
         return Tuple(elements=[
             agent_config_testsuites_id,
             agent_config_testsuites_dirname, 
             agent_config_testsuites_piggybackhost,
-            agent_config_suite_suites_cache_time_external,
             agent_config_testsuites_robotframework_params_dict,
+            agent_config_suite_suites_cache_time_external,
         ])
 
 # Section header for encoding: https://checkmk.de/check_mk-werks.php?werk_id=1425
@@ -447,14 +428,14 @@ dropdown_robotmk_execution_choices=CascadingDropdown(
             Tuple(
             help=_(helptext_execution_mode_agent_serial),
             elements=[
-                agent_config_global_suites_execution_interval_agent_serial,
-                agent_config_global_cache_time_agent_serial,
                 Dictionary(
                     elements=[
                         agent_config_robotdir,
                         gen_agent_config_listof_testsuites("agent_serial"),  
                     ]
                 ),
+                agent_config_global_cache_time_agent_serial,
+                agent_config_global_suites_execution_interval_agent_serial,
             ]
             )
         ),
@@ -476,14 +457,14 @@ dropdown_robotmk_execution_choices=CascadingDropdown(
             Tuple(
             help=_(helptext_execution_mode_external),
             elements=[
-                agent_config_global_cache_time_external,
                 # agent_config_global_cache_time_agent_serial,
                 Dictionary(
                     elements=[
                         agent_config_robotdir,
                         gen_agent_config_listof_testsuites("external"),  
                     ]
-                )
+                ),
+                agent_config_global_cache_time_external,
             ]
             )
         ),

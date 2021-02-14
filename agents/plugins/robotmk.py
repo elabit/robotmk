@@ -20,6 +20,8 @@
 
 # redirect stdout while testing: https://www.devdungeon.com/content/using-stdin-stdout-and-stderr-python
 
+#TODO: host => piggybackhost
+
 from pathlib import Path
 from collections import defaultdict
 import os
@@ -45,6 +47,7 @@ class RMKConfig():
         'execution_mode',
         'log_rotation',
         'cache_time',
+        'suites_execution_interval',
     ]
     # keys that can follow a suite id (to preserve suite ids from splitting)
     _SUITE_SUBKEYS = '''name suite test include exclude critical noncritical
@@ -276,12 +279,12 @@ class RMKSuite():
     def update_filenames(self):
         now = int(time())
         suite_filename = "robotframework_%s_%s" % (self.id, str(now))
-        #TODO: Make it possible to use global and suite config 
         self.suite_dict.update({
             'outputdir':  self.global_dict['outputdir'],
             'output': f'{suite_filename}_output.xml',
             'log':    f'{suite_filename}_log.html',
-            'report': f'{suite_filename}_report.html',
+            'console':  '',
+            # 'report': f'{suite_filename}_report.html',
         })
 
     def clear_filenames(self): 
@@ -289,7 +292,7 @@ class RMKSuite():
         The files presumed to exist do not in this case. 
         '''        
         self.outfile_htmllog = None
-        self.outfile_htmlreport = None
+        # self.outfile_htmlreport = None
         self.outfile_xml = None
 
     def robotize_variables(self): 
@@ -343,13 +346,13 @@ class RMKSuite():
         else: 
             return None
 
-    @property
-    def outfile_htmlreport(self): 
-        if not self.suite_dict['report'] is None: 
-            return str(Path(self.global_dict['outputdir']).joinpath(
-            self.suite_dict['report']))
-        else: 
-            return None
+    # @property
+    # def outfile_htmlreport(self): 
+    #     if not self.suite_dict['report'] is None: 
+    #         return str(Path(self.global_dict['outputdir']).joinpath(
+    #         self.suite_dict['report']))
+    #     else: 
+    #         return None
 
     @outfile_xml.setter
     def outfile_xml(self, text): 
@@ -359,9 +362,9 @@ class RMKSuite():
     def outfile_htmllog(self, text): 
         self.suite_dict['log'] = None
 
-    @outfile_htmlreport.setter
-    def outfile_htmlreport(self, text): 
-        self.suite_dict['report'] = None
+    # @outfile_htmlreport.setter
+    # def outfile_htmlreport(self, text): 
+    #     self.suite_dict['report'] = None
 
 
 
@@ -477,9 +480,9 @@ class RobotMK():
         self.loginfo("="*20 + " START " + "="*20)
         self.config = RMKConfig(calling_cls=self)
         self.execution_mode = self.config.global_dict['execution_mode']
-        self.plugin_statefile = Path(
+        self.runner_statefile = Path(
                 self.config.global_dict['outputdir']
-                ).joinpath('robotmk_plugin_%s.json' % self.execution_mode)
+                ).joinpath('robotmk_runner_%s.json' % self.execution_mode)
 
     @classmethod
     def get_args(cls):
@@ -491,7 +494,7 @@ class RobotMK():
                 which are defined in robotmk.yml to run on this machine. If there are no suites de-
                 fined, the suite names are taken from the directory names within the robot suites 
                 directory. 
-                If called in 'plugin mode', robotmk executes Robot Framework suites. With "--run", 
+                If called in 'runner mode', robotmk executes Robot Framework suites. With "--run", 
                 the default is "all" = run all suites defined (either by YML or by directory 
                 inspection). If suites are specified as option to "--run", only those are run.
                 
@@ -530,7 +533,7 @@ class RobotMK():
             action='store',
             nargs='?',
             type=str,
-            help="""Plugin mode. Runs all Robot Framework suites as configured in robotmk.yml.
+            help="""runner mode. Runs all Robot Framework suites as configured in robotmk.yml.
                     Suite IDs can be given as comma separated list to restrict execution.
                     Suites are executed serially, one by one.""")
         parser.add_argument('--verbose',
@@ -566,8 +569,8 @@ class RobotMK():
                 console.setLevel(logging.DEBUG)
                 self.logger.addHandler(console)
 
-    def write_plugin_statefile (self, suites):
-        '''Writes a JSON statefile containing metadata about the plugin runtime'''
+    def write_runner_statefile (self, suites):
+        '''Writes a JSON statefile containing metadata about the runner runtime'''
         #TODO: Remove cmk_async, deprecated
         if self.execution_mode in ['agent_serial', 'cmk_async']:
             # tic & tac are taken before and after start_suites
@@ -580,13 +583,14 @@ class RobotMK():
                 'runtime_robotmk': runtime_total - runtime_suites,
                 'suites': [(s.id, s.runtime) for s in suites],
                 'execution_mode': self.execution_mode,
-                'global_cache_time': self.config.global_dict['cache_time'],
+                'cache_time': self.config.global_dict['cache_time'],
+                'suites_execution_interval': self.config.global_dict['suites_execution_interval'],
             }
         elif self.execution_mode == 'agent_parallel': 
             # NOT YET IMPLEMENTED
             pass
-        with open(self.plugin_statefile, 'w', encoding='utf-8') as plugin_statefile:
-            json.dump(json_dict, plugin_statefile, indent=2)
+        with open(self.runner_statefile, 'w', encoding='utf-8') as runner_statefile:
+            json.dump(json_dict, runner_statefile, indent=2)
 
 
 
@@ -620,8 +624,8 @@ class RobotMK():
 
 #class RobotMK >>>
 
-#my-rmkplugin
-class RMKPlugin(RobotMK):
+#my-rmkrunner
+class RMKrunner(RobotMK):
     def __init__(self): 
         super().__init__()
         pass
@@ -637,8 +641,9 @@ class RMKPlugin(RobotMK):
             suites_cmdline (list): comma separated list of suite names 
         '''
         suites_cmdline = [ x.strip() for x in suites_cmdline.split(',')]
+
         if not(len(suites_cmdline) == 1 and suites_cmdline[0] == "all"):
-            # Suites given as arg but no cfg
+            # Suites given as arg do not have a cfg entry:
             suites_inarg_notincfg = [suite for suite in suites_cmdline 
                                  if suite not in self.config.suites]
             if len(suites_inarg_notincfg) > 0:
@@ -683,7 +688,7 @@ class RMKPlugin(RobotMK):
             self.loginfo(f'Writing statefile {suite.statefile.path}')
             suite.statefile.write()
         self.tac = datetime.now(timezone.utc)
-        self.write_plugin_statefile(suites)
+        self.write_runner_statefile(suites)
 
 
 
@@ -700,7 +705,7 @@ class RMKCtrl(RobotMK):
     def agent_output(self): 
         '''Determines the agent output; this is a JSON dict with two keys: 
         - metadata: beneath static information like the robotmk version and encoding, 
-                    it also includes the plugin's statefile (total execution 
+                    it also includes the runner's statefile (total execution 
                     time, cache time, executed suites etc.)
         '''        
         output = []
@@ -709,10 +714,11 @@ class RMKCtrl(RobotMK):
             "encoding": encoding, 
             "robotmk_version": ROBOTMK_VERSION,
             "execution_mode": self.execution_mode,
-            "global_cache_time": self.config.global_dict['cache_time']
+            "cache_time": self.config.global_dict['cache_time'],
+            "suites_execution_interval": self.config.global_dict['suites_execution_interval'],
         }
-        plugin_state = json.loads(self.read_file(self.plugin_statefile, '{}'))
-        metadata.update(plugin_state)
+        runner_state = json.loads(self.read_file(self.runner_statefile, '{}'))
+        metadata.update(runner_state)
         allstates = self.check_states(encoding)
         for host in allstates.keys():  
             states = allstates[host]  
@@ -813,9 +819,9 @@ if __name__ == '__main__':
         data = instance.agent_output()
         print(data)
         #This is the point where the controleler will not only monitor state
-        #files, but also start new plugin executions!
+        #files, but also start new executions!
     else:
-        instance = RMKPlugin()
+        instance = RMKrunner()
         instance.start_suites(cmdline_suites)
     instance.loginfo("="*20 + " FINISHED " + "="*20)
 else: 
