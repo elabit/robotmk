@@ -2,11 +2,11 @@
 
 # (c) 2020 Simon Meggle <simon.meggle@elabit.de>
 
-# This file is part of RobotMK
+# This file is part of Robotmk
 # https://robotmk.org
 # https://github.com/simonmeggle/robotmk
 
-# RobotMK is free software;  you can redistribute it and/or modify it
+# Robotmk is free software;  you can redistribute it and/or modify it
 # under the  terms of the  GNU General Public License  as published by
 # the Free Software Foundation in version 3.  This file is distributed
 # in the hope that it will be useful, but WITHOUT ANY WARRANTY;  with-
@@ -41,7 +41,7 @@ from cmk.gui.cee.plugins.wato.agent_bakery import (
 
 # TODO: Add logging True/False
 # TODO: warn/crit threholds for total_runtime
-
+# TODO: timeout nicht mehr automatisch von executoin int. berechnen lassen
 
 #   _           _                   
 #  | |         | |                  
@@ -53,62 +53,120 @@ from cmk.gui.cee.plugins.wato.agent_bakery import (
 #                             |___/ 
 
 # TODO: Helptexts execution modes
+# TODO: no bin deployment anymore
+# global:
+#   agent_output_encoding: zlib_codec
+#   suites_execution_interval: 900
+#   cache_time: 960
+#   execution_mode: cmk_async
+#   logging: True
+#   log_rotation: '14'
+#   robotdir: /usr/lib/check_mk_agent/robot
+#   robotframework:
+#     console: ''
+#     log: ''
+# suites:
+#     1S_3S_2S_3T: {}
+#     1S_3T:
+#       host: robothost2
+#     sampletest:
+#       host: robothost2
 
-helptext_listof_testsuites_external="""
-    By default (if you do not add any suite), the RobotMK plugin will execute <i>all</i> <tt>.robot</tt> files in the <i>Robot suites directory</i> without any parametrization.<br>
-    To specify suites, additional parameters and execution order, click <i>Add test suite</i>.<br>    
-    Keep in mind to set a proper <i>cache time</i>. It should be higher than the estimated maximum runtime of all suites."""
 
-helptext_listof_testsuites_agent_serial="""
-    By default (if you do not add any suite), the RobotMK plugin will execute <i>all</i> <tt>.robot</tt> files in the <i>Robot suites directory</i> without any parametrization.<br>
-    To specify suites, additional parameters and execution order, click <i>Add test suite</i>.<br>    
-    Keep in mind to set a proper <i>execution interval</i>. It should be higher than the estimated maximum runtime of all suites."""
-
+# EXECUTION MODE Help Texts --------------------------------
 helptext_execution_mode_agent_serial="""
-    The plugin will be placed within the agent's <tt>plugin</tt> directory.<br>
-    It will be <b>executed</b> asynchronously <b>by the agent</b> in the given <i>execution interval</i>.<br>
-    The Checkmk agent will read the result from <tt>STDOUT</tt> of the RobotMK plugin.<br><br>
+    The Checkmk agent starts the Robotmk plugin frequently (=<i>agent check interval</i>) in '<b>controller mode</b>'.<br>
+    The controller then can start the plugin in '<b>runner mode</b>' if the <i>global suites execution interval</i> is over to execute suites in series.<br>
+    After each suite, the runner writes the suite result data into a state file. <br>
+    The controller does not wait for the runner to finish the execution of all suites; it reads the most recent state files of all configured suites and generates the agent output on STDOUT. <br>
     <b>Use cases</b> for this mode: in general, all Robot tests which can run headless and do not require a certain OS user."""
 helptext_execution_mode_agent_parallel="""
-    FIXME"""
+    The Checkmk agent starts the Robotmk plugin frequently (=<i>agent check interval</i>) in '<b>controller mode</b>'.<br>
+    For each suite, the controller reads the individual <i>suite execution interval</i> and decides whether to start a dedicated plugin process in '<b>runner mode</b>', parametrized with the suite's name.<br>
+    Each runner writes its suite result into a state file. <br>
+    The controller does not wait for the runner processes to finish; it reads the most recent state files of all configured suites and generates the agent output to print it on STDOUT.<br> 
+    <b>Use cases</b> for this mode: same as '<i>agent_serial</i>' - in addition, this mode makes sense on test clients which have the CPU/Mem resources for parallel test execution."""
+helptext_execution_mode_agent_parallel="This is only a placeholder for the parallel execution of RF suites. <b>Please choose another mode.</b>" 
 helptext_execution_mode_external="""
-    In this mode there is no plugin execution by the agent; <b>schedule it manually</b> with Jenkins, cron, Windows task scheduler etc.<br>
-    The <i>agent plugin cache time</i> should be higher than the scheduling interval.<br>
-    The result of the plugin will be written into the <tt>SPOOLDIR</tt> of the Checkmk agent.<br>
-    <b>Important note</b>: You need to utilize the rule <i>Deploy custom files to agent</i> to deliver the file package '<i>robotmk-windows/linux</i>'. The RobotMK plugin will be installed then in the <tt>bin</tt> folder (instead of <tt>plugin</tt>) on the agent.<br><br>
+    The Checkmk agent starts the Robotmk plugin frequently (=<i>agent check interval</i>) in '<b>controller mode</b>'.<br>
+    The controller's only job in this mode is to read the most recent state files of all configured suites and generates the agent output to print it on STDOUT.<br> <br>
+    You must use an external tool (e.g. cron/task scheduler) to execute Robot suites by starting the Robotmk runner with <tt>robotmk.py --run [SUITES]</tt>. <br>
+    Each runner writes its suite result into a state file. <br>
+    <tt>SUITES</tt> are suite IDs defined in <i>Robot Framework test suites</i> below. <br>
+    If no suites are specified, the runner will execute all suites in <tt>robotmk.yml</tt>.<br>
+    If there are no suites defined at all, the runner will execute all suites in the <i>Robot suites directory</i>. <br><br>   
     <b>Use cases</b> for this mode: <br>
       - Applications which need a desktop<br>
       - Applications which require to be run with a certain user account<br>
       - The need for more control about when to execute a Robot test and when not"""
 
-agent_config_cache_time_agent_serial=(
-    "cache_time",
-    Age(
-        title=_("Execution interval (default: 15min)"),
-        help=_("Sets the interval in which the Checkmk agent will execute the RobotMK plugin (instead of normal check interval).<br>"
-        "The default is 15min but strongly depends on the maximum probable runtime of all <i>test suites</i>. Choose an interval which is a good comprimise between frequency and execution runtime headroom.<br>"
-        "To avoid concurrency problems, the Checkmk agent is configured with a fixed plugin timeout of <tt>cache_time - 60s</tt> ."),
+# Cache & execution interval (agent_serial)
+agent_config_global_suites_execution_interval_agent_serial=Age(
+        title=_("Global suites <b>execution interval</b>"),
+        help=_("Sets the interval in which the Robotmk <b>controller</b> will trigger the Robotmk <b>runner</b> to execute <b>all suites in series</b>.<br>"
+        "The default is 15min but strongly depends on the maximum probable runtime of all <i>test suites</i>.<br>Choose an interval which is a good comprimise between frequency and execution runtime headroom.<br>"),
         minvalue=1,
         maxvalue=65535,
         default_value=900,
-    )
 )
-agent_config_cache_time_external=(
-    "cache_time",
-    Age(
-        title=_("Cache time (default: 15min)"),
-        help=_("The <i>cache time</i> should always be slightly higher than the scheduling interval of the RobotMK plugin in cron, Windows Task Planner, Jenkins, etc.<br>"
-        "The scheduling interval in turn should be quite higher than the maximum probable runtime of all <i>test suites</i> to avoid concurency problems. Choose an interval which is a good comprimise between frequency and execution runtime headroom.<br>"),
+
+agent_config_global_cache_time_agent_serial=Age(
+        title=_("Global <b>cache time</b>"),
+        help=_("Suite state files are updated by the <b>runner</b> after each execution (<i>global suites execution interval</i>).<br>"
+        "The <b>controller</b> monitors the age of those files and expects them to be not older than the <i>global cache time</i>. <br>"
+        "Each suite with a state file older than its <i>cache time</i> will be reported as 'stale'.<br>"
+        "For obvious reasons, the cache time must always be set higher than the execution interval."),
         minvalue=1,
         maxvalue=65535,
-        default_value=900,
-    )
+        default_value=960,
 )
+
+# Cache & execution interval (agent_parallel)
+agent_config_suite_suites_execution_interval_agent_parallel=Age(
+    title=_("Suite execution interval (default: 15min)"),
+    help=_("Sets the interval in which the Robotmk <b>controller</b> will trigger the Robotmk <b>runner</b> to execute <b>this suite</b>.<br>"),
+    minvalue=1,
+    maxvalue=65535,
+    default_value=900,
+)
+
+agent_config_suite_suites_cache_time_agent_parallel=Age(
+    title=_("Suite cache time"),
+    help=_("Sets <b>suite specific cache times</b> when <b>individual execution intervals are used</b>."),
+    minvalue=1,
+    maxvalue=65535,
+    default_value=960,
+)
+
+# Cache time (external)
+agent_config_global_cache_time_external=Age(
+    title=_("Global suite cache time"),
+    help=_("Suite state files are updated every time when the <b>runner</b> has executed the suites.<br>"
+    "The <b>controller</b> monitors the age of those files and expects them to be not older than the <i>global cache time</i> or the <i>suite cache time</i> (if set). <br>"
+    "Each suite with a state file older than its <i>cache time</i> will be reported as 'stale'.<br>"
+    "For obvious reasons, this cache time must always be set higher than the execution interval."),
+    minvalue=1,
+    maxvalue=65535,
+    default_value=960,
+)
+
+agent_config_suite_suites_cache_time_external=Age(
+    title=_("Suite cache time"),
+    help=_("Sets <b>suite specific cache times</b> for <b>individual execution intervals</b>"),
+    minvalue=1,
+    maxvalue=65535,
+    default_value=960,
+)
+
+
+
+
+
 agent_config_robotdir = (
     "robotdir",
     TextUnicode(
-        title=_("Robot suites directory"),
-        help=_("By default the RobotMK plugin will search for Robot suites in the following paths:<br>"
+        title=_("Override Robot suites directory"),
+        help=_("By default the Robotmk plugin will search for Robot suites in the following paths:<br>"
                 " - <tt>/usr/lib/check_mk_agent/robot</tt> (Linux)<br>"
                 " - <tt>C:\\ProgramData\\checkmk\\agent\\robot</tt> (Windows) <br>"
                 "You can override this setting if Robot tests are stored in another path. <br>"
@@ -121,20 +179,52 @@ agent_config_robotdir = (
 agent_config_testsuites_id=TextUnicode(
     title=_("Suite identifier"),
     help=_("Unique identifier for this suite.<br>"
-        "Used internally by RobotMK to distinguish different parametrizations of the same suite."),
+        "Used internally by Robotmk to distinguish different parametrizations of the same suite."),
     allow_empty=False,
     size=30,
 )
+
 agent_config_testsuites_dirname=TextUnicode(
     title=_("Robot test file/dir name"),
     help=_("Name of the <tt>.robot</tt> file or the name of a directory containing <tt>.robot</tt> files to execute.<br>"
-        "It is higly recommended to organize Robot suites in <i>directories</i>. <br>"
+        "It is highly recommended to organize Robot suites in <i>directories</i> and to specify the directories here without leading/trailing (back)slashes.<br>"
         "All names/paths are expected to be relative to the <i>robot suites directory</i>."),
     allow_empty=False,
     size=50,
 )
 
-agent_config_testsuites_paramsdict=Dictionary(
+
+agent_config_testsuites_piggybackhost=Dictionary(
+    elements=[    
+        ("piggybackhost",
+        MonitoredHostname(
+            title=_("Piggyback host"),
+            help=_("Piggyback allows to assign the results of this particular Robot test to another host."),
+            allow_empty=False,
+        )),                                                                                             
+    ]
+)
+
+def gen_agent_config_testsuites_paramsdict(): 
+    dict_elements=[    
+        ("piggybackhost",
+        MonitoredHostname(
+            title=_("SPiggyback host"),
+            help=_("Piggyback allows to assign the results of this particular Robot test to another host."),
+            allow_empty=False,
+        )),                                                                                             
+    ]
+    return Dictionary(
+        elements=dict_elements
+    )
+
+
+
+
+
+agent_config_testsuites_robotframework_params_dict=Dictionary(
+    title=_("Robot Framework parameters"),
+    help=_("The following options allow to specify the most common cmdline parameters for Robot Framework. (<a href=\"https://robotframework.org/robotframework/latest/RobotFrameworkUserGuide.html#all-command-line-options\">All command line options</a>)"),
     elements=[    
         ("name",
         TextUnicode(
@@ -239,62 +329,77 @@ agent_config_testsuites_paramsdict=Dictionary(
                 ('no', _('no')),
             ],
             default_value="no",
-        )),   
-        ("host",
-        MonitoredHostname(
-            title=_("Piggyback host"),
-            help=
-            _("Piggyback allows to assign the results of this particular Robot test to another host."),
-            allow_empty=False,
-        )),                                                                                     
+        )),                                                                                   
     ],
 )
 
 # Make the help text of SuitList dependent on the type of execution
-def agent_config_listof_testsuites(helptext):
+def gen_agent_config_listof_testsuites(mode):
     return (
-    "suites",
-    ListOf(
-        Tuple(elements=[
+        "suites",
+        ListOf(
+            gen_testsuite_tuple(mode),
+            title=_("Specify <b>Robot Framework test suites</b>"),
+            help=_("""
+                By default (if you do not add any suite), the Robotmk plugin will assume that every directory within the <i>Robot suites directory</i> should be executed (without any further) parametrization.<br>
+                To specify suites, additional parameters, their piggyback and execution order, click <i>Add test suite</i>."""
+            ),
+            add_label=_("Add test suite"),
+            movable=True,
+        )
+    )
+
+def gen_testsuite_tuple(mode): 
+    if mode =='agent_serial':
+        return Tuple(elements=[
             agent_config_testsuites_id,
             agent_config_testsuites_dirname, 
-            agent_config_testsuites_paramsdict,
-        ]),
-        title=_("<b>Robot Framework test suites</b>"),
-        help=_(helptext),
-        add_label=_("Add test suite"),
-        movable=True,
-    )
-)
+            agent_config_testsuites_piggybackhost,
+            agent_config_testsuites_robotframework_params_dict,
+        ])
+    if mode =='agent_parallel':
+        return Tuple(elements=[
+            agent_config_testsuites_id,
+            agent_config_testsuites_dirname, 
+            agent_config_testsuites_piggybackhost,
+            agent_config_suite_suites_execution_interval_agent_parallel,
+            agent_config_suite_suites_cache_time_agent_parallel,
+            agent_config_testsuites_robotframework_params_dict,
+        ])
+    if mode =='external':
+        return Tuple(elements=[
+            agent_config_testsuites_id,
+            agent_config_testsuites_dirname, 
+            agent_config_testsuites_piggybackhost,
+            agent_config_suite_suites_cache_time_external,
+            agent_config_testsuites_robotframework_params_dict,
+        ])
 
 # Section header for encoding: https://checkmk.de/check_mk-werks.php?werk_id=1425
 # Available encodings: https://docs.python.org/2.4/lib/standard-encodings.html
 dropdown_robotmk_output_encoding=CascadingDropdown(
     title=_("Agent output encoding"),
-    help=_("This setting controls how the XML results of Robot Framework are encoded. <br>"
-        " - <b>UTF-8</b>: for small to medium tests. Easy to read and debug (100% plain text). This is the default Checkmk setting.<br>"
-        " - <b>BASE-64</b>: for a more condensed agent output. Saves line breaks (but <i>not</i> space).<br>"
-        " - <b>Zlib</b>: for large results, compressed at maximum level (>95%). "
+    help=_("""
+        The agent payload of Robotmk is JSON with fields for <b>XML and HTML data</b> (which can contain embedded images). <br>
+        To save bandwidth and resources, this fields are by default <b>zlib compressed</b> to 5% of their size.<br>
+        Unless you are debugging or curious there should be no reason to change the encoding."""
     ),
     choices=[
+        ('zlib_codec', _('Zlib compressed')),
         ('utf_8', _('UTF-8')),
         ('base64_codec', _('BASE-64')),
-        ('zlib_codec', _('Zlib (compressed)')),
     ],
-    default_value="utf_8",
+    default_value="zlib_codec",
 )
 
-
-
 dropdown_robotmk_log_rotation=CascadingDropdown(
-    title=_("Number of days to keep Robot log files on the host"),
+    title=_("Number of days to keep Robot XML/HTML log files on the host"),
     help=_("This settings helps to keep the test host clean by <b>deleting the log files</b> after a certain amount of days. Log files are: <br>"
     "<tt>robotframework-$SUITENAME-$timestamp-output.xml<br>"
     "<tt>robotframework-$SUITENAME-$timestamp-log.html<br>"
-    "<tt>robotframework-$SUITENAME-$timestamp-report.html<br>"
     ),
     choices=[
-        ('0', _('0 (always delete last log)')),
+        ('0', _('0 (keep only the last logfile)')),
         ('1', _('1')),
         ('3', _('3')),
         ('7', _('7')),
@@ -308,49 +413,75 @@ dropdown_robotmk_log_rotation=CascadingDropdown(
     sorted=False
 )
 
-
-
+dropdown_robotmk_logging=DropdownChoice(
+    title=_("Robotmk logging"),
+    help=_("""
+    By default, the Robotmk plugin writes all steps and decisions into <tt>robotmk.log</tt>."""
+    ),
+    choices=[
+        ( False,  _("No") ),
+        ( True, _("Yes") ),
+    ],
+    default_value = True,
+)
 
 dropdown_robotmk_execution_choices=CascadingDropdown(
-    title=_("Type of execution"),
+    title=_("Execution mode"),
+    help=_(
+            "The <b>execution mode</b> is a general setting which controls who runs RF suites, how and when.<br>"
+            "For this, the Robotmk plugin operates in two modes:  '<b>controller</b>' and '<b>runner</b>'.<br><br>"
+            "<b>controller</b> mode: <br>"
+            "- active when executed with no cmdline arguments by agent<br>"
+            "- creates a list of suites as defined in either the YML file, or by environment variables<br>"
+            "- calls itself in runner mode (-> suite execution)<br>"
+            "- reads the written state files, monitors them for staleness<br>"
+            "- writes output to STDOUT for the CMK agent<br><br>"
+            "<b>runner</b> mode: <br>"
+            "- runs the suites given as arguments ro <tt>--run</tt>; if no suites are given, it runs all defined. <br>"
+            "- writes suite state files <br><br>"
+            "The behaviour of both modes depends on the execution mode you set here."
+    ),
+    sorted=False,
     choices=[
-        ("agent_serial", _("Serial mode: RobotMK executes suites serially (agent-triggered)"),
+        ("agent_serial", _("agent_serial"),
             Tuple(
+            help=_(helptext_execution_mode_agent_serial),
             elements=[
+                agent_config_global_suites_execution_interval_agent_serial,
+                agent_config_global_cache_time_agent_serial,
                 Dictionary(
-                    help=_(helptext_execution_mode_agent_serial),
                     elements=[
-                        agent_config_cache_time_agent_serial,
                         agent_config_robotdir,
-                        agent_config_listof_testsuites(helptext=helptext_listof_testsuites_agent_serial),  
+                        gen_agent_config_listof_testsuites("agent_serial"),  
                     ]
-                )
+                ),
             ]
             )
         ),
-        ("agent_parallel", _("Parallel mode: RobotMK schedules Robot suites individually (agent-triggered) - NOT YET IMPLEMENTED"),
+        ("agent_parallel", _("agent_parallel (no yet implemented)"),
             Tuple(
             elements=[
                 Dictionary(
                     help=_(helptext_execution_mode_agent_parallel),
                     elements=[
-                        agent_config_cache_time_agent_serial,
+                        # agent_config_cache_time_agent_serial,
                         agent_config_robotdir,
-                        agent_config_listof_testsuites(helptext=helptext_listof_testsuites_agent_serial),  
+                        gen_agent_config_listof_testsuites("agent_parallel"),  
                     ]
                 )
             ]
             )
         ),
-        ("external", _("External mode: RobotMK plugin gets triggered by some external tool"),
+        ("external", _("external"),
             Tuple(
+            help=_(helptext_execution_mode_external),
             elements=[
+                agent_config_global_cache_time_external,
+                # agent_config_global_cache_time_agent_serial,
                 Dictionary(
-                    help=_(helptext_execution_mode_external),
                     elements=[
-                        agent_config_cache_time_external,
                         agent_config_robotdir,
-                        agent_config_listof_testsuites(helptext=helptext_listof_testsuites_external),  
+                        gen_agent_config_listof_testsuites("external"),  
                     ]
                 )
             ]
@@ -362,20 +493,23 @@ dropdown_robotmk_execution_choices=CascadingDropdown(
 
 def _valuespec_agent_config_robotmk():
     return Alternative(
-        title=_("RobotMK (Linux, Windows)"),
+        title=_("Robotmk (Linux, Windows)"),
         help=_(
-            "This will deploy the agent plugin to execute Robot Framework E2E test on the remote host "
-            "and a .YML configuration file with the list of test suites to execute."),
+            "This rule will deploy the <b>Robotmk agent plugin</b> and a generated YML config file (<tt>robotmk.yml</tt>) to the remote host."),
         style="dropdown",
         elements=[
             Dictionary(
-                title=_("Deploy the RobotMK plugin"),
+                title=_("Deploy the Robotmk plugin"),
                 elements=[
+                    # agent_serial, agent_parallel, external
                     ("execution_mode",
                     dropdown_robotmk_execution_choices
                     ),
                     ("agent_output_encoding",
                     dropdown_robotmk_output_encoding
+                    ),
+                    ("logging",
+                    dropdown_robotmk_logging
                     ),
                     ("log_rotation",
                     dropdown_robotmk_log_rotation
@@ -385,7 +519,7 @@ def _valuespec_agent_config_robotmk():
             ),
             FixedValue(
                 None,
-                title=_("Do not deploy the RobotMK plugin"),
+                title=_("Do not deploy the Robotmk plugin"),
                 totext=_("(No Robot Framework tests on this machine)"),
             ),   
         ])
@@ -435,7 +569,7 @@ def _valuespec_inventory_robotmk_rules():
                             help=_(
                                 u"Each Robot result consists of one suite which is either the "
                                 u".robot file name or the folder name containg the tests.<br>"
-                                u"By default, RobotMK creates 1 service from this single root node.<br>"
+                                u"By default, Robotmk creates 1 service from this single root node.<br>"
                                 u"Choosing another level enables you to <b>split the Robot result</b> into as many services as you want.<br>"
                                 u"This is perfect for <b>suites</b> and <b>tests</b>. Even if possible, you should <i>not</i> create services from <b>keywords</b>!"
                             ),        
@@ -445,7 +579,7 @@ def _valuespec_inventory_robotmk_rules():
                             allow_empty=True,
                             size=25,
                             default_value="",
-                            help=_("By default, RobotMK will create services for <i>all</i> nodes on the discovery level. A <b>blacklist</b> pattern selectively hinders RobotMK to inventorize certain services.<br>"
+                            help=_("By default, Robotmk will create services for <i>all</i> nodes on the discovery level. A <b>blacklist</b> pattern selectively hinders Robotmk to inventorize certain services.<br>"
                                 "Note: An empty string is interpreted as an empty blacklist = inventorize all (default).")
                         ),                        
                     ]),  #Tuple
@@ -614,9 +748,9 @@ def _parameter_valuespec_robotmk():
     return Dictionary(elements=[
         ("output_depth", Dictionary(  # L1 
             title = _('Output depth'),
-            help = _('In Robot, suites and keywords can be nested. The default of RobotMK is to dissolve/recurse all nested objects and to show them in the service output.<br> '
+            help = _('In Robot, suites and keywords can be nested. The default of Robotmk is to dissolve/recurse all nested objects and to show them in the service output.<br> '
                      'This is good in general, but sometimes not what you want (think of a keyword which is defined by five layers of abstraction).<br>'
-                     'To keep the RobotMK output clear and understandable, set a proper pattern and e.g. <i>output depth=0</i> for sub-suites or keywords which should not get dissolved any deeper.<br>'
+                     'To keep the Robotmk output clear and understandable, set a proper pattern and e.g. <i>output depth=0</i> for sub-suites or keywords which should not get dissolved any deeper.<br>'
                      '(Hint: This is only for visual control; suites/keywords which are hidden by this setting can still be compared to <i>runtime_threshold</i> and change the overall suite state.)<br>'
                      'Patterns always start at the beginning.'
                      ),
@@ -674,7 +808,7 @@ def _parameter_valuespec_robotmk():
             title = _('Runtime thresholds'),
             help = _('Define patterns here to assign runtime thresholds to suites, tests and keywords. <br>'
                     'A runtime exceedance always results in a WARN state and is propagated to the overall suite status.<br>'
-                    'Always keep in mind that runtime monitoring is not a feature of Robot but RobotMK. This means that a Robot suite can have an internal OK state but WARN in CheckMK.<br>'
+                    'Always keep in mind that runtime monitoring is not a feature of Robot but Robotmk. This means that a Robot suite can have an internal OK state but WARN in CheckMK.<br>'
                     'Patterns always start at the beginning. CRIT threshold must be bigger than WARN; values of 0 disable the threshold.'
             ),
             elements = [                
