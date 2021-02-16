@@ -28,6 +28,30 @@ from cmk.utils.exceptions import MKGeneralException
 
 # TODO: set logging True/False
 
+def bake_robotmk(opsys, conf, conf_dir, plugins_dir):
+    # ALWAYS (!) make a deepcopy of the conf dict. Even if you do not change 
+    # anything on it, there are strange changes ocurring while building the 
+    # packages of OS. A deepcopy solves this completely. 
+    myconf = copy.deepcopy(conf)
+    if opsys not in ['windows', 'linux']:
+        raise MKGeneralException(
+            "Error in bakery plugin 'robotmk': Robotmk is only supported on Windows and Linux.")
+    config = RMKConfigAdapter(myconf, opsys)
+    # I) Copy the plugin (use .py extension on Windows)
+    shutil.copy2(
+        cmk.utils.paths.local_agents_dir + '/plugins/robotmk', 
+        str(plugins_dir) + '/' + config.os_pluginname
+        )
+    # II) Generate YML config file  
+    with open(conf_dir + "/robotmk.yml","w") as robotmk_yml:
+        robotmk_yml.write(header)
+        yaml.safe_dump(
+            config.cfg_data, 
+            robotmk_yml, 
+            line_break=config.os_newline, 
+            encoding='utf-8', 
+            allow_unicode=True)
+
 class RMKConfigAdapter():
     _DEFAULTS = {
         'windows': {
@@ -57,6 +81,7 @@ class RMKConfigAdapter():
             'suites': {},
         }
         self.global_dict['agent_output_encoding'] = conf['agent_output_encoding']
+        self.global_dict['transmit_html'] = conf['transmit_html']
         self.global_dict['logging'] = conf['logging']
         self.global_dict['log_rotation'] = conf['log_rotation']
         self.global_dict['robotdir'] = conf.get('robotdir') or self._DEFAULTS[opsys]['robotdir']
@@ -144,29 +169,7 @@ class RMKConfigAdapter():
         return data
 
 
-def bake_robotmk(opsys, conf, conf_dir, plugins_dir):
-    # ALWAYS (!) make a deepcopy of the conf dict. Even if you do not change 
-    # anything on it, there are strange changes ocurring while building the 
-    # packages of OS. A deepcopy solves this completely. 
-    myconf = copy.deepcopy(conf)
-    if opsys not in ['windows', 'linux']:
-        raise MKGeneralException(
-            "Error in bakery plugin 'robotmk': Robotmk is only supported on Windows and Linux.")
-    config = RMKConfigAdapter(myconf, opsys)
-    # I) Copy the plugin (use .py extension on Windows)
-    shutil.copy2(
-        cmk.utils.paths.local_agents_dir + '/plugins/robotmk', 
-        str(plugins_dir) + '/' + config.os_pluginname
-        )
-    # II) Generate YML config file  
-    with open(conf_dir + "/robotmk.yml","w") as robotmk_yml:
-        robotmk_yml.write(header)
-        yaml.safe_dump(
-            config.cfg_data, 
-            robotmk_yml, 
-            line_break=config.os_newline, 
-            encoding='utf-8', 
-            allow_unicode=True)
+
 
 def make_suiteid(instr): 
     '''Return a string with underscores for everything but letters ans numbers'''

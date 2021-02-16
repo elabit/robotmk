@@ -356,8 +356,6 @@ def gen_testsuite_tuple(mode):
             agent_config_suite_suites_cache_time_external,
         ])
 
-# Section header for encoding: https://checkmk.de/check_mk-werks.php?werk_id=1425
-# Available encodings: https://docs.python.org/2.4/lib/standard-encodings.html
 dropdown_robotmk_output_encoding=CascadingDropdown(
     title=_("Agent output encoding"),
     help=_("""
@@ -371,6 +369,20 @@ dropdown_robotmk_output_encoding=CascadingDropdown(
         ('base64_codec', _('BASE-64')),
     ],
     default_value="zlib_codec",
+)
+
+dropdown_robotmk_transmit_html=DropdownChoice(
+    title=_("Transmit HTML log"),
+    help=_("""
+    Besides the XML data, the Robotmk plugin also transmits the <b>HTML log file</b> written by Robot Framework to the Checkmk server.\n
+    You can disable the HTML log transmission if you do not have a need for this kind of logs on the server.
+    """
+    ),
+    choices=[
+        ( False,  _("No") ),
+        ( True, _("Yes") ),
+    ],
+    default_value = True,
 )
 
 dropdown_robotmk_log_rotation=CascadingDropdown(
@@ -488,6 +500,9 @@ def _valuespec_agent_config_robotmk():
                     ),
                     ("agent_output_encoding",
                     dropdown_robotmk_output_encoding
+                    ),
+                    ("transmit_html",
+                    dropdown_robotmk_transmit_html
                     ),
                     ("logging",
                     dropdown_robotmk_logging
