@@ -155,7 +155,7 @@ agent_config_testsuites_tag=Dictionary(
 )
 
 agent_config_dict_robotdir = Dictionary(
-    title=_("Override <b>Robot suites directory</b>"),
+    title=_("Change <b>Robot suites directory</b>"),
     elements=[
         ("robotdir",
         TextUnicode(
@@ -477,7 +477,6 @@ dropdown_robotmk_execution_choices=CascadingDropdown(
             Tuple(
             help=_(helptext_execution_mode_agent_serial),
             elements=[
-                agent_config_dict_robotdir,
                 gen_agent_config_dict_listof_testsuites("agent_serial"),  
                 agent_config_global_cache_time_agent_serial,
                 agent_config_global_suites_execution_interval_agent_serial,
@@ -488,7 +487,6 @@ dropdown_robotmk_execution_choices=CascadingDropdown(
             Tuple(
             help=_(helptext_execution_mode_agent_parallel),
             elements=[
-                agent_config_dict_robotdir,
                 gen_agent_config_dict_listof_testsuites("agent_parallel"),  
             ]
             )
@@ -497,27 +495,11 @@ dropdown_robotmk_execution_choices=CascadingDropdown(
             Tuple(
             help=_(helptext_execution_mode_external),
             elements=[
-                agent_config_dict_robotdir,
                 gen_agent_config_dict_listof_testsuites("external"),  
                 agent_config_global_cache_time_external,
             ]
             )
         ),
-        # ("external", _("external"),
-        #     Tuple(
-        #     help=_(helptext_execution_mode_external),
-        #     elements=[
-        #         # agent_config_global_cache_time_agent_serial,
-        #         Dictionary(
-        #             elements=[
-        #                 agent_config_robotdir,
-        #                 gen_agent_config_dict_listof_testsuites("external"),  
-        #             ]
-        #         ),
-        #         agent_config_global_cache_time_external,
-        #     ]
-        #     )
-        # ),
     ]
 )
 
@@ -532,6 +514,9 @@ def _valuespec_agent_config_robotmk():
             Dictionary(
                 title=_("Deploy the Robotmk plugin"),
                 elements=[
+                    ("robotdir", 
+                    agent_config_dict_robotdir
+                    ),
                     # agent_serial, agent_parallel, external
                     ("execution_mode",
                     dropdown_robotmk_execution_choices
