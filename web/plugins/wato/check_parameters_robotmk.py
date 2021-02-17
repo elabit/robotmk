@@ -142,34 +142,41 @@ agent_config_suite_suites_execution_interval_agent_parallel=Age(
     default_value=900,
 )
 
-agent_config_testsuites_id=TextUnicode(
-    title=_("Suite identifier"),
-    help=_("Unique identifier for this suite.<br>"
-        "Used internally by Robotmk to distinguish different parametrizations of the same suite."),
-    allow_empty=False,
-    size=30,
+agent_config_testsuites_tag=Dictionary(
+    title=_("Suite tag"),
+    elements=[    
+        ("tag",
+        TextUnicode(
+            help=_("Suites which are <b>added multiple times</b> (to execute them with different parameters) should have a <b>unique tag</b>.<br>"),
+            allow_empty=False,
+            size=30
+        )),                                                                                             
+    ]
 )
 
-agent_config_robotdir = (
-    "robotdir",
-    TextUnicode(
-        title=_("Override Robot suites directory"),
-        help=_("By default the Robotmk plugin will search for Robot suites in the following paths:<br>"
-                " - <tt>/usr/lib/check_mk_agent/robot</tt> (Linux)<br>"
-                " - <tt>C:\\ProgramData\\checkmk\\agent\\robot</tt> (Windows) <br>"
-                "You can override this setting if Robot tests are stored in another path. <br>"
-                "Windows paths can be given with single backslashes; OS dependent path validation is made during the agent baking.<br>"),
-        allow_empty=True,
-        size=100,
-        default_value=""
-    )
-) 
+agent_config_dict_robotdir = Dictionary(
+    title=_("Override <b>Robot suites directory</b>"),
+    elements=[
+        ("robotdir",
+        TextUnicode(
+            help=_("By default the Robotmk plugin will search for Robot suites in the following paths:<br>"
+                    " - <tt>/usr/lib/check_mk_agent/robot</tt> (Linux)<br>"
+                    " - <tt>C:\\ProgramData\\checkmk\\agent\\robot</tt> (Windows) <br>"
+                    "You can override this setting if Robot tests are stored in another path. <br>"
+                    "Windows paths can be given with single backslashes; OS dependent path validation is made during the agent baking.<br>"),
+            allow_empty=False,
+            size=100,
+            default_value=""
+        ))
+    ]
+)    
+ 
 
 agent_config_testsuites_piggybackhost=Dictionary(
+    title=_("Piggyback host"),
     elements=[    
         ("piggybackhost",
         MonitoredHostname(
-            title=_("Piggyback host"),
             help=_("Piggyback allows to assign the results of this particular Robot test to another host."),
             allow_empty=False,
         )),                                                                                             
@@ -177,11 +184,11 @@ agent_config_testsuites_piggybackhost=Dictionary(
 )
 
 
-agent_config_testsuites_dirname=TextUnicode(
-    title=_("Robot test file/dir name"),
-    help=_("Name of the <tt>.robot</tt> file or the name of a directory containing <tt>.robot</tt> files to execute.<br>"
+agent_config_testsuites_path=TextUnicode(
+    title=_("Robot test path"),
+    help=_("Name of the <tt>.robot</tt> file or directory containing <tt>.robot</tt> files, relative to the <i>robot suites directory</i><br>"
         "It is highly recommended to organize Robot suites in <i>directories</i> and to specify the directories here without leading/trailing (back)slashes.<br>"
-        "All names/paths are expected to be relative to the <i>robot suites directory</i>."),
+        ),
     allow_empty=False,
     size=50,
 )
@@ -199,13 +206,31 @@ def gen_agent_config_testsuites_paramsdict():
         elements=dict_elements
     )
 
+agent_config_testsuites_robotframework_params_container=Dictionary(
+    title=_("Robot Framework parameters"),
+    elements=[    
+        ("robot_params",
+        agent_config_testsuites_robotframework_params_dict),
+    ]
+)
+# agent_config_testsuites_robotframework_params_container=Dictionary(
+#     title=_("Robot Framework parameters"),
+#     help=_("The following options allow to specify the most common cmdline parameters for Robot Framework. (<a href=\"https://robotframework.org/robotframework/latest/RobotFrameworkUserGuide.html#all-command-line-options\">All command line options</a>)"),
+#     elements=[    
+#         ("robot_params",
+#         MonitoredHostname(
+#             title=_("Robot Framework arguments"),
+#             help=_("The following options allow to specify the most common cmdline parameters for Robot Framework. (<a href=\"https://robotframework.org/robotframework/latest/RobotFrameworkUserGuide.html#all-command-line-options\">All command line options</a>)"),
+#             allow_empty=False,
+#         )),                                                                                             
+#     ]
+# )
 
-
+# TODO: left orientation for override, Specify test suites
 
 
 agent_config_testsuites_robotframework_params_dict=Dictionary(
-    title=_("Robot Framework parameters"),
-    help=_("The following options allow to specify the most common cmdline parameters for Robot Framework. (<a href=\"https://robotframework.org/robotframework/latest/RobotFrameworkUserGuide.html#all-command-line-options\">All command line options</a>)"),
+    help=_("The options here allow to specify the most common cmdline parameters for Robot Framework. (<a href=\"https://robotframework.org/robotframework/latest/RobotFrameworkUserGuide.html#all-command-line-options\">All command line options</a>)"),
     elements=[    
         ("name",
         TextUnicode(
@@ -314,45 +339,57 @@ agent_config_testsuites_robotframework_params_dict=Dictionary(
     ],
 )
 
+
 # Make the help text of SuitList dependent on the type of execution
-def gen_agent_config_listof_testsuites(mode):
-    return (
-        "suites",
-        ListOf(
-            gen_testsuite_tuple(mode),
-            title=_("Specify <b>Robot Framework test suites</b>"),
-            help=_("""
-                By default (if you do not add any suite), the Robotmk plugin will assume that every directory within the <i>Robot suites directory</i> should be executed (without any further) parametrization.<br>
-                To specify suites, additional parameters, their piggyback and execution order, click <i>Add test suite</i>."""
-            ),
-            add_label=_("Add test suite"),
-            movable=True,
-        )
+def gen_agent_config_dict_listof_testsuites(mode):
+    titledict = {
+        'agent_serial': 'to execute with one runner',
+        'agent_parallel': 'to execute individually',
+        'external': 'to be executed externally'
+    }
+    return Dictionary (
+        title=_("Specify <b>suites</b> " + titledict[mode]),
+        elements=[(
+            "suites",
+            ListOf(
+                gen_testsuite_tuple(mode),
+                help=_("""
+                    Click on '<i>Add test suite</i>' to add the suites to the execution list and to specify additional parameters, piggyback host and execution order. <br>
+                    If you do not add any suite here, the Robotmk plugin will add every <tt>.robot</tt> file/every directory within the <i>Robot suites directory</i> to the execution list - without any further parametrization.<br>"""
+                ),
+                add_label=_("Add test suite"),
+                movable=True,
+            )
+        )]
     )
+
 
 def gen_testsuite_tuple(mode): 
     if mode =='agent_serial':
         return Tuple(elements=[
-            agent_config_testsuites_id,
-            agent_config_testsuites_dirname, 
+            agent_config_testsuites_path, 
+            agent_config_testsuites_tag,
             agent_config_testsuites_piggybackhost,
-            agent_config_testsuites_robotframework_params_dict,
+            agent_config_testsuites_robotframework_params_container,
+            # timing settings (there aren't any - set globally)
         ])
     if mode =='agent_parallel':
         return Tuple(elements=[
-            agent_config_testsuites_id,
-            agent_config_testsuites_dirname, 
+            agent_config_testsuites_path, 
+            agent_config_testsuites_tag,
             agent_config_testsuites_piggybackhost,
-            agent_config_testsuites_robotframework_params_dict,
+            agent_config_testsuites_robotframework_params_container,
+            # timing settings
             agent_config_suite_suites_cache_time_agent_parallel,
             agent_config_suite_suites_execution_interval_agent_parallel,
         ])
     if mode =='external':
         return Tuple(elements=[
-            agent_config_testsuites_id,
-            agent_config_testsuites_dirname, 
+            agent_config_testsuites_path, 
+            agent_config_testsuites_tag,
             agent_config_testsuites_piggybackhost,
-            agent_config_testsuites_robotframework_params_dict,
+            agent_config_testsuites_robotframework_params_container,
+            # timing settings
             agent_config_suite_suites_cache_time_external,
         ])
 
@@ -440,12 +477,8 @@ dropdown_robotmk_execution_choices=CascadingDropdown(
             Tuple(
             help=_(helptext_execution_mode_agent_serial),
             elements=[
-                Dictionary(
-                    elements=[
-                        agent_config_robotdir,
-                        gen_agent_config_listof_testsuites("agent_serial"),  
-                    ]
-                ),
+                agent_config_dict_robotdir,
+                gen_agent_config_dict_listof_testsuites("agent_serial"),  
                 agent_config_global_cache_time_agent_serial,
                 agent_config_global_suites_execution_interval_agent_serial,
             ]
@@ -453,15 +486,10 @@ dropdown_robotmk_execution_choices=CascadingDropdown(
         ),
         ("agent_parallel", _("agent_parallel (no yet implemented)"),
             Tuple(
+            help=_(helptext_execution_mode_agent_parallel),
             elements=[
-                Dictionary(
-                    help=_(helptext_execution_mode_agent_parallel),
-                    elements=[
-                        # agent_config_cache_time_agent_serial,
-                        agent_config_robotdir,
-                        gen_agent_config_listof_testsuites("agent_parallel"),  
-                    ]
-                )
+                agent_config_dict_robotdir,
+                gen_agent_config_dict_listof_testsuites("agent_parallel"),  
             ]
             )
         ),
@@ -469,17 +497,27 @@ dropdown_robotmk_execution_choices=CascadingDropdown(
             Tuple(
             help=_(helptext_execution_mode_external),
             elements=[
-                # agent_config_global_cache_time_agent_serial,
-                Dictionary(
-                    elements=[
-                        agent_config_robotdir,
-                        gen_agent_config_listof_testsuites("external"),  
-                    ]
-                ),
+                agent_config_dict_robotdir,
+                gen_agent_config_dict_listof_testsuites("external"),  
                 agent_config_global_cache_time_external,
             ]
             )
         ),
+        # ("external", _("external"),
+        #     Tuple(
+        #     help=_(helptext_execution_mode_external),
+        #     elements=[
+        #         # agent_config_global_cache_time_agent_serial,
+        #         Dictionary(
+        #             elements=[
+        #                 agent_config_robotdir,
+        #                 gen_agent_config_dict_listof_testsuites("external"),  
+        #             ]
+        #         ),
+        #         agent_config_global_cache_time_external,
+        #     ]
+        #     )
+        # ),
     ]
 )
 
