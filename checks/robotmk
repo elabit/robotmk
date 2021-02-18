@@ -33,9 +33,11 @@ from random import randint
 import base64
 import zlib
 import json
+from string import Template
 
 ROBOTMK_VERSION = "v0.2.0"
 
+DEFAULT_SVC_PREFIX = 'Robot Framework E2E $SUITEID$SPACE-$SPACE'
 
 STATES = {
     0: 'OK',
@@ -67,17 +69,16 @@ def parse_robot(info):
     except Exception: 
         raise MKGeneralException("Can not load Robotmk JSON data! (json.loads())")
 
-    metadata = info_dict['metadata']
-    suites = info_dict['suites']
-    for suite in suites: 
+    runner_data = info_dict['runner']
+    for suite in info_dict['suites']:
         for k in keys_to_decode: 
             d = suite[k]
             if bool(d): 
-                if metadata['encoding'] == 'zlib_codec':
+                if runner_data['encoding'] == 'zlib_codec':
                     d = d.encode('utf-8')
                     d_byte = base64.b64decode(d)
                     d_decomp = zlib.decompress(d_byte)
-                elif metadata['encoding'] == 'base64_codec':
+                elif runner_data['encoding'] == 'base64_codec':
                     d = d.encode('utf-8')
                     d_decomp = base64.b64decode(d)
                 else: 
@@ -90,25 +91,56 @@ def parse_robot(info):
             raise MKGeneralException("Cannot detect XML data in Robomk output.")
         setting = pattern_match(robot_discovery_settings, xml_root_suite.attrib['name'], (0, '') )
         discovery_setting = namedtuple('DiscoverySetting', 'level blacklist_pattern')._make(setting)
+        # now process the root suite
         root_item = parse_suite_xml(xml_root_suite, discovery_setting)
-        suite['discovered_items'] = root_item.discovered
+        # and reveal the items in the discovery level:
+        # suite['discovered_items'] = root_item.discovered
+        suite['parsed'] = root_item
 
     return info_dict
 
-def inventory_robot(parsed):
+def get_svc_prefix(itemname, root_suite):
+    '''Determines the prefix for an item as defined with pattern for root suite'''
     robot_service_prefix = get_setting('robot_service_prefix',[])
-    #TODO: Error handling for no suites/metadata keys? 
+    fmtstring = pattern_match(
+        robot_service_prefix, 
+        root_suite['parsed'].name, 
+        DEFAULT_SVC_PREFIX)
+    template = Template(fmtstring)
+    prefix = template.safe_substitute(
+        PATH=root_suite['path'],
+        TAG=root_suite['tag'],
+        SUITEID=root_suite['id'],
+        SUITENAME=root_suite['parsed'].name,
+        SPACE=' ')
+    return prefix
+
+def add_svc_prefix(itemname, root_suite): 
+    '''Returns the item name with a templated prefix string in front of it'''
+    return "%s%s" % (
+        get_svc_prefix(itemname, root_suite),
+        itemname)
+
+def strip_svc_prefix(itemname, root_suite):
+    '''Strips off the templated prefix string from the front of an item name'''
+    prefix = get_svc_prefix(itemname,root_suite)
+    if itemname.startswith(prefix):
+        return itemname[len(prefix):]
+    else:
+        return itemname
+
+def inventory_robot(parsed):
+    
+    #TODO: Error handling for no suites/runner_data keys? 
     for root_suite in parsed['suites']:
-        for discovered_item in root_suite['discovered_items']:
-            prefix = pattern_match(robot_service_prefix, discovered_item.name, '')
-            prefix_subst = prefix.replace('%SPACE%', ' ')
-            item_name = "%s%s" % (prefix_subst, discovered_item.name)
-            yield item_name, None
-    # This is the service reporting overall runtimes, stale spooliles etc. 
+        for discovered_item in root_suite['parsed'].discovered:
+            item_svc_name = add_svc_prefix(discovered_item.name, root_suite)
+            yield item_svc_name, None
+    # The meta service reporting overall runtimes, stale spool files etc. 
     yield "Robotmk", None
 
 # item = CMK service to check 
-# parsed = dict of metadata/suites; suites = dict of root suites incl. the
+# parsed = dict of runner_data/suites; suites = dict of root suites incl. the
 #          discovered items 
 def check_robot(item, checkgroup_parameters, parsed):
     if checkgroup_parameters == None: 
@@ -118,29 +150,42 @@ def check_robot(item, checkgroup_parameters, parsed):
     #TODO: check for 'error' key
     #TODO: check for run_suites_as_configured
     # this is the meta check
+
+    # for each root_suite: graph
+    # - duration of cache_time
+    # - execution_time of execution_interval
+
+
+
+
     if item == 'Robotmk': 
         perfdata_list = []
-        suites_total = len(parsed['suites'])
+        suites_total = len(parsed['suites']) + len(parsed['runner']['suites_fatal'])
         rc = 0
         first_line = []
         out_lines = []
-        # 1. Check for stale spool files 
+        # I) Staleness Check: result_age vs. cache_time
+        # Got already calculated on the client; respecting the execution mode, 
+        # because depending on that another cache time is used (see plugin:rWrpuXW8) 
+        # * **agent_serial** (vs. global cache_time!)
+        # * **agent_parallel** (vs. suite cache_time)
+        # * **external** (vs. suite cache_time or, if suites from dir: global cache_time)
+
         stales = []
-        for root_suite in parsed['suites']:
-            if root_suite['result_is_stale'] == True: 
-                last_end = parser.isoparse(
-                    root_suite['last_end_time']
-                    ).strftime('%Y-%m-%d %H:%M:%S')
-                overdue_sec = datetime.timedelta(
-                    seconds=root_suite['result_overdue']
-                )
-                stales.append((
-                    root_suite['id'],
-                    "(!!) Suite '%s': (last execution end: %s, " % (root_suite['id'], last_end) + \
-                    "cache time: %ss, overdue since %ss)\n" % (
-                                str(root_suite['cache_time']),
-                                overdue_sec)
-                ))
+        for root_suite in [s for s in parsed['suites'] if s['result_is_stale'] == True]:
+            last_end = parser.isoparse(
+                root_suite['last_end_time']
+                ).strftime('%Y-%m-%d %H:%M:%S')
+            overdue_sec = datetime.timedelta(
+                seconds=root_suite['result_overdue']
+            )
+            stales.append((
+                root_suite['id'],
+                "(!!) Suite '%s': (last execution end: %s, " % (root_suite['id'], last_end) + \
+                "cache time: %ss, overdue since %ss)\n" % (
+                            str(root_suite['cache_time']),
+                            overdue_sec)
+            ))
         if len(stales) > 0: 
             rc = max(rc,2)
             first_line.append(
@@ -156,79 +201,104 @@ def check_robot(item, checkgroup_parameters, parsed):
                 suites_total,
                 quoted_listitems([s['id'] for s in parsed['suites']]),
                 ))
+
+        # Check Fatal suites
+        fatal_count = len(parsed['runner']['suites_fatal'])
+        if fatal_count > 0:
+            rc = max(rc,2)
+            first_line.append(
+                "%d Robot suites have fatal errors (!!) (%s)" % (
+                    fatal_count,
+                    quoted_listitems([s for s in parsed['runner']['suites_fatal']])
+                ) 
+            )
         perfdata_list.append((
                     'suites_total', 
                     "%d" % suites_total
                 ))
         perfdata_list.append((
+                    'suites_uptodate', 
+                    "%d" % (suites_total - len(stales) - fatal_count)
+                ))
+        perfdata_list.append((
                     'suites_stale', 
                     "%d" % len(stales)
                 ))
+        perfdata_list.append((
+                    'suites_fatal', 
+                    "%d" % fatal_count
+                ))
 
-
-        # 2. The total_runtime of the runner must be observed, if the runner 
-        # could execute /all/ configured suites at once. Reason: there can only 
-        # by one "instance" if a Runner which writes the metadata file to avoid 
-        # flapping contents of the metadata. 
-        if parsed['metadata']["run_suites_as_configured"]:
-            plugin_runtime_total = round(parsed['metadata']["runtime_total"],1)
-            cache_time = parsed['metadata']["cache_time"]
-            #FIXME: This are w/c threshold PLACEHOLDERS !!
-            plugin_runtime_total_warn_s = cache_time * 0.9
-            plugin_runtime_total_crit_s = cache_time * 0.95
-            pct_runtime_usage = round(
-                (100/float(cache_time)) * 
-                plugin_runtime_total,1)
-            if plugin_runtime_total > plugin_runtime_total_warn_s:
-                if plugin_runtime_total > plugin_runtime_total_crit_s:
-                    badge = '(!!) '
-                    rc = max(rc,2)
-                else: 
-                    badge = '(!) '
-                    rc = max(rc,1)
+        # II) Headroom monitoring 
+        # - agent_serial: execution_time vs. interval + global cache_time
+        # - agent_parallel: execution_time vs. interval + cache_time
+        # - external: execution_time vs global_cache_time
+        runner_runtime = round(parsed['runner']["runtime_total"],1)
+        execution_interval = parsed['runner'].get("execution_interval", None)
+        cache_time = parsed['runner']["cache_time"]
+        # set the 100% threshold value
+        maxruntime = max(execution_interval, cache_time)
+        #FIXME: This are w/c threshold PLACEHOLDERS !!
+        runner_runtime_warn_s = maxruntime * 0.9
+        runner_runtime_crit_s = maxruntime * 0.95
+        pct_runtime_usage = round(
+            (100/float(maxruntime)) * 
+            runner_runtime,1)
+        if runner_runtime > runner_runtime_warn_s:
+            if runner_runtime > runner_runtime_crit_s:
+                badge = '(!!) '
+                rc = max(rc,2)
             else: 
-                    badge = ''
-                    rc = max(rc,0)
-            first_line.append(
-                "%stotal runtime uses %.1f%% (%.1fs) of " % (
-                    badge, 
-                    pct_runtime_usage, 
-                    plugin_runtime_total) + \
-                "result cache_time (%ds)" % cache_time )
-                
-            perfdata_list.append((
-                        'plugin_runtime_total', 
-                        plugin_runtime_total,
-                        plugin_runtime_total_warn_s,
-                        plugin_runtime_total_crit_s,
-                        0,
-                        cache_time
-                        #TODO: Add warn/crit thresholds here
-                    ))
-            perfdata_list.append((
-                        'plugin_cache_time', 
-                        "%d" % cache_time
-                    ))
-            perfdata_list.append((
-                        'plugin_runtime_robotmk', 
-                        "%.3f" % parsed['metadata']["runtime_robotmk"]
-                    ))
-            perfdata_list.append((
-                        'plugin_runtime_suites', 
-                        "%.3f" % parsed['metadata']["runtime_suites"]
-                    ))
-
-        # 3. Execution mode
-        first_line.append("plugin mode: %s" % parsed['metadata']["execution_mode"])
-
-        # 4. VERSION CHECK 
-        client_version = parsed['metadata']['robotmk_version']
-        if client_version != ROBOTMK_VERSION: 
-            first_line.append("Robotmk version mismatch (!) (server: %s, client: %s)" % \
-                (client_version, ROBOTMK_VERSION))
-            rc = max(rc,1)
+                badge = '(!) '
+                rc = max(rc,1)
         else: 
-            first_line.append("Robotmk version %s (server and client)" % ROBOTMK_VERSION)
+                badge = ''
+                rc = max(rc,0)
+        first_line.append(
+            "%stotal runtime uses %.1f%% (%.1fs) of " % (
+                badge, 
+                pct_runtime_usage, 
+                runner_runtime) + \
+            "result cache_time (%ds)" % cache_time )
+            
+        perfdata_list.append((
+                    'runner_runtime', 
+                    runner_runtime,
+                    runner_runtime_warn_s,
+                    runner_runtime_crit_s,
+                    0,
+                    maxruntime
+                    #TODO: Add warn/crit thresholds here
+                ))
+        perfdata_list.append((
+                    'runner_cache_time', 
+                    "%d" % cache_time
+                ))
+        if not execution_interval is None:                 
+            perfdata_list.append((
+                        'runner_execution_interval', 
+                        "%d" % execution_interval
+                    ))
+        perfdata_list.append((
+                    'runner_runtime_robotmk', 
+                    "%.3f" % parsed['runner']["runtime_robotmk"]
+                ))
+        perfdata_list.append((
+                    'runner_runtime_suites', 
+                    "%.3f" % parsed['runner']["runtime_suites"]
+                ))
+
+        # # 3. Execution mode
+        # first_line.append("plugin mode: %s" % parsed['runner']["execution_mode"])
+        # #TODO: append selective/full execution info 
+        # # 4. VERSION CHECK 
+        # client_version = parsed['runner']['robotmk_version']
+        # if client_version != ROBOTMK_VERSION: 
+        #     first_line.append("Robotmk version mismatch (!) (server: %s, client: %s)" % \
+        #         (client_version, ROBOTMK_VERSION))
+        #     rc = max(rc,1)
+        # else: 
+        #     first_line.append("Robotmk version %s (server and client)" % ROBOTMK_VERSION)
 
         # putting things together
         out = ', '.join(first_line) + '\n' + ''.join(out_lines)
@@ -236,36 +306,39 @@ def check_robot(item, checkgroup_parameters, parsed):
     else: 
         # any other regular s/t/k check
         for root_suite in parsed['suites']:
-            for discovered_item in root_suite['discovered_items']:
-                # If there is a custom prefix defined in Checkmk, we have to strip it off
-                # so that it can be compared to the Robot item
-                item_without_prefix = strip_prefix(item)
+            for discovered_item in root_suite['parsed'].discovered:
+                # Remove the prefix to get the original item name
+                item_without_prefix = strip_svc_prefix(item, root_suite)
                 if discovered_item.name == item_without_prefix:
                     if root_suite['result_is_stale'] == False: 
-                        # fresh result
-                        item_result = discovered_item.get_checkmk_result(
-                            discovered_item, checkgroup_parameters)
-                        (rc, output_lines, perfdata) = (
-                            item_result['worststate'], 
-                            '\n'.join(item_result['padded_lines_list']),
-                            item_result['cmk_perfdata_list'])
-                        return rc, output_lines, perfdata
+                        return evaluate_robot_item(
+                            discovered_item, 
+                            checkgroup_parameters)
                     else: 
-                        # stale results get UNKNOWN
-                        #TODO: (Perhaps make this configurable (OK/UNKNOWN))
-                        last_end = parser.isoparse(
-                            root_suite['last_end_time']
-                            ).strftime('%Y-%m-%d %H:%M:%S')
-                        overdue_sec = datetime.timedelta(
-                            seconds=root_suite['result_overdue']
-                        )
-                        out = "Result of suite '%s' is too old " % root_suite['id'] + \
-                            "(last execution end: %s, " % last_end + \
-                            "cache time: %ss, overdue since %ss" % (
-                                str(root_suite['cache_time']),
-                                overdue_sec)
-                        
-                        return 3, out
+                        return ignore_robot_item(root_suite)
+
+def ignore_robot_item(root_suite):
+    #TODO: (Perhaps make this configurable (OK/UNKNOWN))
+    last_end = parser.isoparse(
+        root_suite['last_end_time']
+        ).strftime('%Y-%m-%d %H:%M:%S')
+    overdue_sec = datetime.timedelta(
+        seconds=root_suite['result_overdue']
+    )
+    out = "Result of RF suite '%s' is too old. " % root_suite['id'] + \
+        "Last execution end: %s, " % last_end + \
+        "overdue since %ss " % (overdue_sec) + \
+        "(cache time: %ss)" % str(root_suite['cache_time'])
+    return 3, out
+    
+
+def evaluate_robot_item(robot_item, checkgroup_parameters):
+    item_result = robot_item.get_checkmk_result(robot_item, checkgroup_parameters)
+    (rc, output_lines, perfdata) = (
+        item_result['worststate'], 
+        '\n'.join(item_result['padded_lines_list']),
+        item_result['cmk_perfdata_list'])
+    return rc, output_lines, perfdata
 
 # ==============================================================================
 
@@ -810,16 +883,6 @@ def get_setting(setting, defaultvalue):
     settings = get_host_extra_conf_merged()
     return settings.get(setting,defaultvalue)
 
-# strips the prefix from the suitename
-def strip_prefix(suitename):
-    robot_service_prefix = get_setting('robot_service_prefix',[])
-    prefix = pattern_match(robot_service_prefix, suitename, '')
-    prefix_subst = prefix.replace('%SPACE%', ' ')
-    if suitename.startswith(prefix_subst):
-        return suitename[len(prefix_subst):]
-    else:
-        return suitename
-
 
 def timestamp_to_millis(timestamp):
     Y, M, D, h, m, s, millis = split_timestamp(timestamp)
@@ -870,19 +933,6 @@ def remove_nasty_chars(instr):
     return outstr
     # return "FOO"
 
-#                   _       
-#                  (_)      
-#   _ __ ___   __ _ _ _ __  
-#  | '_ ` _ \ / _` | | '_ \ 
-#  | | | | | | (_| | | | | |
-#  |_| |_| |_|\__,_|_|_| |_|
-                          
-# Keep this for documentation; do not use the __main__ call anymore for testing. 
-
-if __name__ == "__main__":    
-    global check_info
-    check_info = {}
-
 check_info['robotmk'] = {
     "parse_function": parse_robot,
     "inventory_function": inventory_robot,
@@ -891,53 +941,3 @@ check_info['robotmk'] = {
     "group": "robotmk",
     "has_perfdata": True
 }
-
-if __name__ == "__main__":
-    #import ipdb
-    #ipdb.set_trace(context=5)
-
-    debugsets = [
-        {
-            'discovery_level': 0,
-            'paramfile': 'params.py',
-            'suite': '1S_3S_2S_3T',
-        },
-        {
-            'discovery_level': 0,
-            'paramfile': 'params.py',
-            'suite': '1S_3S_2S_3T',
-        },
-    ]
-    debugset = debugsets[0]
-
-    global inventory_robotmk_rules
-    inventory_robotmk_rules = ast.literal_eval(
-        open('test/fixtures/inventory_robotmk_rules/discovery_slvel_%d.py' % debugset['discovery_level']).read())
-    global host_extra_conf_merged
-    def host_extra_conf_merged(hostname, inventory_robotmk_rules):
-        return inventory_robotmk_rules[0]['value']
-
-
-    global host_name
-    def host_name():
-        return "localhost"
-
-    try: 
-        checkgroup_parameters = ast.literal_eval(open('test/fixtures/checkgroup_parameters/' % debugset['paramfile'], 'r').read())
-    except: 
-        checkgroup_parameters = None
-    # ipdb.set_trace(context=5)
-    datafile = 'test/fixtures/robot/%s/output.json' % debugset['suite']
-    mk_output = ast.literal_eval(open(datafile, 'r').read())
-
-    # PARSE
-    parsed = parse_robot(mk_output)
-    # INVENTORY
-    inventory = inventory_robot(parsed)
-    # CHECK
-    state, msg, perfdata = check_robot("1S 3S 2S 3T", checkgroup_parameters, parsed)
-    # state, msg, perfdata = check_robot("A-Suites", checkgroup_parameters, parsed)
-    # state, msg, perfdata = check_robot("A-suite1", checkgroup_parameters, parsed)
-    # state, msg, perfdata = check_robot("A-Tes.*", checkgroup_parameters, parsed)
-    print "Debugger ended."
-

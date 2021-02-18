@@ -206,28 +206,6 @@ def gen_agent_config_testsuites_paramsdict():
         elements=dict_elements
     )
 
-agent_config_testsuites_robotframework_params_container=Dictionary(
-    title=_("Robot Framework parameters"),
-    elements=[    
-        ("robot_params",
-        agent_config_testsuites_robotframework_params_dict),
-    ]
-)
-# agent_config_testsuites_robotframework_params_container=Dictionary(
-#     title=_("Robot Framework parameters"),
-#     help=_("The following options allow to specify the most common cmdline parameters for Robot Framework. (<a href=\"https://robotframework.org/robotframework/latest/RobotFrameworkUserGuide.html#all-command-line-options\">All command line options</a>)"),
-#     elements=[    
-#         ("robot_params",
-#         MonitoredHostname(
-#             title=_("Robot Framework arguments"),
-#             help=_("The following options allow to specify the most common cmdline parameters for Robot Framework. (<a href=\"https://robotframework.org/robotframework/latest/RobotFrameworkUserGuide.html#all-command-line-options\">All command line options</a>)"),
-#             allow_empty=False,
-#         )),                                                                                             
-#     ]
-# )
-
-# TODO: left orientation for override, Specify test suites
-
 
 agent_config_testsuites_robotframework_params_dict=Dictionary(
     help=_("The options here allow to specify the most common cmdline parameters for Robot Framework. (<a href=\"https://robotframework.org/robotframework/latest/RobotFrameworkUserGuide.html#all-command-line-options\">All command line options</a>)"),
@@ -337,6 +315,14 @@ agent_config_testsuites_robotframework_params_dict=Dictionary(
             default_value="no",
         )),                                                                                   
     ],
+)
+
+agent_config_testsuites_robotframework_params_container=Dictionary(
+    title=_("Robot Framework parameters"),
+    elements=[    
+        ("robot_params",
+        agent_config_testsuites_robotframework_params_dict),
+    ]
 )
 
 
@@ -620,12 +606,21 @@ def _valuespec_inventory_robotmk_rules():
                         TextAscii(
                             title=("Service name prefix"),
                             allow_empty=True,
-                            size=25,
-                            default_value="Robot%SPACE%",
-                            help=_("How Robot service names should start. If there should be a whitespace between prefix and name, mask it with <tt>%SPACE%</tt>.")
+                            size=60,
+                            default_value="Robot E2E $SUITENAME $TAG$SPACE",
+                            help=_("""
+                                How Robot service names of discovered items should start. The following Variables can be used (usage: <tt>$VAR</tt> or <tt>${VAR}</tt>):<br>
+                                <tt>${PATH}</tt>  -  Name of Robot suite directory or <tt>.robot</tt> file<br>
+                                <tt>${SUITENAME}</tt>  -  Name of top level suite (usually same name as path)<br>
+                                <tt>${TAG}</tt>  -  Suite tag<br>
+                                <tt>${SUITEID}</tt>  -  short for <tt>${PATH}_${TAG}</tt><br>
+                                <tt>${EXEC_MODE}</tt>  -  Execution mode<br>
+                                <tt>${SPACE}</tt>  -  Use this if there should be a space between the prefix and the item name<br><br>
+                                The default format string is "<tt>Robot Framework E2E $SUITEID$SPACE-$SPACE</tt>".
+                            """)
                         ),                              
                     ]),  #Tuple_elements
-                    title=_("Service prefix for discovered Robot services"),
+                    title=_("Naming rules for discovered Robot services"),
 
                 ) # ListOf
             ), 

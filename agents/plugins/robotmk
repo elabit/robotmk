@@ -43,7 +43,7 @@ from textwrap import dedent
 local_tz = datetime.utcnow().astimezone().tzinfo
 ROBOTMK_VERSION = "v0.2.0"
 
-
+#rconfig
 class RMKConfig():
     _PRESERVED_WORDS = [
         'agent_output_encoding',
@@ -89,7 +89,8 @@ class RMKConfig():
             self.global_dict['robotdir'])
         suites_dict = {
             suitedir.name: {
-                'path': suitedir.name
+                'path': suitedir.name,
+                'tag': '',
             } for suitedir in 
             Path(self.global_dict['robotdir']).iterdir()}
         return suites_dict
@@ -115,17 +116,6 @@ class RMKConfig():
     def suites_dict(self, suites_dict):
         self.cfg_dict['suites'] = suites_dict
 
-    # @property
-    # def suites(self):
-    #     return list(self.suites_dict.keys())
-
-    # @property
-    # def suites(self):
-    #     # suites = {id: RMKSuite(id, self.config) for id in self.config.suites}
-    #     # return RMKSuites(self.cfg_dict)
-    #     return [ RMKSuite(id, self.cfg_dict) for id in self.cfg_dict['suites']]
-
-
     @staticmethod
     def gen_nested_dict(keys, value):
         '''Generates a nested dict from list of keys
@@ -146,8 +136,7 @@ class RMKConfig():
                 current[key] = value
         return new_dict
 
-    @classmethod
-    def read_env2dictionary(cls, prefix='ROBOTMK_',
+    def read_env2dictionary(self, prefix='ROBOTMK_',
                             preserved_words=_PRESERVED_WORDS,
                             suite_subkeys=_SUITE_SUBKEYS):
         '''Creates a nested dict from environment vars starting with a certain
@@ -168,6 +157,7 @@ class RMKConfig():
             if not varname.startswith(prefix):
                 continue
             else:
+                self.calling_cls.logdebug(f'ENV: Found variable {varname}')
                 varname_strip = varname.replace(prefix, '')
                 candidates = []
                 for subkey in suite_subkeys:
@@ -189,7 +179,8 @@ class RMKConfig():
             list_of_keys = [
                 key.replace('#', '_')
                 for key in varname_strip.split('_')]
-            nested_dict = cls.gen_nested_dict(list_of_keys, os.environ[varname])
+            # TODO: Suite names with underscores are not parsed correctly!
+            nested_dict = self.gen_nested_dict(list_of_keys, os.environ[varname])
             env_dict = mergedeep.merge(env_dict, nested_dict)
         return env_dict
 
@@ -255,14 +246,20 @@ class RMKConfig():
             self.calling_cls.loginfo("No control file %s found. ")
             return {}
 
-
+#rsuite
 class RMKSuite():
     def __init__(self, id, cfg_dict):
         self.start_time = None
         self.end_time = None
         self.id = id
-        # path is the only non-RF key in suite dict. Move this up
-        self.robotpath = cfg_dict['suites'][id].pop('path', id)
+        # Keys in suite_dict which are no valid RF cmdline parameters must be
+        # changed to attributes of this instance.
+        # self.robotpath = cfg_dict['suites'][id].pop('path', id)
+        # self.piggybackhost = cfg_dict['suites'][id].pop('piggybackhost', id)
+
+        # TODO FIXME: ignoriert RF tag/piggyback etc, im suite dict? 
+
+        # Create a suite-individual cfg_dict
         self.cfg_dict = {
             'global': cfg_dict['global'],
             'suite': cfg_dict['suites'][id]
@@ -308,7 +305,7 @@ class RMKSuite():
         self.start_time = datetime.now(tz=local_tz)
         rc = robot.run(
             self.path,
-            **self.suite_dict)
+            **self.robot_args)
         self.rc = rc
         self.end_time = datetime.now(tz=local_tz)
         self.runtime = (self.end_time - self.start_time).total_seconds()
@@ -316,6 +313,7 @@ class RMKSuite():
 
     @property
     def cache_time(self):
+        # try to read a suite cache time, default to global 
         if 'cache_time' in self.suite_dict: 
             return self.suite_dict['cache_time']
         else: 
@@ -324,11 +322,21 @@ class RMKSuite():
     @property
     def path(self): 
         return Path(self.global_dict['robotdir']
-            ).joinpath(self.robotpath)
+            # ).joinpath(self.robotpath)
+            ).joinpath(self.suite_dict['path'])
 
     @property
     def suite_dict(self):
         return self.cfg_dict['suite']
+
+    @property
+    def robot_args(self):
+        '''We should pass an arg dict to Robot Framework which is cleaned by 
+        any Robotmk keys. 
+        '''        
+        robotmk_keys = 'cache_time execution_interval path tag piggybackhost'.split()
+        return {k:v for (k,v) in self.cfg_dict['suite'].items() if k not in robotmk_keys}
+
 
     @property
     def global_dict(self):
@@ -358,14 +366,14 @@ class RMKSuite():
     def outfile_htmllog(self, text): 
         self.suite_dict['log'] = None
 
-#my-rmkstatefile
+#rstatefile
 class RMKStatefile():
     def __init__(self, suite):
         self.suite = suite
         self.data = None
         
     def read(self): 
-        '''Read the suite statefile and supplement with staleness info
+        '''Read the suite statefile
         Returns:
             dict: Status data
         '''        
@@ -380,6 +388,9 @@ class RMKStatefile():
 
         self.data['result_age'] = self.age.seconds
         self.data['result_overdue'] = self.overdue
+        # Yes... state determination on client side is not the checkmk way. 
+        # But the are calculation depends on the time zone; we better calculate
+        # time-critic metrics on the local machine. 
         self.data['result_is_stale'] = self.is_stale()
         return self.data
 
@@ -414,17 +425,7 @@ class RMKStatefile():
     def cache_time(self): 
         return self.data['cache_time']
 
-    @property
-    def mtime(self):
-        '''Returns:
-            [int]: mtime of the suite's statefile. 0 if not present.'''  
-        try:
-            mtime = datetime.fromtimestamp(
-                os.path.getmtime(str(self.path)))
-        except Exception:
-            # file not found etc.
-            mtime = -1
-        return mtime
+
 
     @property
     def path(self):
@@ -433,31 +434,35 @@ class RMKStatefile():
 
     def write(self):
         '''Writes the statefile content for a executed suite'''
+        suite = self.suite
         if not hasattr(self.suite, 'error'):
             result_dict = {
-                "id": self.suite.id, 
-                "last_start_time": self.suite.start_time.isoformat(), 
-                "last_end_time": self.suite.end_time.isoformat(),
+                "id": suite.id, 
+                "path": self.suite.suite_dict['path'],
+                "tag": self.suite.suite_dict['tag'],
+                "last_start_time": suite.start_time.isoformat(), 
+                "last_end_time": suite.end_time.isoformat(),
                 # takes suite cache_time if set
-                "cache_time": self.suite.cache_time,
-                "runtime": self.suite.runtime,
-                "last_rc": self.suite.rc,
-                "xml": self.suite.outfile_xml,
-                "htmllog": self.suite.outfile_htmllog,
+                "cache_time": suite.cache_time,
+                "runtime": suite.runtime,
+                "last_rc": suite.rc,
+                "xml": suite.outfile_xml,
+                "htmllog": suite.outfile_htmllog,
             }
         else: 
             result_dict = {
-                "id": self.suite.id, 
-                "error": self.suite.error,
+                "id": suite.id, 
+                "error": suite.error,
             }
         try: 
             with open(self.path, 'w', encoding='utf-8') as outfile: 
                 json.dump(result_dict, outfile, indent=2, sort_keys=False)
         except IOError as e: 
             # Error gets logged, will come to light by staleness check
-            self.suite.logerror("Cannot write statefile for suite '%s': %s" % (
-                self.suite.id, str(e)))
+            suite.logerror("Cannot write statefile for suite '%s': %s" % (
+                suite.id, str(e)))
 
+#rrobotmk
 class RobotMK():
     _DEFAULTS = {
         'nt': {
@@ -581,14 +586,16 @@ class RobotMK():
         # - agent_serial mode
         # - external mode, when robotmk gets called with '--run' which implies 
         #   to run all suites as configured
-        if self.run_suites_as_configured:
+        if not self.selective_run:
             # tic & tac is the complete runner runtime, are taken before 
             # and after start_suites
-            deltatime = self.tac - self.tic
+            deltatime = self.end_time - self.start_time
             runtime_total = deltatime.total_seconds()
             runtime_suites = sum([s.runtime for s in suites])
             json_dict = {
-                'run_suites_as_configured': True, 
+                'selective_run': False, 
+                'last_start_time': self.start_time.isoformat(),
+                'last_end_time': self.end_time.isoformat(),
                 'runtime_total': runtime_total,
                 'runtime_suites': runtime_suites,
                 'runtime_robotmk': runtime_total - runtime_suites,
@@ -602,11 +609,12 @@ class RobotMK():
                     'execution_interval': self.config.global_dict['execution_interval'],
                 })
         else: 
-            # parallel mode (controller starts one runner per suite)
-            # external mode with specific suites as arguments to --run
+            # Selective run is: 
+            # - parallel mode (controller starts one runner per suite)
+            # - external mode with specific suites as arguments to --run
             json_dict = {
                 'execution_mode': self.execution_mode,
-                'run_suites_as_configured': False,
+                'selective_run': True,
                 'suites': [(s.id, s.runtime) for s in suites if s.rc < 252],
                 'suites_fatal': [s.id for s in suites if s.rc >= 252 ],
             } 
@@ -643,7 +651,7 @@ class RobotMK():
     def logerror(self, text):
         self.logger.error(text)
 
-#my-rmkrunner
+#rrunner
 class RMKrunner(RobotMK):
     def __init__(self): 
         super().__init__()
@@ -664,20 +672,21 @@ class RMKrunner(RobotMK):
         # suites_cmdline = ['foo']
         if (len(suites_cmdline) == 1 and suites_cmdline[0] == "all"):
             # there are no specific suites to run, run all
-            self.run_suites_as_configured = True
+            self.selective_run = False
+            self.loginfo("selective_run = False; will execute all suites as configured.")
         else: 
-            self.logdebug("Suites on commandline: %s" % ', '.join(suites_cmdline))
+            self.loginfo("selective_run = True; updating list of suites...")
             # There are specific suite arguments 
-            self.run_suites_as_configured = False
+            self.selective_run = True
             # What's configured
             configured_suites = self.config.suites_dict.keys()
             # Suites given as arg do not have a cfg entry:
             suites_inarg_notincfg = [suite for suite in suites_cmdline 
                                  if suite not in configured_suites]
             if len(suites_inarg_notincfg) > 0:                                  
-                self.loginfo("(+) Adding suites: " +
+                self.logdebug("(+) Adding suites: " +
                                 f"'{','.join(suites_inarg_notincfg)}' " + 
-                                "(not in cfg, but in arguments; will start with defaults.)")
+                                "(not in cfg, but in arguments; assuming this to be a directory name; will try to start this with defaults.)")
                 suites_inarg_notincfg_dict = {
                     suiteid: {
                         'path': suiteid
@@ -688,14 +697,15 @@ class RMKrunner(RobotMK):
             keep = {}
             for suiteid, suitedict in self.config.suites_dict.items():
                 if suiteid not in suites_cmdline: 
-                    self.loginfo(f"(-) Skipping suite '{suiteid}'' (in cfg, NOT in arguments)")
+                    self.logdebug(f"(-) Skipping suite '{suiteid}'' (in cfg, NOT in arguments)")
                     # del(self.config.suites_dict[suiteid])
                 else: 
-                    self.loginfo(f"( ) Keeping suite '{suiteid}' (in cfg and in arguments)")
+                    self.logdebug(f"( ) Keeping suite '{suiteid}' (in cfg and in arguments)")
                     keep.update({
                         suiteid : self.config.suites_dict[suiteid]
                     })
             self.config.suites_dict = keep
+            # self.loginfo("Updated suite list: %s" % ', '.join(keep.keys()))
             pass
 
         
@@ -707,10 +717,10 @@ class RMKrunner(RobotMK):
         suites = self.config.suite_objs
         self.loginfo(
             ' => Suites to start: %s' % ', '.join([s.id for s in suites]))
-        self.tic = datetime.now(timezone.utc)
+        self.start_time = datetime.now(timezone.utc)
         for suite in suites:
             id = suite.id
-            self.loginfo(f"---------- Suite: {id} ----------")
+            self.loginfo(f"---------- Suite ID: {id} ----------")
             if not os.path.exists(suite.path): 
                 error = "Suite path %s does not exist. " % suite.path
                 self.logerror(error)
@@ -728,9 +738,10 @@ class RMKrunner(RobotMK):
                 suite.clear_filenames()
             self.loginfo(f'Writing suite statefile {suite.statefile.path}')
             suite.statefile.write()
-        self.tac = datetime.now(timezone.utc)
+        self.end_time = datetime.now(timezone.utc)
         self.write_runner_statefile(suites)
 
+#rcontroller
 class RMKCtrl(RobotMK):
     #TODO: Cleanup the XML!
 
@@ -742,13 +753,14 @@ class RMKCtrl(RobotMK):
 
     def agent_output(self): 
         '''Determines the agent output; this is a JSON dict with two keys: 
-        - metadata: beneath static information like the robotmk version and encoding, 
+        - runner data: beneath static information like the robotmk version and encoding, 
                     it also includes the runner's statefile (total execution 
                     time, cache time, executed suites etc.)
+        - suites
         '''        
         output = []
         encoding = self.config.global_dict['agent_output_encoding']
-        metadata = {
+        runner_data = {
             "encoding": encoding, 
             "robotmk_version": ROBOTMK_VERSION,
             "execution_mode": self.execution_mode,
@@ -758,13 +770,13 @@ class RMKCtrl(RobotMK):
         self.logdebug("Trying to read the Runner statefile %s" % self.runner_statefile)
         # TODO: Error handling
         runner_state = json.loads(self.read_file(self.runner_statefile, '{}'))
-        metadata.update(runner_state)
+        runner_data.update(runner_state)
         self.loginfo("Reading suite statefiles and encoding data (%s)..." % encoding)
         allstates = self.check_suite_statefiles(encoding)
         for host in allstates.keys():  
             states = allstates[host]  
             host_state = {
-                "metadata": metadata, 
+                "runner": runner_data, 
                 "suites": states,
             }
             json_serialized = json.dumps(host_state, sort_keys=False, indent=2)
@@ -867,6 +879,7 @@ def test_for_modules():
         logger.error(f'Could not start because of a missing module: {str(e)}')
         exit(1)
 
+#rmain
 def main():
     test_for_modules()
     RobotMK.get_args()
