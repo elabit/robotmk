@@ -620,12 +620,19 @@ def _valuespec_inventory_robotmk_rules():
                         TextAscii(
                             title=("Service name prefix"),
                             allow_empty=True,
-                            size=25,
-                            default_value="Robot%SPACE%",
-                            help=_("How Robot service names should start. If there should be a whitespace between prefix and name, mask it with <tt>%SPACE%</tt>.")
+                            size=60,
+                            default_value="Robot E2E $SUITEID",
+                            help=_("""
+                                How Robot service names of discovered items should start. The following Variables can be used (usage: <tt>$VAR</tt> or <tt>${VAR}</tt>):<br>
+                                <tt>${PATH}</tt>  -  Name of Robot suite directory or <tt>.robot</tt> file<br>
+                                <tt>${SUITENAME}</tt>  -  Name of top level suite (usually same name as path)<br>
+                                <tt>${TAG}</tt>  -  Suite tag<br>
+                                <tt>${SUITEID}</tt>  -  short for <tt>${PATH}_${TAG}</tt><br>
+                                <tt>${SPACE}</tt>  -  Use this if there should be a space between the prefix and the item name<br>
+                            """)
                         ),                              
                     ]),  #Tuple_elements
-                    title=_("Service prefix for discovered Robot services"),
+                    title=_("Naming rules for discovered Robot services"),
 
                 ) # ListOf
             ), 

@@ -33,6 +33,7 @@ from random import randint
 import base64
 import zlib
 import json
+from string import Template
 
 ROBOTMK_VERSION = "v0.2.0"
 
@@ -68,8 +69,7 @@ def parse_robot(info):
         raise MKGeneralException("Can not load Robotmk JSON data! (json.loads())")
 
     metadata = info_dict['metadata']
-    suites = info_dict['suites']
-    for suite in suites: 
+    for suite in info_dict['suites']:
         for k in keys_to_decode: 
             d = suite[k]
             if bool(d): 
@@ -90,8 +90,11 @@ def parse_robot(info):
             raise MKGeneralException("Cannot detect XML data in Robomk output.")
         setting = pattern_match(robot_discovery_settings, xml_root_suite.attrib['name'], (0, '') )
         discovery_setting = namedtuple('DiscoverySetting', 'level blacklist_pattern')._make(setting)
+        # now process the root suite
         root_item = parse_suite_xml(xml_root_suite, discovery_setting)
-        suite['discovered_items'] = root_item.discovered
+        # and reveal the items in the discovery level:
+        # suite['discovered_items'] = root_item.discovered
+        suite['parsed'] = root_item
 
     return info_dict
 
@@ -99,11 +102,23 @@ def inventory_robot(parsed):
     robot_service_prefix = get_setting('robot_service_prefix',[])
     #TODO: Error handling for no suites/metadata keys? 
     for root_suite in parsed['suites']:
-        for discovered_item in root_suite['discovered_items']:
-            prefix = pattern_match(robot_service_prefix, discovered_item.name, '')
-            prefix_subst = prefix.replace('%SPACE%', ' ')
-            item_name = "%s%s" % (prefix_subst, discovered_item.name)
-            yield item_name, None
+        for discovered_item in root_suite['parsed'].discovered:
+            # TODO: What is no defined? 
+            default = 'Robot E2E $SUITEID$SPACE'
+            fmtstring = pattern_match(robot_service_prefix, discovered_item.name, None)
+            if fmtstring is None: 
+                fmtstring = default
+            template = Template(fmtstring)
+            prefix = template.safe_substitute(
+                PATH=root_suite['path'],
+                TAG=root_suite['tag'],
+                SUITEID=root_suite['id'],
+                SUITENAME=root_suite['parsed'].name,
+                SPACE=' ')
+
+            itemname = discovered_item.name
+            item_final_name = "%s%s" % (prefix, itemname) 
+            yield item_final_name, None
     # This is the service reporting overall runtimes, stale spooliles etc. 
     yield "Robotmk", None
 
