@@ -18,28 +18,34 @@
 # to the Free Software Foundation, Inc., 51 Franklin St,  Fifth Floor,
 # Boston, MA 02110-1301 USA.
 
-metric_info['plugin_runtime_total'] = {
+metric_info['runner_runtime'] = {
     'title' : _('Plugin runtime (total)'),
     'unit' : 's',
     'color' : '#ff2377',
 }
-metric_info['plugin_runtime_robotmk'] = {
+metric_info['runner_runtime_robotmk'] = {
     'title' : _('Plugin runtime (Robotmk code)'),
     'unit' : 's',
     'color' : '#4488cc',
 }
-metric_info['plugin_runtime_suites'] = {
+metric_info['runner_runtime_suites'] = {
     'title' : _('Plugin runtime (suite execution time)'),
     'unit' : 's',
     'color' : '#c04080',
 }
-metric_info['plugin_cache_time'] = {
+metric_info['runner_cache_time'] = {
     'title' : _('Plugin Cache Time'),
     'unit' : 's',
     'color' : '#409c58',
 }
+metric_info['runner_execution_interval'] = {
+    'title' : _('Plugin execution interval'),
+    'unit' : 's',
+    'color' : '#209c58',
+}
 
 # Suites counter
+# TODO: OK & Fatal
 metric_info['suites_total'] = {
     'title' : _('Suites Total'),
     'unit' : 'count',
@@ -51,18 +57,20 @@ metric_info['suites_stale'] = {
     'color' : '#a8665d',
 }
 
-graph_info['robotmk_cachetime_usage'] = {
-    "title": _("Robotmk Plugin Cachetime Usage"),
+graph_info['robotmk_headroom_usage'] = {
+    "title": _("Robotmk Runtime Headroom Usage"),
     "metrics": [
-        ("plugin_cache_time", "area"),
-        ("plugin_runtime_robotmk", "area"),
-        ("plugin_runtime_suites", "stack"),
-        ("plugin_runtime_total", "line"),
+        ("runner_cache_time", "area"),
+        ("runner_execution_interval", "area"),
+        ("runner_runtime_robotmk", "area"),
+        ("runner_runtime_suites", "stack"),
+        ("runner_runtime", "line"),
     ],
-    "range": (0, "plugin_cache_time"),
+    "optional_metrics": ["runner_execution_interval"]
+    "range": (0, "runner_cache_time"),
     "scalars": [
-        "plugin_runtime_total:warn",
-        "plugin_runtime_total:crit",
+        "runner_runtime:warn",
+        "runner_runtime:crit",
     ]
     }
 
@@ -77,21 +85,21 @@ graph_info['robotmk_suite_state'] = {
 # If the runtime is ok, the perfometer shows decent colors. 
 perfometer_info.append({
     "type": "linear",
-    "condition": "plugin_runtime_total,plugin_runtime_total:warn,<",
+    "condition": "runner_runtime,runner_runtime:warn,<",
     "segments": [
-        "plugin_runtime_total#a8665d",
-        "plugin_cache_time,plugin_runtime_total,-#bcbdbc",
+        "runner_runtime#a8665d",
+        "runner_cache_time,runner_runtime,-#bcbdbc",
         ],
-    "total": "plugin_cache_time",
-    "label": ("plugin_runtime_total", "s")
+    "total": "runner_cache_time",
+    "label": ("runner_runtime", "s")
 }) 
 perfometer_info.append({
     "type": "linear",
-    "condition": "plugin_runtime_total,plugin_runtime_total:warn,>=",
+    "condition": "runner_runtime,runner_runtime:warn,>=",
     "segments": [
-        "plugin_runtime_total",
-        "plugin_cache_time,plugin_runtime_total,-#409c58",
+        "runner_runtime",
+        "runner_cache_time,runner_runtime,-#409c58",
         ],
-    "total": "plugin_cache_time",
-    "label": ("plugin_runtime_total", "s")
+    "total": "runner_cache_time",
+    "label": ("runner_runtime", "s")
 }) 

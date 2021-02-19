@@ -373,7 +373,7 @@ class RMKStatefile():
         self.data = None
         
     def read(self): 
-        '''Read the suite statefile and supplement with staleness info
+        '''Read the suite statefile
         Returns:
             dict: Status data
         '''        
@@ -388,6 +388,9 @@ class RMKStatefile():
 
         self.data['result_age'] = self.age.seconds
         self.data['result_overdue'] = self.overdue
+        # Yes... state determination on client side is not the checkmk way. 
+        # But the are calculation depends on the time zone; we better calculate
+        # time-critic metrics on the local machine. 
         self.data['result_is_stale'] = self.is_stale()
         return self.data
 
@@ -422,17 +425,7 @@ class RMKStatefile():
     def cache_time(self): 
         return self.data['cache_time']
 
-    @property
-    def mtime(self):
-        '''Returns:
-            [int]: mtime of the suite's statefile. 0 if not present.'''  
-        try:
-            mtime = datetime.fromtimestamp(
-                os.path.getmtime(str(self.path)))
-        except Exception:
-            # file not found etc.
-            mtime = -1
-        return mtime
+
 
     @property
     def path(self):
@@ -596,11 +589,13 @@ class RobotMK():
         if not self.selective_run:
             # tic & tac is the complete runner runtime, are taken before 
             # and after start_suites
-            deltatime = self.tac - self.tic
+            deltatime = self.end_time - self.start_time
             runtime_total = deltatime.total_seconds()
             runtime_suites = sum([s.runtime for s in suites])
             json_dict = {
                 'selective_run': False, 
+                'last_start_time': self.start_time.isoformat(),
+                'last_end_time': self.end_time.isoformat(),
                 'runtime_total': runtime_total,
                 'runtime_suites': runtime_suites,
                 'runtime_robotmk': runtime_total - runtime_suites,
@@ -722,7 +717,7 @@ class RMKrunner(RobotMK):
         suites = self.config.suite_objs
         self.loginfo(
             ' => Suites to start: %s' % ', '.join([s.id for s in suites]))
-        self.tic = datetime.now(timezone.utc)
+        self.start_time = datetime.now(timezone.utc)
         for suite in suites:
             id = suite.id
             self.loginfo(f"---------- Suite ID: {id} ----------")
@@ -743,7 +738,7 @@ class RMKrunner(RobotMK):
                 suite.clear_filenames()
             self.loginfo(f'Writing suite statefile {suite.statefile.path}')
             suite.statefile.write()
-        self.tac = datetime.now(timezone.utc)
+        self.end_time = datetime.now(timezone.utc)
         self.write_runner_statefile(suites)
 
 #rcontroller
@@ -758,13 +753,14 @@ class RMKCtrl(RobotMK):
 
     def agent_output(self): 
         '''Determines the agent output; this is a JSON dict with two keys: 
-        - metadata: beneath static information like the robotmk version and encoding, 
+        - runner data: beneath static information like the robotmk version and encoding, 
                     it also includes the runner's statefile (total execution 
                     time, cache time, executed suites etc.)
+        - suites
         '''        
         output = []
         encoding = self.config.global_dict['agent_output_encoding']
-        metadata = {
+        runner_data = {
             "encoding": encoding, 
             "robotmk_version": ROBOTMK_VERSION,
             "execution_mode": self.execution_mode,
@@ -774,13 +770,13 @@ class RMKCtrl(RobotMK):
         self.logdebug("Trying to read the Runner statefile %s" % self.runner_statefile)
         # TODO: Error handling
         runner_state = json.loads(self.read_file(self.runner_statefile, '{}'))
-        metadata.update(runner_state)
+        runner_data.update(runner_state)
         self.loginfo("Reading suite statefiles and encoding data (%s)..." % encoding)
         allstates = self.check_suite_statefiles(encoding)
         for host in allstates.keys():  
             states = allstates[host]  
             host_state = {
-                "metadata": metadata, 
+                "runner": runner_data, 
                 "suites": states,
             }
             json_serialized = json.dumps(host_state, sort_keys=False, indent=2)
