@@ -206,28 +206,6 @@ def gen_agent_config_testsuites_paramsdict():
         elements=dict_elements
     )
 
-agent_config_testsuites_robotframework_params_container=Dictionary(
-    title=_("Robot Framework parameters"),
-    elements=[    
-        ("robot_params",
-        agent_config_testsuites_robotframework_params_dict),
-    ]
-)
-# agent_config_testsuites_robotframework_params_container=Dictionary(
-#     title=_("Robot Framework parameters"),
-#     help=_("The following options allow to specify the most common cmdline parameters for Robot Framework. (<a href=\"https://robotframework.org/robotframework/latest/RobotFrameworkUserGuide.html#all-command-line-options\">All command line options</a>)"),
-#     elements=[    
-#         ("robot_params",
-#         MonitoredHostname(
-#             title=_("Robot Framework arguments"),
-#             help=_("The following options allow to specify the most common cmdline parameters for Robot Framework. (<a href=\"https://robotframework.org/robotframework/latest/RobotFrameworkUserGuide.html#all-command-line-options\">All command line options</a>)"),
-#             allow_empty=False,
-#         )),                                                                                             
-#     ]
-# )
-
-# TODO: left orientation for override, Specify test suites
-
 
 agent_config_testsuites_robotframework_params_dict=Dictionary(
     help=_("The options here allow to specify the most common cmdline parameters for Robot Framework. (<a href=\"https://robotframework.org/robotframework/latest/RobotFrameworkUserGuide.html#all-command-line-options\">All command line options</a>)"),
@@ -337,6 +315,14 @@ agent_config_testsuites_robotframework_params_dict=Dictionary(
             default_value="no",
         )),                                                                                   
     ],
+)
+
+agent_config_testsuites_robotframework_params_container=Dictionary(
+    title=_("Robot Framework parameters"),
+    elements=[    
+        ("robot_params",
+        agent_config_testsuites_robotframework_params_dict),
+    ]
 )
 
 
