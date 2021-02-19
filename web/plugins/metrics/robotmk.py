@@ -19,27 +19,27 @@
 # Boston, MA 02110-1301 USA.
 
 metric_info['runner_runtime'] = {
-    'title' : _('Plugin runtime (total)'),
+    'title' : _('Runtime (total)'),
     'unit' : 's',
     'color' : '#ff2377',
 }
 metric_info['runner_runtime_robotmk'] = {
-    'title' : _('Plugin runtime (Robotmk code)'),
+    'title' : _('Runtime (Robotmk code)'),
     'unit' : 's',
     'color' : '#4488cc',
 }
 metric_info['runner_runtime_suites'] = {
-    'title' : _('Plugin runtime (suite execution time)'),
+    'title' : _('Runtime (suite execution)'),
     'unit' : 's',
     'color' : '#c04080',
 }
 metric_info['runner_cache_time'] = {
-    'title' : _('Plugin Cache Time'),
+    'title' : _('Cache Time'),
     'unit' : 's',
-    'color' : '#409c58',
+    'color' : '#2e6ec8',
 }
 metric_info['runner_execution_interval'] = {
-    'title' : _('Plugin execution interval'),
+    'title' : _('Execution interval'),
     'unit' : 's',
     'color' : '#209c58',
 }
@@ -56,9 +56,14 @@ metric_info['suites_stale'] = {
     'unit' : 'count',
     'color' : '#a8665d',
 }
+metric_info['suites_fatal'] = {
+    'title' : _('Suites Fatal'),
+    'unit' : 'count',
+    'color' : '#f8665d',
+}
 
 graph_info['robotmk_headroom_usage'] = {
-    "title": _("Robotmk Runtime Headroom Usage"),
+    "title": _("Robotmk Runner - Runtime Headroom Usage"),
     "metrics": [
         ("runner_cache_time", "area"),
         ("runner_execution_interval", "area"),
@@ -66,8 +71,8 @@ graph_info['robotmk_headroom_usage'] = {
         ("runner_runtime_suites", "stack"),
         ("runner_runtime", "line"),
     ],
-    "optional_metrics": ["runner_execution_interval"]
-    "range": (0, "runner_cache_time"),
+    # "optional_metrics": ["runner_execution_interval"]
+    "range": (0, "runner_cache_time,1.05,*"),
     "scalars": [
         "runner_runtime:warn",
         "runner_runtime:crit",
@@ -79,6 +84,7 @@ graph_info['robotmk_suite_state'] = {
     "metrics": [
         ("suites_total", "area"),
         ("suites_stale", "area"),
+        ("suites_fatal", "stack"),
     ],
     }
 

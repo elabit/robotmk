@@ -313,7 +313,12 @@ class RMKSuite():
 
     @property
     def cache_time(self):
-        # try to read a suite cache time, default to global 
+        # rWrpuXW8
+        # try to read a suite cache time, default to global. 
+        # This is important for staleness calculation: there is no suite cache_time
+        # when: 
+        # - mode = agent_serial (there is only a global cache_time)
+        # - mode = external (in case there are no suites in yml config )
         if 'cache_time' in self.suite_dict: 
             return self.suite_dict['cache_time']
         else: 
