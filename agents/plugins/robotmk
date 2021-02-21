@@ -18,12 +18,10 @@
 # to the Free Software Foundation, Inc., 51 Franklin St,  Fifth Floor,
 # Boston, MA 02110-1301 USA.
 
-# This plugin requires Python > 3.7 and some modules:  
+# This plugin requires Python > 3.7 and some modules:
 # pip3 install robotframework pyyaml mergedeep python-dateutil
 
 # redirect stdout while testing: https://www.devdungeon.com/content/using-stdin-stdout-and-stderr-python
-
-#TODO: host => piggybackhost
 
 from pathlib import Path
 from collections import defaultdict
@@ -32,7 +30,7 @@ import re
 from argparse import ArgumentParser, RawTextHelpFormatter
 from datetime import datetime, timezone, timedelta
 from time import time
-import json 
+import json
 import inspect
 import base64
 import zlib
@@ -43,7 +41,7 @@ from textwrap import dedent
 local_tz = datetime.utcnow().astimezone().tzinfo
 ROBOTMK_VERSION = "v0.2.0"
 
-#rconfig
+
 class RMKConfig():
     _PRESERVED_WORDS = [
         'agent_output_encoding',
@@ -62,18 +60,19 @@ class RMKConfig():
         defaults_dict = self.__merge_defaults()
         # merge II: YML config overwrites the defaults
         robotmk_dict = self.read_robotmk_yml()
-        robotmk_dict_merged_default = mergedeep.merge(robotmk_dict, defaults_dict)
+        robotmk_dict_merged_default = mergedeep.merge(
+            robotmk_dict, defaults_dict)
         # merge III: environment vars overwrite the YML config
         envdict = self.read_env2dictionary()
-        robotmk_dict_merged_env = mergedeep.merge(robotmk_dict_merged_default, envdict)
-        
+        robotmk_dict_merged_env = mergedeep.merge(
+            robotmk_dict_merged_default, envdict)
+
         self.cfg_dict = robotmk_dict_merged_env
-        # now that YML and ENV are read, see if there is any suite defined. 
-        # If not, the fallback is generate suite dict entries for every dir 
-        # in robotdir. 
+        # now that YML and ENV are read, see if there is any suite defined.
+        # If not, the fallback is generate suite dict entries for every dir
+        # in robotdir.
         if len(self.suites_dict) == 0:
             self.suites_dict = self.__suites_from_robotdirs()
-        
 
     def __merge_defaults(self):
         defaults = self.calling_cls._DEFAULTS
@@ -81,7 +80,6 @@ class RMKConfig():
             'global': mergedeep.merge(defaults[os.name], defaults['noarch'])
         }
         return merged_defaults
-
 
     def __suites_from_robotdirs(self):
         self.calling_cls.loginfo(
@@ -91,18 +89,17 @@ class RMKConfig():
             suitedir.name: {
                 'path': suitedir.name,
                 'tag': '',
-            } for suitedir in 
+            } for suitedir in
             Path(self.global_dict['robotdir']).iterdir()}
         return suites_dict
 
-
-    @property 
-    def lsuites(self): 
+    @property
+    def lsuites(self):
         return self.cfg_dict['suites'].keys()
 
-    @property 
-    def suite_objs(self): 
-        return [ RMKSuite(id, self.cfg_dict) for id in self.cfg_dict['suites']]
+    @property
+    def suite_objs(self):
+        return [RMKSuite(id, self.cfg_dict) for id in self.cfg_dict['suites']]
 
     @property
     def global_dict(self):
@@ -180,7 +177,8 @@ class RMKConfig():
                 key.replace('#', '_')
                 for key in varname_strip.split('_')]
             # TODO: Suite names with underscores are not parsed correctly!
-            nested_dict = self.gen_nested_dict(list_of_keys, os.environ[varname])
+            nested_dict = self.gen_nested_dict(
+                list_of_keys, os.environ[varname])
             env_dict = mergedeep.merge(env_dict, nested_dict)
         return env_dict
 
@@ -220,7 +218,7 @@ class RMKConfig():
         if value is None:
             value = self.calling_cls._DEFAULTS['noarch'].get(setting, None)
             if value is None:
-                # TODO: Exception
+                # TODO: Catch the exception!
                 pass
         return value
 
@@ -229,8 +227,9 @@ class RMKConfig():
             'agent_config_dir')).joinpath(
             self.get_robotmk_var('robotmk_yml'))
         if os.access(robotmk_yml, os.R_OK):
-            self.calling_cls.logdebug(f'Reading configuration file {robotmk_yml}')
-            #TEST: Reading a valid robotmk.yml
+            self.calling_cls.logdebug(
+                f'Reading configuration file {robotmk_yml}')
+            # TEST: Reading a valid robotmk.yml
             try:
                 with open(robotmk_yml, 'r', encoding='utf-8') as stream:
                     robotmk_yml_config = yaml.safe_load(stream)
@@ -242,29 +241,124 @@ class RMKConfig():
                              {str(exc.problem)} {str(exc.context)}''')
                     exit(1)
         else:
-            #TEST: Valid config 100% from environment (-> Docker!)
+            # TEST: Valid config 100% from environment (-> Docker!)
             self.calling_cls.loginfo("No control file %s found. ")
             return {}
 
-#rsuite
-class RMKSuite():
-    def __init__(self, id, cfg_dict):
-        self.start_time = None
-        self.end_time = None
-        self.id = id
-        # Keys in suite_dict which are no valid RF cmdline parameters must be
-        # changed to attributes of this instance.
-        # self.robotpath = cfg_dict['suites'][id].pop('path', id)
-        # self.piggybackhost = cfg_dict['suites'][id].pop('piggybackhost', id)
 
-        # TODO FIXME: ignoriert RF tag/piggyback etc, im suite dict? 
+class RMKState():
+    '''State class which is the superclass for runner and suite. 
+    Both share the fact that
+    - they store some common data like runtime, cache time etc. 
+    - they need to store those data in the state file
+    - some data in the state file must be updated in real-time'''
+
+    def __init__(self, *args, **kwargs):
+        super().__init__(*args, **kwargs)  # forwards all unused arguments
+        self._state = {}
+
+    def read_from_file(self):
+        try:
+            with open(str(self.statefile_path), "r", encoding='utf-8') as statefile:
+                data = json.load(statefile)
+        except:
+            # TODO: Not optimal. Logging is only inherited from RoboMK to Ctrl and Runner.
+            # self.logwarn("Cannot read statefile %s does it exist?" %
+            #  self.statefile_path)
+            data = {}
+            # return {
+            #     'id': self.suite.id,
+            #     'error': "Statefile of suite '%s' not found - %s (did the suite ever run...?)" % (self.suite.id, str(e))
+            # }
+
+        # self.data['result_age'] = self.age.seconds
+        # self.data['result_overdue'] = self.overdue
+        # # Yes... state determination on client side is not the checkmk way.
+        # # But the are calculation depends on the time zone; we better calculate
+        # # time-critic metrics on the local machine.
+        # self.data['result_is_stale'] = self.is_stale()
+        return data
+
+    def write_state_to_file(self, data=None):
+        if data is None:
+            data = self._state
+        # statefile always contains ISO datetimes
+        data = {k: (v.isoformat() if type(v) is datetime else v)
+                for (k, v) in data.items()}
+        try:
+            with open(self.statefile_path, 'w', encoding='utf-8') as outfile:
+                json.dump(data, outfile, indent=2, sort_keys=False)
+        except IOError as e:
+            # Error gets logged, will come to light by staleness check
+            pass
+            # TODO: Not optimal. Logging is only inherited from RoboMK to Ctrl and Runner.
+            # self.logerror("Cannot write statefile %s" % (
+            #     self.statefile_path, str(e)))
+
+    def state_isoformat(self):
+        data = {k: v.isoformat() for (k, v) in self._state.items()}
+
+    @property
+    def statefile_path(self):
+        filename = f'robotmk_{self.id}.json'
+        return Path(self.global_dict['outputdir']).joinpath(filename)
+
+    def write_statevars(self, kvpair):
+        if not type(kvpair) is list:
+            kvpair = [kvpair]
+        self.set_statevars(kvpair)
+        data = self.read_from_file()
+        for item in kvpair:
+            data.update({item[0]: item[1]})
+        self.write_state_to_file(data)
+
+    def set_statevars(self, kvpair):
+        if not type(kvpair) is list:
+            kvpair = [kvpair]
+        for item in kvpair:
+            self._state[item[0]] = item[1]
+
+    def get_statevar(self, name):
+        return self._state.get(name, None)
+
+    # def update_file(fn):
+    #     # always save the current state to file
+    #     def inner(*args, **kwargs):
+    #         if not args[0] is None:
+    #             print("Writing this to file %s " % "foo")
+    #         fn()
+    #     return inner
+
+    @property
+    def now(self):
+        return datetime.now(timezone.utc)
+
+# rstatefile
+
+
+class RMKSuite(RMKState):
+    def __init__(self, id, cfg_dict):
+        self.id = id
+        super().__init__()
+        self.set_statevars(('id', id))
 
         # Create a suite-individual cfg_dict
         self.cfg_dict = {
             'global': cfg_dict['global'],
             'suite': cfg_dict['suites'][id]
         }
-        self.statefile = RMKStatefile(self)
+        self.set_statevars([
+            ('cache_time', self.get_suite_or_global('cache_time')),
+            ('execution_interval', self.get_suite_or_global('execution_interval')),
+            ('path', self.suite_dict['path']),
+            ('tag', self.suite_dict['tag']),
+        ])
+        pass
+        # self.statefile = RMKStatefile(self)
+
+    def clear_statevars(self):
+        data = {k: None for k in 'start_time end_time runtime rc xml htmllog'.split()}
+        self._state.update(data)
 
     def __str__(self):
         return self.id
@@ -280,55 +374,55 @@ class RMKSuite():
             # 'report': f'{suite_filename}_report.html',
         })
 
-    def clear_filenames(self): 
+    def clear_filenames(self):
         '''Reset the log file names if Robot Framework exited with RC > 250
         The files presumed to exist do not in this case. 
-        '''        
+        '''
         self.outfile_htmllog = None
         # self.outfile_htmlreport = None
         self.outfile_xml = None
 
-    def robotize_variables(self): 
-        # Preformat Variables to meet the Robot API requirement 
-        # --variable name:value --variable name2:value2 
+    def robotize_variables(self):
+        # Preformat Variables to meet the Robot API requirement
+        # --variable name:value --variable name2:value2
         # => ['name:value', 'name2:value2'] (list of dicts to list of k:v)
-        if 'variable' in self.suite_dict: 
+        if 'variable' in self.suite_dict:
             self.suite_dict['variable'] = list(
                 map(
                     lambda x: f'{x[0]}:{x[1]}',
                     self.suite_dict['variable'].items()
                 ))
 
-    def start(self):
+    def run(self):
         self.robotize_variables()
         self.update_filenames()
-        self.start_time = datetime.now(tz=local_tz)
+        self.write_statevars(('start_time', self.now))
         rc = robot.run(
             self.path,
             **self.robot_args)
+        self.set_statevars([
+            ('htmllog', self.outfile_htmllog),
+            ('xml', self.outfile_xml),
+            ('end_time', self.now),
+            ('rc', rc), ])
         self.rc = rc
-        self.end_time = datetime.now(tz=local_tz)
-        self.runtime = (self.end_time - self.start_time).total_seconds()
         return rc
 
-    @property
-    def cache_time(self):
-        # rWrpuXW8
-        # try to read a suite cache time, default to global. 
-        # This is important for staleness calculation: there is no suite cache_time
-        # when: 
-        # - mode = agent_serial (there is only a global cache_time)
-        # - mode = external (in case there are no suites in yml config )
-        if 'cache_time' in self.suite_dict: 
-            return self.suite_dict['cache_time']
-        else: 
-            return self.global_dict['cache_time']
+    def get_suite_or_global(self, name):
+        try:
+            return self.suite_dict[name]
+        except:
+            return self.global_dict[name]
 
     @property
-    def path(self): 
+    def path(self):
         return Path(self.global_dict['robotdir']
-            # ).joinpath(self.robotpath)
-            ).joinpath(self.suite_dict['path'])
+                    # ).joinpath(self.robotpath)
+                    ).joinpath(self.suite_dict['path'])
+
+    @property
+    def runtime(self):
+        return (self._state['end_time'] - self._state['start_time']).total_seconds()
 
     @property
     def suite_dict(self):
@@ -338,67 +432,66 @@ class RMKSuite():
     def robot_args(self):
         '''We should pass an arg dict to Robot Framework which is cleaned by 
         any Robotmk keys. 
-        '''        
+        '''
         robotmk_keys = 'cache_time execution_interval path tag piggybackhost'.split()
-        return {k:v for (k,v) in self.cfg_dict['suite'].items() if k not in robotmk_keys}
-
+        return {k: v for (k, v) in self.cfg_dict['suite'].items() if k not in robotmk_keys}
 
     @property
     def global_dict(self):
         return self.cfg_dict['global']
 
     @property
-    def outfile_xml(self): 
-        if not self.suite_dict['output'] is None: 
+    def outfile_xml(self):
+        if not self.suite_dict['output'] is None:
             return str(Path(self.global_dict['outputdir']).joinpath(
-            self.suite_dict['output']))
-        else: 
+                self.suite_dict['output']))
+        else:
             return None
 
     @property
-    def outfile_htmllog(self): 
-        if not self.suite_dict['log'] is None: 
+    def outfile_htmllog(self):
+        if not self.suite_dict['log'] is None:
             return str(Path(self.global_dict['outputdir']).joinpath(
-            self.suite_dict['log']))
-        else: 
+                self.suite_dict['log']))
+        else:
             return None
 
     @outfile_xml.setter
-    def outfile_xml(self, text): 
+    def outfile_xml(self, text):
         self.suite_dict['output'] = None
 
     @outfile_htmllog.setter
-    def outfile_htmllog(self, text): 
+    def outfile_htmllog(self, text):
         self.suite_dict['log'] = None
 
-#rstatefile
+
 class RMKStatefile():
     def __init__(self, suite):
+
         self.suite = suite
         self.data = None
-        
-    def read(self): 
+
+    def read(self):
         '''Read the suite statefile
         Returns:
             dict: Status data
-        '''        
-        try: 
+        '''
+        try:
             with open(self.path) as statefile:
-                self.data = json.load(statefile) 
-        except IOError as e: 
+                self.data = json.load(statefile)
+        except IOError as e:
             return {
-                'id' : self.suite.id,
+                'id': self.suite.id,
                 'error': "Statefile of suite '%s' not found - %s (did the suite ever run...?)" % (self.suite.id, str(e))
             }
 
         self.data['result_age'] = self.age.seconds
         self.data['result_overdue'] = self.overdue
-        # Yes... state determination on client side is not the checkmk way. 
+        # Yes... state determination on client side is not the checkmk way.
         # But the are calculation depends on the time zone; we better calculate
-        # time-critic metrics on the local machine. 
+        # time-critic metrics on the local machine.
         self.data['result_is_stale'] = self.is_stale()
         return self.data
-
 
     def is_stale(self):
         return self.age.seconds > int(self.cache_time)
@@ -408,8 +501,8 @@ class RMKStatefile():
         '''Return the seconds since last execution and now()
         Returns:
             diff: timedelta
-        '''        
-        if self.data is None: 
+        '''
+        if self.data is None:
             self.data = self.read()
         age = datetime.now(timezone.utc) - parser.isoparse(
             self.data['last_end_time'])
@@ -417,20 +510,18 @@ class RMKStatefile():
 
     @property
     # how many seconds the result is older than the cache
-    def overdue(self): 
+    def overdue(self):
         dt_now = datetime.now(timezone.utc)
         dt_last_end = parser.isoparse(
             self.data['last_end_time']
-            ).astimezone(timezone.utc)
+        ).astimezone(timezone.utc)
         dt_cache_time = timedelta(seconds=int(self.cache_time))
         overdue = (dt_now - dt_last_end).seconds - dt_cache_time.seconds
         return overdue
 
     @property
-    def cache_time(self): 
+    def cache_time(self):
         return self.data['cache_time']
-
-
 
     @property
     def path(self):
@@ -442,10 +533,10 @@ class RMKStatefile():
         suite = self.suite
         if not hasattr(self.suite, 'error'):
             result_dict = {
-                "id": suite.id, 
+                "id": suite.id,
                 "path": self.suite.suite_dict['path'],
                 "tag": self.suite.suite_dict['tag'],
-                "last_start_time": suite.start_time.isoformat(), 
+                "start_time": suite.start_time.isoformat(),
                 "last_end_time": suite.end_time.isoformat(),
                 # takes suite cache_time if set
                 "cache_time": suite.cache_time,
@@ -454,20 +545,22 @@ class RMKStatefile():
                 "xml": suite.outfile_xml,
                 "htmllog": suite.outfile_htmllog,
             }
-        else: 
+        else:
             result_dict = {
-                "id": suite.id, 
+                "id": suite.id,
                 "error": suite.error,
             }
-        try: 
-            with open(self.path, 'w', encoding='utf-8') as outfile: 
+        try:
+            with open(self.path, 'w', encoding='utf-8') as outfile:
                 json.dump(result_dict, outfile, indent=2, sort_keys=False)
-        except IOError as e: 
+        except IOError as e:
             # Error gets logged, will come to light by staleness check
             suite.logerror("Cannot write statefile for suite '%s': %s" % (
                 suite.id, str(e)))
 
-#rrobotmk
+# rrobotmk
+
+
 class RobotMK():
     _DEFAULTS = {
         'nt': {
@@ -489,15 +582,16 @@ class RobotMK():
             'logging': True
         }
     }
-    
-    def __init__(self): 
-        self.__setup_logging(calling_cls=self, verbose=self.cmdline_args.verbose)
+
+    def __init__(self):
+        self.__setup_logging(
+            calling_cls=self, verbose=self.cmdline_args.verbose)
         self.loginfo("="*20 + " START " + "="*20)
         self.config = RMKConfig(calling_cls=self)
         self.execution_mode = self.config.global_dict['execution_mode']
         self.runner_statefile = Path(
-                self.config.global_dict['outputdir']
-                ).joinpath('robotmk_runner_%s.json' % self.execution_mode)
+            self.config.global_dict['outputdir']
+        ).joinpath('robotmk_runner_%s.json' % self.execution_mode)
 
     @classmethod
     def get_args(cls):
@@ -558,16 +652,16 @@ class RobotMK():
                             help="""Print the RobotMK log to console.""")
         cls.cmdline_args = parser.parse_args()
 
-    
     def __setup_logging(self, calling_cls, verbose=False):
         if self._DEFAULTS['noarch']['logging']:
             instance_name = calling_cls.__class__.__name__
             logger = logging.getLogger(instance_name)
             logger.setLevel(logging.DEBUG)
-    
+
             # File log
             fh = TimedRotatingFileHandler(
-                Path(self._DEFAULTS[os.name]['logdir']).joinpath(f'robotmk.log'),
+                Path(self._DEFAULTS[os.name]['logdir']
+                     ).joinpath(f'robotmk.log'),
                 when="h", interval=24, backupCount=30)
             file_formatter = logging.Formatter(
                 fmt='%(asctime)s %(name)10s %(levelname)8s: %(message)s')
@@ -576,7 +670,7 @@ class RobotMK():
             logger.addHandler(fh)
             self.logger = logger
             # stdout
-            if verbose: 
+            if verbose:
                 console = logging.StreamHandler()
                 console_formatter = logging.Formatter(
                     fmt='%(asctime)s %(name)10s %(levelname)8s: %(message)s')
@@ -584,59 +678,61 @@ class RobotMK():
                 console.setLevel(logging.DEBUG)
                 self.logger.addHandler(console)
 
-    def write_runner_statefile (self, suites):
+    def write_runner_statefile(self, suites):
         '''Writes a JSON statefile containing metadata about the runner runtime'''
         # The cache time usage can only be monitored when the runner executes
-        # all suites as configured. This is the case when: 
+        # all suites as configured. This is the case when:
         # - agent_serial mode
-        # - external mode, when robotmk gets called with '--run' which implies 
+        # - external mode, when robotmk gets called with '--run' which implies
         #   to run all suites as configured
+
         if not self.selective_run:
-            # tic & tac is the complete runner runtime, are taken before 
+            # tic & tac is the complete runner runtime, are taken before
             # and after start_suites
             deltatime = self.end_time - self.start_time
             runtime_total = deltatime.total_seconds()
             runtime_suites = sum([s.runtime for s in suites])
             json_dict = {
-                'selective_run': False, 
-                'last_start_time': self.start_time.isoformat(),
+                'selective_run': False,
+                'start_time': self.start_time.isoformat(),
                 'last_end_time': self.end_time.isoformat(),
                 'runtime_total': runtime_total,
                 'runtime_suites': runtime_suites,
                 'runtime_robotmk': runtime_total - runtime_suites,
                 'suites': [(s.id, s.runtime) for s in suites if s.rc < 252],
-                'suites_fatal': [s.id for s in suites if s.rc >= 252 ],
+                'suites_fatal': [s.id for s in suites if s.rc >= 252],
                 'execution_mode': self.execution_mode,
                 'cache_time': self.config.global_dict['cache_time'],
             }
-            if 'agent_serial' in self.config.global_dict['execution_mode']: 
+            if 'agent_serial' in self.config.global_dict['execution_mode']:
                 json_dict.update({
                     'execution_interval': self.config.global_dict['execution_interval'],
                 })
-        else: 
-            # Selective run is: 
+        else:
+            # Selective run is:
             # - parallel mode (controller starts one runner per suite)
             # - external mode with specific suites as arguments to --run
             json_dict = {
                 'execution_mode': self.execution_mode,
                 'selective_run': True,
                 'suites': [(s.id, s.runtime) for s in suites if s.rc < 252],
-                'suites_fatal': [s.id for s in suites if s.rc >= 252 ],
-            } 
+                'suites_fatal': [s.id for s in suites if s.rc >= 252],
+            }
         self.loginfo("Writing runner statefile %s" % self.runner_statefile)
-        try: 
+        try:
             with open(self.runner_statefile, 'w', encoding='utf-8') as runner_statefile:
                 json.dump(json_dict, runner_statefile, indent=2)
-        except Exception as e: 
-            self.logerror("Cannot write runer statefile %s: %s" % (self.runner_statefile, str(e)))
+        except Exception as e:
+            self.logerror("Cannot write runer statefile %s: %s" %
+                          (self.runner_statefile, str(e)))
 
     def asinstance(f):
         '''Ensures that a function only gets called by instances
         Args:
             logf ([function]): function
-        '''        
+        '''
         def wrapper(*args):
-            if not inspect.isclass(args[0]): 
+            if not inspect.isclass(args[0]):
                 f(*args)
         return wrapper
 
@@ -656,10 +752,15 @@ class RobotMK():
     def logerror(self, text):
         self.logger.error(text)
 
-#rrunner
-class RMKrunner(RobotMK):
-    def __init__(self): 
+
+class RMKrunner(RMKState, RobotMK):
+    def __init__(self):
+        self.id = 'runner'
         super().__init__()
+        self.set_statevars([
+            ('id', 'runner'),
+            ('execution_mode', self.global_dict['execution_mode']),
+        ])
         pass
 
     def update_suites2start(self, suites_cmdline):
@@ -672,26 +773,28 @@ class RMKrunner(RobotMK):
         Args:
             suites_cmdline (list): comma separated list of suite names 
         '''
-        suites_cmdline = [ x.strip() for x in suites_cmdline.split(',')]
+        suites_cmdline = [x.strip() for x in suites_cmdline.split(',')]
         # to fake an invalid suitename as argument...
         # suites_cmdline = ['foo']
         if (len(suites_cmdline) == 1 and suites_cmdline[0] == "all"):
             # there are no specific suites to run, run all
             self.selective_run = False
-            self.loginfo("selective_run = False; will execute all suites as configured.")
-        else: 
-            self.loginfo("selective_run = True; updating list of suites...")
-            # There are specific suite arguments 
+            self.loginfo(
+                "No suite arguments given ro '--run'; will execute all as configured.")
+        else:
+            self.loginfo(
+                "'--run' has suite arguments; merging with list of suites...")
+            # There are specific suite arguments
             self.selective_run = True
             # What's configured
             configured_suites = self.config.suites_dict.keys()
             # Suites given as arg do not have a cfg entry:
-            suites_inarg_notincfg = [suite for suite in suites_cmdline 
-                                 if suite not in configured_suites]
-            if len(suites_inarg_notincfg) > 0:                                  
+            suites_inarg_notincfg = [suite for suite in suites_cmdline
+                                     if suite not in configured_suites]
+            if len(suites_inarg_notincfg) > 0:
                 self.logdebug("(+) Adding suites: " +
-                                f"'{','.join(suites_inarg_notincfg)}' " + 
-                                "(not in cfg, but in arguments; assuming this to be a directory name; will try to start this with defaults.)")
+                              f"'{','.join(suites_inarg_notincfg)}' " +
+                              "(not in cfg, but in arguments; assuming this to be a directory name; will try to start this with defaults.)")
                 suites_inarg_notincfg_dict = {
                     suiteid: {
                         'path': suiteid
@@ -701,123 +804,185 @@ class RMKrunner(RobotMK):
             # Remove suites from cfg which are not given as argument
             keep = {}
             for suiteid, suitedict in self.config.suites_dict.items():
-                if suiteid not in suites_cmdline: 
-                    self.logdebug(f"(-) Skipping suite '{suiteid}'' (in cfg, NOT in arguments)")
+                if suiteid not in suites_cmdline:
+                    self.logdebug(
+                        f"(-) Skipping suite '{suiteid}'' (in cfg, NOT in arguments)")
                     # del(self.config.suites_dict[suiteid])
-                else: 
-                    self.logdebug(f"( ) Keeping suite '{suiteid}' (in cfg and in arguments)")
+                else:
+                    self.logdebug(
+                        f"( ) Keeping suite '{suiteid}' (in cfg and in arguments)")
                     keep.update({
-                        suiteid : self.config.suites_dict[suiteid]
+                        suiteid: self.config.suites_dict[suiteid]
                     })
             self.config.suites_dict = keep
             # self.loginfo("Updated suite list: %s" % ', '.join(keep.keys()))
             pass
 
-        
+    def clear_statevars(self):
+        data = {k: None for k in 'start_time end_time runtime runtime_suites runtime_robotmk suites suites_fatal'.split()}
+        self._state.update(data)
 
+    def update_runner_statevars(self):
+        '''A non-selective (=complete) run is whenever the runner gets started 
+        with no suite args. That is when:
+        - serial mode (controller itself starts runner with no suite args)
+        - external mode (a scheduled task starts the runner with no suite args)
+        A selective, non-complete run is 
+        - parallel mode (controller starts one runner per suite)
+        - external mode (a scheduled task starts the runner with suite args)'''
+        runtime_total = (
+            self._state['end_time'] - self._state['start_time']).total_seconds()
+        runtime_suites = sum([suite.runtime for suite in self.suites])
+        runtime_robotmk = runtime_total - runtime_suites
+        suites_nonfatal = [(s.id, s.runtime)
+                           for s in self.suites if s.rc < 252]
+        suites_fatal = [(s.id, s.runtime) for s in self.suites if s.rc >= 252]
+        suites = {
+            'suites_nonfatal': suites_nonfatal,
+            'suites_fatal': suites_fatal,
+        }
+        self.set_statevars([
+            ('runtime_total', runtime_total),
+            ('runtime_suites', runtime_suites),
+            ('runtime_robotmk', runtime_robotmk),
+            ('suites', suites),
+            ('selective_run', self.selective_run),
+        ])
+        if self.execution_mode == 'agent_serial':
+            self.set_statevars([('cache_time', self.config.global_dict['cache_time']), (
+                'execution_interval', self.config.global_dict['execution_interval'])])
+        elif self.execution_mode == 'agent_parallel':
+            self.set_statevars([('cache_time', self.config.suite_dict['cache_time']), (
+                'execution_interval', self.config.suite_dict['execution_interval'])])
+        elif self.execution_mode == 'external':
+            if self.selective_run:
+                self.set_statevars(
+                    ('cache_time', self.config.suite_dict['cache_time']))
+            else:
+                self.set_statevars(
+                    ('cache_time', self.config.global_dict['cache_time']))
+        else:
+            # Better never get here...
+            pass
 
-    #my-startsuites
+    @property
+    def global_dict(self):
+        return self.config.cfg_dict['global']
+
+    @property
+    def suites_dict(self):
+        return self.config.cfg_dict['suites']
+
     def start_suites(self, suites_cmdline):
         self.update_suites2start(suites_cmdline)
-        suites = self.config.suite_objs
+        self.suites = self.config.suite_objs
         self.loginfo(
-            ' => Suites to start: %s' % ', '.join([s.id for s in suites]))
-        self.start_time = datetime.now(timezone.utc)
-        for suite in suites:
+            ' => Suites to start: %s' % ', '.join([s.id for s in self.suites]))
+        self.write_statevars(('start_time', self.now))
+        for suite in self.suites:
             id = suite.id
             self.loginfo(f"---------- Suite ID: {id} ----------")
-            if not os.path.exists(suite.path): 
+            if not os.path.exists(suite.path):
                 error = "Suite path %s does not exist. " % suite.path
                 self.logerror(error)
-                # The statefile will contain iD and error text of this failed 
+                # The statefile will contain iD and error text of this failed
                 # suite run. But the controller will only "find" this statefile
                 # if he know about it -> if there is a valid entry in the config.
                 suite.error = error
                 # continue
             self.logdebug(f'Starting suite')
-            rc = suite.start()
-            self.loginfo(f'Suite finished with RC {rc} after {suite.runtime} sec')
-            if rc > 250: 
-                self.logerror('RC > 250 = Robot exited with fatal error. There are no logs written.')
-                self.logerror('Please run the robot command manually to debug.')
+            rc = suite.run()
+            self.loginfo(
+                f'Suite finished with RC {rc}')
+            if rc > 250:
+                self.logerror(
+                    'RC > 250 = Robot exited with fatal error. There are no logs written.')
+                self.logerror(
+                    'Please run the robot command manually to debug.')
                 suite.clear_filenames()
-            self.loginfo(f'Writing suite statefile {suite.statefile.path}')
-            suite.statefile.write()
-        self.end_time = datetime.now(timezone.utc)
-        self.write_runner_statefile(suites)
+            self.loginfo(f'Writing suite statefile {suite.statefile_path}')
+            suite.write_state_to_file()
+        self.set_statevars(('end_time', self.now))
+        self.update_runner_statevars()
+        self.write_state_to_file()
+        # self.write_runner_statefile(suites)
 
-#rcontroller
+# rcontroller
+
+
 class RMKCtrl(RobotMK):
-    #TODO: Cleanup the XML!
+    # TODO: Cleanup the XML, remove images
 
-    
     header = '<<<robotmk>>>'
 
     def __init__(self):
         super().__init__()
 
-    def agent_output(self): 
+    def agent_output(self):
         '''Determines the agent output; this is a JSON dict with two keys: 
         - runner data: beneath static information like the robotmk version and encoding, 
                     it also includes the runner's statefile (total execution 
                     time, cache time, executed suites etc.)
         - suites
-        '''        
+        '''
         output = []
         encoding = self.config.global_dict['agent_output_encoding']
         runner_data = {
-            "encoding": encoding, 
+            "encoding": encoding,
             "robotmk_version": ROBOTMK_VERSION,
             "execution_mode": self.execution_mode,
             "cache_time": self.config.global_dict['cache_time'],
             # "execution_interval": self.config.global_dict['execution_interval'],
         }
-        self.logdebug("Trying to read the Runner statefile %s" % self.runner_statefile)
-        # TODO: Error handling
+        self.logdebug("Trying to read the Runner statefile %s" %
+                      self.runner_statefile)
+        # TODO: Catch the exception!
         runner_state = json.loads(self.read_file(self.runner_statefile, '{}'))
         runner_data.update(runner_state)
-        self.loginfo("Reading suite statefiles and encoding data (%s)..." % encoding)
+        self.loginfo(
+            "Reading suite statefiles and encoding data (%s)..." % encoding)
         allstates = self.check_suite_statefiles(encoding)
-        for host in allstates.keys():  
-            states = allstates[host]  
+        for host in allstates.keys():
+            states = allstates[host]
             host_state = {
-                "runner": runner_data, 
+                "runner": runner_data,
                 "suites": states,
             }
             json_serialized = json.dumps(host_state, sort_keys=False, indent=2)
             json_w_header = f'<<<robotmk:sep(0)>>>\n{json_serialized}\n'
-            if host != "localhost": 
+            if host != "localhost":
                 json_w_header = f'<<<<{host}>>>>\n{json_w_header}\n<<<<>>>>\n'
             output.append(json_w_header)
         return ''.join(output)
 
-
     def check_suite_statefiles(self, encoding):
-        '''Check the state files of suites; encode specific keys'''  
+        '''Check the state files of suites; encode specific keys'''
         states = defaultdict(list)
-        self.loginfo(" => Suites to check: %s" % ', '.join(self.config.suites_dict.keys()))
+        self.loginfo(" => Suites to check: %s" %
+                     ', '.join(self.config.suites_dict.keys()))
         for suite in self.config.suite_objs:
             # if (piggyback)host is set, results gets assigned to other CMK host
             host = suite.suite_dict.get('host', 'localhost')
-            self.logdebug("Reading statefile of suite '%s': %s" % (suite.id, suite.statefile.path))
+            self.logdebug("Reading statefile of suite '%s': %s" % (
+                suite.id, suite.statefile.path))
             state = suite.statefile.read()
-            if 'error' in state: 
+            if 'error' in state:
                 self.logerror(state['error'])
 
-            for k in self.keys_to_encode: 
-                if k in state:  
+            for k in self.keys_to_encode:
+                if k in state:
                     if k == 'htmllog' and self.config.global_dict['transmit_html'] == False:
                         state[k] = None
-                    else: 
+                    else:
                         content = self.read_file(state[k])
                         state[k] = self.encode(
-                            content, 
+                            content,
                             suite.global_dict['agent_output_encoding'])
             states[host].append(state)
         return states
 
     @property
-    def keys_to_encode(self): 
+    def keys_to_encode(self):
         return ['xml', 'htmllog']
 
     def encode(self, data, encoding):
@@ -828,47 +993,47 @@ class RMKCtrl(RobotMK):
             # zlib bytestream is base64 wrapped to avoid nasty bytes wihtin the
             # agent output. The check has first to decode the base64 "shell"
             data_encoded = self.to_zlib(data)
-        else: 
-            #TODO: ERROR wrong encoding!
+        else:
+            # TODO: Catch the exception! (wrong encoding)!
             pass
         # as we are serializing the data to JSON, let's convert the bytestring
         # again back to UTF-8
         return data_encoded.decode('utf-8')
 
     def to_base64(self, data):
-        data_base64  = base64.b64encode(data)
+        data_base64 = base64.b64encode(data)
         return data_base64
 
     # opens the Robot XML file and returns the compressed xml result.
-    # Caveat: to keep the zlib stream integrity, it must be converted to a 
-    # "safe" stream afterwards. 
+    # Caveat: to keep the zlib stream integrity, it must be converted to a
+    # "safe" stream afterwards.
     # Reason: if there is a byte in the zlib stream which is a newline byte
-    # by accident, Checkmk splits the byte string at this point - the 
+    # by accident, Checkmk splits the byte string at this point - the
     # byte gets lost, stream integrity bungled.
-    # Even if base64 blows up the data, this double encoding still saves space: 
+    # Even if base64 blows up the data, this double encoding still saves space:
     # in:      692800 bytes  100    %
     # zlib:      4391 bytes    0,63 % -> compression 99,37%
     # base64:    5856 bytes    0,85 % -> compression 99,15%
     def to_zlib(self, data):
-        # TODO: Remove the separator from check
         data_zlib = zlib.compress(data, 9)
         data_zlib_b64 = self.to_base64(data_zlib)
         return data_zlib_b64
 
-    def read_file(self, path, default=None): 
+    def read_file(self, path, default=None):
         content = None
-        try: 
-            with open(path, 'r', encoding='utf-8') as file: 
+        try:
+            with open(path, 'r', encoding='utf-8') as file:
                 content = file.read()
-                if len(content) == 0: 
+                if len(content) == 0:
                     self.logwarn("File %s has no content, using defaults (%s)" % (
                         path, str(default)))
                     content = default
-        except Exception as e: 
+        except Exception as e:
             self.logwarn("Error while reading %s (%s); using default (%s)" % (
-                path, e, str(default) ))
+                path, e, str(default)))
             content = default
         return content
+
 
 def test_for_modules():
     try:
@@ -884,28 +1049,29 @@ def test_for_modules():
         logger.error(f'Could not start because of a missing module: {str(e)}')
         exit(1)
 
-#rmain
+# rmain
+
+
 def main():
     test_for_modules()
     RobotMK.get_args()
     cmdline_suites = RobotMK.cmdline_args.suites
     instance = None
     if cmdline_suites is None:
-        instance = RMKCtrl() 
+        instance = RMKCtrl()
         data = instance.agent_output()
         print(data)
-        #This is the point where the controller will not only monitor state
-        #files, but also start new executions!
+        # This is the point where the controller will not only monitor state
+        # files, but also start new executions!
     else:
         instance = RMKrunner()
         instance.start_suites(cmdline_suites)
     instance.loginfo("="*20 + " FINISHED " + "="*20)
 
 
-
 if __name__ == '__main__':
     main()
-else: 
+else:
     # when imported as module
     import mergedeep
     import robot
