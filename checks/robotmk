@@ -182,6 +182,14 @@ def check_robot(item, checkgroup_parameters, parsed):
         perfdata_list.append(('suites_fatal', "%d" % fatal_count))
 
         # II) Headroom monitoring
+        '''A non-selective (=complete) run is whenever the runner gets started 
+        with no suite args. That is when:
+        - serial mode (controller itself starts runner with no suite args)
+        - external mode (a scheduled task starts the runner with no suite args)
+        A selective, non-complete run is 
+        - parallel mode (controller starts one runner per suite)
+        - external mode (a scheduled task starts the runner with suite args)'''
+        # TODO: external mode needs differentiation: selective or global?
         # - agent_serial: execution_time vs. interval + global cache_time
         # - agent_parallel: execution_time vs. interval + cache_time
         # - external: execution_time vs global_cache_time
