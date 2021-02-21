@@ -26,6 +26,7 @@
 from pathlib import Path
 from collections import defaultdict
 import os
+import sys
 import re
 from argparse import ArgumentParser, RawTextHelpFormatter
 from datetime import datetime, timezone, timedelta
@@ -37,6 +38,8 @@ import zlib
 import logging
 from logging.handlers import TimedRotatingFileHandler
 from textwrap import dedent
+import subprocess
+import platform
 
 local_tz = datetime.utcnow().astimezone().tzinfo
 ROBOTMK_VERSION = "v0.2.0"
@@ -355,6 +358,8 @@ class RMKState():
 
 
 class RMKSuite(RMKState):
+    logmark = '~'
+
     def __init__(self, id, config):
         self.id = id
         self.config = config
@@ -503,7 +508,8 @@ class RobotMK():
     def __init__(self):
         self.__setup_logging(
             calling_cls=self, verbose=self.cmdline_args.verbose)
-        self.loginfo("="*20 + " START " + "="*20)
+        # self.loginfo("="*20 + " %s " % str(self) + "="*20)
+        self.loginfo(self.logmark * 20 + " %s " % str(self) + self.logmark*20)
         self.config = RMKConfig(calling_cls=self)
         self.execution_mode = self.config.global_dict['execution_mode']
 
@@ -578,7 +584,7 @@ class RobotMK():
                      ).joinpath(f'robotmk.log'),
                 when="h", interval=24, backupCount=30)
             file_formatter = logging.Formatter(
-                fmt='%(asctime)s %(name)10s %(levelname)8s: %(message)s')
+                fmt='%(asctime)s %(name)10s [%(process)5d] %(levelname)7s: %(message)s')
             fh.setFormatter(file_formatter)
             fh.setLevel(logging.DEBUG)
             logger.addHandler(fh)
@@ -587,7 +593,7 @@ class RobotMK():
             if verbose:
                 console = logging.StreamHandler()
                 console_formatter = logging.Formatter(
-                    fmt='%(asctime)s %(name)10s %(levelname)8s: %(message)s')
+                    fmt='%(asctime)s %(name)10s [%(process)5d] %(levelname)7s: %(message)s')
                 console.setFormatter(console_formatter)
                 console.setLevel(logging.DEBUG)
                 self.logger.addHandler(console)
@@ -620,6 +626,8 @@ class RobotMK():
 
 
 class RMKrunner(RMKState, RobotMK):
+    logmark = '#'
+
     def __init__(self):
         self.id = 'runner'
         super().__init__()
@@ -628,6 +636,9 @@ class RMKrunner(RMKState, RobotMK):
             ('execution_mode', self.global_dict['execution_mode']),
         ])
         pass
+
+    def __str__(self):
+        return 'Robotmk Runner'
 
     def update_suites2start(self, suites_cmdline):
         '''Updates suites_dict so that it reflects the suites given comma-
@@ -646,7 +657,7 @@ class RMKrunner(RMKState, RobotMK):
             # there are no specific suites to run, run all
             self.selective_run = False
             self.loginfo(
-                "No suite arguments given ro '--run'; will execute all as configured.")
+                "No suite arguments given to '--run'; will execute all as configured.")
         else:
             self.loginfo(
                 "'--run' has suite arguments; merging with list of suites...")
@@ -747,7 +758,8 @@ class RMKrunner(RMKState, RobotMK):
         self.write_statevars(('start_time', self.now))
         for suite in self.suites:
             id = suite.id
-            self.loginfo(f"---------- Suite ID: {id} ----------")
+            self.loginfo(
+                f"{4*RMKSuite.logmark} Suite ID: {id} {4*RMKSuite.logmark}")
             if not os.path.exists(suite.path):
                 error = "Suite path %s does not exist. " % suite.path
                 self.logerror(error)
@@ -774,20 +786,51 @@ class RMKrunner(RMKState, RobotMK):
 
 # rcontroller
 
+# https://stackoverflow.com/a/2251026/14845044
+
 
 class RMKCtrl(RMKState, RobotMK):
     # TODO: Cleanup the XML, remove images
 
     header = '<<<robotmk>>>'
+    logmark = '='
 
     def __init__(self):
         super().__init__()
 
-    def schedule_suites(self):
-        if self.execution_mode == 'agent_serial':
-            if not self.is_running:
+    def __str__(self):
+        return 'Robotmk Controller'
 
-                pass
+    def os_popen(self, cmd):
+        self.loginfo("Executing Runner ('%s')" % str(cmd))
+        if platform.system() == 'Linux':
+            subprocess.Popen(cmd)
+        elif platform.system() == 'Windows':
+            # TODO Test Popen on Windows
+            pass
+
+    def schedule_runner(self):
+        self.loginfo(">>> Runner scheduling (%s) <<<" % self.execution_mode)
+        start_time = iso_asdatetime(self._state['start_time'])
+        end_time = iso_asdatetime(self._state['end_time'])
+        pluginname = os.path.realpath(__file__)
+        if self.execution_mode == 'agent_serial':
+            execution_interval = timedelta(
+                seconds=self.config.global_dict['execution_interval'])
+            if not self.is_running:
+                if self.now > start_time + execution_interval:
+                    self.loginfo(
+                        "Execution interval (%ds) for Runner is elapsed since last start at %s" % (execution_interval.seconds, self._state['end_time']))
+                    cmd = [pluginname, '--run']
+                    self.os_popen(cmd)
+                    sys.exit()
+
+                else:
+                    secs_to_execute = (
+                        start_time + execution_interval - self.now).seconds
+                    self.loginfo("Next Runner execution in %ds (interval=%ds)" % (
+                        secs_to_execute, execution_interval.seconds))
+
             else:
                 # IDEA: Controller can monitor its own log files. (WARN/ERROR)
                 self.logerror(
@@ -822,6 +865,7 @@ class RMKCtrl(RMKState, RobotMK):
           - the runner's statefile (total execution time, cache time, executed suites etc.)
         - content of all suite statefiles as configured
         '''
+        self.loginfo(">>> Agent output generation <<<")
         output = []
         encoding = self.global_dict['agent_output_encoding']
         meta_data = {
@@ -849,6 +893,7 @@ class RMKCtrl(RMKState, RobotMK):
             if host != "localhost":
                 json_w_header = f'<<<<{host}>>>>\n{json_w_header}\n<<<<>>>>\n'
             output.append(json_w_header)
+        self.loginfo("Agent output printed on STDOUT")
         print(''.join(output))
 
     @property
@@ -862,7 +907,7 @@ class RMKCtrl(RMKState, RobotMK):
     def check_suite_statefiles(self, encoding):
         '''Check the state files of suites; encode specific keys'''
         states = defaultdict(list)
-        self.loginfo(" => Suites to check: %s" %
+        self.loginfo("Suites to check: %s" %
                      ', '.join(self.suites_dict.keys()))
         for suite in self.config.suite_objs:
             # if (piggyback)host is set, results gets assigned to other CMK host
@@ -951,6 +996,10 @@ def localized_iso(iso):
     return parser.isoparse(iso).astimezone()
 
 
+def iso_asdatetime(iso):
+    return parser.isoparse(iso)
+
+
 def test_for_modules():
     try:
         global yaml
@@ -976,13 +1025,13 @@ def main():
     if cmdline_suites is None:
         rmk = RMKCtrl()
         rmk.print_agent_output()
-        rmk.schedule_suites()
+        rmk.schedule_runner()
         # This is the point where the controller will not only monitor state
         # files, but also start new executions!
     else:
         rmk = RMKrunner()
         rmk.start_suites(cmdline_suites)
-    rmk.loginfo("="*20 + " FINISHED " + "="*20)
+    # rmk.loginfo("="*20 + " FINISHED " + "="*20)
 
 
 if __name__ == '__main__':
