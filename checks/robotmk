@@ -25,7 +25,10 @@ import re
 import time
 import ast
 import datetime
+from pytz import timezone
+import pytz
 from dateutil import parser
+from dateutil.tz import tzlocal
 from pprint import pprint
 import xml.etree.ElementTree as ET
 from operator import add, sub
@@ -34,6 +37,8 @@ import base64
 import zlib
 import json
 from string import Template
+
+utc = pytz.utc
 
 ROBOTMK_VERSION = "v0.2.0"
 
@@ -127,8 +132,8 @@ def check_robot(item, checkgroup_parameters, parsed):
 
     if item == 'Robotmk':
         perfdata_list = []
-        suites_total = len(parsed['suites']) + len(
-            parsed['runner']['suites_fatal'])
+        suites_total = len(parsed['runner']['suites']['suites_nonfatal']) + \
+            len(parsed['runner']['suites']['suites_fatal'])
         rc = 0
         first_line = []
         out_lines = []
@@ -140,20 +145,20 @@ def check_robot(item, checkgroup_parameters, parsed):
         # * **external** (vs. suite cache_time or, if suites from dir: global cache_time)
 
         stales = []
-        for root_suite in [
-                s for s in parsed['suites'] if s['result_is_stale'] == True
-        ]:
-            last_end = parser.isoparse(
-                root_suite['last_end_time']).strftime('%Y-%m-%d %H:%M:%S')
-            overdue_sec = datetime.timedelta(
-                seconds=root_suite['result_overdue'])
-            stales.append((
-                root_suite['id'],
-                "(!!) Suite '%s': (last execution end: %s, " % (root_suite['id'], last_end) + \
-                "cache time: %ss, overdue since %ss)\n" % (
-                            str(root_suite['cache_time']),
-                            overdue_sec)
-            ))
+        for root_suite in parsed['suites']:
+            now = datetime.datetime.now(tzlocal())
+            last_end = parser.isoparse(root_suite['end_time'])
+            age = now - last_end
+            if age.total_seconds() > root_suite['cache_time']:
+                last_end_fmt = last_end.strftime('%Y-%m-%d %H:%M:%S')
+                overdue_sec = age.total_seconds() - root_suite['cache_time']
+                stales.append((
+                    root_suite['id'],
+                    "(!!) Suite '%s': (last execution end: %s, " % (root_suite['id'], last_end_fmt) + \
+                    "cache time: %ds, overdue since %.1fs)\n" % (
+                                root_suite['cache_time'],
+                                overdue_sec)
+                ))
         if len(stales) > 0:
             rc = max(rc, 2)
             first_line.append(
@@ -169,70 +174,77 @@ def check_robot(item, checkgroup_parameters, parsed):
                 ))
 
         # Check Fatal suites
-        fatal_count = len(parsed['runner']['suites_fatal'])
+        fatal_count = len(parsed['runner']['suites']['suites_fatal'])
         if fatal_count > 0:
             rc = max(rc, 2)
             first_line.append(
                 "%d Robot suites have fatal errors (!!) (%s)" %
                 (fatal_count,
                  quoted_listitems(
-                     [s for s in parsed['runner']['suites_fatal']])))
+                     [s for s in parsed['runner']['suites']['suites_fatal']])))
         perfdata_list.append(('suites_total', "%d" % suites_total))
         perfdata_list.append(('suites_stale', "%d" % len(stales)))
         perfdata_list.append(('suites_fatal', "%d" % fatal_count))
 
         # II) Headroom monitoring
         '''A non-selective (=complete) run is whenever the runner gets started 
-        with no suite args. That is when:
+        with no suite args and all suites are run as configured. 
+        In this case the runtime headroom should be monitored:
         - serial mode (controller itself starts runner with no suite args)
-        - external mode (a scheduled task starts the runner with no suite args)
+        - external mode (when a scheduled task starts the runner with no suite args)
         A selective, non-complete run is 
         - parallel mode (controller starts one runner per suite)
         - external mode (a scheduled task starts the runner with suite args)'''
-        # TODO: external mode needs differentiation: selective or global?
-        # - agent_serial: execution_time vs. interval + global cache_time
-        # - agent_parallel: execution_time vs. interval + cache_time
-        # - external: execution_time vs global_cache_time
         runner_runtime = round(parsed['runner']["runtime_total"], 1)
-        execution_interval = parsed['runner'].get("execution_interval", None)
-        cache_time = parsed['runner']["cache_time"]
-        # set the 100% threshold value
-        maxruntime = max(execution_interval, cache_time)
-        #FIXME: This are w/c threshold PLACEHOLDERS !!
-        runner_runtime_warn_s = maxruntime * 0.9
-        runner_runtime_crit_s = maxruntime * 0.95
-        pct_runtime_usage = round((100 / float(maxruntime)) * runner_runtime,
-                                  1)
-        if runner_runtime > runner_runtime_warn_s:
-            if runner_runtime > runner_runtime_crit_s:
-                badge = '(!!) '
-                rc = max(rc, 2)
-            else:
-                badge = '(!) '
-                rc = max(rc, 1)
-        else:
-            badge = ''
-            rc = max(rc, 0)
-        first_line.append(
-            "%stotal runtime uses %.1f%% (%.1fs) of " % (
-                badge,
-                pct_runtime_usage,
-                runner_runtime) + \
-            "result cache_time (%ds)" % cache_time )
 
-        perfdata_list.append((
-            'runner_runtime', runner_runtime, runner_runtime_warn_s,
-            runner_runtime_crit_s, 0, maxruntime
-            #TODO: Add warn/crit thresholds here
-        ))
-        perfdata_list.append(('runner_cache_time', "%d" % cache_time))
-        if not execution_interval is None:
+        try:
+            if parsed['runner']['execution_mode'] == 'agent_serial':
+                cache_time = parsed['runner']['cache_time']
+                execution_interval = parsed['runner']['execution_interval']
+            elif parsed['runner'][
+                    'execution_mode'] == 'external' and not self.selective_run:
+                cache_time = parsed['runner']['cache_time']
+                execution_interval = None
+        finally:
+
+            # set the 100% threshold value for the graph
+            maxruntime = max(execution_interval, cache_time)
+            #FIXME: This are w/c threshold PLACEHOLDERS !!
+            runner_runtime_warn_s = maxruntime * 0.9
+            runner_runtime_crit_s = maxruntime * 0.95
+            pct_runtime_usage = round(
+                (100 / float(maxruntime)) * runner_runtime, 1)
+            if runner_runtime > runner_runtime_warn_s:
+                if runner_runtime > runner_runtime_crit_s:
+                    badge = '(!!) '
+                    rc = max(rc, 2)
+                else:
+                    badge = '(!) '
+                    rc = max(rc, 1)
+            else:
+                badge = ''
+                rc = max(rc, 0)
+            first_line.append(
+                "%stotal runtime uses %.1f%% (%.1fs) of " % (
+                    badge,
+                    pct_runtime_usage,
+                    runner_runtime) + \
+                "result cache_time (%ds)" % cache_time )
+
+            perfdata_list.append((
+                'runner_runtime', runner_runtime, runner_runtime_warn_s,
+                runner_runtime_crit_s, 0, maxruntime
+                #TODO: Add warn/crit thresholds here
+            ))
+            perfdata_list.append(('runner_cache_time', "%d" % cache_time))
+            if not execution_interval is None:
+                perfdata_list.append(
+                    ('runner_execution_interval', "%d" % execution_interval))
             perfdata_list.append(
-                ('runner_execution_interval', "%d" % execution_interval))
-        perfdata_list.append(('runner_runtime_robotmk',
-                              "%.3f" % parsed['runner']["runtime_robotmk"]))
-        perfdata_list.append(('runner_runtime_suites',
-                              "%.3f" % parsed['runner']["runtime_suites"]))
+                ('runner_runtime_robotmk',
+                 "%.3f" % parsed['runner']["runtime_robotmk"]))
+            perfdata_list.append(('runner_runtime_suites',
+                                  "%.3f" % parsed['runner']["runtime_suites"]))
 
         # 3. Execution mode
         first_line.append("plugin mode: %s" %
@@ -258,20 +270,24 @@ def check_robot(item, checkgroup_parameters, parsed):
                 # Remove the prefix to get the original item name
                 item_without_prefix = strip_svc_prefix(item, root_suite)
                 if discovered_item.name == item_without_prefix:
-                    if root_suite['result_is_stale'] == False:
+                    now = datetime.datetime.now(tzlocal())
+                    last_end = parser.isoparse(root_suite['end_time'])
+                    age = now - last_end
+                    if age.total_seconds() < root_suite['cache_time']:
                         return evaluate_robot_item(discovered_item,
                                                    checkgroup_parameters)
                     else:
-                        return ignore_robot_item(root_suite)
+                        overdue_sec = round(
+                            age.total_seconds() - root_suite['cache_time'], 1)
+                        return ignore_robot_item(root_suite, last_end,
+                                                 overdue_sec)
 
 
-def ignore_robot_item(root_suite):
+def ignore_robot_item(root_suite, last_end, overdue_sec):
     #TODO: (Perhaps make this configurable (OK/UNKNOWN))
-    last_end = parser.isoparse(
-        root_suite['last_end_time']).strftime('%Y-%m-%d %H:%M:%S')
-    overdue_sec = datetime.timedelta(seconds=root_suite['result_overdue'])
-    out = "Result of RF suite '%s' is too old. " % root_suite['id'] + \
-        "Last execution end: %s, " % last_end + \
+    last_end_fmt = last_end.strftime('%Y-%m-%d %H:%M:%S')
+    out = "Result of suite '%s' is too old. " % root_suite['id'] + \
+        "Last execution end: %s, " % last_end_fmt + \
         "overdue since %ss " % (overdue_sec) + \
         "(cache time: %ss)" % str(root_suite['cache_time'])
     return 3, out

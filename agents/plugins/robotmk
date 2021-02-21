@@ -26,6 +26,7 @@
 from pathlib import Path
 from collections import defaultdict
 import os
+import sys
 import re
 from argparse import ArgumentParser, RawTextHelpFormatter
 from datetime import datetime, timezone, timedelta
@@ -37,6 +38,8 @@ import zlib
 import logging
 from logging.handlers import TimedRotatingFileHandler
 from textwrap import dedent
+import subprocess
+import platform
 
 local_tz = datetime.utcnow().astimezone().tzinfo
 ROBOTMK_VERSION = "v0.2.0"
@@ -266,20 +269,16 @@ class RMKState():
                     for (k, v) in data.items()}
         except Exception as e:
             # TODO: Not optimal. Logging is only inherited from RoboMK to Ctrl and Runner.
-            # self.logwarn("Cannot read statefile %s does it exist?" %
-            #  self.statefile_path)
-            # data = {}
+            # self.logwarn("Statefile not found - %s (%s)" % (self.statefile_path, str(e)))
+            data = {}
             # TODO: Test
-            data = {
-                'id': self.suite.id,
-                'error': "Statefile of suite '%s' not found - %s (perhaps the suite did never run)" % (self.suite.id, str(e))
-            }
+            # data = {
+            #     'id': self.suite.id,
+            #     'error': "Statefile of suite '%s' not found - %s (perhaps the suite did never run)" % (self.suite.id, str(e))
+            # }
 
         # self.data['result_age'] = self.age.seconds
         # self.data['result_overdue'] = self.overdue
-        # # Yes... state determination on client side is not the checkmk way.
-        # # But the are calculation depends on the time zone; we better calculate
-        # # time-critic metrics on the local machine.
         # self.data['result_is_stale'] = self.is_stale()
         return data
 
@@ -351,10 +350,13 @@ class RMKState():
 
     @property
     def now(self):
-        return datetime.now(timezone.utc)
+        # return datetime.now(timezone.utc)
+        return datetime.now(local_tz)
 
 
 class RMKSuite(RMKState):
+    logmark = '~'
+
     def __init__(self, id, config):
         self.id = id
         self.config = config
@@ -503,7 +505,8 @@ class RobotMK():
     def __init__(self):
         self.__setup_logging(
             calling_cls=self, verbose=self.cmdline_args.verbose)
-        self.loginfo("="*20 + " START " + "="*20)
+        # self.loginfo("="*20 + " %s " % str(self) + "="*20)
+        self.loginfo(self.logmark * 20 + " %s " % str(self) + self.logmark*20)
         self.config = RMKConfig(calling_cls=self)
         self.execution_mode = self.config.global_dict['execution_mode']
 
@@ -578,7 +581,7 @@ class RobotMK():
                      ).joinpath(f'robotmk.log'),
                 when="h", interval=24, backupCount=30)
             file_formatter = logging.Formatter(
-                fmt='%(asctime)s %(name)10s %(levelname)8s: %(message)s')
+                fmt='%(asctime)s %(name)10s [%(process)5d] %(levelname)7s: %(message)s')
             fh.setFormatter(file_formatter)
             fh.setLevel(logging.DEBUG)
             logger.addHandler(fh)
@@ -587,7 +590,7 @@ class RobotMK():
             if verbose:
                 console = logging.StreamHandler()
                 console_formatter = logging.Formatter(
-                    fmt='%(asctime)s %(name)10s %(levelname)8s: %(message)s')
+                    fmt='%(asctime)s %(name)10s [%(process)5d] %(levelname)7s: %(message)s')
                 console.setFormatter(console_formatter)
                 console.setLevel(logging.DEBUG)
                 self.logger.addHandler(console)
@@ -620,6 +623,8 @@ class RobotMK():
 
 
 class RMKrunner(RMKState, RobotMK):
+    logmark = '#'
+
     def __init__(self):
         self.id = 'runner'
         super().__init__()
@@ -628,6 +633,9 @@ class RMKrunner(RMKState, RobotMK):
             ('execution_mode', self.global_dict['execution_mode']),
         ])
         pass
+
+    def __str__(self):
+        return 'Robotmk Runner'
 
     def update_suites2start(self, suites_cmdline):
         '''Updates suites_dict so that it reflects the suites given comma-
@@ -646,7 +654,7 @@ class RMKrunner(RMKState, RobotMK):
             # there are no specific suites to run, run all
             self.selective_run = False
             self.loginfo(
-                "No suite arguments given ro '--run'; will execute all as configured.")
+                "No suite arguments given to '--run'; will execute all as configured.")
         else:
             self.loginfo(
                 "'--run' has suite arguments; merging with list of suites...")
@@ -747,7 +755,8 @@ class RMKrunner(RMKState, RobotMK):
         self.write_statevars(('start_time', self.now))
         for suite in self.suites:
             id = suite.id
-            self.loginfo(f"---------- Suite ID: {id} ----------")
+            self.loginfo(
+                f"{4*RMKSuite.logmark} Suite ID: {id} {4*RMKSuite.logmark}")
             if not os.path.exists(suite.path):
                 error = "Suite path %s does not exist. " % suite.path
                 self.logerror(error)
@@ -774,46 +783,89 @@ class RMKrunner(RMKState, RobotMK):
 
 # rcontroller
 
+# https://stackoverflow.com/a/2251026/14845044
+
 
 class RMKCtrl(RMKState, RobotMK):
     # TODO: Cleanup the XML, remove images
 
     header = '<<<robotmk>>>'
+    logmark = '='
 
     def __init__(self):
         super().__init__()
 
-    def schedule_suites(self):
-        if self.execution_mode == 'agent_serial':
-            if not self.is_running:
+    def __str__(self):
+        return 'Robotmk Controller'
 
-                pass
+    def os_popen(self, cmd):
+        # FIXME: blocking Agent?
+        
+        if platform.system() == 'Linux':
+            self.loginfo("-> Executing Linux Runner ('%s')" % str(cmd))
+            subprocess.Popen(cmd)
+        elif platform.system() == 'Windows':
+            
+            flags = 0
+            flags |= 0x00000008  # DETACHED_PROCESS
+            flags |= 0x00000200  # CREATE_NEW_PROCESS_GROUP
+            flags |= 0x08000000  # CREATE_NO_WINDOW
+
+            pkwargs = {
+                'close_fds': True,  # close stdin/stdout/stderr on child
+                'creationflags': flags,
+            }
+            cmd.insert(0, sys.executable)
+            self.loginfo("-> Executing Windows Runner ('%s')" % str(cmd))
+            P = subprocess.Popen(cmd,**pkwargs)
+
+            pass
+
+    def schedule_runner(self):
+        self.loginfo(">>> Runner scheduling (%s) <<<" % self.execution_mode)
+        if self._state == {}:
+            never_ran = True
+        
+        else:
+            never_ran = False
+            start_time = iso_asdatetime(self._state['start_time'])
+            end_time = iso_asdatetime(self._state['end_time'])
+        pluginname = os.path.realpath(__file__)
+        if self.execution_mode == 'agent_serial':
+            execution_interval = timedelta(
+                seconds=self.config.global_dict['execution_interval'])
+            if never_ran or (self.now > start_time + execution_interval):
+                if never_ran:
+                    self.loginfo(
+                        "Execution interval (%ds) for Runner is elapsed since last start." % (execution_interval.seconds))
+                else:
+                    self.loginfo(
+                        "Execution interval (%ds) for Runner is elapsed since last start at %s" % (execution_interval.seconds, self._state['end_time']))                
+                    if self.is_running:                
+                        # IDEA: Controller can monitor its own log files. (WARN/ERROR)
+                        self.logerror(
+                            'Serial mode prohibits parallel Runner starts; there is ' +
+                            'still one running since %s. ' %
+                            localized_iso(self._state['start_time']))
+                        self.loginfo("Either remove suites from execution list to save " +
+                                    "execution time or increase the execution interval.")
+                        return
+                cmd = [pluginname, '--run']
+                self.os_popen(cmd)
+                
             else:
-                # IDEA: Controller can monitor its own log files. (WARN/ERROR)
-                self.logerror(
-                    'Serial mode prohibits parallel Runner starts; there is ' +
-                    'still one running since %s. ' %
-                    localized_iso(self._state['start_time']))
-                self.loginfo("Either remove suites from execution list to save " +
-                             "execution time or increase the execution interval.")
+                # Idle...
+                secs_to_execute = (
+                    start_time + execution_interval - self.now).seconds
+                self.loginfo("Nothing to do. Next Runner execution in %ds (interval=%ds)" % (
+                    secs_to_execute, execution_interval.seconds))
+
         elif self.execution_mode == 'agent_parallel':
             # TBD
             pass
         else:
             # nothing to do her, execution is an external job
             pass
-
-    #     # pseudocode
-    # IF last_start_time < last_end_time:       # last run was finished
-    #     IF now > last_start_time + global_execution_interval:
-    #         execute_robotmk_detached()     # execution on time
-    #     ELSE:
-    #         pass    # last result too fresh, do nothing
-    # ELSE:   # task is running
-    #     IF now > last_start_time + global_execution_interval:
-    #         pass    # do not throw an error; the monitoring part will detect the outdated spoolfile!
-    #     ELSE:
-    #         pass    # task is running within allowed cache_time, do nothing
 
     def print_agent_output(self):
         '''Determines and prints the agent output; this is a JSON dict with two keys: 
@@ -822,6 +874,7 @@ class RMKCtrl(RMKState, RobotMK):
           - the runner's statefile (total execution time, cache time, executed suites etc.)
         - content of all suite statefiles as configured
         '''
+        self.loginfo(">>> Agent output generation <<<")
         output = []
         encoding = self.global_dict['agent_output_encoding']
         meta_data = {
@@ -830,9 +883,6 @@ class RMKCtrl(RMKState, RobotMK):
         }
         self.logdebug("Reading the Runner statefile %s" %
                       self.statefile_path)
-        # hereiwas: benutze statfeiole_methoden!
-        # TODO: Catch the exception!
-        # hereiwas: need to convert datetimes to iso
         self._state = self.read_state_from_file()
         meta_data.update(self._state)
         self.loginfo(
@@ -849,6 +899,7 @@ class RMKCtrl(RMKState, RobotMK):
             if host != "localhost":
                 json_w_header = f'<<<<{host}>>>>\n{json_w_header}\n<<<<>>>>\n'
             output.append(json_w_header)
+        self.loginfo("Agent output printed on STDOUT")
         print(''.join(output))
 
     @property
@@ -862,7 +913,7 @@ class RMKCtrl(RMKState, RobotMK):
     def check_suite_statefiles(self, encoding):
         '''Check the state files of suites; encode specific keys'''
         states = defaultdict(list)
-        self.loginfo(" => Suites to check: %s" %
+        self.loginfo("Suites to check: %s" %
                      ', '.join(self.suites_dict.keys()))
         for suite in self.config.suite_objs:
             # if (piggyback)host is set, results gets assigned to other CMK host
@@ -951,6 +1002,10 @@ def localized_iso(iso):
     return parser.isoparse(iso).astimezone()
 
 
+def iso_asdatetime(iso):
+    return parser.isoparse(iso)
+
+
 def test_for_modules():
     try:
         global yaml
@@ -962,7 +1017,8 @@ def test_for_modules():
         global parser
         from dateutil import parser
     except ModuleNotFoundError as e:
-        logger.error(f'Could not start because of a missing module: {str(e)}')
+        print('<<<robotmk>>>')
+        print(f'FATAL ERROR!: Robotmk cannot start because of a missing Python3 module (Error was: {str(e)})')
         exit(1)
 
 # rmain
@@ -974,15 +1030,17 @@ def main():
     cmdline_suites = RobotMK.cmdline_args.suites
     rmk = None
     if cmdline_suites is None:
+        # Controller mode
         rmk = RMKCtrl()
         rmk.print_agent_output()
-        rmk.schedule_suites()
-        # This is the point where the controller will not only monitor state
-        # files, but also start new executions!
+        rmk.schedule_runner()
+        rmk.loginfo("--- Quitting Controller, bye. ---")                   
     else:
+        # Runner mode
         rmk = RMKrunner()
         rmk.start_suites(cmdline_suites)
-    rmk.loginfo("="*20 + " FINISHED " + "="*20)
+        rmk.loginfo("... Quitting Runner, bye. ---") 
+    # rmk.loginfo("="*20 + " FINISHED " + "="*20)
 
 
 if __name__ == '__main__':
