@@ -269,20 +269,16 @@ class RMKState():
                     for (k, v) in data.items()}
         except Exception as e:
             # TODO: Not optimal. Logging is only inherited from RoboMK to Ctrl and Runner.
-            # self.logwarn("Cannot read statefile %s does it exist?" %
-            #  self.statefile_path)
-            # data = {}
+            self.logwarn("Statefile not found - %s" % (self.suite.id, str(e)))
+            data = {}
             # TODO: Test
-            data = {
-                'id': self.suite.id,
-                'error': "Statefile of suite '%s' not found - %s (perhaps the suite did never run)" % (self.suite.id, str(e))
-            }
+            # data = {
+            #     'id': self.suite.id,
+            #     'error': "Statefile of suite '%s' not found - %s (perhaps the suite did never run)" % (self.suite.id, str(e))
+            # }
 
         # self.data['result_age'] = self.age.seconds
         # self.data['result_overdue'] = self.overdue
-        # # Yes... state determination on client side is not the checkmk way.
-        # # But the are calculation depends on the time zone; we better calculate
-        # # time-critic metrics on the local machine.
         # self.data['result_is_stale'] = self.is_stale()
         return data
 
@@ -354,7 +350,8 @@ class RMKState():
 
     @property
     def now(self):
-        return datetime.now(timezone.utc)
+        # return datetime.now(timezone.utc)
+        return datetime.now(local_tz)
 
 
 class RMKSuite(RMKState):
@@ -823,12 +820,13 @@ class RMKCtrl(RMKState, RobotMK):
                         "Execution interval (%ds) for Runner is elapsed since last start at %s" % (execution_interval.seconds, self._state['end_time']))
                     cmd = [pluginname, '--run']
                     self.os_popen(cmd)
+                    self.loginfo("Quitting....")
                     sys.exit()
 
                 else:
                     secs_to_execute = (
                         start_time + execution_interval - self.now).seconds
-                    self.loginfo("Next Runner execution in %ds (interval=%ds)" % (
+                    self.loginfo("Nothing to do. Next Runner execution in %ds (interval=%ds)" % (
                         secs_to_execute, execution_interval.seconds))
 
             else:
@@ -874,9 +872,6 @@ class RMKCtrl(RMKState, RobotMK):
         }
         self.logdebug("Reading the Runner statefile %s" %
                       self.statefile_path)
-        # hereiwas: benutze statfeiole_methoden!
-        # TODO: Catch the exception!
-        # hereiwas: need to convert datetimes to iso
         self._state = self.read_state_from_file()
         meta_data.update(self._state)
         self.loginfo(
