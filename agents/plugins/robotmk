@@ -269,7 +269,7 @@ class RMKState():
                     for (k, v) in data.items()}
         except Exception as e:
             # TODO: Not optimal. Logging is only inherited from RoboMK to Ctrl and Runner.
-            self.logwarn("Statefile not found - %s" % (self.suite.id, str(e)))
+            # self.logwarn("Statefile not found - %s (%s)" % (self.statefile_path, str(e)))
             data = {}
             # TODO: Test
             # data = {
@@ -799,62 +799,65 @@ class RMKCtrl(RMKState, RobotMK):
         return 'Robotmk Controller'
 
     def os_popen(self, cmd):
-        self.loginfo("Executing Runner ('%s')" % str(cmd))
+        # FIXME: blocking Agent?
+        
         if platform.system() == 'Linux':
+            self.loginfo("-> Executing Linux Runner ('%s')" % str(cmd))
             subprocess.Popen(cmd)
         elif platform.system() == 'Windows':
+            DETACHED_PROCESS = 0x00000010
+            cmd.insert(0, sys.executable)
+            self.loginfo("-> Executing Windows Runner ('%s')" % str(cmd))
+            P = subprocess.Popen(cmd,shell=False,stdin=None,stdout=None,stderr=None,close_fds=True,creationflags=DETACHED_PROCESS)
             # TODO Test Popen on Windows
             pass
-
+# hereiwas: wenn kein Statefile da, rechne mit Fakedatum.
     def schedule_runner(self):
         self.loginfo(">>> Runner scheduling (%s) <<<" % self.execution_mode)
-        start_time = iso_asdatetime(self._state['start_time'])
-        end_time = iso_asdatetime(self._state['end_time'])
+        if self._state == {}:
+            never_ran = True
+            #start_time = datetime(2000, 1, 1, 0, 0, 0)
+            #end_time = datetime(2000, 1, 1, 0, 1, 0)
+        else:
+            never_ran = False
+            start_time = iso_asdatetime(self._state['start_time'])
+            end_time = iso_asdatetime(self._state['end_time'])
         pluginname = os.path.realpath(__file__)
         if self.execution_mode == 'agent_serial':
             execution_interval = timedelta(
                 seconds=self.config.global_dict['execution_interval'])
-            if not self.is_running:
-                if self.now > start_time + execution_interval:
+            if never_ran or (self.now > start_time + execution_interval):
+                if never_ran:
                     self.loginfo(
-                        "Execution interval (%ds) for Runner is elapsed since last start at %s" % (execution_interval.seconds, self._state['end_time']))
-                    cmd = [pluginname, '--run']
-                    self.os_popen(cmd)
-                    self.loginfo("Quitting....")
-                    sys.exit()
-
+                        "Execution interval (%ds) for Runner is elapsed since last start." % (execution_interval.seconds))
                 else:
-                    secs_to_execute = (
-                        start_time + execution_interval - self.now).seconds
-                    self.loginfo("Nothing to do. Next Runner execution in %ds (interval=%ds)" % (
-                        secs_to_execute, execution_interval.seconds))
-
+                    self.loginfo(
+                        "Execution interval (%ds) for Runner is elapsed since last start at %s" % (execution_interval.seconds, self._state['end_time']))                
+                    if self.is_running:                
+                        # IDEA: Controller can monitor its own log files. (WARN/ERROR)
+                        self.logerror(
+                            'Serial mode prohibits parallel Runner starts; there is ' +
+                            'still one running since %s. ' %
+                            localized_iso(self._state['start_time']))
+                        self.loginfo("Either remove suites from execution list to save " +
+                                    "execution time or increase the execution interval.")
+                        return
+                cmd = [pluginname, '--run']
+                self.os_popen(cmd)
+                
             else:
-                # IDEA: Controller can monitor its own log files. (WARN/ERROR)
-                self.logerror(
-                    'Serial mode prohibits parallel Runner starts; there is ' +
-                    'still one running since %s. ' %
-                    localized_iso(self._state['start_time']))
-                self.loginfo("Either remove suites from execution list to save " +
-                             "execution time or increase the execution interval.")
+                # Idle...
+                secs_to_execute = (
+                    start_time + execution_interval - self.now).seconds
+                self.loginfo("Nothing to do. Next Runner execution in %ds (interval=%ds)" % (
+                    secs_to_execute, execution_interval.seconds))
+
         elif self.execution_mode == 'agent_parallel':
             # TBD
             pass
         else:
             # nothing to do her, execution is an external job
             pass
-
-    #     # pseudocode
-    # IF last_start_time < last_end_time:       # last run was finished
-    #     IF now > last_start_time + global_execution_interval:
-    #         execute_robotmk_detached()     # execution on time
-    #     ELSE:
-    #         pass    # last result too fresh, do nothing
-    # ELSE:   # task is running
-    #     IF now > last_start_time + global_execution_interval:
-    #         pass    # do not throw an error; the monitoring part will detect the outdated spoolfile!
-    #     ELSE:
-    #         pass    # task is running within allowed cache_time, do nothing
 
     def print_agent_output(self):
         '''Determines and prints the agent output; this is a JSON dict with two keys: 
@@ -1018,14 +1021,16 @@ def main():
     cmdline_suites = RobotMK.cmdline_args.suites
     rmk = None
     if cmdline_suites is None:
+        # Controller mode
         rmk = RMKCtrl()
         rmk.print_agent_output()
         rmk.schedule_runner()
-        # This is the point where the controller will not only monitor state
-        # files, but also start new executions!
+        rmk.loginfo("--- Quitting Controller, bye. ---")                   
     else:
+        # Runner mode
         rmk = RMKrunner()
         rmk.start_suites(cmdline_suites)
+        rmk.loginfo("... Quitting Runner, bye. ---") 
     # rmk.loginfo("="*20 + " FINISHED " + "="*20)
 
 
