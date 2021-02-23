@@ -805,19 +805,27 @@ class RMKCtrl(RMKState, RobotMK):
             self.loginfo("-> Executing Linux Runner ('%s')" % str(cmd))
             subprocess.Popen(cmd)
         elif platform.system() == 'Windows':
-            DETACHED_PROCESS = 0x00000010
+            
+            flags = 0
+            flags |= 0x00000008  # DETACHED_PROCESS
+            flags |= 0x00000200  # CREATE_NEW_PROCESS_GROUP
+            flags |= 0x08000000  # CREATE_NO_WINDOW
+
+            pkwargs = {
+                'close_fds': True,  # close stdin/stdout/stderr on child
+                'creationflags': flags,
+            }
             cmd.insert(0, sys.executable)
             self.loginfo("-> Executing Windows Runner ('%s')" % str(cmd))
-            P = subprocess.Popen(cmd,shell=False,stdin=None,stdout=None,stderr=None,close_fds=True,creationflags=DETACHED_PROCESS)
-            # TODO Test Popen on Windows
+            P = subprocess.Popen(cmd,**pkwargs)
+
             pass
-# hereiwas: wenn kein Statefile da, rechne mit Fakedatum.
+
     def schedule_runner(self):
         self.loginfo(">>> Runner scheduling (%s) <<<" % self.execution_mode)
         if self._state == {}:
             never_ran = True
-            #start_time = datetime(2000, 1, 1, 0, 0, 0)
-            #end_time = datetime(2000, 1, 1, 0, 1, 0)
+        
         else:
             never_ran = False
             start_time = iso_asdatetime(self._state['start_time'])
@@ -1009,7 +1017,8 @@ def test_for_modules():
         global parser
         from dateutil import parser
     except ModuleNotFoundError as e:
-        logger.error(f'Could not start because of a missing module: {str(e)}')
+        print('<<<robotmk>>>')
+        print(f'FATAL ERROR!: Robotmk cannot start because of a missing Python3 module (Error was: {str(e)})')
         exit(1)
 
 # rmain
