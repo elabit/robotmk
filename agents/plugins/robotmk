@@ -506,7 +506,8 @@ class RobotMK():
         self.__setup_logging(
             calling_cls=self, verbose=self.cmdline_args.verbose)
         # self.loginfo("="*20 + " %s " % str(self) + "="*20)
-        self.loginfo(self.logmark * 20 + " %s " % str(self) + self.logmark*20)
+        #self.loginfo(self.logmark * 20 + " %s " % str(self) + self.logmark*20)
+        self.loginfo(self.logmark * 20)
         self.config = RMKConfig(calling_cls=self)
         self.execution_mode = self.config.global_dict['execution_mode']
 
@@ -550,18 +551,18 @@ class RobotMK():
                   * suite names with underscores (ex. test_one) are detected by
                     its surrounding protected keys.
                 """))
-        parser.add_argument(
-            '--run',
-            '-r',
-            dest='suites',
-            const='all',
-            default=None,
-            action='store',
-            nargs='?',
-            type=str,
-            help="""runner mode. Runs all Robot Framework suites as configured in robotmk.yml.
-                    Suite IDs can be given as comma separated list to restrict execution.
-                    Suites are executed serially, one by one.""")
+        # parser.add_argument(
+        #     '--run',
+        #     '-r',
+        #     dest='suites',
+        #     const='all',
+        #     default=None,
+        #     action='store',
+        #     nargs='?',
+        #     type=str,
+        #     help="""runner mode. Runs all Robot Framework suites as configured in robotmk.yml.
+        #             Suite IDs can be given as comma separated list to restrict execution.
+        #             Suites are executed serially, one by one.""")
         parser.add_argument('--verbose',
                             '-v',
                             default=False,
@@ -578,7 +579,7 @@ class RobotMK():
             # File log
             fh = TimedRotatingFileHandler(
                 Path(self._DEFAULTS[os.name]['logdir']
-                     ).joinpath(f'robotmk.log'),
+                     ).joinpath('robotmk_%s.log' % repr(calling_cls)),
                 when="h", interval=24, backupCount=30)
             file_formatter = logging.Formatter(
                 fmt='%(asctime)s %(name)10s [%(process)5d] %(levelname)7s: %(message)s')
@@ -636,6 +637,9 @@ class RMKrunner(RMKState, RobotMK):
 
     def __str__(self):
         return 'Robotmk Runner'
+
+    def __repr__(self):
+        return 'runner'
 
     def update_suites2start(self, suites_cmdline):
         '''Updates suites_dict so that it reflects the suites given comma-
@@ -798,6 +802,9 @@ class RMKCtrl(RMKState, RobotMK):
     def __str__(self):
         return 'Robotmk Controller'
 
+    def __repr__(self):
+        return 'controller'
+
     def os_popen(self, cmd):
         # FIXME: blocking Agent?
         
@@ -822,7 +829,7 @@ class RMKCtrl(RMKState, RobotMK):
             pass
 
     def schedule_runner(self):
-        self.loginfo(">>> Runner scheduling (%s) <<<" % self.execution_mode)
+        #self.loginfo(">>> Runner scheduling (%s) <<<" % self.execution_mode)
         if self._state == {}:
             never_ran = True
         
@@ -874,7 +881,7 @@ class RMKCtrl(RMKState, RobotMK):
           - the runner's statefile (total execution time, cache time, executed suites etc.)
         - content of all suite statefiles as configured
         '''
-        self.loginfo(">>> Agent output generation <<<")
+        #self.loginfo(">>> Agent output generation <<<")
         output = []
         encoding = self.global_dict['agent_output_encoding']
         meta_data = {
@@ -913,8 +920,8 @@ class RMKCtrl(RMKState, RobotMK):
     def check_suite_statefiles(self, encoding):
         '''Check the state files of suites; encode specific keys'''
         states = defaultdict(list)
-        self.loginfo("Suites to check: %s" %
-                     ', '.join(self.suites_dict.keys()))
+        self.loginfo("%d Suites to check: %s" % (len(self.suites_dict.keys()),
+                     ', '.join(self.suites_dict.keys())))
         for suite in self.config.suite_objs:
             # if (piggyback)host is set, results gets assigned to other CMK host
             host = suite.suite_dict.get('host', 'localhost')
@@ -1027,25 +1034,9 @@ def test_for_modules():
 def main():
     test_for_modules()
     RobotMK.get_args()
-    cmdline_suites = RobotMK.cmdline_args.suites
-    rmk = None
-    if not cmdline_suites is None:
-        # Controller mode
-        rmk = RMKCtrl()
-        rmk.print_agent_output()
-        rmk.schedule_runner()
-        rmk.loginfo("--- Quitting Controller, bye. ---")                   
-    else:
-        # FIXME 
-        cmdline_suites = 'all'
-        # Runner mode
-        rmk = RMKrunner()
-        rmk.start_suites(cmdline_suites)
-        rmk.loginfo("... Quitting Runner, bye. ---") 
-        # print('<<<runner>>>')
-        # print('fake')
-        print('')
-    # rmk.loginfo("="*20 + " FINISHED " + "="*20)
+    rmk = RMKCtrl()
+    rmk.print_agent_output()
+    rmk.loginfo("--- Quitting Controller, bye. ---")                   
 
 
 if __name__ == '__main__':

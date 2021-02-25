@@ -9,6 +9,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ## Unreleased
 ### Added
 
+- Separate Logfiles
+- Runner/Controller
 - Tag 
 - Prefix formatting
 - Plugin: Added daily log RobotMK file rotation (#88)
