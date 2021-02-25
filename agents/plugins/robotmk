@@ -367,7 +367,7 @@ class RMKSuite(RMKState):
             ('cache_time', self.get_suite_or_global('cache_time')),
             ('execution_interval', self.get_suite_or_global('execution_interval')),
             ('path', self.suite_dict['path']),
-            ('tag', self.suite_dict['tag']),
+            ('tag', self.suite_dict.get('tag', None)),
         ])
         pass
 
@@ -1029,17 +1029,22 @@ def main():
     RobotMK.get_args()
     cmdline_suites = RobotMK.cmdline_args.suites
     rmk = None
-    if cmdline_suites is None:
+    if not cmdline_suites is None:
         # Controller mode
         rmk = RMKCtrl()
         rmk.print_agent_output()
         rmk.schedule_runner()
         rmk.loginfo("--- Quitting Controller, bye. ---")                   
     else:
+        # FIXME 
+        cmdline_suites = 'all'
         # Runner mode
         rmk = RMKrunner()
         rmk.start_suites(cmdline_suites)
         rmk.loginfo("... Quitting Runner, bye. ---") 
+        # print('<<<runner>>>')
+        # print('fake')
+        print('')
     # rmk.loginfo("="*20 + " FINISHED " + "="*20)
 
 
