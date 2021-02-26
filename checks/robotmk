@@ -208,7 +208,9 @@ def check_robot(item, checkgroup_parameters, parsed):
         finally:
 
             # set the 100% threshold value for the graph
+            # TODO: What is the correct macx?
             maxruntime = max(execution_interval, cache_time)
+            maxruntime = execution_interval
             #FIXME: This are w/c threshold PLACEHOLDERS !!
             runner_runtime_warn_s = maxruntime * 0.9
             runner_runtime_crit_s = maxruntime * 0.95
@@ -229,7 +231,7 @@ def check_robot(item, checkgroup_parameters, parsed):
                     badge,
                     pct_runtime_usage,
                     runner_runtime) + \
-                "result cache_time (%ds)" % cache_time )
+                "execution time (%ds)" % execution_interval )
 
             perfdata_list.append((
                 'runner_runtime', runner_runtime, runner_runtime_warn_s,
