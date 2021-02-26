@@ -1,6 +1,6 @@
 {
     // "python.pythonPath": ".tox/check/bin/python",   
-    "python.pythonPath": ".tox/plugin/bin/python",   
+    "python.pythonPath": ".tox/plugin/bin/python",
     "python.testing.pytestArgs": [
         "agents"
     ],
@@ -16,5 +16,8 @@
     "python.linting.flake8Path": ".tox/plugin/bin/flake8",
     "python.linting.flake8Args": [
         "--max-line-length=80",
-    ]
+    ],
+    "python.formatting.provider": "autopep8",
+    // "python.formatting.yapfPath": "/workspace/robotmk/.tox/plugin/bin/yapf",
+    "editor.formatOnSave": true,
 }
