@@ -37,6 +37,17 @@ import base64
 import zlib
 import json
 from string import Template
+import copy
+try:
+    from natural import date
+
+    def natdate(sec):
+        return date.compress(sec)
+except:
+
+    def natdate(sec):
+        return sec
+
 
 utc = pytz.utc
 
