@@ -81,7 +81,7 @@ def parse_robot(info):
             "Can not load Robotmk JSON data! (json.loads())")
 
     runner_data = info_dict['runner']
-    for suite in info_dict['suites']:
+    for idx, suite in enumerate(info_dict['suites']):
         for k in keys_to_decode:
             d = suite[k]
             if bool(d):
@@ -100,17 +100,19 @@ def parse_robot(info):
             xml_root_suite = xml.find('./suite')
         except Exception:
             raise MKGeneralException(
-                "Cannot detect XML data in Robomk output.")
+                "Cannot detect XML data in Robotmk output.")
         setting = pattern_match(robot_discovery_settings,
                                 xml_root_suite.attrib['name'], (0, ''))
         discovery_setting = namedtuple(
             'DiscoverySetting', 'level blacklist_pattern')._make(setting)
         # now process the root suite
-        root_item = parse_suite_xml(xml_root_suite, discovery_setting)
+        # root_item = parse_suite_xml(xml_root_suite, discovery_setting)
         # and reveal the items in the discovery level:
         # suite['discovered_items'] = root_item.discovered
-        suite['parsed'] = root_item
-
+        # suite['parsed'] = copy.deepcopy(root_item)
+        # suite['parsed'] = parse_suite_xml(xml_root_suite, discovery_setting)
+        info_dict['suites'][idx]['parsed'] = parse_suite_xml(
+            xml_root_suite, discovery_setting)
     return info_dict
 
 
