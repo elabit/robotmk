@@ -729,8 +729,12 @@ class RobotItem(object):
     def _merge_sub_perfdata(self):
         for subresult in self.subresults:
             if subresult['cmk_perfdata_list'] != None:
-                self.result['cmk_perfdata_list'].extend(
-                    subresult['cmk_perfdata_list'])
+                try:
+                    self.result['cmk_perfdata_list'].extend(
+                        subresult['cmk_perfdata_list'])
+                except:
+                    self.result['cmk_perfdata_list'] = subresult[
+                        'cmk_perfdata_list']
         return
 
     # recursive function to retrieve status and submessages of a node
