@@ -116,12 +116,12 @@ def _valuespec_inventory_robotmk_rules():
                             help=
                             _("Define a regular expression for the root suite in the Robot result you want to set the <b>service name prefix</b>. To find out the root suite name, open output.xml of the Robot test and search for the very first suite tag."
                               )),
-                        TextAscii(
-                            title=("Service name prefix"),
-                            allow_empty=True,
-                            size=60,
-                            default_value="Robot E2E $SUITENAME $TAG$SPACE",
-                            help=_("""
+                        TextAscii(title=("Service name prefix"),
+                                  allow_empty=True,
+                                  size=60,
+                                  default_value=
+                                  "Robot Framework E2E $SUITEID$SPACE-$SPACE",
+                                  help=_("""
                                 How Robot service names of discovered items should start. The following Variables can be used (usage: <tt>$VAR</tt> or <tt>${VAR}</tt>):<br>
                                 <tt>${PATH}</tt>  -  Name of Robot suite directory or <tt>.robot</tt> file<br>
                                 <tt>${SUITENAME}</tt>  -  Name of top level suite (usually same name as path)<br>
@@ -147,7 +147,3 @@ rulespec_registry.register(
         name="inventory_robotmk_rules",
         valuespec=_valuespec_inventory_robotmk_rules,
     ))
-
-
-
-

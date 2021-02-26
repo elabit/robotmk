@@ -19,51 +19,51 @@
 # Boston, MA 02110-1301 USA.
 
 metric_info['runner_runtime'] = {
-    'title' : _('Runtime (total)'),
-    'unit' : 's',
-    'color' : '#ff2377',
+    'title': _('Runtime (total)'),
+    'unit': 's',
+    'color': '#ff2377',
 }
 metric_info['runner_runtime_robotmk'] = {
-    'title' : _('Runtime (Robotmk code)'),
-    'unit' : 's',
-    'color' : '#4488cc',
+    'title': _('Runtime (Robotmk code)'),
+    'unit': 's',
+    'color': '#fcce6a',
 }
 metric_info['runner_runtime_suites'] = {
-    'title' : _('Runtime (suite execution)'),
-    'unit' : 's',
-    'color' : '#c04080',
+    'title': _('Runtime (suite execution)'),
+    'unit': 's',
+    'color': '#c04080',
 }
 metric_info['runner_cache_time'] = {
-    'title' : _('Cache Time'),
-    'unit' : 's',
-    'color' : '#2e6ec8',
+    'title': _('Cache Time'),
+    'unit': 's',
+    'color': '#2e6ec8',
 }
 metric_info['runner_execution_interval'] = {
-    'title' : _('Execution interval'),
-    'unit' : 's',
-    'color' : '#209c58',
+    'title': _('Execution interval'),
+    'unit': 's',
+    'color': '#209c58',
 }
 
 # Suites counter
-# TODO: OK & Fatal
 metric_info['suites_total'] = {
-    'title' : _('Suites Total'),
-    'unit' : 'count',
-    'color' : '#66a887',
+    'title': _('Suites Total'),
+    'unit': 'count',
+    'color': '#66a887',
 }
 metric_info['suites_stale'] = {
-    'title' : _('Suites Stale'),
-    'unit' : 'count',
-    'color' : '#a8665d',
+    'title': _('Suites Stale'),
+    'unit': 'count',
+    'color': '#a8665d',
 }
 metric_info['suites_fatal'] = {
-    'title' : _('Suites Fatal'),
-    'unit' : 'count',
-    'color' : '#f8665d',
+    'title': _('Suites Fatal'),
+    'unit': 'count',
+    'color': '#f8665d',
 }
 
 graph_info['robotmk_headroom_usage'] = {
-    "title": _("Robotmk Runner - Runtime Headroom Usage"),
+    "title":
+    _("Robotmk Runner - Runtime Headroom Usage"),
     "metrics": [
         ("runner_cache_time", "area"),
         ("runner_execution_interval", "area"),
@@ -77,35 +77,42 @@ graph_info['robotmk_headroom_usage'] = {
         "runner_runtime:warn",
         "runner_runtime:crit",
     ]
-    }
+}
 
 graph_info['robotmk_suite_state'] = {
-    "title": _("Robotmk Suites"),
+    "title":
+    _("Robotmk Suites"),
     "metrics": [
         ("suites_total", "area"),
         ("suites_stale", "area"),
         ("suites_fatal", "stack"),
     ],
-    }
+}
 
-# If the runtime is ok, the perfometer shows decent colors. 
+# If the runtime is ok, the perfometer shows decent colors.
 perfometer_info.append({
-    "type": "linear",
-    "condition": "runner_runtime,runner_runtime:warn,<",
+    "type":
+    "linear",
+    "condition":
+    "runner_runtime,runner_runtime:warn,<",
     "segments": [
         "runner_runtime#a8665d",
         "runner_cache_time,runner_runtime,-#bcbdbc",
-        ],
-    "total": "runner_cache_time",
+    ],
+    "total":
+    "runner_cache_time",
     "label": ("runner_runtime", "s")
-}) 
+})
 perfometer_info.append({
-    "type": "linear",
-    "condition": "runner_runtime,runner_runtime:warn,>=",
+    "type":
+    "linear",
+    "condition":
+    "runner_runtime,runner_runtime:warn,>=",
     "segments": [
         "runner_runtime",
         "runner_cache_time,runner_runtime,-#409c58",
-        ],
-    "total": "runner_cache_time",
+    ],
+    "total":
+    "runner_cache_time",
     "label": ("runner_runtime", "s")
-}) 
+})

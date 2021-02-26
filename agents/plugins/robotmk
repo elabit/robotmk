@@ -792,7 +792,7 @@ class RMKrunner(RMKState, RobotMK):
 
 
 class RMKCtrl(RMKState, RobotMK):
-    # TODO: Cleanup the XML, remove images
+    # TODO: Cleanup the XML, remove images (#79)
 
     header = '<<<robotmk>>>'
     logmark = '='
@@ -808,12 +808,12 @@ class RMKCtrl(RMKState, RobotMK):
 
     def os_popen(self, cmd):
         # FIXME: blocking Agent?
-        
+
         if platform.system() == 'Linux':
             self.loginfo("-> Executing Linux Runner ('%s')" % str(cmd))
             subprocess.Popen(cmd)
         elif platform.system() == 'Windows':
-            
+
             flags = 0
             flags |= 0x00000008  # DETACHED_PROCESS
             flags |= 0x00000200  # CREATE_NEW_PROCESS_GROUP
@@ -825,7 +825,7 @@ class RMKCtrl(RMKState, RobotMK):
             }
             cmd.insert(0, sys.executable)
             self.loginfo("-> Executing Windows Runner ('%s')" % str(cmd))
-            P = subprocess.Popen(cmd,**pkwargs)
+            P = subprocess.Popen(cmd, **pkwargs)
 
             pass
 
@@ -833,7 +833,7 @@ class RMKCtrl(RMKState, RobotMK):
         #self.loginfo(">>> Runner scheduling (%s) <<<" % self.execution_mode)
         if self._state == {}:
             never_ran = True
-        
+
         else:
             never_ran = False
             start_time = iso_asdatetime(self._state['start_time'])
@@ -848,19 +848,19 @@ class RMKCtrl(RMKState, RobotMK):
                         "Execution interval (%ds) for Runner is elapsed since last start." % (execution_interval.seconds))
                 else:
                     self.loginfo(
-                        "Execution interval (%ds) for Runner is elapsed since last start at %s" % (execution_interval.seconds, self._state['end_time']))                
-                    if self.is_running:                
+                        "Execution interval (%ds) for Runner is elapsed since last start at %s" % (execution_interval.seconds, self._state['end_time']))
+                    if self.is_running:
                         # IDEA: Controller can monitor its own log files. (WARN/ERROR)
                         self.logerror(
                             'Serial mode prohibits parallel Runner starts; there is ' +
                             'still one running since %s. ' %
                             localized_iso(self._state['start_time']))
                         self.loginfo("Either remove suites from execution list to save " +
-                                    "execution time or increase the execution interval.")
+                                     "execution time or increase the execution interval.")
                         return
                 cmd = [pluginname, '--run']
                 self.os_popen(cmd)
-                
+
             else:
                 # Idle...
                 secs_to_execute = (
@@ -922,7 +922,7 @@ class RMKCtrl(RMKState, RobotMK):
         '''Check the state files of suites; encode specific keys'''
         states = defaultdict(list)
         self.loginfo("%d Suites to check: %s" % (len(self.suites_dict.keys()),
-                     ', '.join(self.suites_dict.keys())))
+                                                 ', '.join(self.suites_dict.keys())))
         for suite in self.config.suite_objs:
             # if (piggyback)host is set, results gets assigned to other CMK host
             host = suite.suite_dict.get('host', 'localhost')
@@ -1039,7 +1039,8 @@ def test_for_modules():
         from dateutil import parser
     except ModuleNotFoundError as e:
         print('<<<robotmk>>>')
-        print(f'FATAL ERROR!: Robotmk cannot start because of a missing Python3 module (Error was: {str(e)})')
+        print(
+            f'FATAL ERROR!: Robotmk cannot start because of a missing Python3 module (Error was: {str(e)})')
         exit(1)
 
 # rmain
@@ -1050,7 +1051,7 @@ def main():
     RobotMK.get_args()
     rmk = RMKCtrl()
     rmk.print_agent_output()
-    rmk.loginfo("--- Quitting Controller, bye. ---")                   
+    rmk.loginfo("--- Quitting Controller, bye. ---")
 
 
 if __name__ == '__main__':
