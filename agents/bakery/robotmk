@@ -60,22 +60,31 @@ def bake_robotmk(opsys, conf, conf_dir, plugins_dir):
                     u"    timeout %s = %d\r\n" %
                     (config.os_rmk_runner, config.global_dict['cache_time']))
                 out.write(u"\r\n")
+                plugins_dir_async = plugins_dir
         elif opsys == "linux":
             # async mode in Linux: "seconds"-subdir in plugins dir
-            plugins_dir = Path(plugins_dir,
-                               "%s" % config.global_dict['execution_interval'])
-            plugins_dir.mkdir(parents=True, exist_ok=True)
+            plugins_dir_async = Path(
+                plugins_dir, "%s" % config.global_dict['execution_interval'])
+            plugins_dir_async.mkdir(parents=True, exist_ok=True)
         else:
             raise MKGeneralException(
                 "Error in bakery plugin \"%s\": %s\n" %
                 ("robotmk", "RobotMK is supported on Windows and Linux only"))
 
-        shutil.copy2(cmk.utils.paths.local_agents_dir + '/plugins/robotmk',
-                     str(plugins_dir) + '/' + config.os_rmk_runner)
+        src = str(
+            Path(
+                cmk.utils.paths.local_agents_dir).joinpath('plugins').joinpath(
+                    RMKConfigAdapter._DEFAULTS['linux']['rmk_runner']))
+        dest = str(Path(plugins_dir_async).joinpath(config.os_rmk_runner))
+
+        shutil.copy2(src, dest)
 
     # II) Robotmk Controller plugin
-    shutil.copy2(cmk.utils.paths.local_agents_dir + '/plugins/robotmk',
-                 str(plugins_dir) + '/' + config.os_rmk_ctrl)
+    src = str(
+        Path(cmk.utils.paths.local_agents_dir).joinpath('plugins').joinpath(
+            RMKConfigAdapter._DEFAULTS['linux']['rmk_ctrl']))
+    dest = str(Path(plugins_dir).joinpath(config.os_rmk_ctrl))
+    shutil.copy2(src, dest)
 
     # I)I) Generate YML config file
     with open(conf_dir + "/robotmk.yml", "w") as robotmk_yml:
@@ -117,6 +126,7 @@ class RMKConfigAdapter():
         self.opsys = opsys
         self.os_newline = self.get_os_default('newline')
         self.os_rmk_ctrl = self.get_os_default('rmk_ctrl')
+        self.os_rmk_runner = self.get_os_default('rmk_runner')
         self.cfg_dict = {
             'global': {},
             'suites': {},
@@ -160,7 +170,6 @@ class RMKConfigAdapter():
                 global_dict['cache_time'] = mode_conf[1]
         # suite_tuple:
         # >> path, tag, piggyback, robot_params{}, cachetime, execution_int
-        # TODO: Exception if suite IDs are not unique
         if 'suites' in mode_conf[0]:
             for suite_tuple in mode_conf[0]['suites']:
                 path = suite_tuple[0]
@@ -190,7 +199,10 @@ class RMKConfigAdapter():
                         timing_dict.update(
                             {'execution_interval': suite_tuple[5]})
                 suitedict.update(timing_dict)
-
+                if suiteid in self.cfg_dict['suites']:
+                    raise MKGeneralException(
+                        "Error in bakery plugin 'robotmk': Suite with ID %s is not unique. Please use tags to solve this problem."
+                    )
                 self.cfg_dict['suites'].update({suiteid: suitedict})
 
     @staticmethod
@@ -211,8 +223,8 @@ class RMKConfigAdapter():
         if value is None:
             value = self._DEFAULTS['noarch'].get(setting, None)
             if value is None:
-                # TODO: Exception
-                pass
+                raise MKGeneralException(
+                    "Error in bakery plugin 'robotmk': Cannot determine OS.")
         return value
 
     @property
