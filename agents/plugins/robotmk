@@ -40,6 +40,7 @@ from logging.handlers import TimedRotatingFileHandler
 from textwrap import dedent
 import subprocess
 import platform
+import xml.etree.ElementTree as ET 
 
 local_tz = datetime.utcnow().astimezone().tzinfo
 ROBOTMK_VERSION = "v0.2.0"
@@ -937,6 +938,10 @@ class RMKCtrl(RMKState, RobotMK):
                         state[k] = None
                     else:
                         content = self.read_file(state[k])
+                        if k == 'xml':
+                            # Remove any HTML content (embedded images) to not clutter the CMK multisite 
+                            content = xml_remove_html(content)
+                            pass
                         state[k] = self.encode(
                             content,
                             suite.global_dict['agent_output_encoding'])
@@ -966,7 +971,7 @@ class RMKCtrl(RMKState, RobotMK):
         data_base64 = base64.b64encode(data)
         return data_base64
 
-    # opens the Robot XML file and returns the compressed xml result.
+    # opens a file and returns the compressed content.
     # Caveat: to keep the zlib stream integrity, it must be converted to a
     # "safe" stream afterwards.
     # Reason: if there is a byte in the zlib stream which is a newline byte
@@ -996,6 +1001,15 @@ class RMKCtrl(RMKState, RobotMK):
             content = default
         return content
 
+def xml_remove_html(content):        
+    xml = ET.fromstring(content)
+    root = xml.find('./suite')
+    imgmsg = [s for s in root.iter('msg') if 'html' in s.attrib]
+    for s in root.iter('msg'):
+        if 'html' in s.attrib:
+            s.text = '(Robotmk has removed this HTML content for safety reasons)'
+    content_wo_html = ET.tostring(xml, encoding='UTF-8', method='xml', xml_declaration=True).decode()
+    return content_wo_html
 
 def localized_iso(iso):
     '''Convert a ISO formatted time string to the local tz
