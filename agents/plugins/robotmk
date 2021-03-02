@@ -40,7 +40,7 @@ from logging.handlers import TimedRotatingFileHandler
 from textwrap import dedent
 import subprocess
 import platform
-import xml.etree.ElementTree as ET 
+import xml.etree.ElementTree as ET
 
 local_tz = datetime.utcnow().astimezone().tzinfo
 ROBOTMK_VERSION = "v0.2.0"
@@ -146,7 +146,7 @@ class RMKConfig():
 
         Args:
             prefix (str): Only scan environment variables starting with this
-                prefix 
+                prefix
             preserved_words (list): List of words not to split at
                 underscores
             suite_subkeys (list): List of words which can occurr after suite id
@@ -251,9 +251,9 @@ class RMKConfig():
 
 
 class RMKState():
-    '''State class which is the superclass for runner and suite. 
+    '''State class which is the superclass for runner and suite.
     Both share the fact that
-    - they store some common data like runtime, cache time etc. 
+    - they store some common data like runtime, cache time etc.
     - they need to store those data in the state file
     - some data in the state file must be updated in real-time'''
 
@@ -392,7 +392,7 @@ class RMKSuite(RMKState):
 
     def clear_filenames(self):
         '''Reset the log file names if Robot Framework exited with RC > 250
-        The files presumed to exist do not in this case. 
+        The files presumed to exist do not in this case.
         '''
         self.outfile_htmllog = None
         # self.outfile_htmlreport = None
@@ -424,11 +424,14 @@ class RMKSuite(RMKState):
         self.rc = rc
         return rc
 
-    def get_suite_or_global(self, name):
+    def get_suite_or_global(self, name, default=None):
         try:
             return self.suite_dict[name]
         except:
-            return self.global_dict[name]
+            try:
+                return self.global_dict[name]
+            except:
+                return default
 
     @property
     def path(self):
@@ -446,8 +449,8 @@ class RMKSuite(RMKState):
 
     @property
     def robot_args(self):
-        '''We should pass an arg dict to Robot Framework which is cleaned by 
-        any Robotmk keys. 
+        '''We should pass an arg dict to Robot Framework which is cleaned by
+        any Robotmk keys.
         '''
         robotmk_keys = 'cache_time execution_interval path tag piggybackhost'.split()
         return {k: v for (k, v) in self.suite_dict.items() if k not in robotmk_keys}
@@ -507,7 +510,7 @@ class RobotMK():
         self.__setup_logging(
             calling_cls=self, verbose=self.cmdline_args.verbose)
         # self.loginfo("="*20 + " %s " % str(self) + "="*20)
-        #self.loginfo(self.logmark * 20 + " %s " % str(self) + self.logmark*20)
+        # self.loginfo(self.logmark * 20 + " %s " % str(self) + self.logmark*20)
         self.loginfo(self.logmark * 20)
         self.config = RMKConfig(calling_cls=self)
         self.execution_mode = self.config.global_dict['execution_mode']
@@ -517,35 +520,35 @@ class RobotMK():
         parser = ArgumentParser(
             formatter_class=RawTextHelpFormatter,
             epilog=dedent("""\
-                # Operation modes 
+                # Operation modes
                 Without any arguments, Robotmk works in 'controller mode'. It determines the suites
                 which are defined in robotmk.yml to run on this machine. If there are no suites de-
-                fined, the suite names are taken from the directory names within the robot suites 
-                directory. 
-                If called in 'runner mode', robotmk executes Robot Framework suites. With "--run", 
-                the default is "all" = run all suites defined (either by YML or by directory 
+                fined, the suite names are taken from the directory names within the robot suites
+                directory.
+                If called in 'runner mode', robotmk executes Robot Framework suites. With "--run",
+                the default is "all" = run all suites defined (either by YML or by directory
                 inspection). If suites are specified as option to "--run", only those are run.
-                
+
                 # Configuration by environment variables
-                Any setting can also be given by environment variables. 
+                Any setting can also be given by environment variables.
                 Example:
-                
+
                 cat robotmk.yml
                 global:
                     robotdir: /another/path/for/suites
-                suites: 
+                suites:
                     test_one:
                         variable:
                             language: german
                             env: prod
 
-                This can be set equivalentely with environment variables: 
+                This can be set equivalentely with environment variables:
 
                 ROBOTMK_global_robotdir="/another/path/for/suites"
                 ROBOTMK_suites_test_one_variable_language="german"
                 ROBOTMK_suites_test_one_variable_env="prod"
 
-                The rules are: 
+                The rules are:
                   * variables must start with 'ROBOTMK_'
                   * case matters
                   * separate dict keys with underscores
@@ -644,13 +647,13 @@ class RMKrunner(RMKState, RobotMK):
 
     def update_suites2start(self, suites_cmdline):
         '''Updates suites_dict so that it reflects the suites given comma-
-        separated on the commandline. 
-        * '--run' / '--run all': run all suites in cfg; if no suites in config, 
+        separated on the commandline.
+        * '--run' / '--run all': run all suites in cfg; if no suites in config,
                                  run all suites in robotdir
-        * '--run suite1,suite3': only run specific suites                         
+        * '--run suite1,suite3': only run specific suites
         * (no arg)             : (controller mode, do not run any suite)
         Args:
-            suites_cmdline (list): comma separated list of suite names 
+            suites_cmdline (list): comma separated list of suite names
         '''
         suites_cmdline = [x.strip() for x in suites_cmdline.split(',')]
         # to fake an invalid suitename as argument...
@@ -702,11 +705,11 @@ class RMKrunner(RMKState, RobotMK):
         self._state.update(data)
 
     def update_runner_statevars(self):
-        '''A non-selective (=complete) run is whenever the runner gets started 
+        '''A non-selective (=complete) run is whenever the runner gets started
         with no suite args. That is when:
         - serial mode (controller itself starts runner with no suite args)
         - external mode (a scheduled task starts the runner with no suite args)
-        A selective, non-complete run is 
+        A selective, non-complete run is
         - parallel mode (controller starts one runner per suite)
         - external mode (a scheduled task starts the runner with suite args)'''
         runtime_total = (
@@ -830,7 +833,7 @@ class RMKCtrl(RMKState, RobotMK):
             pass
 
     def schedule_runner(self):
-        #self.loginfo(">>> Runner scheduling (%s) <<<" % self.execution_mode)
+        # self.loginfo(">>> Runner scheduling (%s) <<<" % self.execution_mode)
         if self._state == {}:
             never_ran = True
 
@@ -876,13 +879,13 @@ class RMKCtrl(RMKState, RobotMK):
             pass
 
     def print_agent_output(self):
-        '''Determines and prints the agent output; this is a JSON dict with two keys: 
-        - meta data: 
-          - static information like the robotmk version and encoding, 
+        '''Determines and prints the agent output; this is a JSON dict with two keys:
+        - meta data:
+          - static information like the robotmk version and encoding,
           - the runner's statefile (total execution time, cache time, executed suites etc.)
         - content of all suite statefiles as configured
         '''
-        #self.loginfo(">>> Agent output generation <<<")
+        # self.loginfo(">>> Agent output generation <<<")
         output = []
         encoding = self.global_dict['agent_output_encoding']
         meta_data = {
@@ -893,11 +896,22 @@ class RMKCtrl(RMKState, RobotMK):
                       self.statefile_path)
         self._state = self.read_state_from_file()
         meta_data.update(self._state)
+
+        # Some keys from the runner state file should be overwritten with current values:
+        meta_data.update({
+            'robotmk_version': ROBOTMK_VERSION,
+            'execution_mode': self.execution_mode}
+        )
+
         self.loginfo(
             "Reading suite statefiles and encoding data (%s)..." % encoding)
         self.suites_state = self.check_suite_statefiles(encoding)
         for host in self.suites_state.keys():
-            states = self.suites_state[host]
+
+            # discard empty dicts
+            states = [
+                state for state in self.suites_state[host] if bool(state)]
+
             host_state = {
                 "runner": meta_data,
                 "suites": states,
@@ -929,24 +943,29 @@ class RMKCtrl(RMKState, RobotMK):
             self.logdebug("Reading statefile of suite '%s': %s" % (
                 suite.id, suite.statefile_path))
             state = suite.read_state_from_file()
-            if 'error' in state:
-                self.logerror(state['error'])
 
-            for k in self.keys_to_encode:
-                if k in state:
-                    if k == 'htmllog' and self.global_dict['transmit_html'] == False:
-                        state[k] = None
-                    else:
-                        content = self.read_file(state[k])
-                        if k == 'xml':
-                            # Remove any HTML content (embedded images) to not clutter the CMK multisite 
-                            content = xml_remove_html(content)
-                            pass
-                        state[k] = self.encode(
-                            content,
-                            suite.global_dict['agent_output_encoding'])
+            if not bool(state):
+                self.logwarn(
+                    "Statefile of suite '%s' not found - (seems like the suite did never run)" % (suite.id))
+            else:
+                for k in self.keys_to_encode:
+                    if k in state:
+                        if k == 'htmllog' and self.global_dict['transmit_html'] == False:
+                            state[k] = None
+                        else:
+                            content = self.read_file(state[k])
+                            if k == 'xml':
+                                # Remove any HTML content (embedded images) to not clutter the CMK multisite
+                                content = xml_remove_html(content)
+                                pass
+                            state[k] = self.encode(
+                                content,
+                                suite.global_dict['agent_output_encoding'])
             states[host].append(state)
-        return states
+        if bool(states):
+            return states
+        else:
+            return None
 
     @property
     def keys_to_encode(self):
@@ -1001,15 +1020,18 @@ class RMKCtrl(RMKState, RobotMK):
             content = default
         return content
 
-def xml_remove_html(content):        
+
+def xml_remove_html(content):
     xml = ET.fromstring(content)
     root = xml.find('./suite')
     imgmsg = [s for s in root.iter('msg') if 'html' in s.attrib]
     for s in root.iter('msg'):
         if 'html' in s.attrib:
             s.text = '(Robotmk has removed this HTML content for safety reasons)'
-    content_wo_html = ET.tostring(xml, encoding='UTF-8', method='xml', xml_declaration=True).decode()
+    content_wo_html = ET.tostring(
+        xml, encoding='UTF-8', method='xml', xml_declaration=True).decode()
     return content_wo_html
+
 
 def localized_iso(iso):
     '''Convert a ISO formatted time string to the local tz
