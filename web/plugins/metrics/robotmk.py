@@ -76,7 +76,7 @@ graph_info['robotmk_headroom_usage'] = {
         ("runner_runtime_suites", "stack"),
         ("runner_runtime", "line"),
     ],
-    "optional_metrics": ["runner_execution_interval"]
+    "optional_metrics": ["runner_execution_interval"],
     "range": (0, "runner_cache_time,1.05,*"),
     "scalars": [
         "runner_runtime:warn",
@@ -86,7 +86,7 @@ graph_info['robotmk_headroom_usage'] = {
 
 graph_info['robotmk_suite_state'] = {
     "title":
-    _("Robotmk Suites"),
+    _("Robot Framework Suites"),
     "metrics": [
         ("suites_stale", "area"),
         ("suites_nonstale", "stack"),
