@@ -380,7 +380,7 @@ def gen_testsuite_tuple(mode):
             agent_config_testsuites_piggybackhost,
             agent_config_testsuites_robotframework_params_container,
             # timing settings
-            agent_config_suite_suites_cache_time_external,
+            # agent_config_suite_suites_cache_time_external,
         ])
 
 

@@ -165,9 +165,9 @@ class RMKConfigAdapter():
             # set nothing, done in suites!
             pass
         elif execution_mode in ['external']:
-            if not 'suites' in mode_conf[0]:
-                # no suites defined, non-selecitve run => global cache time
-                global_dict['cache_time'] = mode_conf[1]
+            # For now, we assume that the external mode is meant to execute all
+            # suites exactly as configured. Hence, we can use the global cache time.
+            global_dict['cache_time'] = mode_conf[1]
         # suite_tuple:
         # >> path, tag, piggyback, robot_params{}, cachetime, execution_int
         if 'suites' in mode_conf[0]:
@@ -193,11 +193,12 @@ class RMKConfigAdapter():
                 suitedict.update(robot_param_dict)
                 # CACHE & EXECUTION TIME
                 timing_dict = {}
-                if execution_mode in ['agent_parallel', 'external']:
+                if execution_mode == 'agent_parallel':
                     timing_dict.update({'cache_time': suite_tuple[4]})
-                    if execution_mode == 'agent_parallel':
-                        timing_dict.update(
-                            {'execution_interval': suite_tuple[5]})
+                    timing_dict.update({'execution_interval': suite_tuple[5]})
+                # if execution_mode == 'external':
+                #     timing_dict.update(
+                #         {'cache_time': global_dict['cache_time']})
                 suitedict.update(timing_dict)
                 if suiteid in self.cfg_dict['suites']:
                     raise MKGeneralException(
