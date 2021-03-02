@@ -124,7 +124,8 @@ def inventory_robot(parsed):
             item_svc_name = add_svc_prefix(discovered_item.name, root_suite)
             yield item_svc_name, None
     # The meta service reporting overall runtimes, stale spool files etc.
-    yield "Robotmk", None
+    svc_robotmk = get_setting('robotmk_service_name', 'Robotmk')
+    yield svc_robotmk, None
 
 
 # item = CMK service to check
@@ -143,7 +144,8 @@ def check_robot(item, checkgroup_parameters, parsed):
     # - duration of cache_time
     # - execution_time of execution_interval
 
-    if item == 'Robotmk':
+    svc_robotmk = get_setting('robotmk_service_name', 'Robotmk')
+    if item == svc_robotmk:
         perfdata_list = []
         suites_total = len(parsed['runner']['suites']['suites_nonfatal']) + \
             len(parsed['runner']['suites']['suites_fatal'])

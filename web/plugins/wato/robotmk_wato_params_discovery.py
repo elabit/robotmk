@@ -24,6 +24,7 @@ from cmk.gui.valuespec import (
     ListOf,
     TextAscii,
     Tuple,
+    TextUnicode
 )
 
 from cmk.gui.plugins.wato import (
@@ -49,6 +50,21 @@ from cmk.gui.cee.plugins.wato.agent_bakery import (
 #   \__,_|_|___/\___\___/ \_/ \___|_|   \__, |
 #                                        __/ |
 #                                       |___/
+
+inventory_dict_robotmk_checkname = (
+    "robotmk_service_name",
+    TextAscii(
+        title=_("Change <b>Robotmk service name</b>"),
+        allow_empty=True,
+        size=25,
+        help=_("""
+        A dedicated service is created on each Robotmk client to monitor the staleness 
+        of suite statefiles, fatal results, Robotmk version etc.<br>
+        Use this setting to override the name of this service. """
+               ),
+        default_value="Robotmk",
+    )
+)
 
 
 def _valuespec_inventory_robotmk_rules():
@@ -131,10 +147,11 @@ def _valuespec_inventory_robotmk_rules():
                                 <tt>${SPACE}</tt>  -  Use this if there should be a space between the prefix and the item name<br><br>
                                 The default format string is "<tt>Robot Framework E2E $SUITEID$SPACE-$SPACE</tt>".
                             """)),
-                    ]),  #Tuple_elements
+                    ]),  # Tuple_elements
                     title=_("Naming rules for discovered Robot services"),
                 )  # ListOf
             ),
+            inventory_dict_robotmk_checkname,
         ],  # elements
     )
 
