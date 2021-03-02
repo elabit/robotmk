@@ -424,11 +424,14 @@ class RMKSuite(RMKState):
         self.rc = rc
         return rc
 
-    def get_suite_or_global(self, name):
+    def get_suite_or_global(self, name, default=None):
         try:
             return self.suite_dict[name]
         except:
-            return self.global_dict[name]
+            try: 
+                return self.global_dict[name]
+            except: 
+                return default
 
     @property
     def path(self):
@@ -893,11 +896,17 @@ class RMKCtrl(RMKState, RobotMK):
                       self.statefile_path)
         self._state = self.read_state_from_file()
         meta_data.update(self._state)
+        # Some keys from the runner state file should be overwritten with current values:
+        meta_data.update({
+            'robotmk_version': ROBOTMK_VERSION,
+            'execution_mode': self.execution_mode}
+            )
         self.loginfo(
             "Reading suite statefiles and encoding data (%s)..." % encoding)
         self.suites_state = self.check_suite_statefiles(encoding)
         for host in self.suites_state.keys():
-            states = self.suites_state[host]
+            # discard empty dicts
+            states = [state for state in self.suites_state[host] if bool(state)]
             host_state = {
                 "runner": meta_data,
                 "suites": states,
@@ -929,24 +938,27 @@ class RMKCtrl(RMKState, RobotMK):
             self.logdebug("Reading statefile of suite '%s': %s" % (
                 suite.id, suite.statefile_path))
             state = suite.read_state_from_file()
-            if 'error' in state:
-                self.logerror(state['error'])
-
-            for k in self.keys_to_encode:
-                if k in state:
-                    if k == 'htmllog' and self.global_dict['transmit_html'] == False:
-                        state[k] = None
-                    else:
-                        content = self.read_file(state[k])
-                        if k == 'xml':
-                            # Remove any HTML content (embedded images) to not clutter the CMK multisite 
-                            content = xml_remove_html(content)
-                            pass
-                        state[k] = self.encode(
-                            content,
-                            suite.global_dict['agent_output_encoding'])
+            if not bool(state):
+                self.logwarn("Statefile of suite '%s' not found - (seems like the suite did never run)" % (suite.id))
+            else:
+                for k in self.keys_to_encode:
+                    if k in state:
+                        if k == 'htmllog' and self.global_dict['transmit_html'] == False:
+                            state[k] = None
+                        else:
+                            content = self.read_file(state[k])
+                            if k == 'xml':
+                                # Remove any HTML content (embedded images) to not clutter the CMK multisite 
+                                content = xml_remove_html(content)
+                                pass
+                            state[k] = self.encode(
+                                content,
+                                suite.global_dict['agent_output_encoding'])
             states[host].append(state)
-        return states
+        if bool(states):
+            return states
+        else: 
+            return None
 
     @property
     def keys_to_encode(self):
