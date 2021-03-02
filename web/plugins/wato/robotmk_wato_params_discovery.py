@@ -80,9 +80,8 @@ def _valuespec_inventory_robotmk_rules():
                             allow_empty=True,
                             size=25,
                             default_value=".*",
-                            help=
-                            _("Define a regular expression for the root suite in the Robot result you want to set the <b>discovery level</b>. To find out the root suite name, open output.xml of the Robot test and search for the very first suite tag."
-                              )),
+                            help=_("Define a regular expression for the root suite in the Robot result you want to set the <b>discovery level</b>. To find out the root suite name, open output.xml of the Robot test and search for the very first suite tag."
+                                   )),
                         DropdownChoice(
                             title=("Level"),
                             choices=[
@@ -99,24 +98,22 @@ def _valuespec_inventory_robotmk_rules():
                                  _("3 - create service(s) from each result element 3 levels deeper"
                                    )),
                             ],
-                            help=
-                            _(u"Each Robot result consists of one suite which is either the "
-                              u".robot file name or the folder name containg the tests.<br>"
-                              u"By default, Robotmk creates 1 service from this single root node.<br>"
-                              u"Choosing another level enables you to <b>split the Robot result</b> into as many services as you want.<br>"
-                              u"This is perfect for <b>suites</b> and <b>tests</b>. Even if possible, you should <i>not</i> create services from <b>keywords</b>!"
-                              ),
+                            help=_(u"Each Robot result consists of one suite which is either the "
+                                   u".robot file name or the folder name containg the tests.<br>"
+                                   u"By default, Robotmk creates 1 service from this single root node.<br>"
+                                   u"Choosing another level enables you to <b>split the Robot result</b> into as many services as you want.<br>"
+                                   u"This is perfect for <b>suites</b> and <b>tests</b>. Even if possible, you should <i>not</i> create services from <b>keywords</b>!"
+                                   ),
                         ),
                         TextAscii(
                             title=("Node Blacklist"),
                             allow_empty=True,
                             size=25,
                             default_value="",
-                            help=
-                            _("By default, Robotmk will create services for <i>all</i> nodes on the discovery level. A <b>blacklist</b> pattern selectively hinders Robotmk to inventorize certain services.<br>"
-                              "Note: An empty string is interpreted as an empty blacklist = inventorize all (default)."
-                              )),
-                    ]),  #Tuple
+                            help=_("By default, Robotmk will create services for <i>all</i> nodes on the discovery level. A <b>blacklist</b> pattern selectively hinders Robotmk to inventorize certain services.<br>"
+                                   "Note: An empty string is interpreted as an empty blacklist = inventorize all (default)."
+                                   )),
+                    ]),  # Tuple
                     title=_("Discovery level of services from Robot output"),
                 )  # ListOf
             ),
@@ -129,14 +126,12 @@ def _valuespec_inventory_robotmk_rules():
                             allow_empty=True,
                             size=25,
                             default_value=".*",
-                            help=
-                            _("Define a regular expression for the root suite in the Robot result you want to set the <b>service name prefix</b>. To find out the root suite name, open output.xml of the Robot test and search for the very first suite tag."
-                              )),
+                            help=_("Define a regular expression for the root suite in the Robot result you want to set the <b>service name prefix</b>. To find out the root suite name, open output.xml of the Robot test and search for the very first suite tag."
+                                   )),
                         TextAscii(title=("Service name prefix"),
                                   allow_empty=True,
                                   size=60,
-                                  default_value=
-                                  "Robot Framework E2E $SUITEID$SPACE-$SPACE",
+                                  default_value="Robot Framework E2E $SUITEID$SPACE-$SPACE",
                                   help=_("""
                                 How Robot service names of discovered items should start. The following Variables can be used (usage: <tt>$VAR</tt> or <tt>${VAR}</tt>):<br>
                                 <tt>${PATH}</tt>  -  Name of Robot suite directory or <tt>.robot</tt> file<br>
