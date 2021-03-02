@@ -716,18 +716,18 @@ class RMKrunner(RMKState, RobotMK):
             self._state['end_time'] - self._state['start_time']).total_seconds()
         runtime_suites = sum([suite.runtime for suite in self.suites])
         runtime_robotmk = runtime_total - runtime_suites
-        suites_nonfatal = [(s.id, s.runtime)
-                           for s in self.suites if s.rc < 252]
-        suites_fatal = [(s.id, s.runtime) for s in self.suites if s.rc >= 252]
-        suites = {
-            'suites_nonfatal': suites_nonfatal,
-            'suites_fatal': suites_fatal,
-        }
+        # suites_nonfatal = [(s.id, s.runtime)
+        #                    for s in self.suites if s.rc < 252]
+        # suites_fatal = [(s.id, s.runtime) for s in self.suites if s.rc >= 252]
+        # suites = {
+        #     'suites_nonfatal': suites_nonfatal,
+        #     'suites_fatal': suites_fatal,
+        # }
         self.set_statevars([
             ('runtime_total', runtime_total),
             ('runtime_suites', runtime_suites),
             ('runtime_robotmk', runtime_robotmk),
-            ('suites', suites),
+            # ('suites', suites),
             ('selective_run', self.selective_run),
         ])
         if self.execution_mode == 'agent_serial':
@@ -945,9 +945,23 @@ class RMKCtrl(RMKState, RobotMK):
             state = suite.read_state_from_file()
 
             if not bool(state):
-                self.logwarn(
-                    "Statefile of suite '%s' not found - (seems like the suite did never run)" % (suite.id))
+                error_text = "Suite statefile not found - (seems like the suite did never run)"
+                self.logwarn(error_text)
+                    
+                state.update({
+                    'id': suite.id,
+                    'status': 'fatal',
+                    'error': error_text
+                    })
             else:
+                if state['rc'] >= 252: 
+                    state.update({
+                        'status': 'fatal',
+                        'error': 'Robot RC was >= 252. This is a fatal error. Robotmk got no XML/HTML to process. You should execute and test the suite manually.'
+                        })
+                else: 
+                    state.update({'status': 'nonfatal'})
+
                 for k in self.keys_to_encode:
                     if k in state:
                         if k == 'htmllog' and self.global_dict['transmit_html'] == False:
