@@ -48,17 +48,22 @@ metric_info['runner_execution_interval'] = {
 metric_info['suites_total'] = {
     'title': _('Suites Total'),
     'unit': 'count',
-    'color': '#66a887',
+    'color': '#eeeade',
 }
 metric_info['suites_stale'] = {
     'title': _('Suites Stale'),
     'unit': 'count',
-    'color': '#a8665d',
+    'color': '#b78583',
+}
+metric_info['suites_nonstale'] = {
+    'title': _('Suites Non-Stale'),
+    'unit': 'count',
+    'color': '#72be6c',
 }
 metric_info['suites_fatal'] = {
     'title': _('Suites Fatal'),
     'unit': 'count',
-    'color': '#f8665d',
+    'color': '#b7241d',
 }
 
 graph_info['robotmk_headroom_usage'] = {
@@ -71,7 +76,7 @@ graph_info['robotmk_headroom_usage'] = {
         ("runner_runtime_suites", "stack"),
         ("runner_runtime", "line"),
     ],
-    # "optional_metrics": ["runner_execution_interval"]
+    "optional_metrics": ["runner_execution_interval"]
     "range": (0, "runner_cache_time,1.05,*"),
     "scalars": [
         "runner_runtime:warn",
@@ -83,9 +88,10 @@ graph_info['robotmk_suite_state'] = {
     "title":
     _("Robotmk Suites"),
     "metrics": [
-        ("suites_total", "area"),
         ("suites_stale", "area"),
+        ("suites_nonstale", "stack"),
         ("suites_fatal", "stack"),
+        ("suites_total", "line"),
     ],
 }
 
