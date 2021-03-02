@@ -47,6 +47,58 @@
             "justMyCode": false
         },
         {
+            "name": "RobotMK-controller",
+            "type": "python",
+            "request": "launch",
+            "program": "${workspaceFolder}/agents/plugins/robotmk",
+            "console": "integratedTerminal",
+            "justMyCode": true,
+            "env": {
+                // "ROBOTMK_GLOBAL_CACHE_TIME": "666",
+                // "ROBOTMK_SUITES_SELENIUM_TEST_ONE_VARIABLE_EEE": "fff",
+                // "ROBOTMK_SUITES_SELENIUM_TEST_ONE_VARIABLE_UUU": "vvv",
+                // "ROBOTMK_suites_1S_3T_host": "anotherhost",
+            }
+        },
+        {
+            "name": "RobotMK-plugin-runall",
+            "type": "python",
+            "request": "launch",
+            "program": "${workspaceFolder}/agents/plugins/robotmk",
+            "console": "integratedTerminal",
+            "justMyCode": false,
+            "args": [
+                "--run"
+            ],
+            "env": {
+                // "ROBOTMK_GLOBAL_CACHE_TIME": "666",
+                // "ROBOTMK_SUITES_SELENIUM_TEST_ONE_VARIABLE_EEE": "fff",
+                // "ROBOTMK_SUITES_SELENIUM_TEST_ONE_VARIABLE_UUU": "vvv",
+                // "ROBOTMK_suites_1S_3T_host": "anotherhost",
+            }
+        },
+        {
+            "name": "RobotMK-plugin-runsuite",
+            "type": "python",
+            "request": "launch",
+            "program": "${workspaceFolder}/agents/plugins/robotmk",
+            "console": "integratedTerminal",
+            "justMyCode": true,
+            "args": [
+                "--run",
+                // "selenium_test_two,selenium_test_three",
+                // "selenium_test_one,selenium_test_two,selenium_test_three",
+                "webapp_de"
+            ],
+            "env": {
+                // "ROBOTMK_GLOBAL_CACHE_TIME": "666",
+                // "ROBOTMK_SUITES_SELENIUM_TEST_ONE_VARIABLE_AAA": "111",
+                // "ROBOTMK_SUITES_SELENIUM_TEST_ONE_VARIABLE_BBB": "222",
+                // "ROBOTMK_SUITES_SELENIUM_TEST_TWO_VARIABLE_CCC": "333",
+                // "ROBOTMK_SUITES_SELENIUM_TEST_TWO_VARIABLE_DDD": "444",
+            }
+        },
+        {
             "name": "RobotMK plugin WIN",
             "type": "python",
             "request": "launch",
@@ -57,7 +109,7 @@
             "console": "integratedTerminal",
             //"python": "c:/python38/python",
             // allow to inspect also foreign code
-            "justMyCode": false
+            "justMyCode": false,
         },
     ]
 }

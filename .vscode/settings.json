@@ -1,11 +1,8 @@
 {
-    "python.pythonPath": ".tox/check/bin/python",   
-    // "python.pythonPath": ".tox/plugin/bin/python",   
+    // "python.pythonPath": ".tox/check/bin/python",   
+    "python.pythonPath": ".tox/plugin/bin/python",
     "python.testing.pytestArgs": [
-        "--cache-clear",
-        "--ignore=python-pytest-check_mk",
-        "--ignore=agents/plugins",
-        "-vvv"
+        "agents"
     ],
     "python.testing.unittestEnabled": false,
     "python.testing.nosetestsEnabled": false,
@@ -14,5 +11,13 @@
         "**/__pycache__/**": true,
         "**/.pytest_cache/**": true
     },
-    "python.linting.enabled": false,
+    "python.linting.enabled": true,
+    "python.linting.flake8Enabled": true,
+    "python.linting.flake8Path": ".tox/plugin/bin/flake8",
+    "python.linting.flake8Args": [
+        "--max-line-length=80",
+    ],
+    "python.formatting.provider": "autopep8",
+    // "python.formatting.yapfPath": "/workspace/robotmk/.tox/plugin/bin/yapf",
+    "editor.formatOnSave": true,
 }

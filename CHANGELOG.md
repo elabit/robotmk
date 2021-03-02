@@ -8,6 +8,27 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## Unreleased
 ### Added
+
+- Added WATO option to override the Robotmk service name (#98)
+- Separate Logfiles
+- Runner/Controller
+- Tag 
+- Prefix formatting
+- Plugin: Added daily log RobotMK file rotation (#88)
+- New Robotmk Service: Perfometer Thresholds Graphs
+  - responsible for reading the spoolfiles and producing output; this eliminates
+    the checkmk error *missing agent section 'robotmk'*  if the plugin had a problem. 
+  - reponsible to monitor the freshness of spoolfiles. The whole "async" mechanism
+    is decoupled form checkmk; this allows to control exactly when a spoolfile is 
+    considered to be stale and what to do in this case. In addition, this eases
+    debugging. 
+  - The plugin saves its state with statefiles in tmp; the controller mode reads 
+    them and sources the XML/HTTP files. 
+  - The data transmission from client to server is done with a JSON container 
+    structure; it provides fields for XML/HTTP content which is compressed by 
+    default. 
+
+
 ### Changed
 ### Fixed
 

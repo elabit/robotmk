@@ -17,4 +17,7 @@ tmuxp.yaml
 *output.xml
 *report.html
 agents/custom/*
+dist/*.vscode/.ropeproject/
+.vscode/launch_plugin.json
+.vscode/.ropeproject/*
 dist/*

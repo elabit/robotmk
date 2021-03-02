@@ -25,14 +25,35 @@ import re
 import time
 import ast
 import datetime
+from pytz import timezone
+import pytz
+from dateutil import parser
+from dateutil.tz import tzlocal
 from pprint import pprint
 import xml.etree.ElementTree as ET
 from operator import add, sub
 from random import randint
 import base64
 import zlib
+import json
+from string import Template
+import copy
+try:
+    from natural import date
 
-iam = "robotmk"
+    def natdate(sec):
+        return date.compress(sec)
+except:
+
+    def natdate(sec):
+        return sec
+
+
+utc = pytz.utc
+
+ROBOTMK_VERSION = "v0.2.0"
+
+DEFAULT_SVC_PREFIX = 'Robot Framework E2E $SUITEID$SPACE-$SPACE'
 
 STATES = {
     0: 'OK',
@@ -40,132 +61,334 @@ STATES = {
     2: 'CRITICAL',
     3: 'UNKNOWN',
 }
-ROBOT_NAGIOS={
-    'PASS' : 0,
-    'FAIL' : 2
-}
+ROBOT_NAGIOS = {'PASS': 0, 'FAIL': 2}
 
-STATE_BADGES = {
-    0 : '',
-    1 : '(!)',
-    2 : '(!!)'
-}
+STATE_BADGES = {0: '', 1: '(!)', 2: '(!!)'}
 
+iam = "robotmk"
 # DO NOT DELETE
 inventory_robotmk_rules = []
 
-# Input: one or more robot XML results, concatenated
-# returns:
-#   if discovery_level = 0 -> returns one RFSuite Object            
-#   if discovery_level > 0 -> depending on the structure, a list of custom result objects (RFSuite/RFTest or RFKeyword) 
+
 def parse_robot(info):
-    robot_discovery_settings = get_setting('robot_discovery_settings',[])
-    
-    # Robotmk uses sep(0) in section headers; that means that there is no auto-splitting
-    # of a line by comma, spaces etc. - each line is a list with exactly ONE item. 
-    # This works for the encodings UTF8 and base64 - in both cases "item" contains the 
-    # unicode representation. 
-    # zlib data, on the other hand, is a binary stream, alleviated by the agent plugin via base64. 
-    # In this case, "item" is binary and can contain Nullbytes by accident, which 
-    # CMK uses to split the line into fields. If that happens, we glue them together
-    # again and insert the Nullbyte. 
-    info_joined = ''.join(['\x00'.join(line[:]) for line in info])
-    # There are 3 supported encoding types (pseudocode): 
-    # raw data         CMK-decoded as   decode as   decode as
-    # unicode          utf-8            --          --
-    # base64_codec     bytestring 1)    utf-8 2)    --
-    # zlib_codec       bytestring 1)    zlib  3)    utf-8 4)
-    # 
-    # Checkmk does only _one_ encoding step (=the one named in the section header).
-    # This means that only for utf8, the check receives a decoded unicode string. 
-    # In case of base64/zlib, it gets a decoded base64/zlib string (1) - but it is still a bytestring!
-    if type(info_joined) == unicode:
-        info_joined_utf8 = info_joined
-    else: 
-        try: 
-            # 2) try if this bytestring properly decodes to utf-8
-            info_joined_utf8 = info_joined.decode('utf-8')
-        except: 
-            try: 
-                # Split the Bytestring at the mark '---zlib-sep---' (to get singular results) then 
-                # 3) try to decompress with zlib, then 4) decode to utf-8
-                info_joined_decomp = ''.join( [zlib.decompress(i) for i in info_joined.split('---zlib-sep---') if len(i)] )
-                info_joined_utf8 = info_joined_decomp.decode('utf-8')
-            except Exception:
-                raise MKGeneralException("Cannot decode check input data (is neither UTF-8, nor zlib-compressed UTF-8")
-
-    try: 
-        # identify XMLs
-        xmllist = map(lambda x: '<?xml' + x, info_joined_utf8.split('<?xml'))[1:]
+    keys_to_decode = ['xml', 'htmllog']
+    robot_discovery_settings = get_setting('robot_discovery_settings', [])
+    try:
+        info_joined = ''.join([l[0] for l in info])
+        info_dict = json.loads(info_joined)
     except Exception:
-        raise MKGeneralException("Cannot detect XML header in agent output!")
+        raise MKGeneralException(
+            "Can not load Robotmk JSON data! (json.loads())")
 
-    robot_items = []
-    for xmlitem in xmllist: 
-        # XML etree has its own UTF-8 decoding, handover as bytestring
-        xml = xmlitem.encode('utf-8')
-        oxml = ET.fromstring(xml)
-        suite, statistics, error =  (oxml.find('./suite'), oxml.find('./statistics'), oxml.find('./errors')) 
-        # find a matching pattern and use its discovery level 
-        setting = pattern_match(robot_discovery_settings, suite.attrib['name'], (0, '') )
-        discovery_setting = namedtuple('DiscoverySetting', 'level blacklist_pattern')._make(setting)
-        if not all(map(lambda x: x != None, [suite, statistics, error])):
+    runner_data = info_dict['runner']
+    for idx, suite in enumerate(info_dict['suites']):
+        for k in keys_to_decode:
+            if k in suite:
+                if bool(suite[k]):
+                    d = suite[k]
+                    if runner_data['encoding'] == 'zlib_codec':
+                        d = d.encode('utf-8')
+                        d_byte = base64.b64decode(d)
+                        d_decomp = zlib.decompress(d_byte)
+                    elif runner_data['encoding'] == 'base64_codec':
+                        d = d.encode('utf-8')
+                        d_decomp = base64.b64decode(d)
+                    else:
+                        d_decomp = d
+                    suite[k] = d_decomp
+        try:
+            xml = ET.fromstring(suite['xml'])
+            xml_root_suite = xml.find('./suite')
+        except Exception:
             continue
-        robot_item = parse_suite_xml(suite, discovery_setting)
-        robot_items.extend(robot_item.discovered)
-    # list of RFSuite/RFTest or RFKeyword objects 
-    return robot_items
+            # Seems to be a good idea not to raise an exception here.
+            # The Robotmk service can report this error, too.
+            #raise MKGeneralException("Fatal parsing error. Robotmk cannot " +\
+            #    "find XML/HTML data. %s" % suite.get('error', ''))
+        setting = pattern_match(robot_discovery_settings,
+                                xml_root_suite.attrib['name'], (0, ''))
+        discovery_setting = namedtuple(
+            'DiscoverySetting', 'level blacklist_pattern')._make(setting)
+        # now process the root suite
+        # root_item = parse_suite_xml(xml_root_suite, discovery_setting)
+        # and reveal the items in the discovery level:
+        # suite['discovered_items'] = root_item.discovered
+        # suite['parsed'] = copy.deepcopy(root_item)
+        # suite['parsed'] = parse_suite_xml(xml_root_suite, discovery_setting)
+        info_dict['suites'][idx]['parsed'] = parse_suite_xml(
+            xml_root_suite, discovery_setting)
+    return info_dict
 
-def inventory_robot(robot_items):
-    robot_service_prefix = get_setting('robot_service_prefix',[])
-    for robot_item in robot_items:
-        prefix = pattern_match(robot_service_prefix, robot_item.name, '')
-        prefix_subst = prefix.replace('%SPACE%', ' ')
-        item_name = "%s%s" % (prefix_subst, robot_item.name)
-        yield item_name, None
-        # uncomment instead of yield to debug this method
-        # print suite_name
 
-# item = CMK service to check 
-# robot_items = list of suite/test/kw objects
-def check_robot(item, checkgroup_parameters, robot_items):
-    if checkgroup_parameters == None: 
+def inventory_robot(parsed):
+
+    # TODO: Error handling for no suites/runner_data keys?
+    for root_suite in parsed['suites']:
+        if 'parsed' in root_suite:
+            for discovered_item in root_suite['parsed'].discovered:
+                item_svc_name = add_svc_prefix(discovered_item.name,
+                                               root_suite)
+                yield item_svc_name, None
+    # The meta service reporting overall runtimes, stale spool files etc.
+    svc_robotmk = get_setting('robotmk_service_name', 'Robotmk')
+    yield svc_robotmk, None
+
+
+# item = CMK service to check
+# parsed = dict of runner_data/suites; suites = dict of root suites incl. the
+#          discovered items
+def check_robot(item, checkgroup_parameters, parsed):
+    if checkgroup_parameters == None:
         checkgroup_parameters = {}
-    
-    robot_discovery_settings = get_setting('robot_discovery_settings',[])
+    robot_discovery_settings = get_setting('robot_discovery_settings', [])
 
-    for robot_item in robot_items:
-        # If there is a custom prefix defined in Checkmk, we have to strip it off
-        # so that it can be compared to the Robot item
-        item_without_prefix = strip_prefix(item)
-        if robot_item.name == item_without_prefix:
-            item_result = robot_item.get_checkmk_result(robot_item, checkgroup_parameters)
-            (rc, output_lines, perfdata) = (
-                item_result['worststate'], 
-                '\n'.join(item_result['padded_lines_list']),
-                item_result['cmk_perfdata_list'])
-            return rc, output_lines, perfdata
+    svc_robotmk = get_setting('robotmk_service_name', 'Robotmk')
+    if item == svc_robotmk:
+        perfdata_list = []
+        suites_total = len(parsed['suites'])
+        rc = 0
+        # list of strings for first output line
+        first_line = []
+        # lines 2ff.
+        out_lines = []
+
+        # I) Staleness Check:
+        # result_age vs. cache_time/execution time
+
+        suites_fatal = check_fatal_suites(parsed['suites'])
+        suites_stale, suites_nonstale = check_stale_suites(parsed['suites'])
+        # firstline
+        if suites_total == 0:
+            first_line.append(
+                "0 suites planned/executed (!). Check the configuration!")
+            rc = max(rc, 1)
+        else:
+            if len(suites_nonstale) > 0:
+                first_line.append(
+                    "%d of %s suite(s) in proper state (%s)" %
+                    (len(suites_nonstale), suites_total,
+                     quoted_listitems([s[0] for s in suites_nonstale])))
+            if len(suites_stale) > 0:
+                rc = max(rc, 2)
+                first_line.append(
+                    "stale suites: %s (!!) (%s)" %
+                    (len(suites_stale),
+                     quoted_listitems([s[0] for s in suites_stale])))
+                out_lines.extend([s[1] for s in suites_stale])
+            if len(suites_fatal) > 0:
+                rc = max(rc, 2)
+                first_line.append("FATAL suites: %s (!!) (%s)" %
+                                  (len(suites_fatal), ', '.join([
+                                      "Suite '%s': %s" % (s['id'], s['error'])
+                                      for s in suites_fatal
+                                  ])))
+
+        perfdata_list.append(('suites_total', "%d" % suites_total))
+        perfdata_list.append(('suites_nonstale', "%d" % len(suites_nonstale)))
+        perfdata_list.append(('suites_stale', "%d" % len(suites_stale)))
+        perfdata_list.append(('suites_fatal', "%d" % len(suites_fatal)))
+
+        # II) Headroom monitoring
+        '''A non-selective (=complete) run is whenever the runner gets started 
+        with no suite args and all suites are run as configured. 
+        In this case the runtime headroom should be monitored:
+        - serial mode (controller itself starts runner with no suite args)
+        - external mode (when a scheduled task starts the runner with no suite args)
+        A selective, non-complete run is 
+        - parallel mode (controller starts one runner per suite)
+        - external mode (a scheduled task starts the runner with suite args)'''
+
+        if 'runtime_total' in parsed['runner']:
+            runner_runtime = round(parsed['runner']["runtime_total"], 1)
+
+            try:
+                if parsed['runner']['execution_mode'] == 'agent_serial':
+                    cache_time = parsed['runner']['cache_time']
+                    execution_interval = parsed['runner']['execution_interval']
+                    maxruntime = execution_interval
+                    maxruntime_str = 'execution interval'
+                elif parsed['runner'][
+                        'execution_mode'] == 'external' and not parsed[
+                            'runner']['selective_run']:
+                    cache_time = parsed['runner']['cache_time']
+                    maxruntime = cache_time
+                    maxruntime_str = 'cache time'
+                    execution_interval = None
+            finally:
+                # FIXME: This are w/c threshold PLACEHOLDERS !!
+                runner_runtime_warn_s = maxruntime * 0.9
+                runner_runtime_crit_s = maxruntime * 0.95
+                pct_runtime_usage = round(
+                    (100 / float(maxruntime)) * runner_runtime, 1)
+                if runner_runtime > runner_runtime_warn_s:
+                    if runner_runtime > runner_runtime_crit_s:
+                        badge = '(!!) '
+                        rc = max(rc, 2)
+                    else:
+                        badge = '(!) '
+                        rc = max(rc, 1)
+                else:
+                    badge = ''
+                    rc = max(rc, 0)
+                first_line.append("%stotal runtime uses %.1f%% (%.1fs) of " %
+                                  (badge, pct_runtime_usage, runner_runtime) +
+                                  "%s (%ds)" % (maxruntime_str, maxruntime))
+
+                perfdata_list.append((
+                    'runner_runtime', runner_runtime, runner_runtime_warn_s,
+                    runner_runtime_crit_s, 0, maxruntime
+                    # TODO: Add warn/crit thresholds here
+                ))
+                perfdata_list.append(('runner_cache_time', "%d" % cache_time))
+                if not execution_interval is None:
+                    perfdata_list.append(('runner_execution_interval',
+                                          "%d" % execution_interval))
+                perfdata_list.append(
+                    ('runner_runtime_robotmk',
+                     "%.3f" % parsed['runner']["runtime_robotmk"]))
+                perfdata_list.append(
+                    ('runner_runtime_suites',
+                     "%.3f" % parsed['runner']["runtime_suites"]))
+        else:
+            rc = max(rc, 2)
+            first_line.append("Robotmk Runner did never run (!!)")
+
+        # 3. Execution mode
+        first_line.append("execution mode: %s" %
+                          parsed['runner']["execution_mode"])
+        # TODO: append selective/full execution info
+        # 4. VERSION CHECK
+        client_version = parsed['runner']['robotmk_version']
+        if client_version != ROBOTMK_VERSION:
+            first_line.append(
+                "Robotmk version mismatch (!) (server: %s, client: %s)" %
+                (client_version, ROBOTMK_VERSION))
+            rc = max(rc, 1)
+        else:
+            first_line.append("Robotmk version %s (server and client)" %
+                              ROBOTMK_VERSION)
+
+        # putting things together
+        out = ', '.join(first_line) + '\n' + ''.join(out_lines)
+        return rc, out, perfdata_list
+    else:
+        # any other regular s/t/k check
+        for root_suite in parsed['suites']:
+            for discovered_item in root_suite['parsed'].discovered:
+                # Remove the prefix to get the original item name
+                item_without_prefix = strip_svc_prefix(item, root_suite)
+                if discovered_item.name == item_without_prefix:
+                    now = datetime.datetime.now(tzlocal())
+                    last_end = parser.isoparse(root_suite['end_time'])
+                    age = now - last_end
+                    if age.total_seconds() < root_suite['cache_time']:
+                        return evaluate_robot_item(discovered_item,
+                                                   checkgroup_parameters)
+                    else:
+                        overdue_sec = round(
+                            age.total_seconds() - root_suite['cache_time'], 1)
+                        return ignore_robot_item(root_suite, last_end,
+                                                 overdue_sec)
+
+
+# Return only fatal suites
+def check_fatal_suites(suites):
+    # TODO: return list of output lines
+    return [s for s in suites if s['status'] == 'fatal']
+
+
+def check_stale_suites(suites):
+    suites_stale = []
+    suites_nonstale = []
+    for root_suite in [s for s in suites if s['status'] != 'fatal']:
+        now = datetime.datetime.now(tzlocal())
+        last_end = parser.isoparse(root_suite['end_time'])
+        age = now - last_end
+        last_end_fmt = last_end.strftime('%Y-%m-%d %H:%M:%S')
+        if age.total_seconds() < root_suite['cache_time']:
+            # nonstale
+            suites_nonstale.append(
+                (root_suite['id'], "Suite '%s': (last execution end: %s, " %
+                 (root_suite['id'], last_end_fmt)))
+        else:
+            # stale result
+            overdue_sec = age.total_seconds() - root_suite['cache_time']
+            suites_stale.append((root_suite['id'],
+                                 "(!!) Suite '%s': (last execution end: %s, " %
+                                 (root_suite['id'], last_end_fmt) +
+                                 "cache time: %ds, overdue since %.1fs)\n" %
+                                 (root_suite['cache_time'], overdue_sec)))
+    return (suites_stale, suites_nonstale)
+
+
+def ignore_robot_item(root_suite, last_end, overdue_sec):
+    # TODO: (Perhaps make this configurable (OK/UNKNOWN))
+    last_end_fmt = last_end.strftime('%Y-%m-%d %H:%M:%S')
+    out = "Result of suite '%s' is too old. " % root_suite['id'] + \
+        "Last execution end: %s, " % last_end_fmt + \
+        "overdue since %ss " % (overdue_sec) + \
+        "(cache time: %ss)" % str(root_suite['cache_time'])
+    return 3, out
+
+
+def evaluate_robot_item(robot_item, checkgroup_parameters):
+    item_result = robot_item.get_checkmk_result(robot_item,
+                                                checkgroup_parameters)
+    (rc, output_lines, perfdata) = (item_result['worststate'], '\n'.join(
+        item_result['padded_lines_list']), item_result['cmk_perfdata_list'])
+    return rc, output_lines, perfdata
+
+
+def get_svc_prefix(itemname, root_suite):
+    '''Determines the prefix for an item as defined with pattern for root suite'''
+    robot_service_prefix = get_setting('robot_service_prefix', [])
+    fmtstring = pattern_match(robot_service_prefix, root_suite['parsed'].name,
+                              DEFAULT_SVC_PREFIX)
+    template = Template(fmtstring)
+    prefix = template.safe_substitute(PATH=root_suite['path'],
+                                      TAG=root_suite['tag'],
+                                      SUITEID=root_suite['id'],
+                                      SUITENAME=root_suite['parsed'].name,
+                                      SPACE=' ')
+    return prefix
+
+
+def add_svc_prefix(itemname, root_suite):
+    '''Returns the item name with a templated prefix string in front of it'''
+    return "%s%s" % (get_svc_prefix(itemname, root_suite), itemname)
+
+
+def strip_svc_prefix(itemname, root_suite):
+    '''Strips off the templated prefix string from the front of an item name'''
+    prefix = get_svc_prefix(itemname, root_suite)
+    if itemname.startswith(prefix):
+        return itemname[len(prefix):]
+    else:
+        return itemname
+
 
 # ==============================================================================
+
 
 class RobotItem(object):
     # # maps XML tags to Classes
     class_dict = {
         'suite': 'RobotSuite',
-        'test' : 'RobotTest',
-        'kw'   : 'RobotKeyword'
-    }  
+        'test': 'RobotTest',
+        'kw': 'RobotKeyword'
+    }
     # list of suites/tests/kw which were discovered (depending on discovery_level)
     discovered = []
     indentation_char = u"\u2504"
 
-    # Indentation chars. 
+    # Indentation chars.
     # Ex.: Given a discovery level of 2 discovers tests then
     # - the test has a padding of       2-2 *-1 = 0 chars.
-    # - the kw below have a padding of (2-3)*-1 = 1 chars 
+    # - the kw below have a padding of (2-3)*-1 = 1 chars
     @property
-    def padstring(self): 
-        return (int(RobotItem.discovery_setting.level) - self.lv_abs) * -1 * self.indentation_char
+    def padstring(self):
+        return (int(RobotItem.discovery_setting.level) -
+                self.lv_abs) * -1 * self.indentation_char
 
     # Abbreviation for Suite/Test/Keyword - [S]/[T]/[K]
     @property
@@ -173,8 +396,9 @@ class RobotItem(object):
         return '[%s]' % str(self)[:1].upper()
 
     @property
-    def item_nagios_status(self): 
+    def item_nagios_status(self):
         return self._item_nagios_status
+
     @item_nagios_status.setter
     def item_nagios_status(self, state):
         self._item_nagios_status = max(self._item_nagios_status, int(state))
@@ -185,11 +409,11 @@ class RobotItem(object):
         self.lv_rel = lv_rel
         self.parent = parent
         self.id = self._get_id(xmlnode, index)
-        self.status = xmlnode.find('status').attrib['status'] 
+        self.status = xmlnode.find('status').attrib['status']
         self.text = xmlnode.findtext('./status')
-        self.msg = xmlnode.findtext('./msg') 
+        self.msg = xmlnode.findtext('./msg')
 
-        self.name   = xmlnode.attrib['name']
+        self.name = xmlnode.attrib['name']
         self.elapsed_time = self._get_node_elapsed_time()
         self._item_nagios_status = 0
         self.result = {}
@@ -200,14 +424,15 @@ class RobotItem(object):
         # (not needed for Keywords)
         self.is_topnode = False
         # relative level must be resetted on test or keyword layer
-        if self.parent == None or self.parent.xpath_name != self.xpath_name: 
+        if self.parent == None or self.parent.xpath_name != self.xpath_name:
             self.lv_rel = 0
 
         self.subnodes = self._get_subnodes(xmlnode)
         # Add this node if it is on the "to discover" level and if it is not blacklisted
-        if self.lv_abs == int(self.discovery_setting.level): 
+        if self.lv_abs == int(self.discovery_setting.level):
             # Empty blacklist = inventorize all
-            if self.discovery_setting.blacklist_pattern == '' or not re.match(self.discovery_setting.blacklist_pattern, self.name): 
+            if self.discovery_setting.blacklist_pattern == '' or not re.match(
+                    self.discovery_setting.blacklist_pattern, self.name):
                 self.discovered.append(self)
 
     def _get_id(self, xmlnode, index):
@@ -215,186 +440,212 @@ class RobotItem(object):
         because indexing is important for Checkmk graphs."""
         if index != None:
             # metric index should start with 1
-            return "%s-k%s" % (self.parent.id, index+1)
-        else: 
+            return "%s-k%s" % (self.parent.id, index + 1)
+        else:
             return xmlnode.attrib['id']
 
     # returns a list of subnode objects within a XML node
     def _get_subnodes(self, xmlnode):
         subnodes = []
-        for nodetype in self.allowed_subnodes: 
+        for nodetype in self.allowed_subnodes:
             for index, xmlsubnode in enumerate(xmlnode.findall(nodetype)):
                 RobotClass = eval(self.class_dict[nodetype])
-                node = RobotClass(xmlsubnode, self.lv_abs+1, self.lv_rel+1, self, index)
+                node = RobotClass(xmlsubnode, self.lv_abs + 1, self.lv_rel + 1,
+                                  self, index)
                 subnodes.append(node)
         return subnodes
 
     def _get_node_elapsed_time(self):
         """Returns the time between given timestamps of a node in seconds."""
-        self.start_time = self.xmlnode.find('status').attrib['starttime'] 
-        self.end_time =   self.xmlnode.find('status').attrib['endtime'] 
-        if self.start_time == self.end_time or not (self.start_time and self.end_time):
+        self.start_time = self.xmlnode.find('status').attrib['starttime']
+        self.end_time = self.xmlnode.find('status').attrib['endtime']
+        if self.start_time == self.end_time or not (self.start_time
+                                                    and self.end_time):
             return 0
         start_millis = timestamp_to_millis(self.start_time)
         end_millis = timestamp_to_millis(self.end_time)
         # start/end_millis can be long but we want to return int when possible
-        return int(end_millis - start_millis)/float(1000)
-    
+        return int(end_millis - start_millis) / float(1000)
+
     # If the pattern for a WATO <setting> matches, return the value (if tuple) or True
     def _get_pattern_value(self, setting, check_params):
         setting_keyname = getattr(self, "%s_dict_key" % setting)
         patterns = check_params.get(setting, {}).get(setting_keyname, [])
         return pattern_match(patterns, self.name)
-    
+
     def _set_node_info(self):
         self.result['name'] = self.name
         self.result['abbreviation'] = self.abbreviation
         self.result['xpath_name'] = self.xpath_name
-        
-    # Evaluate the Robot status of this item to a Nagios state & set message 
+
+    # Evaluate the Robot status of this item to a Nagios state & set message
     def _eval_node_robotframework_status(self):
         if type(self) == RobotKeyword:
-            # TODO: When is self.msg set for keywords? 
+            # TODO: When is self.msg set for keywords?
             statustext = self.msg
-        else: 
+        else:
             statustext = self.text
 
-        self.result['result_robotframework'] = (ROBOT_NAGIOS[self.status], remove_nasty_chars(statustext))
+        self.result['result_robotframework'] = (ROBOT_NAGIOS[self.status],
+                                                remove_nasty_chars(statustext))
 
     # create the "base line" with the node name and the RF status
     def _set_node_padded_line(self, check_params):
-        # TODO: What are requirements for a line? 
+        # TODO: What are requirements for a line?
 
         # I. Begin with the baseline formatting. The baseline is pure related to the Robot result
         # ---- [K] 'MyKeyword': PASS (...)"
-        
+
         # Set the message text
         text = self.result['result_robotframework'][1]
         text_bracket = ''
-        if len(text) > 0: 
+        if len(text) > 0:
             text_bracket = ' (%s)' % text
 
-        # If configured, the topmost node can contain additional data: 
-        # - last suite execution 
-        # - 
+        # If configured, the topmost node can contain additional data:
+        # - last suite execution
+        # -
         endtime_str = ""
-        # FIXME: This is bug #74! Is it solved? 
+        # FIXME: This is bug #74! Is it solved?
         if self.is_topnode and bool(check_params.get('includedate')):
-            endtime = datetime.datetime.strptime(self.end_time, '%Y%m%d %H:%M:%S.%f')
-            endtime_str = " (last execution: %s) " % endtime.strftime('%m/%d %H:%M:%S')
-        baseline = ("%s %s %s '%s': %s%s%s%s" % (
-            self.padstring, 
-            '--SYMBOL--', 
-            self.abbreviation, 
-            remove_nasty_chars(self.name), 
-            self.status, 
-            endtime_str,
-            '--BADGE--',
-            text_bracket)
-        ).strip()  
+            endtime = datetime.datetime.strptime(self.end_time,
+                                                 '%Y%m%d %H:%M:%S.%f')
+            endtime_str = " (last execution: %s) " % endtime.strftime(
+                '%m/%d %H:%M:%S')
+        baseline = ("%s %s %s '%s': %s%s%s%s" %
+                    (self.padstring, '--SYMBOL--', self.abbreviation,
+                     remove_nasty_chars(self.name), self.status, endtime_str,
+                     '--BADGE--', text_bracket)).strip()
 
         # Baseline completed.
-        # II. Now add results from further checks of this node (runtime, metrics, ...) 
+        # II. Now add results from further checks of this node (runtime, metrics, ...)
         NodeResult = namedtuple('NodeResult', 'check,resultuple')
-        node_results = [ NodeResult(check, self.result[check]) for check in self.result_keys if self.result.get(check, False) ]
-        node_messages = [node_result.resultuple[1] for node_result in node_results if node_result.resultuple[1] ]
+        node_results = [
+            NodeResult(check, self.result[check]) for check in self.result_keys
+            if self.result.get(check, False)
+        ]
+        node_messages = [
+            node_result.resultuple[1] for node_result in node_results
+            if node_result.resultuple[1]
+        ]
 
-        # If this is a top_node, add the messages from subelements: 
+        # If this is a top_node, add the messages from subelements:
         if self.is_topnode:
             # TODO: What are examples of submessages (documentation!)
             if bool(check_params.get('show_submessages')):
                 if len(self.sub_messages) > 0:
-                    node_messages.extend(self.sub_messages) 
-            if len(text)>0: 
+                    node_messages.extend(self.sub_messages)
+            if len(text) > 0:
                 node_messages.append(text)
-            # In some cases (e.g. Set Test Message), the Node's text already got the 
+            # In some cases (e.g. Set Test Message), the Node's text already got the
             # msg set by RF. Add only all others
-            node_messages = [ msg for msg in node_messages if msg != text ]
+            node_messages = [msg for msg in node_messages if msg != text]
 
         # III. Create submessages for the top_node.  (which is for kws: Test, for tests: Suite)
         messages_str = ""
-        if len(node_messages) > 0: 
-            # But not all... We do not want messages from cmk_runtime messages if the runtime was 
-            # not exceeded. 
-            # 
+        if len(node_messages) > 0:
+            # But not all... We do not want messages from cmk_runtime messages if the runtime was
+            # not exceeded.
+            #
             # Perhaps a more generic way is needed to hinder metrics to be propagated under
-            # certain conditions. 
+            # certain conditions.
 
-            # Add NOK runtimes and all others  
-            top_messages = [node_result.resultuple[1] for node_result in node_results if (node_result.resultuple[1] and node_result.check != 'result_cmk_runtime') or (node_result.resultuple[1] and node_result.check == 'result_cmk_runtime' and node_result.resultuple[0] > 0) ]
-            if top_messages: 
-                self.node_top.sub_messages.append("%s '%s': %s" % (self.abbreviation, self.name, ', '.join(top_messages)))
+            # Add NOK runtimes and all others
+            top_messages = [
+                node_result.resultuple[1] for node_result in node_results
+                if (node_result.resultuple[1]
+                    and node_result.check != 'result_cmk_runtime') or (
+                        node_result.resultuple[1] and node_result.check ==
+                        'result_cmk_runtime' and node_result.resultuple[0] > 0)
+            ]
+            if top_messages:
+                self.node_top.sub_messages.append(
+                    "%s '%s': %s" %
+                    (self.abbreviation, self.name, ', '.join(top_messages)))
             messages_str = ", %s" % ', '.join(node_messages)
         # Final Line
         self.result['padded_lines_list'] = ["%s%s" % (baseline, messages_str)]
-        
+
     # sets status and message for this node with exceeded runtime
     # Runtime monitoring is not related to Robot Framework and introduces the WARN
-    # state. Therefore, it can happen that a s/t/k is CRIT/WARN but the RF status is PASS. 
+    # state. Therefore, it can happen that a s/t/k is CRIT/WARN but the RF status is PASS.
     def _eval_node_cmk_runtime(self, check_params):
-        runtime_threshold = self._get_pattern_value('runtime_threshold', check_params)
-        if bool(runtime_threshold): 
-            # CRITICAL threshold 
-            if self.elapsed_time >= runtime_threshold[1]: 
+        runtime_threshold = self._get_pattern_value('runtime_threshold',
+                                                    check_params)
+        if bool(runtime_threshold):
+            # CRITICAL threshold
+            if self.elapsed_time >= runtime_threshold[1]:
                 nagios_status = 2
-                text = "%s runtime=%.2fs >= %.2fs" % (STATE_BADGES[nagios_status], self.elapsed_time, runtime_threshold[1])
-            # WARNING threshold 
-            elif self.elapsed_time >= runtime_threshold[0]: 
+                text = "%s runtime=%.2fs >= %.2fs" % (
+                    STATE_BADGES[nagios_status], self.elapsed_time,
+                    runtime_threshold[1])
+            # WARNING threshold
+            elif self.elapsed_time >= runtime_threshold[0]:
                 nagios_status = 1
-                text = "%s runtime=%.2fs >= %.2fs" % (STATE_BADGES[nagios_status], self.elapsed_time, runtime_threshold[0])
+                text = "%s runtime=%.2fs >= %.2fs" % (
+                    STATE_BADGES[nagios_status], self.elapsed_time,
+                    runtime_threshold[0])
             else:
                 nagios_status = 0
-                if bool(check_params.get('runtime_threshold', False).get('show_all_runtimes', False)):
+                if bool(
+                        check_params.get('runtime_threshold',
+                                         False).get('show_all_runtimes',
+                                                    False)):
                     text = "runtime=%.2fs" % self.elapsed_time
-                else: 
+                else:
                     text = ""
 
             cmk_runtime = (nagios_status, text)
             self.result['result_cmk_runtime'] = cmk_runtime
-        else: 
+        else:
             self.result['result_cmk_runtime'] = None
 
-
     def _eval_node_cmk_perfdata(self, check_params):
-        # PERFDATA ---- Which elemens should produce performance data? 
+        # PERFDATA ---- Which elemens should produce performance data?
         # this_runtime_threshold = None
-        runtime_threshold = self._get_pattern_value('runtime_threshold', check_params)
-        perfdata_wanted = self._get_pattern_value('perfdata_creation', check_params)
-        if perfdata_wanted and self.elapsed_time != None: 
+        runtime_threshold = self._get_pattern_value('runtime_threshold',
+                                                    check_params)
+        perfdata_wanted = self._get_pattern_value('perfdata_creation',
+                                                  check_params)
+        if perfdata_wanted and self.elapsed_time != None:
             perflabel = get_perflabel("%s_%s" % (self.id, self.name))
-            if runtime_threshold: 
+            if runtime_threshold:
                 cmk_perfdata = (
-                    perflabel, 
-                    "%.2f" % self.elapsed_time, 
-                    "%.2f" % runtime_threshold[0], 
-                    "%.2f" % runtime_threshold[1], 
+                    perflabel,
+                    "%.2f" % self.elapsed_time,
+                    "%.2f" % runtime_threshold[0],
+                    "%.2f" % runtime_threshold[1],
                 )
-            else: 
+            else:
                 cmk_perfdata = (perflabel, "%.2f" % self.elapsed_time)
             # perfdata is a list because it gets expanded by perfdata of sub-nodes
             self.result['cmk_perfdata_list'] = [cmk_perfdata]
-        else: 
-            self.result['cmk_perfdata_list'] = None
+        else:
+            self.result['cmk_perfdata_list'] = []
 
     # WIP: see https://github.com/simonmeggle/robotmk/issues/60
     def _eval_node_cmk_metric(self, check_params):
         #metric = self._get_pattern_value('metric', check_params)
-        # TODO THIS WILL BE IMPLEMENTED 
+        # TODO THIS WILL BE IMPLEMENTED
         metric = False
-        if metric: 
-            dummy_value = randint(100,999)
+        if metric:
+            dummy_value = randint(100, 999)
             dummy_value = 400
             dummy_name = "FOO"
             dummy_warn = 300
             dummy_crit = 600
-            # CRITICAL threshold 
-            if dummy_value >= dummy_crit: 
+            # CRITICAL threshold
+            if dummy_value >= dummy_crit:
                 nagios_status = 2
-                text = "%s value %s=%s >= %s" % (STATE_BADGES[nagios_status], dummy_name, dummy_value, dummy_crit)
-            # WARNING threshold 
-            elif dummy_value >= dummy_warn: 
+                text = "%s value %s=%s >= %s" % (STATE_BADGES[nagios_status],
+                                                 dummy_name, dummy_value,
+                                                 dummy_crit)
+            # WARNING threshold
+            elif dummy_value >= dummy_warn:
                 nagios_status = 1
-                text = "%s value %s=%s >= %s" % (STATE_BADGES[nagios_status], dummy_name, dummy_value, dummy_warn)
+                text = "%s value %s=%s >= %s" % (STATE_BADGES[nagios_status],
+                                                 dummy_name, dummy_value,
+                                                 dummy_warn)
             else:
                 nagios_status = 0
                 text = "value %s=%s" % (dummy_name, dummy_value)
@@ -405,9 +656,9 @@ class RobotItem(object):
             cmk_metric = None
 
     def _descending_allowed(self, depth_limit_inherited, check_params):
-        # OUTPUT DEPTH --- how deep can we descend in nested suites/keywords?  
+        # OUTPUT DEPTH --- how deep can we descend in nested suites/keywords?
         depth_limit = self._get_pattern_value('output_depth', check_params)
-        
+
         # i = inherited depth limit
         # t = this depth limit
         # nx = next depth limit
@@ -421,90 +672,92 @@ class RobotItem(object):
         # -----------
         # n  n. n    # see note 3
         # n  0. -1   # see note 4
-        # n  2. 1    # see note 1 
-        #    
+        # n  2. 1    # see note 1
+        #
         # 0. n  -1   # see note 2
         # 0  0. -1   # see note 4
-        # 0  2. 1    # see note 1 
-        #     
+        # 0  2. 1    # see note 1
+        #
         # 2  n  1    # see note 2
         # 2  0. -1   # see note 4
-        # 2  2. 1    # see note 1 
-
+        # 2  2. 1    # see note 1
 
         # Now calculate the depth level for the next sub-item
         next_depth_limit = None
-        if depth_limit == None or depth_limit > 0: 
-            if depth_limit > 0: 
+        if depth_limit == None or depth_limit > 0:
+            if depth_limit > 0:
                 # note 1: depth_limit is set, we can descend, calculate next deph from this level
-                next_depth_limit = depth_limit -1 
-            else:  
-                if depth_limit_inherited >= 0:    
+                next_depth_limit = depth_limit - 1
+            else:
+                if depth_limit_inherited >= 0:
                     # note 2: No depth limit set, but inherited value. Calculate new one.
-                    next_depth_limit = depth_limit_inherited -1 
-                else: 
+                    next_depth_limit = depth_limit_inherited - 1
+                else:
                     # note 3: No depth limit, no inherited limit. Set next limit also to None.
                     next_depth_limit = None
-        else: 
-            #4 there's 0 defined, this overwrites inherited depth
-            next_depth_limit = -1  
+        else:
+            # 4 there's 0 defined, this overwrites inherited depth
+            next_depth_limit = -1
         # return True if descending is allowed
-        descend_allowed = next_depth_limit == None or next_depth_limit > -1       
+        descend_allowed = next_depth_limit == None or next_depth_limit > -1
         return descend_allowed, next_depth_limit
 
-    # This method combines the results of subnodes with the result of the current node. 
+    # This method combines the results of subnodes with the result of the current node.
     # It determines a "WORST STATE" which can be propagated
-    #   - Keywords: from cmk_runtime, cmk_metric 
-    #     Explanation: Keywords CAN fail, but when wrapped in other keywords like 
-    #     'Run Keyword And Return Status', they won't break a test. 
+    #   - Keywords: from cmk_runtime, cmk_metric
+    #     Explanation: Keywords CAN fail, but when wrapped in other keywords like
+    #     'Run Keyword And Return Status', they won't break a test.
     #   - Suite, Tests: from robotframework, cmk_runtime, cmk_metric
-    #     Explanation: Suites and Tests are nodes which can be services in CMK. 
+    #     Explanation: Suites and Tests are nodes which can be services in CMK.
     #     For this reason, the state of such nodes is the worst state of the RF
-    #     result and every CMK/RobotMK check (runtime, metric). 
-    #     Ex.: Even if a test is RF=PASS (=OK), a runtime exceedance could turn 
-    #     it to WARNING. Otherwise, if runtime is OK but the test FAILed, it has to 
-    #     be CRITICAL. 
+    #     result and every CMK/RobotMK check (runtime, metric).
+    #     Ex.: Even if a test is RF=PASS (=OK), a runtime exceedance could turn
+    #     it to WARNING. Otherwise, if runtime is OK but the test FAILed, it has to
+    #     be CRITICAL.
 
     def _eval_total_result(self):
         # NODE WORST STATE - grab all results of this node
-        node_results = [ self.result[check] for check in self.result_keys if self.result.get(check, False) ]
+        node_results = [
+            self.result[check] for check in self.result_keys
+            if self.result.get(check, False)
+        ]
         if len(node_results) > 0:
             # maximum of all node result states
             node_worststate = max([x[0] for x in node_results])
-        else: 
+        else:
             # theere is no result => OK
             node_worststate = 0
         # SUBNODES WORST STATE
         subnodes_worststate = 0
-        subnodes_worststate = max([ s['worststate'] for s in self.subresults if self.subresults] or [0]) 
+        subnodes_worststate = max(
+            [s['worststate'] for s in self.subresults if self.subresults]
+            or [0])
         total_worststate = max(node_worststate, subnodes_worststate)
         self.result['worststate'] = total_worststate
 
         # now that the worstate is known, we can replace the badge and unicode symbol placeholder
         # set the unicode symbol
-        if total_worststate > 0: 
+        if total_worststate > 0:
             status_symbol = self.symbol_nok
-        else: 
+        else:
             status_symbol = self.symbol_ok
 
         # For RF-state, do not display badges in keywords (kws are allowed to fail)
         badge = ''
         if type(self) != RobotKeyword:
             badge = STATE_BADGES[total_worststate]
-            if len(badge) > 0: 
+            if len(badge) > 0:
                 badge = " " + badge
-        # The first item is the line of this node (self) which we need to edit 
+        # The first item is the line of this node (self) which we need to edit
         this_node_paddedline = self.result['padded_lines_list'][0]
         this_node_paddedline_replaced = this_node_paddedline.replace(
-            '--BADGE--', badge).replace(
-            '--SYMBOL--', status_symbol)
+            '--BADGE--', badge).replace('--SYMBOL--', status_symbol)
         self.result['padded_lines_list'][0] = this_node_paddedline_replaced
-
 
     # Add all lines of subnodes to the current one
     def _merge_sub_padded_lines(self):
-        for r in self.subresults: 
-            for s in r['padded_lines_list']: 
+        for r in self.subresults:
+            for s in r['padded_lines_list']:
                 self.result['padded_lines_list'].append(s)
         # sub_padded_lines_list = [s['padded_lines_list'] for s in self.subresults ]
         # self.result['padded_lines_list'].extend(sub_padded_lines_list)
@@ -512,38 +765,45 @@ class RobotItem(object):
 
     # Add all perfdata of subnodes to the current one
     def _merge_sub_perfdata(self):
-        for subresult in self.subresults: 
-            if subresult['cmk_perfdata_list'] != None: 
-                self.result['cmk_perfdata_list'].extend(subresult['cmk_perfdata_list'])
+        for subresult in self.subresults:
+            if subresult['cmk_perfdata_list'] != None:
+                try:
+                    self.result['cmk_perfdata_list'].extend(
+                        subresult['cmk_perfdata_list'])
+                except:
+                    self.result['cmk_perfdata_list'] = subresult[
+                        'cmk_perfdata_list']
         return
-        
+
     # recursive function to retrieve status and submessages of a node
     # returns a result dict of each item node (=self)
     # node_top = the top node where messages should be reported to
     #   - sub-suites & tests: CMK item = root suite
     #   - keywords: parent test
-    def get_checkmk_result(self, node_top, check_params, depth_limit_inherited=None):
+    def get_checkmk_result(self,
+                           node_top,
+                           check_params,
+                           depth_limit_inherited=None):
         self.node_top = node_top
-        # Is node_top pointing to same node? 
-        if self == self.node_top: 
+        # Is node_top pointing to same node?
+        if self == self.node_top:
             self.is_topnode = True
         else:
-            if type(self) == RobotTest: 
+            if type(self) == RobotTest:
                 self.is_topnode = True
                 # for the following kws, point to this parent test
                 node_top = self
-        
+
         # do the recursion
         self.subresults = []
-        (descend_allowed, next_depth_limit) = self._descending_allowed(depth_limit_inherited, check_params)
+        (descend_allowed,
+         next_depth_limit) = self._descending_allowed(depth_limit_inherited,
+                                                      check_params)
         if descend_allowed:
             for subnode in self.subnodes:
-                subresult = subnode.get_checkmk_result(
-                    node_top, 
-                    check_params, 
-                    next_depth_limit)
+                subresult = subnode.get_checkmk_result(node_top, check_params,
+                                                       next_depth_limit)
                 self.subresults.append(subresult)
-                
 
         # THIS Node -----
         self._set_node_info()
@@ -559,11 +819,9 @@ class RobotItem(object):
         self._merge_sub_padded_lines()
         self._merge_sub_perfdata()
 
-        # Now that all information about this node have been collected, evaluate 
+        # Now that all information about this node have been collected, evaluate
         # and set the badge and unicode symbol for S/T/K
         self._eval_total_result()
-
-
 
         return self.result
 
@@ -579,12 +837,12 @@ class RobotSuite(RobotItem):
     output_depth_dict_key = "output_depth_suites"
     runtime_threshold_dict_key = "runtime_threshold_suites"
     perfdata_creation_dict_key = "perfdata_creation_suites"
-    # What should be evaluated to get the node's status? 
-    result_keys = 'result_robotframework result_cmk_runtime result_cmk_metric'.split()
+    # What should be evaluated to get the node's status?
+    result_keys = 'result_robotframework result_cmk_runtime result_cmk_metric'.split(
+    )
 
     def __init__(self, xmlnode, lv_abs, lv_rel, parent, index):
         super(RobotSuite, self).__init__(xmlnode, lv_abs, lv_rel, parent)
-
 
     def __str__(self):
         return "Suite"
@@ -600,23 +858,25 @@ class RobotTest(RobotItem):
     # which key in dict output_depth is holding the values for tests
     output_depth_dict_key = "output_depth_tests"
     runtime_threshold_dict_key = "runtime_threshold_tests"
-    perfdata_creation_dict_key = "perfdata_creation_tests" 
-    # What should be evaluated to get the node's status? 
-    result_keys = 'result_robotframework result_cmk_runtime result_cmk_metric'.split()
+    perfdata_creation_dict_key = "perfdata_creation_tests"
+    # What should be evaluated to get the node's status?
+    result_keys = 'result_robotframework result_cmk_runtime result_cmk_metric'.split(
+    )
 
     def __init__(self, xmlnode, lv_abs, lv_rel, parent, index):
         super(RobotTest, self).__init__(xmlnode, lv_abs, lv_rel, parent)
-     
-        # FIXME needed? 
-        # Stores the information if a test has the critical tag (only test with 
+
+        # FIXME needed?
+        # Stores the information if a test has the critical tag (only test with
         # this tag can affect the suite status)
-        if xmlnode.find('status[@critical="yes"]') != None: 
+        if xmlnode.find('status[@critical="yes"]') != None:
             self.critical = True
-        else: 
+        else:
             self.critical = False
 
     def __str__(self):
         return "Test"
+
 
 class RobotKeyword(RobotItem):
     # how to search this on the xml
@@ -629,12 +889,16 @@ class RobotKeyword(RobotItem):
     output_depth_dict_key = "output_depth_keywords"
     runtime_threshold_dict_key = "runtime_threshold_keywords"
     perfdata_creation_dict_key = "perfdata_creation_keywords"
-    # What should be evaluated to get the node's status? 
+    # What should be evaluated to get the node's status?
     result_keys = 'result_cmk_runtime result_cmk_metric'.split()
+
     def __init__(self, xmlnode, lv_abs, lv_rel, parent, index):
-        super(RobotKeyword, self).__init__(xmlnode, lv_abs, lv_rel, parent, index)
+        super(RobotKeyword, self).__init__(xmlnode, lv_abs, lv_rel, parent,
+                                           index)
+
     def __str__(self):
         return "Keyword"
+
 
 def parse_suite_xml(root_xml, discovery_setting):
     # Store discovery level
@@ -646,14 +910,19 @@ def parse_suite_xml(root_xml, discovery_setting):
     return root_suite
 
 
-#   _          _                 
-#  | |        | |                
-#  | |__   ___| |_ __   ___ _ __ 
+#   _          _
+#  | |        | |
+#  | |__   ___| |_ __   ___ _ __
 #  | '_ \ / _ \ | '_ \ / _ \ '__|
-#  | | | |  __/ | |_) |  __/ |   
-#  |_| |_|\___|_| .__/ \___|_|   
-#               | |              
-#               |_|   
+#  | | | |  __/ | |_) |  __/ |
+#  |_| |_|\___|_| .__/ \___|_|
+#               | |
+#               |_|
+
+
+def quoted_listitems(inlist):
+    return ', '.join(["'%s'" % s for s in inlist])
+
 
 # Determine if a list of patterns matches.
 # If list elements are tuples, all values from index 1
@@ -661,12 +930,12 @@ def parse_suite_xml(root_xml, discovery_setting):
 # If nothing matches return the default
 def pattern_match(patterns, name, default=None):
     for elem in patterns:
-        if type(elem) == tuple: 
+        if type(elem) == tuple:
             if re.match(elem[0], name):
-                if len(elem) == 2: 
+                if len(elem) == 2:
                     # only one value (2nd element) for this pattern
                     return elem[1]
-                else: 
+                else:
                     # more than 1 value (2nd and following) for this pattern (e.g. warn/crit thresholds) => return the list
                     return elem[1:]
         else:
@@ -674,33 +943,29 @@ def pattern_match(patterns, name, default=None):
                 return True
     return default
 
+
 def get_robotmk_pattern_value(setting):
     setting_keyname = getattr(self, "%s_dict_key" % setting)
     patterns = checkgroup_parameters.get(setting, {}).get(setting_keyname, [])
     return pattern_match(patterns, self.name)
 
+
 # two helper funcs to get host settings
 def get_host_extra_conf_merged():
-    return host_extra_conf_merged(host_name(), eval("inventory_"+iam+"_rules"))
+    return host_extra_conf_merged(host_name(),
+                                  eval("inventory_" + iam + "_rules"))
+
+
 def get_setting(setting, defaultvalue):
     settings = get_host_extra_conf_merged()
-    return settings.get(setting,defaultvalue)
-
-# strips the prefix from the suitename
-def strip_prefix(suitename):
-    robot_service_prefix = get_setting('robot_service_prefix',[])
-    prefix = pattern_match(robot_service_prefix, suitename, '')
-    prefix_subst = prefix.replace('%SPACE%', ' ')
-    if suitename.startswith(prefix_subst):
-        return suitename[len(prefix_subst):]
-    else:
-        return suitename
+    return settings.get(setting, defaultvalue)
 
 
 def timestamp_to_millis(timestamp):
     Y, M, D, h, m, s, millis = split_timestamp(timestamp)
     secs = time.mktime(datetime.datetime(Y, M, D, h, m, s).timetuple())
-    return roundup(1000*secs + millis)
+    return roundup(1000 * secs + millis)
+
 
 def split_timestamp(timestamp):
     years = int(timestamp[:4])
@@ -710,13 +975,15 @@ def split_timestamp(timestamp):
     mins = int(timestamp[12:14])
     secs = int(timestamp[15:17])
     millis = int(timestamp[18:21])
-    return years, mons, days, hours, mins, secs, millis   
+    return years, mons, days, hours, mins, secs, millis
+
 
 def roundup(number, ndigits=0, return_type=None):
     result = round(number, ndigits)
     if not return_type:
         return_type = float if ndigits > 0 else int
     return return_type(result)
+
 
 # Return an empty string for the string cast of None
 def xstr(s):
@@ -725,17 +992,18 @@ def xstr(s):
     else:
         return s
 
-# create a valid perfdata label which does contain only numbers, letters, 
-# dash and underscore. Everything else becomes a underscore. 
-def get_perflabel(instr): 
-    outstr =  re.sub('[^A-Za-z0-9]', '_', instr)
+
+# create a valid perfdata label which does contain only numbers, letters,
+# dash and underscore. Everything else becomes a underscore.
+def get_perflabel(instr):
+    outstr = re.sub('[^A-Za-z0-9]', '_', instr)
     return re.sub('_+', '_', outstr)
 
 
 def remove_nasty_chars(instr):
     # Replace all chars which can cause problem in Multisite
     # no quotes, no brackets
-    outstr = re.sub('[\[\]?+;*@{}\'"]', '', xstr(instr))
+    outstr = re.sub('[\[\]?+*@{}\'"]', '', xstr(instr))
     outstr = outstr.replace('$', '')
     outstr = outstr.replace('\\', '')
     # Newlines better replace by space
@@ -746,18 +1014,6 @@ def remove_nasty_chars(instr):
     return outstr
     # return "FOO"
 
-#                   _       
-#                  (_)      
-#   _ __ ___   __ _ _ _ __  
-#  | '_ ` _ \ / _` | | '_ \ 
-#  | | | | | | (_| | | | | |
-#  |_| |_| |_|\__,_|_|_| |_|
-                          
-# Keep this for documentation; do not use the __main__ call anymore for testing. 
-
-if __name__ == "__main__":    
-    global check_info
-    check_info = {}
 
 check_info['robotmk'] = {
     "parse_function": parse_robot,
@@ -767,53 +1023,3 @@ check_info['robotmk'] = {
     "group": "robotmk",
     "has_perfdata": True
 }
-
-if __name__ == "__main__":
-    #import ipdb
-    #ipdb.set_trace(context=5)
-
-    debugsets = [
-        {
-            'discovery_level': 0,
-            'paramfile': 'params.py',
-            'suite': '1S_3S_2S_3T',
-        },
-        {
-            'discovery_level': 0,
-            'paramfile': 'params.py',
-            'suite': '1S_3S_2S_3T',
-        },
-    ]
-    debugset = debugsets[0]
-
-    global inventory_robotmk_rules
-    inventory_robotmk_rules = ast.literal_eval(
-        open('test/fixtures/inventory_robotmk_rules/discovery_slvel_%d.py' % debugset['discovery_level']).read())
-    global host_extra_conf_merged
-    def host_extra_conf_merged(hostname, inventory_robotmk_rules):
-        return inventory_robotmk_rules[0]['value']
-
-
-    global host_name
-    def host_name():
-        return "localhost"
-
-    try: 
-        checkgroup_parameters = ast.literal_eval(open('test/fixtures/checkgroup_parameters/' % debugset['paramfile'], 'r').read())
-    except: 
-        checkgroup_parameters = None
-    # ipdb.set_trace(context=5)
-    datafile = 'test/fixtures/robot/%s/output.json' % debugset['suite']
-    mk_output = ast.literal_eval(open(datafile, 'r').read())
-
-    # PARSE
-    parsed = parse_robot(mk_output)
-    # INVENTORY
-    inventory = inventory_robot(parsed)
-    # CHECK
-    state, msg, perfdata = check_robot("1S 3S 2S 3T", checkgroup_parameters, parsed)
-    # state, msg, perfdata = check_robot("A-Suites", checkgroup_parameters, parsed)
-    # state, msg, perfdata = check_robot("A-suite1", checkgroup_parameters, parsed)
-    # state, msg, perfdata = check_robot("A-Tes.*", checkgroup_parameters, parsed)
-    print "Debugger ended."
-

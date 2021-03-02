@@ -1,0 +1,10 @@
+title: Robotmk
+description:
+ This is shown in the service details. 
+ This is {monospaced text}.
+license: GPLv3
+distribution: wtf auch
+agents: linux, windows
+
+inventory:
+ two svc are created
