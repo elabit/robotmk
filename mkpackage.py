@@ -1,5 +1,5 @@
 #!/usr/bin/python
-# This script reads the current version tag and creates a versioned robotmk MKP 
+# This script reads the current version tag and creates a versioned robotmk MKP
 
 from mkp import dist
 from pathlib2 import Path
@@ -14,26 +14,21 @@ rootpath = Path(os.path.dirname(os.path.realpath(__file__)))
 ostream = os.popen('git describe --tags')
 tag = ostream.read().strip()
 # match semantic version
-if not re.match('^v([0-9]+)\.([0-9]+)\.([0-9]+)(?:-([0-9A-Za-z-]+(?:\.[0-9A-Za-z-]+)*))?(?:\+[0-9A-Za-z-]+)?$', tag):
+if not re.match('^v(0|[1-9]\d*)\.(0|[1-9]\d*)\.(0|[1-9]\d*)(?:-((?:0|[1-9]\d*|\d*[a-zA-Z-][0-9a-zA-Z-]*)(?:\.(?:0|[1-9]\d*|\d*[a-zA-Z-][0-9a-zA-Z-]*))*))?(?:\+([0-9a-zA-Z-]+(?:\.[0-9a-zA-Z-]+)*))?$', tag):
     print "ERROR: Last git tag does not match the expected version format! Exiting."
     sys.exit(1)
 
 Target = namedtuple('Target', 'path, filename')
 
 customfiles = {
-    'windows': {
-        'agents/plugins/robotmk': Target('agents/custom/robotmk-windows/lib/bin', 'robotmk.py')
-    },
-    'linux': {
-        'agents/plugins/robotmk': Target('agents/custom/robotmk-linux/bin', 'robotmk')
-    },
+    'agents/plugins/robotmk': Target('agents/custom/robotmk-external/lib/bin', 'robotmk.py'),
+    'agents/plugins/robotmk-runner': Target('agents/custom/robotmk-external/lib/bin', 'robotmk-runner.py')
 }
 
-for os in customfiles: 
-    for file in customfiles[os]:
-        custompath = customfiles[os][file].path
-        Path(custompath).mkdir(parents=True, exist_ok=True)
-        copyfile(file, str(Path(custompath).joinpath(customfiles[os][file].filename)))
+for file in customfiles:
+    path = customfiles[file].path
+    Path(path).mkdir(parents=True, exist_ok=True)
+    copyfile(file, str(Path(path).joinpath(customfiles[file].filename)))
 
 blacklist = [
     'local/lib',
@@ -61,7 +56,7 @@ dist({
     'download_url': 'https://www.robotmk.org',
     'name': 'robotmk',
     'title': 'RobotMK | Robot Framework End2End Test Integration',
-    'version': tag.replace('v',''),
+    'version': tag.replace('v', ''),
     'version.min_required': '1.6',
 }, blacklist=blacklist)
 
