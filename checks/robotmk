@@ -84,17 +84,18 @@ def parse_robot(info):
     for idx, suite in enumerate(info_dict['suites']):
         for k in keys_to_decode:
             if k in suite:
-                d = suite[k]
-                if runner_data['encoding'] == 'zlib_codec':
-                    d = d.encode('utf-8')
-                    d_byte = base64.b64decode(d)
-                    d_decomp = zlib.decompress(d_byte)
-                elif runner_data['encoding'] == 'base64_codec':
-                    d = d.encode('utf-8')
-                    d_decomp = base64.b64decode(d)
-                else:
-                    d_decomp = d
-                suite[k] = d_decomp
+                if bool(suite[k]):
+                    d = suite[k]
+                    if runner_data['encoding'] == 'zlib_codec':
+                        d = d.encode('utf-8')
+                        d_byte = base64.b64decode(d)
+                        d_decomp = zlib.decompress(d_byte)
+                    elif runner_data['encoding'] == 'base64_codec':
+                        d = d.encode('utf-8')
+                        d_decomp = base64.b64decode(d)
+                    else:
+                        d_decomp = d
+                    suite[k] = d_decomp
         try:
             xml = ET.fromstring(suite['xml'])
             xml_root_suite = xml.find('./suite')
@@ -196,58 +197,64 @@ def check_robot(item, checkgroup_parameters, parsed):
         A selective, non-complete run is 
         - parallel mode (controller starts one runner per suite)
         - external mode (a scheduled task starts the runner with suite args)'''
-        runner_runtime = round(parsed['runner']["runtime_total"], 1)
 
-        try:
-            if parsed['runner']['execution_mode'] == 'agent_serial':
-                cache_time = parsed['runner']['cache_time']
-                execution_interval = parsed['runner']['execution_interval']
-                maxruntime = execution_interval
-                maxruntime_str = 'execution interval'
-            elif parsed['runner'][
-                    'execution_mode'] == 'external' and not parsed['runner'][
-                        'selective_run']:
-                cache_time = parsed['runner']['cache_time']
-                maxruntime = cache_time
-                maxruntime_str = 'cache time'
-                execution_interval = None
-        finally:
-            # FIXME: This are w/c threshold PLACEHOLDERS !!
-            runner_runtime_warn_s = maxruntime * 0.9
-            runner_runtime_crit_s = maxruntime * 0.95
-            pct_runtime_usage = round(
-                (100 / float(maxruntime)) * runner_runtime, 1)
-            if runner_runtime > runner_runtime_warn_s:
-                if runner_runtime > runner_runtime_crit_s:
-                    badge = '(!!) '
-                    rc = max(rc, 2)
+        if 'runtime_total' in parsed['runner']:
+            runner_runtime = round(parsed['runner']["runtime_total"], 1)
+
+            try:
+                if parsed['runner']['execution_mode'] == 'agent_serial':
+                    cache_time = parsed['runner']['cache_time']
+                    execution_interval = parsed['runner']['execution_interval']
+                    maxruntime = execution_interval
+                    maxruntime_str = 'execution interval'
+                elif parsed['runner'][
+                        'execution_mode'] == 'external' and not parsed[
+                            'runner']['selective_run']:
+                    cache_time = parsed['runner']['cache_time']
+                    maxruntime = cache_time
+                    maxruntime_str = 'cache time'
+                    execution_interval = None
+            finally:
+                # FIXME: This are w/c threshold PLACEHOLDERS !!
+                runner_runtime_warn_s = maxruntime * 0.9
+                runner_runtime_crit_s = maxruntime * 0.95
+                pct_runtime_usage = round(
+                    (100 / float(maxruntime)) * runner_runtime, 1)
+                if runner_runtime > runner_runtime_warn_s:
+                    if runner_runtime > runner_runtime_crit_s:
+                        badge = '(!!) '
+                        rc = max(rc, 2)
+                    else:
+                        badge = '(!) '
+                        rc = max(rc, 1)
                 else:
-                    badge = '(!) '
-                    rc = max(rc, 1)
-            else:
-                badge = ''
-                rc = max(rc, 0)
-            first_line.append("%stotal runtime uses %.1f%% (%.1fs) of " %
-                              (badge, pct_runtime_usage, runner_runtime) +
-                              "%s (%ds)" % (maxruntime_str, maxruntime))
+                    badge = ''
+                    rc = max(rc, 0)
+                first_line.append("%stotal runtime uses %.1f%% (%.1fs) of " %
+                                  (badge, pct_runtime_usage, runner_runtime) +
+                                  "%s (%ds)" % (maxruntime_str, maxruntime))
 
-            perfdata_list.append((
-                'runner_runtime', runner_runtime, runner_runtime_warn_s,
-                runner_runtime_crit_s, 0, maxruntime
-                # TODO: Add warn/crit thresholds here
-            ))
-            perfdata_list.append(('runner_cache_time', "%d" % cache_time))
-            if not execution_interval is None:
+                perfdata_list.append((
+                    'runner_runtime', runner_runtime, runner_runtime_warn_s,
+                    runner_runtime_crit_s, 0, maxruntime
+                    # TODO: Add warn/crit thresholds here
+                ))
+                perfdata_list.append(('runner_cache_time', "%d" % cache_time))
+                if not execution_interval is None:
+                    perfdata_list.append(('runner_execution_interval',
+                                          "%d" % execution_interval))
                 perfdata_list.append(
-                    ('runner_execution_interval', "%d" % execution_interval))
-            perfdata_list.append(
-                ('runner_runtime_robotmk',
-                 "%.3f" % parsed['runner']["runtime_robotmk"]))
-            perfdata_list.append(('runner_runtime_suites',
-                                  "%.3f" % parsed['runner']["runtime_suites"]))
+                    ('runner_runtime_robotmk',
+                     "%.3f" % parsed['runner']["runtime_robotmk"]))
+                perfdata_list.append(
+                    ('runner_runtime_suites',
+                     "%.3f" % parsed['runner']["runtime_suites"]))
+        else:
+            rc = max(rc, 2)
+            first_line.append("Robotmk Runner did never run (!!)")
 
         # 3. Execution mode
-        first_line.append("plugin mode: %s" %
+        first_line.append("execution mode: %s" %
                           parsed['runner']["execution_mode"])
         # TODO: append selective/full execution info
         # 4. VERSION CHECK
