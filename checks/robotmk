@@ -83,8 +83,8 @@ def parse_robot(info):
     runner_data = info_dict['runner']
     for idx, suite in enumerate(info_dict['suites']):
         for k in keys_to_decode:
-            d = suite[k]
-            if bool(d):
+            if k in suite:
+                d = suite[k]
                 if runner_data['encoding'] == 'zlib_codec':
                     d = d.encode('utf-8')
                     d_byte = base64.b64decode(d)
@@ -99,8 +99,11 @@ def parse_robot(info):
             xml = ET.fromstring(suite['xml'])
             xml_root_suite = xml.find('./suite')
         except Exception:
-            raise MKGeneralException(
-                "Cannot detect XML data in Robotmk output.")
+            continue
+            # Seems to be a good idea not to raise an exception here.
+            # The Robotmk service can report this error, too.
+            #raise MKGeneralException("Fatal parsing error. Robotmk cannot " +\
+            #    "find XML/HTML data. %s" % suite.get('error', ''))
         setting = pattern_match(robot_discovery_settings,
                                 xml_root_suite.attrib['name'], (0, ''))
         discovery_setting = namedtuple(
@@ -120,9 +123,11 @@ def inventory_robot(parsed):
 
     # TODO: Error handling for no suites/runner_data keys?
     for root_suite in parsed['suites']:
-        for discovered_item in root_suite['parsed'].discovered:
-            item_svc_name = add_svc_prefix(discovered_item.name, root_suite)
-            yield item_svc_name, None
+        if 'parsed' in root_suite:
+            for discovered_item in root_suite['parsed'].discovered:
+                item_svc_name = add_svc_prefix(discovered_item.name,
+                                               root_suite)
+                yield item_svc_name, None
     # The meta service reporting overall runtimes, stale spool files etc.
     svc_robotmk = get_setting('robotmk_service_name', 'Robotmk')
     yield svc_robotmk, None
@@ -135,71 +140,52 @@ def check_robot(item, checkgroup_parameters, parsed):
     if checkgroup_parameters == None:
         checkgroup_parameters = {}
     robot_discovery_settings = get_setting('robot_discovery_settings', [])
-    #TODO: DRY
-    # TODO: check for 'error' key
-    # TODO: check for run_suites_as_configured
-    # this is the meta check
-
-    # for each root_suite: graph
-    # - duration of cache_time
-    # - execution_time of execution_interval
 
     svc_robotmk = get_setting('robotmk_service_name', 'Robotmk')
     if item == svc_robotmk:
         perfdata_list = []
-        suites_total = len(parsed['runner']['suites']['suites_nonfatal']) + \
-            len(parsed['runner']['suites']['suites_fatal'])
+        suites_total = len(parsed['suites'])
         rc = 0
+        # list of strings for first output line
         first_line = []
+        # lines 2ff.
         out_lines = []
-        # I) Staleness Check: result_age vs. cache_time
-        # Got already calculated on the client; respecting the execution mode,
-        # because depending on that another cache time is used (see plugin:rWrpuXW8)
-        # * **agent_serial** (vs. global cache_time!)
-        # * **agent_parallel** (vs. suite cache_time)
-        # * **external** (vs. suite cache_time or, if suites from dir: global cache_time)
 
-        stales = []
-        for root_suite in parsed['suites']:
-            now = datetime.datetime.now(tzlocal())
-            last_end = parser.isoparse(root_suite['end_time'])
-            age = now - last_end
-            if age.total_seconds() > root_suite['cache_time']:
-                last_end_fmt = last_end.strftime('%Y-%m-%d %H:%M:%S')
-                overdue_sec = age.total_seconds() - root_suite['cache_time']
-                stales.append((
-                    root_suite['id'],
-                    "(!!) Suite '%s': (last execution end: %s, " % (root_suite['id'], last_end_fmt) +
-                    "cache time: %ds, overdue since %.1fs)\n" % (
-                        root_suite['cache_time'],
-                        overdue_sec)
-                ))
-        if len(stales) > 0:
-            rc = max(rc, 2)
+        # I) Staleness Check:
+        # result_age vs. cache_time/execution time
+
+        suites_fatal = check_fatal_suites(parsed['suites'])
+        suites_stale, suites_nonstale = check_stale_suites(parsed['suites'])
+        # firstline
+        if suites_total == 0:
             first_line.append(
-                "%d of %d Robot suites have outdated results (!!) (%s)" %
-                (len(stales), suites_total,
-                 quoted_listitems([stale[0] for stale in stales])))
-            out_lines.extend([s[1] for s in stales])
+                "0 suites planned/executed (!). Check the configuration!")
+            rc = max(rc, 1)
         else:
-            first_line.append(
-                "%d suite(s) planned (%s), all state files up to date" % (
-                    suites_total,
-                    quoted_listitems([s['id'] for s in parsed['suites']]),
-                ))
+            if len(suites_nonstale) > 0:
+                first_line.append(
+                    "%d of %s suite(s) in proper state (%s)" %
+                    (len(suites_nonstale), suites_total,
+                     quoted_listitems([s[0] for s in suites_nonstale])))
+            if len(suites_stale) > 0:
+                rc = max(rc, 2)
+                first_line.append(
+                    "stale suites: %s (!!) (%s)" %
+                    (len(suites_stale),
+                     quoted_listitems([s[0] for s in suites_stale])))
+                out_lines.extend([s[1] for s in suites_stale])
+            if len(suites_fatal) > 0:
+                rc = max(rc, 2)
+                first_line.append("FATAL suites: %s (!!) (%s)" %
+                                  (len(suites_fatal), ', '.join([
+                                      "Suite '%s': %s" % (s['id'], s['error'])
+                                      for s in suites_fatal
+                                  ])))
 
-        # Check Fatal suites
-        fatal_count = len(parsed['runner']['suites']['suites_fatal'])
-        if fatal_count > 0:
-            rc = max(rc, 2)
-            first_line.append(
-                "%d Robot suites have fatal errors (!!) (%s)" %
-                (fatal_count,
-                 quoted_listitems(
-                     [s for s in parsed['runner']['suites']['suites_fatal']])))
         perfdata_list.append(('suites_total', "%d" % suites_total))
-        perfdata_list.append(('suites_stale', "%d" % len(stales)))
-        perfdata_list.append(('suites_fatal', "%d" % fatal_count))
+        perfdata_list.append(('suites_nonstale', "%d" % len(suites_nonstale)))
+        perfdata_list.append(('suites_stale', "%d" % len(suites_stale)))
+        perfdata_list.append(('suites_fatal', "%d" % len(suites_fatal)))
 
         # II) Headroom monitoring
         '''A non-selective (=complete) run is whenever the runner gets started 
@@ -216,16 +202,16 @@ def check_robot(item, checkgroup_parameters, parsed):
             if parsed['runner']['execution_mode'] == 'agent_serial':
                 cache_time = parsed['runner']['cache_time']
                 execution_interval = parsed['runner']['execution_interval']
+                maxruntime = execution_interval
+                maxruntime_str = 'execution interval'
             elif parsed['runner'][
-                    'execution_mode'] == 'external' and not self.selective_run:
+                    'execution_mode'] == 'external' and not parsed['runner'][
+                        'selective_run']:
                 cache_time = parsed['runner']['cache_time']
+                maxruntime = cache_time
+                maxruntime_str = 'cache time'
                 execution_interval = None
         finally:
-
-            # set the 100% threshold value for the graph
-            # TODO: What is the correct macx?
-            maxruntime = max(execution_interval, cache_time)
-            maxruntime = execution_interval
             # FIXME: This are w/c threshold PLACEHOLDERS !!
             runner_runtime_warn_s = maxruntime * 0.9
             runner_runtime_crit_s = maxruntime * 0.95
@@ -241,12 +227,9 @@ def check_robot(item, checkgroup_parameters, parsed):
             else:
                 badge = ''
                 rc = max(rc, 0)
-            first_line.append(
-                "%stotal runtime uses %.1f%% (%.1fs) of " % (
-                    badge,
-                    pct_runtime_usage,
-                    runner_runtime) +
-                "execution time (%ds)" % execution_interval)
+            first_line.append("%stotal runtime uses %.1f%% (%.1fs) of " %
+                              (badge, pct_runtime_usage, runner_runtime) +
+                              "%s (%ds)" % (maxruntime_str, maxruntime))
 
             perfdata_list.append((
                 'runner_runtime', runner_runtime, runner_runtime_warn_s,
@@ -270,8 +253,9 @@ def check_robot(item, checkgroup_parameters, parsed):
         # 4. VERSION CHECK
         client_version = parsed['runner']['robotmk_version']
         if client_version != ROBOTMK_VERSION:
-            first_line.append("Robotmk version mismatch (!) (server: %s, client: %s)" %
-                              (client_version, ROBOTMK_VERSION))
+            first_line.append(
+                "Robotmk version mismatch (!) (server: %s, client: %s)" %
+                (client_version, ROBOTMK_VERSION))
             rc = max(rc, 1)
         else:
             first_line.append("Robotmk version %s (server and client)" %
@@ -298,6 +282,36 @@ def check_robot(item, checkgroup_parameters, parsed):
                             age.total_seconds() - root_suite['cache_time'], 1)
                         return ignore_robot_item(root_suite, last_end,
                                                  overdue_sec)
+
+
+# Return only fatal suites
+def check_fatal_suites(suites):
+    # TODO: return list of output lines
+    return [s for s in suites if s['status'] == 'fatal']
+
+
+def check_stale_suites(suites):
+    suites_stale = []
+    suites_nonstale = []
+    for root_suite in [s for s in suites if s['status'] != 'fatal']:
+        now = datetime.datetime.now(tzlocal())
+        last_end = parser.isoparse(root_suite['end_time'])
+        age = now - last_end
+        last_end_fmt = last_end.strftime('%Y-%m-%d %H:%M:%S')
+        if age.total_seconds() < root_suite['cache_time']:
+            # nonstale
+            suites_nonstale.append(
+                (root_suite['id'], "Suite '%s': (last execution end: %s, " %
+                 (root_suite['id'], last_end_fmt)))
+        else:
+            # stale result
+            overdue_sec = age.total_seconds() - root_suite['cache_time']
+            suites_stale.append((root_suite['id'],
+                                 "(!!) Suite '%s': (last execution end: %s, " %
+                                 (root_suite['id'], last_end_fmt) +
+                                 "cache time: %ds, overdue since %.1fs)\n" %
+                                 (root_suite['cache_time'], overdue_sec)))
+    return (suites_stale, suites_nonstale)
 
 
 def ignore_robot_item(root_suite, last_end, overdue_sec):
