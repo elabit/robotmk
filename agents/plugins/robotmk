@@ -620,7 +620,7 @@ class RobotMK():
 
     @asinstance
     def logwarn(self, text):
-        self.logger.warn(text)
+        self.logger.warning(text)
 
     @asinstance
     def logerror(self, text):
