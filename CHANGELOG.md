@@ -16,7 +16,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - Log rotation
 
 - Prefix formatting
-- Plugin: Added daily log RobotMK file rotation (#88)
+- Plugin: Added daily log Robotmk file rotation (#88)
 - New Robotmk Service: Perfometer Thresholds Graphs
   - responsible for reading the spoolfiles and producing output; this eliminates
     the checkmk error *missing agent section 'robotmk'*  if the plugin had a problem. 
@@ -99,7 +99,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   keywords like 'Run Keyword And Return Status' can wrap kw execution; a failed kw will not fail 
   the whole test. With this commit, the cmk-side evaluation of the RF restult tree respects the RF
   state of each node, but does not propagate it. (solves #57 and #58)
-- Bakery crashes when RobotMK rule does not contain specific suites (closes #45)
+- Bakery crashes when Robotmk rule does not contain specific suites (closes #45)
 - Multisite crashes ("no closing quotation") when nasty chars from keyword names get into perflabels (closes #64)
 
 ## [v0.1.4] - 2020-11-15

@@ -1,13 +1,13 @@
 #!/usr/bin/env python3
 # (c) 2020 Simon Meggle <simon.meggle@elabit.de>
 
-# This file is part of RobotMK, a module for the integration of Robot
+# This file is part of Robotmk, a module for the integration of Robot
 # framework test results into Checkmk.
 # https://robotmk.org
 # https://github.com/simonmeggle/robotmk
 # https://robotframework.org/#tools
 
-# RobotMK is free software;  you can redistribute it and/or modify it
+# Robotmk is free software;  you can redistribute it and/or modify it
 # under the  terms of the  GNU General Public License  as published by
 # the Free Software Foundation in version 3.  This file is distributed
 # in the hope that it will be useful, but WITHOUT ANY WARRANTY;  with-
@@ -488,7 +488,7 @@ class RMKSuite(RMKState):
         self.suite_dict['log'] = None
 
 
-class RobotMK():
+class Robotmk():
     _DEFAULTS = {
         'nt': {
             'agent_data_dir': 'C:/ProgramData/checkmk/agent',
@@ -575,7 +575,7 @@ class RobotMK():
                             '-v',
                             default=False,
                             action='store_true',
-                            help="""Print the RobotMK log to console.""")
+                            help="""Print the Robotmk log to console.""")
         cls.cmdline_args = parser.parse_args()
 
     def __setup_logging(self, calling_cls, verbose=False):
@@ -631,7 +631,7 @@ class RobotMK():
         self.logger.error(text)
 
 
-class RMKrunner(RMKState, RobotMK):
+class RMKrunner(RMKState, Robotmk):
     logmark = '#'
 
     def __init__(self):
@@ -798,7 +798,7 @@ class RMKrunner(RMKState, RobotMK):
 # https://stackoverflow.com/a/2251026/14845044
 
 
-class RMKCtrl(RMKState, RobotMK):
+class RMKCtrl(RMKState, Robotmk):
     # TODO: Cleanup the XML, remove images (#79)
 
     header = '<<<robotmk>>>'
@@ -1088,7 +1088,7 @@ def test_for_modules():
 
 def main():
     test_for_modules()
-    RobotMK.get_args()
+    Robotmk.get_args()
     rmk = RMKCtrl()
     rmk.print_agent_output()
     rmk.loginfo("--- Quitting Controller, bye. ---")
