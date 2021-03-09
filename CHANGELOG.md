@@ -13,6 +13,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - Separate Logfiles
 - Runner/Controller
 - Tag 
+- Log rotation
+
 - Prefix formatting
 - Plugin: Added daily log RobotMK file rotation (#88)
 - New Robotmk Service: Perfometer Thresholds Graphs
