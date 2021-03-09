@@ -412,7 +412,11 @@ class RMKSuite(RMKState):
     def run(self):
         self.robotize_variables()
         self.update_filenames()
-        self.write_statevars(('start_time', self.now))
+        self.write_statevars([
+            ('id', self.id),
+            ('start_time', self.now),
+            ('cache_time', self.get_suite_or_global('cache_time'))
+        ])
         rc = robot.run(
             self.path,
             **self.robot_args)
