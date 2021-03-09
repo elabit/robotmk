@@ -22,7 +22,8 @@ Target = namedtuple('Target', 'path, filename')
 
 customfiles = {
     'agents/plugins/robotmk': Target('agents/custom/robotmk-external/lib/bin', 'robotmk.py'),
-    'agents/plugins/robotmk-runner': Target('agents/custom/robotmk-external/lib/bin', 'robotmk-runner.py')
+    'agents/plugins/robotmk-runner': Target('agents/custom/robotmk-external/lib/bin', 'robotmk-runner.py'),
+    'agents/plugins/robotmk-runner': Target('agents/custom/robotmk-external/lib/bin', 'robotmk-runner.pyw'),
 }
 
 for file in customfiles:
