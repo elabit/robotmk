@@ -230,9 +230,10 @@ def check_robot(item, checkgroup_parameters, parsed):
                 else:
                     badge = ''
                     rc = max(rc, 0)
-                first_line.append("%stotal runtime uses %.1f%% (%.1fs) of " %
-                                  (badge, pct_runtime_usage, runner_runtime) +
-                                  "%s (%ds)" % (maxruntime_str, maxruntime))
+                first_line.append(
+                    "%slast runner execution used %.1f%% (%.1fs) of " %
+                    (badge, pct_runtime_usage, runner_runtime) + "%s (%ds)" %
+                    (maxruntime_str, maxruntime))
 
                 perfdata_list.append((
                     'runner_runtime', runner_runtime, runner_runtime_warn_s,
