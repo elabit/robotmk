@@ -9,28 +9,27 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ## Unreleased
 ### Added
 
+## [v0.2.0-beta - 2021-03-08]
+
 - Added WATO option to override the Robotmk service name (#98)
 - Separate Logfiles
 - Runner/Controller
-- Tag 
+- Suite Tag 
+- Log rotation
 - Prefix formatting
-- Plugin: Added daily log RobotMK file rotation (#88)
+- Plugin: Added daily log Robotmk file rotation (#88)
 - New Robotmk Service: Perfometer Thresholds Graphs
-  - responsible for reading the spoolfiles and producing output; this eliminates
-    the checkmk error *missing agent section 'robotmk'*  if the plugin had a problem. 
-  - reponsible to monitor the freshness of spoolfiles. The whole "async" mechanism
-    is decoupled form checkmk; this allows to control exactly when a spoolfile is 
-    considered to be stale and what to do in this case. In addition, this eases
-    debugging. 
-  - The plugin saves its state with statefiles in tmp; the controller mode reads 
-    them and sources the XML/HTTP files. 
-  - The data transmission from client to server is done with a JSON container 
-    structure; it provides fields for XML/HTTP content which is compressed by 
-    default. 
-
-
-### Changed
-### Fixed
+- Controller: responsible for reading the spoolfiles and producing output; this eliminates
+  the checkmk error *missing agent section 'robotmk'*  if the plugin had a problem. 
+- reponsible to monitor the freshness of spoolfiles. The whole "async" mechanism
+  is decoupled form checkmk; this allows to control exactly when a spoolfile is 
+  considered to be stale and what to do in this case. In addition, this eases
+  debugging. 
+- The plugin saves its state with statefiles in tmp; the controller mode reads 
+  them and sources the XML/HTTP files. 
+- The data transmission from client to server is done with a JSON container 
+  structure; it provides fields for XML/HTTP content which is compressed by 
+  default. 
 
 ## [v0.1.9 - 2021-01-16]
 
@@ -97,7 +96,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   keywords like 'Run Keyword And Return Status' can wrap kw execution; a failed kw will not fail 
   the whole test. With this commit, the cmk-side evaluation of the RF restult tree respects the RF
   state of each node, but does not propagate it. (solves #57 and #58)
-- Bakery crashes when RobotMK rule does not contain specific suites (closes #45)
+- Bakery crashes when Robotmk rule does not contain specific suites (closes #45)
 - Multisite crashes ("no closing quotation") when nasty chars from keyword names get into perflabels (closes #64)
 
 ## [v0.1.4] - 2020-11-15
@@ -129,7 +128,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ### Fixed
 
 - Bakery: Wrong formatting of variable argument (#38)
-- Plugin: Backslash escaping of CheckMK programdata path (#37)
+- Plugin: Backslash escaping of Checkmk programdata path (#37)
 
 ## [v0.1.1] - 2020-07-01
 

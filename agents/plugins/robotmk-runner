@@ -1,13 +1,13 @@
 #!/usr/bin/env python3
 # (c) 2020 Simon Meggle <simon.meggle@elabit.de>
 
-# This file is part of RobotMK, a module for the integration of Robot
+# This file is part of Robotmk, a module for the integration of Robot
 # framework test results into Checkmk.
 # https://robotmk.org
 # https://github.com/simonmeggle/robotmk
 # https://robotframework.org/#tools
 
-# RobotMK is free software;  you can redistribute it and/or modify it
+# Robotmk is free software;  you can redistribute it and/or modify it
 # under the  terms of the  GNU General Public License  as published by
 # the Free Software Foundation in version 3.  This file is distributed
 # in the hope that it will be useful, but WITHOUT ANY WARRANTY;  with-
@@ -21,11 +21,11 @@
 # This plugin requires Python > 3.7 and some modules:
 # pip3 install robotframework pyyaml mergedeep python-dateutil
 
-from robotmk import RobotMK, RMKrunner, test_for_modules
+from robotmk import Robotmk, RMKrunner, test_for_modules
 
 def main():
     test_for_modules()
-    RobotMK.get_args()
+    Robotmk.get_args()
     rmk = RMKrunner()
     cmdline_suites='all' # TBD: start suites from cmdline
     rmk.start_suites(cmdline_suites)

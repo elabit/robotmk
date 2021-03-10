@@ -66,9 +66,9 @@ listof_runtime_threshold_suites = ListOf(Tuple(
         ),
     ],
 ),
-                                         add_label=_("Add"),
-                                         movable=False,
-                                         title=_("<b>Suite</b> thresholds"))
+    add_label=_("Add"),
+    movable=False,
+    title=_("<b>Suite</b> thresholds"))
 
 listof_runtime_threshold_tests = ListOf(Tuple(
     title=_('<b>Test</b> thresholds'),
@@ -92,9 +92,9 @@ listof_runtime_threshold_tests = ListOf(Tuple(
         ),
     ],
 ),
-                                        add_label=_("Add"),
-                                        movable=False,
-                                        title=_("<b>Test</b> thresholds"))
+    add_label=_("Add"),
+    movable=False,
+    title=_("<b>Test</b> thresholds"))
 
 listof_runtime_threshold_keywords = ListOf(
     Tuple(
@@ -124,23 +124,33 @@ listof_runtime_threshold_keywords = ListOf(
     title=_("<b>Keyword</b> thresholds"))
 
 dropdown_robotmk_show_submessages = CascadingDropdown(
-    title=_("Show the messages of sub-nodes"),
-    help=
-    _("By default, suites and tests do not show messages of sub-items to save space. Depending on the suite it can make sense to activate this setting to get a more descriptive output line."
-      ),
+    title=_("Propagate the messages of child to parent nodes"),
+    help=_("By default, suites and tests do not show messages of sub-items to save space. <br>Depending on the suite it can make sense to activate this setting to get a more descriptive output line."
+           ),
     choices=[
-        ('yes', _('yes')),
-        ('no', _('no')),
+        (True, _('yes')),
+        (False, _('no')),
     ],
-    default_value="no",
+    default_value=False,
+)
+dropdown_robotmk_show_kwmessages = CascadingDropdown(
+    title=_("Show messages of keywords"),
+    help=_("""
+    The 'messages' of keywords can give an insight of what the keyword has done; but depending on the Robot libraries in use, this can make the output rather confusing. <br>
+    Only set this to 'yes', if you rate this additional information as useful for the staff. 
+    """),
+    choices=[
+        (True, _('yes')),
+        (False, _('no')),
+    ],
+    default_value=False,
 )
 
 dropdown_robotmk_show_all_runtimes = CascadingDropdown(
     title=_("Show monitored runtimes also when in OK state"),
-    help=
-    _("By default, Robotmk only displays the runtime of Robot suites/tests/keywords where a threshold was exceeded. This helps to keep the output much cleaner. <br> "
-      "To baseline newly created Robot tests for a certain time, it can be helpful to show even OK runtime values."
-      ),
+    help=_("By default, Robotmk only displays the runtime of Robot suites/tests/keywords where a threshold was exceeded. This helps to keep the output much cleaner. <br> "
+           "To baseline newly created Robot tests for a certain time, it can be helpful to show even OK runtime values."
+           ),
     choices=[
         ('yes', _('yes')),
         ('no', _('no')),
@@ -154,14 +164,13 @@ def _parameter_valuespec_robotmk():
         elements=[
             (
                 "output_depth",
-                Dictionary(  # L1 
+                Dictionary(  # L1
                     title=_('Output depth'),
-                    help=
-                    _('In Robot, suites and keywords can be nested. The default of Robotmk is to dissolve/recurse all nested objects and to show them in the service output.<br> '
-                      'This is good in general, but sometimes not what you want (think of a keyword which is defined by five layers of abstraction).<br>'
-                      'To keep the Robotmk output clear and understandable, set a proper pattern and e.g. <i>output depth=0</i> for sub-suites or keywords which should not get dissolved any deeper.<br>'
-                      '(Hint: This is only for visual control; suites/keywords which are hidden by this setting can still be compared to <i>runtime_threshold</i> and change the overall suite state.)<br>'
-                      'Patterns always start at the beginning.'),
+                    help=_('In Robot, suites and keywords can be nested. The default of Robotmk is to dissolve/recurse all nested objects and to show them in the service output.<br> '
+                           'This is good in general, but sometimes not what you want (think of a keyword which is defined by five layers of abstraction).<br>'
+                           'To keep the Robotmk output clear and understandable, set a proper pattern and e.g. <i>output depth=0</i> for sub-suites or keywords which should not get dissolved any deeper.<br>'
+                           '(Hint: This is only for visual control; suites/keywords which are hidden by this setting can still be compared to <i>runtime_threshold</i> and change the overall suite state.)<br>'
+                           'Patterns always start at the beginning.'),
                     elements=[
                         (
                             "output_depth_suites",
@@ -186,7 +195,7 @@ def _parameter_valuespec_robotmk():
                                 add_label=_("Add"),
                                 movable=False,
                                 title=_("<b>Suite</b> Output depth"))
-                        ),  # L2 / output_depth_suites 
+                        ),  # L2 / output_depth_suites
                         (
                             "output_depth_keywords",
                             ListOf(  # /L2
@@ -210,18 +219,17 @@ def _parameter_valuespec_robotmk():
                                 add_label=_("Add"),
                                 movable=False,
                                 title=_("<b>Keyword</b> Output depth"))
-                        ),  # L2 / output_depth_suites                                                   
+                        ),  # L2 / output_depth_suites
                     ],
-                )),  # L1 / output_depth   
+                )),  # L1 / output_depth
             ("runtime_threshold",
              Dictionary(
                  title=_('Runtime thresholds'),
-                 help=
-                 _('Define patterns here to assign runtime thresholds to suites, tests and keywords. <br>'
-                   'A runtime exceedance always results in a WARN state and is propagated to the overall suite status.<br>'
-                   'Always keep in mind that runtime monitoring is not a feature of Robot but Robotmk. This means that a Robot suite can have an internal OK state but WARN in CheckMK.<br>'
-                   'Patterns always start at the beginning. CRIT threshold must be bigger than WARN; values of 0 disable the threshold.'
-                   ),
+                 help=_('Define patterns here to assign runtime thresholds to suites, tests and keywords. <br>'
+                        'A runtime exceedance always results in a WARN state and is propagated to the overall suite status.<br>'
+                        'Always keep in mind that runtime monitoring is not a feature of Robot Framework but Robotmk; a Robot suite can have an internal OK state but be WARN in Checkmk!<br>'
+                        'Patterns always start at the beginning. CRIT threshold must be bigger than WARN; values of 0 disable the threshold.'
+                        ),
                  elements=[
                      ("runtime_threshold_suites",
                       listof_runtime_threshold_suites),
@@ -231,7 +239,7 @@ def _parameter_valuespec_robotmk():
                       listof_runtime_threshold_keywords),
                      ("show_all_runtimes", dropdown_robotmk_show_all_runtimes),
                  ],
-             )),  # L1 / runtime_threshold  
+             )),  # L1 / runtime_threshold
             (
                 "perfdata_creation",
                 Dictionary(
@@ -247,7 +255,7 @@ def _parameter_valuespec_robotmk():
                                 orientation="horizontal",
                                 allow_empty=False,
                                 size=60,
-                            )),  # L2 
+                            )),  # L2
                         (
                             "perfdata_creation_tests",
                             ListOfStrings(  # /L2
@@ -255,7 +263,7 @@ def _parameter_valuespec_robotmk():
                                 orientation="horizontal",
                                 allow_empty=False,
                                 size=60,
-                            )),  # L2                
+                            )),  # L2
                         (
                             "perfdata_creation_keywords",
                             ListOfStrings(  # /L2
@@ -263,15 +271,14 @@ def _parameter_valuespec_robotmk():
                                 orientation="horizontal",
                                 allow_empty=False,
                                 size=60,
-                            )),  # L2                                         
+                            )),  # L2
                     ],
-                )),  # L1 / perfdata_creation         
+                )),  # L1 / perfdata_creation
             ("includedate",
              DropdownChoice(
                  title=_("Include execution date in first output line"),
-                 help=
-                 _("If checked, the first output line of the check will also contain the timestamp when the suite was finished."
-                   ),
+                 help=_("If checked, the first output line of the check will also contain the timestamp when the suite was finished."
+                        ),
                  choices=[
                      ('yes', _('yes')),
                      ('no', _('no')),
@@ -279,6 +286,7 @@ def _parameter_valuespec_robotmk():
                  default_value="no",
              )),
             ("show_submessages", dropdown_robotmk_show_submessages),
+            ("show_kwmessages", dropdown_robotmk_show_kwmessages),
         ], )
 
 

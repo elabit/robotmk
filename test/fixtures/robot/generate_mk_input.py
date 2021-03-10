@@ -29,11 +29,11 @@ try:
         copyfile(agent_input_filename, spoolfile)
         print "  -> %s" % spoolfile
 
-    # create data which CheckMK passes to the check ('list of lists')
+    # create data which Checkmk passes to the check ('list of lists')
     check_input_filename = "%s/input_check.json" % suitename
     print "  -> %s" % check_input_filename
     with codecs.open(check_input_filename, "w", 'utf-8') as file:
         json.dump([ [x] for x in xmldata ], file, ensure_ascii=False)
 except: 
-    print "Error while converting Robot result file %s to CheckMK input" % filename
+    print "Error while converting Robot result file %s to Checkmk input" % filename
 

@@ -3,11 +3,11 @@
 
 # (c) 2020 Simon Meggle <simon.meggle@elabit.de>
 
-# This file is part of RobotMK
+# This file is part of Robotmk
 # https://robotmk.org
 # https://github.com/simonmeggle/robotmk
 
-# RobotMK is free software;  you can redistribute it and/or modify it
+# Robotmk is free software;  you can redistribute it and/or modify it
 # under the  terms of the  GNU General Public License  as published by
 # the Free Software Foundation in version 3.  This file is distributed
 # in the hope that it will be useful, but WITHOUT ANY WARRANTY;  with-

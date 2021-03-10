@@ -45,35 +45,33 @@ from cmk.gui.cee.plugins.wato.agent_bakery import (
 
 # EXECUTION MODE Help Texts --------------------------------
 helptext_execution_mode_agent_serial = """
-    The Checkmk agent starts the Robotmk plugin frequently (=<i>agent check interval</i>) in '<b>controller mode</b>'.<br>
-    The controller then can start the plugin in '<b>runner mode</b>' if the <i>global suites execution interval</i> is over to execute suites in series.<br>
-    After each suite, the runner writes the suite result data into a state file. <br>
-    The controller does not wait for the runner to finish the execution of all suites; it reads the most recent state files of all configured suites and generates the agent output on STDOUT. <br>
-    <b>Use cases</b> for this mode: in general, all Robot tests which can run headless and do not require a certain OS user."""
-helptext_execution_mode_agent_parallel = """
-    The Checkmk agent starts the Robotmk plugin frequently (=<i>agent check interval</i>) in '<b>controller mode</b>'.<br>
-    For each suite, the controller reads the individual <i>suite execution interval</i> and decides whether to start a dedicated plugin process in '<b>runner mode</b>', parametrized with the suite's name.<br>
-    Each runner writes its suite result into a state file. <br>
-    The controller does not wait for the runner processes to finish; it reads the most recent state files of all configured suites and generates the agent output to print it on STDOUT.<br> 
-    <b>Use cases</b> for this mode: same as '<i>agent_serial</i>' - in addition, this mode makes sense on test clients which have the CPU/Mem resources for parallel test execution."""
+    The Checkmk agent starts the Robotmk <b>controller</b> as a <i>synchronous</i> check plugin in the <i>agent check interval</i>.<br>
+    It also starts the Robotmk <b>runner</b> as an <i>asynchronous</i> check plugin in the <i>runner execution interval</i>.<br>
+    If you do not specify suites, the runner will execute all suites in the <i>Robot suites directory</i>. <br><br>
+    <b>Use cases</b> for this mode:<br>
+    In general, all Robot tests which can run headless and do not require a certain OS user."""
+helptext_execution_mode_agent_parallel = """(not yet implemented)"""
+# The Checkmk agent starts the Robotmk <b>controller</b> as a normal check plugin (= in <i>agent check interval</i>).<br>
+# For each suite, the controller reads the individual <i>suite execution interval</i> and decides whether to start a dedicated plugin process in '<b>runner mode</b>', parametrized with the suite's name.<br>
+# Each runner writes its suite result into a state file. <br>
+# The controller does not wait for the runner processes to finish; it reads the most recent state files of all configured suites and generates the agent output to print it on STDOUT.<br>
+# <b>Use cases</b> for this mode: same as '<i>agent_serial</i>' - in addition, this mode makes sense on test clients which have the CPU/Mem resources for parallel test execution."""
 helptext_execution_mode_agent_parallel = "This is only a placeholder for the parallel execution of RF suites. <b>Please choose another mode.</b>"
 helptext_execution_mode_external = """
-    The Checkmk agent starts the Robotmk plugin frequently (=<i>agent check interval</i>) in '<b>controller mode</b>'.<br>
-    The controller's only job in this mode is to read the most recent state files of all configured suites and generates the agent output to print it on STDOUT.<br> <br>
-    You must use an external tool (e.g. cron/task scheduler) to execute Robot suites by starting the Robotmk runner with <tt>robotmk.py --run [SUITES]</tt>. <br>
-    Each runner writes its suite result into a state file. <br>
-    <tt>SUITES</tt> are suite IDs defined in <i>Robot Framework test suites</i> below. <br>
-    If no suites are specified, the runner will execute all suites in <tt>robotmk.yml</tt>.<br>
-    If there are no suites defined at all, the runner will execute all suites in the <i>Robot suites directory</i>. <br><br>   
+    The Checkmk agent starts the Robotmk <b>controller</b> as a <i>synchronous</i> check plugin in the <i>agent check interval</i>.<br>
+    <b>Rule dependency</b>: The rule <i>Deploy custom files with agent</i> (package <tt>robotmk-external</tt>) places the <b>runner</b> within the agent's <tt>bin</tt> directory. 
+    From there, you can start the runner with any external tool (e.g. cron/task scheduler).<br><br>
+    If no suites are specified, the runner will execute all suites listed in <tt>robotmk.yml</tt>.<br>
+    If no suites are defined at all, the runner will execute all suites found in the <i>Robot suites directory</i>. <br><br>   
     <b>Use cases</b> for this mode: <br>
-      - Applications which need a desktop<br>
-      - Applications which require to be run with a certain user account<br>
+      - Desktop Applications<br>
+      - Applications which require to be run with a certain user account (SSO)<br>
       - The need for more control about when to execute a Robot test and when not"""
 
 # GLOBAL EXECUTION INTERVAL: only serial ===========================================================
 agent_config_global_suites_execution_interval_agent_serial = Age(
     title=_("Runner <b>execution interval</b>"),
-    help=_("Sets the interval in which the Robotmk <b>controller</b> will trigger the Robotmk <b>runner</b> to execute <b>all suites in series</b>.<br>"
+    help=_("Interval the Checkmk agent will execute the <b>runner</b> plugin asynchronously.<br>"
            "The default is 15min but strongly depends on the maximum probable runtime of all <i>test suites</i>.<br>Choose an interval which is a good comprimise between frequency and execution runtime headroom.<br>"
            ),
     minvalue=1,
@@ -84,10 +82,10 @@ agent_config_global_suites_execution_interval_agent_serial = Age(
 # GLOBAL CACHE TIME: serial & external =============================================================
 agent_config_global_cache_time_agent_serial = Age(
     title=_("Result <b>cache time</b>"),
-    help=_("Suite state files are updated by the <b>runner</b> after each execution (<i>global suites execution interval</i>).<br>"
+    help=_("Suite state files are updated by the <b>runner</b> after each execution (<i>Runner execution interval</i>).<br>"
            "The <b>controller</b> monitors the age of those files and expects them to be not older than the <i>global cache time</i>. <br>"
-           "Each suite with a state file older than its <i>cache time</i> will be reported as 'stale'.<br>"
-           "For obvious reasons, the cache time must always be set higher than the execution interval."
+           "Each suite with a state file older than its <i>result cache time</i> will be reported as 'stale'.<br>"
+           "For obvious reasons, the cache time must always be set higher than the <i>runner execution interval</i>."
            ),
     minvalue=1,
     maxvalue=65535,
@@ -427,17 +425,17 @@ dropdown_robotmk_logging = DropdownChoice(
 dropdown_robotmk_execution_choices = CascadingDropdown(
     title=_("Execution mode"),
     help=_("The <b>execution mode</b> is a general setting which controls who runs RF suites, how and when.<br>"
-           "For this, the Robotmk plugin operates in two modes:  '<b>controller</b>' and '<b>runner</b>'.<br><br>"
-           "<b>controller</b> mode: <br>"
-           "- active when executed with no cmdline arguments by agent<br>"
-           "- creates a list of suites as defined in either the YML file, or by environment variables<br>"
-           "- calls itself in runner mode (-> suite execution)<br>"
-           "- reads the written state files, monitors them for staleness<br>"
-           "- writes output to STDOUT for the CMK agent<br><br>"
-           "<b>runner</b> mode: <br>"
-           "- runs the suites given as arguments ro <tt>--run</tt>; if no suites are given, it runs all defined. <br>"
-           "- writes suite state files <br><br>"
-           "The behaviour of both modes depends on the execution mode you set here."
+           "For this, Robotmk comes with two agent scripts:<br><br>"
+           "<tt>robotmk.py</tt> - the '<b>controller</b>':<br>"
+           "- determines the configured suites<br>"
+           "- reads their JSON state files<br>"
+           "- writes all JSON objects to STDOUT for the CMK agent<br><br>"
+           "<tt>robotmk-runner.py</tt> - the '<b>runner</b>':<br>"
+           "- determines the configured suites<br>"
+           "- runs the suites<br>"
+           "- collects suite logs and writes their JSON state files <br><br>"
+           "The behaviour and usage of both scripts depends on the execution mode you set here.<br>"
+           "<b>Rule dependency:</b> All modes require the rule '<i>Limit script types to execute</i>' to allow the execution of <tt>.py</tt> files. "
            ),
     sorted=False,
     choices=[
@@ -465,7 +463,7 @@ dropdown_robotmk_execution_choices = CascadingDropdown(
 def _valuespec_agent_config_robotmk():
     return Alternative(
         title=_("Robotmk (Linux, Windows)"),
-        help=_("This rule will deploy the <b>Robotmk agent plugin</b> and a generated YML config file (<tt>robotmk.yml</tt>) to the remote host."
+        help=_("Robotmk integrates the results of <b>Robot Framework</b> tests into Checkmk. This rule will deploy the <b>Robotmk agent plugin</b> and a generated YML control file (<tt>robotmk.yml</tt>) to the remote host."
                ),
         style="dropdown",
         elements=[

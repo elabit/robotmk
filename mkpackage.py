@@ -22,7 +22,8 @@ Target = namedtuple('Target', 'path, filename')
 
 customfiles = {
     'agents/plugins/robotmk': Target('agents/custom/robotmk-external/lib/bin', 'robotmk.py'),
-    'agents/plugins/robotmk-runner': Target('agents/custom/robotmk-external/lib/bin', 'robotmk-runner.py')
+    'agents/plugins/robotmk-runner': Target('agents/custom/robotmk-external/lib/bin', 'robotmk-runner.py'),
+    'agents/plugins/robotmk-runner': Target('agents/custom/robotmk-external/lib/bin', 'robotmk-runner.pyw'),
 }
 
 for file in customfiles:
@@ -38,7 +39,7 @@ blacklist = [
 ]
 
 pkg_desc = '''
-    RobotMK integrates Robot Framework results into CheckMK. 
+    Robotmk integrates Robot Framework results into Checkmk. 
     Robot Framework can test web based and native applications. 
     It is easy to learn and highly extendable by libraries. 
     Libraries provide the functionality to use modern test web 
@@ -55,7 +56,7 @@ dist({
     'description': pkg_desc,
     'download_url': 'https://www.robotmk.org',
     'name': 'robotmk',
-    'title': 'RobotMK | Robot Framework End2End Test Integration',
+    'title': 'Robotmk | Robot Framework End2End Test Integration',
     'version': tag.replace('v', ''),
     'version.min_required': '1.6',
 }, blacklist=blacklist)

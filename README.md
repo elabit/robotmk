@@ -1,13 +1,13 @@
-# RobotMK
+# Robotmk
 
-*A complete solution to integrate **Robot Framework** End2End tests into **CheckMK***
+*A complete solution to integrate **Robot Framework** End2End tests into **Checkmk***
 
 [![Build Status](https://travis-ci.com/simonmeggle/robotmk.svg?branch=develop)](https://travis-ci.com/simonmeggle/robotmk) ![.github/workflows/github-markdown-toc.yml](https://github.com/simonmeggle/robotmk/workflows/.github/workflows/github-markdown-toc.yml/badge.svg)
 
 ![desc](img/robot_robotmk_checkmk.png)
 
 <!--ts-->
-   * [RobotMK](#robotmk)
+   * [Robotmk](#robotmk)
       * [Description](#description)
       * [State of development](#state-of-development)
       * [Key features/components](#key-featurescomponents)
@@ -17,7 +17,7 @@
       * [Documentation](#documentation)
       * [Usage](#usage)
          * [Configure what to execute](#configure-what-to-execute)
-         * [Integrate the new Robot E2E check into CheckMK](#integrate-the-new-robot-e2e-check-into-checkmk)
+         * [Integrate the new Robot E2E check into Checkmk](#integrate-the-new-robot-e2e-check-into-checkmk)
          * [Configure the E2E check](#configure-the-e2e-check)
          * [Discovery level: split up a Robot tests into many CMK services](#discovery-level-split-up-a-robot-tests-into-many-cmk-services)
       * [Development setup](#development-setup)
@@ -26,7 +26,7 @@
          * [tox](#tox)
          * [running tests with tox](#running-tests-with-tox)
          * [Submodule init](#submodule-init)
-         * [Debugging the RobotMK check](#debugging-the-robotmk-check)
+         * [Debugging the Robotmk check](#debugging-the-robotmk-check)
       * [Next developments](#next-developments)
       * [Contributing](#contributing)
       * [License](#license)
@@ -34,21 +34,21 @@
          * [Contributions](#contributions)
          * [Supporters](#supporters)
 
-<!-- Added by: runner, at: Sat Jan 16 09:19:59 UTC 2021 -->
+<!-- Added by: runner, at: Wed Mar 10 08:09:19 UTC 2021 -->
 
 <!--te-->
 
 ## Description
 
-**What is RobotMK?** 
+**What is Robotmk?** 
 
-`"Robot Framework + CheckMK = RobotMK"`
+`"Robot Framework + Checkmk = Robotmk"`
 
 * [Robot Framework](https://robotframework.org/) is a generic testing framework. It can test any kind of application with the help of *libraries*. 
-* [CheckMK](https://checkmk.com) is a state-of-the-art IT infrastructure monitoring system. 
-* **RobotMK** integrates the results of Robot Framework into Checkmk. It bridges the gap between infrastructure and application testing. 
+* [Checkmk](https://checkmk.com) is a state-of-the-art IT infrastructure monitoring system. 
+* **Robotmk** integrates the results of Robot Framework into Checkmk. It bridges the gap between infrastructure and application testing. 
 
-**Why do I need RobotMK?** 
+**Why do I need Robotmk?** 
 
 A monitoring system like Checkmk does a very good job to monitor your business' IT infrastructure with checks for Servers, Network devices, etc. 
 
@@ -56,42 +56,42 @@ But in the end - the reason why you are running IT is to *provide a service* to 
 
 Therefore you shouldn't only monitor infrastructure, but also *the services*. And most important: do it like they do. Use a real browser, mouse and keyboard strokes. Test from End (the user) to End (your IT infrastructure as a whole). This is called **"End2End"-Testing**.
 
-Robot Framework can automate End2End-Tests for you (and much more). Integrating those tests into CheckMK is a great supplement.
+Robot Framework can automate End2End-Tests for you (and much more). Integrating those tests into Checkmk is a great supplement.
 
-**RobotMK** acts as a bridge between Robot Framework and CheckMK. 
+**Robotmk** acts as a bridge between Robot Framework and Checkmk. 
 
 ## State of development
 
-**Is RobotMK stable? Can it be used in production?**
+**Is Robotmk stable? Can it be used in production?**
 
-Fortunately, the development of RobotMK is driven by customers who believe in the project and use already it in their daily business. This is where worthful feedback and feature requests come from. 
+Fortunately, the development of Robotmk is driven by customers who believe in the project and use already it in their daily business. This is where worthful feedback and feature requests come from. 
 
-Even if they already use RobotMK in production there's no point denying the project is still in an early phase (= major version 0.x). 
+Even if they already use Robotmk in production there's no point denying the project is still in an early phase (= major version 0.x). 
 
-As bugs are getting solved and new features are coming in, there is no guarantee that after installing a new version of RobotMK settings, output formats etc. will be the same or at least compatible with the previous version. We try to communicate this in the [CHANGELOG](./CHANGELOG.md) as detailled as possible. 
+As bugs are getting solved and new features are coming in, there is no guarantee that after installing a new version of Robotmk settings, output formats etc. will be the same or at least compatible with the previous version. We try to communicate this in the [CHANGELOG](./CHANGELOG.md) as detailled as possible. 
 
 
 ## Key features/components
 
-* RobotMK **bakery rule** - configures E2E clients:
-  * Use the CheckMK WATO rule editor to decide which remote hosts should be deployed with the RobotMK plugin.
+* Robotmk **bakery rule** - configures E2E clients:
+  * Use the Checkmk WATO rule editor to decide which remote hosts should be deployed with the Robotmk plugin.
   * Define which suites should be executed there and the individual parameters. 
-* RobotMK **plugin** - executes RF tests: 
-  * integrated into the CheckMK monitoring agent, it is a kind of wrapper for RF tests on the client side. It gets controlled by the robotmk YML file which is created by the bakery. 
-* RobotMK **check** - evaluates RF results:
+* Robotmk **plugin** - executes RF tests: 
+  * integrated into the Checkmk monitoring agent, it is a kind of wrapper for RF tests on the client side. It gets controlled by the robotmk YML file which is created by the bakery. 
+* Robotmk **check** - evaluates RF results:
   * evaluates the RF result coming from the Checkmk agent. 
-  * 100% configurable by web (WATO), 100% Robot compatible: RobotMK does not require any adaptation to existing Robot tests; they can be integrated in CheckMK without any intervention.
+  * 100% configurable by web (WATO), 100% Robot compatible: Robotmk does not require any adaptation to existing Robot tests; they can be integrated in Checkmk without any intervention.
   * powerful pattern-based definition system for "most general" and/or fine granular control of
     * runtime thresholds: get alarms for suites/tests/keywords running too long. 
     * performance data: get graphs for any runtime. Even insidious performance changes can thus be detected.
-    * service discovery level: rule-based splitting of Robot Framework results into different Checkmk services ("checks" in CheckMK) - without splitting the robot test. 
+    * service discovery level: rule-based splitting of Robot Framework results into different Checkmk services ("checks" in Checkmk) - without splitting the robot test. 
     * reduction of the output to the essential needs for an optimum result.
 
-Read the [feature page](https://robotmk.org) of RobotMK to learn about its history, features and advantages. 
+Read the [feature page](https://robotmk.org) of Robotmk to learn about its history, features and advantages. 
 
 ## Usage scenarios
 
-**RobotMK** is great for: 
+**Robotmk** is great for: 
 
 * having both monitoring business-critical applications and infrastructure check within the same monitoring tool (Checkmk)
 * monitoring modern apps: Angular, React, Android/iOS based, ... Robot Framework has a long list of well-curated libraries
@@ -100,14 +100,14 @@ Read the [feature page](https://robotmk.org) of RobotMK to learn about its histo
 
 ## Requirements
 
-RobotMK works with any CheckMK 1.6x version and edition (CEE and CRE).
+Robotmk works with any Checkmk 1.6x version and edition (CEE and CRE).
 
-*  Enterprise edition (CEE) is recommended if you want to benefit from the agent bakery system which creates agent installation packages and the RobotMK YAML configuration files. 
+*  Enterprise edition (CEE) is recommended if you want to benefit from the agent bakery system which creates agent installation packages and the Robotmk YAML configuration files. 
 * Raw Edition (CRE) also works if you are fine to write this files by hand/generate by some other tool (Ansible etc.). (Nevertheless, consider a worthwile [switch to CEE](https://www.iteratio.com/))
 
 ## Installation
 
-You can choose between two ways of installing RobotMK: 
+You can choose between two ways of installing Robotmk: 
 
 * Installing as [MKP](https://checkmk.com/cms_mkps.html) is the preferred way. 
   * The most recent release can be downloaded here on the [Releases](https://github.com/simonmeggle/robotmk/releases) page
@@ -129,7 +129,7 @@ robotmk     tcp    (no man page present)
 
 All Robotmk rules come with a very **detailled and comprehensive context help**. This covers 95% of all information which is needed to work with Robotmk. 
 
-The context help can be shown by clicking on the **book icon** in the top right corner of every RobotMK rule:  
+The context help can be shown by clicking on the **book icon** in the top right corner of every Robotmk rule:  
 
 ![How to show the context help](img/show_context_help.gif)
 
@@ -139,10 +139,10 @@ The context help can be shown by clicking on the **book icon** in the top right 
 
 ### Configure what to execute
 
-This recording shows how easy it is to deploy the RobotMK to the host `robothost1`: 
+This recording shows how easy it is to deploy the Robotmk to the host `robothost1`: 
 
 * Go to the WATO section "Monitoring Agents" -> Rules
-* Create a new `RobotMK bakery rule`
+* Create a new `Robotmk bakery rule`
   * We set the Cache time to 5 minutes so that the plugin gets executed only every 5 minutes.  
   * `sampletest` is the name of a Robot test in the default agent lib folder (`/usr/lib/check_mk_agent/robot`, configurable). To bring Robot test to the client, use the WATO rule `Deploy custom files with agent` - but there is more to come :-)  
   * As you can see, we can set most of the arguments we could also give to Robot on the CLI: rename the suite, pass variables, call variable files with parameters (yeah), etc...
@@ -151,7 +151,7 @@ This recording shows how easy it is to deploy the RobotMK to the host `robothost
 
 ![desc](img/bakery.gif)
 
-* The bakery bakes a new RPM package containing the RobotMK plugin and the RobotMK YML file: 
+* The bakery bakes a new RPM package containing the Robotmk plugin and the Robotmk YML file: 
 
 ```
 # Created by Check_MK Agent Bakery.
@@ -172,15 +172,15 @@ suites:
     - var1:value1
     - var2:value2
 ```
-### Integrate the new Robot E2E check into CheckMK
+### Integrate the new Robot E2E check into Checkmk
 
-As soon as the new agent is installed on the client, it starts to execute the robot test(s). You will notice that the service "CheckMK Discovery" turns to WARNING because it hs found the first result of out Robot test in the agent output. Let's integrate the new check into the monitoring!
+As soon as the new agent is installed on the client, it starts to execute the robot test(s). You will notice that the service "Checkmk Discovery" turns to WARNING because it hs found the first result of out Robot test in the agent output. Let's integrate the new check into the monitoring!
 
 ![desc](img/disc.gif)
 
 ### Configure the E2E check
 
-Now we use the `RobotMK rule for discovered services` to 
+Now we use the `Robotmk rule for discovered services` to 
 
 * set a threshold on `Subsuite3` on 5 seconds
 * draw performance data for every `Subsuite`
@@ -189,7 +189,7 @@ Now we use the `RobotMK rule for discovered services` to
 
 ### Discovery level: split up a Robot tests into many CMK services
 
-Lastly, we decide every "Subsuite" in the Robot test to be represented as an own CheckMK service. 
+Lastly, we decide every "Subsuite" in the Robot test to be represented as an own Checkmk service. 
 "Subsuite1-3" are one (1) level deeper from the top result level. Hence, we use the `Robot Framework Discovery Level rule` to set the discovery level from 0 (top level) to 1. 
 
 
@@ -206,12 +206,12 @@ Why would you want to do this?
 
 ### Installation 
 
-It is assumed that you are developing on a Linux host which already has CheckMK installed. Instead of copying the files into the site (as described in [Installation](#installation)), just create symlinks (`ln -s `) to the apropriate files and directories. 
+It is assumed that you are developing on a Linux host which already has Checkmk installed. Instead of copying the files into the site (as described in [Installation](#installation)), just create symlinks (`ln -s `) to the apropriate files and directories. 
 
 ### Python versions
 This project is based on two Python versions: 
 
-* **Python 2.7** - robotmk **check** on the CheckMK Server (CheckMK will be running soon on Python3)
+* **Python 2.7** - robotmk **check** on the Checkmk Server (Checkmk will be running soon on Python3)
 * **Python 3.6** - robotmk **plugin** on the Robot test host
 
 To run all tests, make sure that you have installed both versions on your machine. 
@@ -258,9 +258,9 @@ The manual step to update the submodule is:
 git submodule update --init --recursive
 ```
 
-### Debugging the RobotMK check
+### Debugging the Robotmk check
 
-`ipdb` is a great cmdline debugger for Python. In the following example it is shown how to execute the RobotMK check within the cmk context. 
+`ipdb` is a great cmdline debugger for Python. In the following example it is shown how to execute the Robotmk check within the cmk context. 
 A breakpoint in line 120 is set with "b":  
 
 ```
@@ -300,17 +300,17 @@ Next development steps will be:
   `<<<robotmk>>>` agent section is missing. This meta-process will be called `robotmk-master`. 
   Read more about this in [issue 59](https://github.com/simonmeggle/robotmk/issues/59)
 * It is helpful to have also Robot Logs at hand when there is an alarm. It is planned
-  that the RobotMK plugin also collects the Robot HTML logs and transfers them to the
+  that the Robotmk plugin also collects the Robot HTML logs and transfers them to the
   CMK server. HTML logs could also include (embedded?) screenshots, animated GIF screen-recordings etc. 
   The goal is to implement a service action button which guides you directly to the most
   recent Robot Log. Read more about this idea in [issue #1](https://github.com/simonmeggle/robotmk/issues/1).   
-* Create a complete Docker-based test setup which covers all test scenarios. Why not test RobotMK's functionality with Robot/Selenium itself.
+* Create a complete Docker-based test setup which covers all test scenarios. Why not test Robotmk's functionality with Robot/Selenium itself.
 * Create a Docker container to execute Robot tests also in Containers. Expand the agent plugin to trigger Robot containers with API calls to Kubernetes and Docker Swarm to distribute E2E tests.  
-* Create dynamic area-stacked performance graphs in the CheckMK grapher. (No, I won't do this for PNP4Nagios...)
+* Create dynamic area-stacked performance graphs in the Checkmk grapher. (No, I won't do this for PNP4Nagios...)
 
 ## Contributing
 
-If you want to help RobotMK to get better, you're warmly welcomed!
+If you want to help Robotmk to get better, you're warmly welcomed!
 
 * Fork this project
 * Create a feature branch with a name containing the issue number (or submit a new issue first), from the current `develop` branch. 
@@ -319,20 +319,20 @@ If you want to help RobotMK to get better, you're warmly welcomed!
 
 ## License
 
-**RobotMK** is published unter the [GNU General Public License v3.0](https://spdx.org/licenses/GPL-3.0-or-later.html)
+**Robotmk** is published unter the [GNU General Public License v3.0](https://spdx.org/licenses/GPL-3.0-or-later.html)
 
 ## Credits/Thanks
 
 ### Contributions
 
-Thanks to the following people who help to make RobotMK better by submitting code: 
+Thanks to the following people who help to make Robotmk better by submitting code: 
 
 * Michael FRANK (contributed to the agent plugin)
 * Guillaume DURVILLE (contributed to the bakery rule)
 
 ### Supporters
 
-Thanks to the companies which support the development of RobotMK: 
+Thanks to the companies which support the development of Robotmk: 
 
 * [ITERATIO GmbH](http://iteratio.com/), Cologne (GER) - Hardy DÜTTMANN
 * [comNET GmbH](https://www.comnetgmbh.com), Hannover (GER) - Thorben Söhl

@@ -3,11 +3,11 @@
 
 # (c) 2020 Simon Meggle <simon.meggle@elabit.de>
 
-# This file is part of RobotMK
+# This file is part of Robotmk
 # https://robotmk.org
 # https://github.com/simonmeggle/robotmk
 
-# RobotMK is free software;  you can redistribute it and/or modify it
+# Robotmk is free software;  you can redistribute it and/or modify it
 # under the  terms of the  GNU General Public License  as published by
 # the Free Software Foundation in version 3.  This file is distributed
 # in the hope that it will be useful, but WITHOUT ANY WARRANTY;  with-
@@ -274,21 +274,23 @@ def check_robot(item, checkgroup_parameters, parsed):
     else:
         # any other regular s/t/k check
         for root_suite in parsed['suites']:
-            for discovered_item in root_suite['parsed'].discovered:
-                # Remove the prefix to get the original item name
-                item_without_prefix = strip_svc_prefix(item, root_suite)
-                if discovered_item.name == item_without_prefix:
-                    now = datetime.datetime.now(tzlocal())
-                    last_end = parser.isoparse(root_suite['end_time'])
-                    age = now - last_end
-                    if age.total_seconds() < root_suite['cache_time']:
-                        return evaluate_robot_item(discovered_item,
-                                                   checkgroup_parameters)
-                    else:
-                        overdue_sec = round(
-                            age.total_seconds() - root_suite['cache_time'], 1)
-                        return ignore_robot_item(root_suite, last_end,
-                                                 overdue_sec)
+            if 'parsed' in root_suite:
+                for discovered_item in root_suite['parsed'].discovered:
+                    # Remove the prefix to get the original item name
+                    item_without_prefix = strip_svc_prefix(item, root_suite)
+                    if discovered_item.name == item_without_prefix:
+                        now = datetime.datetime.now(tzlocal())
+                        last_end = parser.isoparse(root_suite['end_time'])
+                        age = now - last_end
+                        if age.total_seconds() < root_suite['cache_time']:
+                            return evaluate_robot_item(discovered_item,
+                                                       checkgroup_parameters)
+                        else:
+                            overdue_sec = round(
+                                age.total_seconds() - root_suite['cache_time'],
+                                1)
+                            return ignore_robot_item(root_suite, last_end,
+                                                     overdue_sec)
 
 
 # Return only fatal suites
@@ -297,27 +299,57 @@ def check_fatal_suites(suites):
     return [s for s in suites if s['status'] == 'fatal']
 
 
+# A suite can be stale in two cases:
+# - A) start_time/end_time exist: the suite ran.
+#   Age is "time since end_time"; stale if age > cache_time
+# - B) only start_time exists: the suite is running (or: hanging forever??).
+#   Age is then "time since start_time"; stale if age > cache_time
 def check_stale_suites(suites):
     suites_stale = []
     suites_nonstale = []
     for root_suite in [s for s in suites if s['status'] != 'fatal']:
         now = datetime.datetime.now(tzlocal())
-        last_end = parser.isoparse(root_suite['end_time'])
-        age = now - last_end
-        last_end_fmt = last_end.strftime('%Y-%m-%d %H:%M:%S')
-        if age.total_seconds() < root_suite['cache_time']:
-            # nonstale
-            suites_nonstale.append(
-                (root_suite['id'], "Suite '%s': (last execution end: %s, " %
-                 (root_suite['id'], last_end_fmt)))
+        if 'end_time' in root_suite:
+            # Case A) (suite ran)
+            last_end = parser.isoparse(root_suite['end_time'])
+            age = now - last_end
+            last_end_fmt = last_end.strftime('%Y-%m-%d %H:%M:%S')
+            if age.total_seconds() < root_suite['cache_time']:
+                # nonstale
+                suites_nonstale.append(
+                    (root_suite['id'],
+                     "Suite '%s': (last execution end: %s, " %
+                     (root_suite['id'], last_end_fmt)))
+            else:
+                # stale result
+                overdue_sec = age.total_seconds() - root_suite['cache_time']
+                suites_stale.append(
+                    (root_suite['id'],
+                     "(!!) Suite '%s': (last execution end: %s, " %
+                     (root_suite['id'], last_end_fmt) +
+                     "cache time: %ds, overdue since %.1fs)\n" %
+                     (root_suite['cache_time'], overdue_sec)))
         else:
-            # stale result
-            overdue_sec = age.total_seconds() - root_suite['cache_time']
-            suites_stale.append((root_suite['id'],
-                                 "(!!) Suite '%s': (last execution end: %s, " %
-                                 (root_suite['id'], last_end_fmt) +
-                                 "cache time: %ds, overdue since %.1fs)\n" %
-                                 (root_suite['cache_time'], overdue_sec)))
+            # Case B) (suite started, no end_time)
+            last_start = parser.isoparse(root_suite['start_time'])
+            age = now - last_start
+            last_start_fmt = last_start.strftime('%Y-%m-%d %H:%M:%S')
+            if age.total_seconds() < root_suite['cache_time']:
+                # nonstale
+                suites_nonstale.append(
+                    (root_suite['id'],
+                     "Suite '%s': (started 1st time at: %s, " %
+                     (root_suite['id'], last_start_fmt)))
+            else:
+                # stale result
+                overdue_sec = age.total_seconds() - root_suite['cache_time']
+                suites_stale.append(
+                    (root_suite['id'],
+                     "(!!) Suite '%s': (started 1st time at %s, " %
+                     (root_suite['id'], last_start_fmt) +
+                     "cache time: %ds, overdue since %.1fs)\n" %
+                     (root_suite['cache_time'], overdue_sec)))
+
     return (suites_stale, suites_nonstale)
 
 
@@ -479,10 +511,17 @@ class RobotItem(object):
         self.result['xpath_name'] = self.xpath_name
 
     # Evaluate the Robot status of this item to a Nagios state & set message
-    def _eval_node_robotframework_status(self):
+    def _eval_node_robotframework_status(self, check_params):
         if type(self) == RobotKeyword:
-            # TODO: When is self.msg set for keywords?
-            statustext = self.msg
+            # Keywords should only show messages if allowed by WATO rule
+            if bool(check_params.get(
+                    'show_kwmessages')) and not self.msg is None:
+                # Playwright produces ugly log lines with lots of equal signs
+                statustext = re.sub('={2,}', '==', self.msg)
+                # This is to prevent Mulisite GUI to replace URLs by a unicode icon
+                statustext = re.sub('http://', 'http//', statustext)
+            else:
+                statustext = ''
         else:
             statustext = self.text
 
@@ -710,7 +749,7 @@ class RobotItem(object):
     #   - Suite, Tests: from robotframework, cmk_runtime, cmk_metric
     #     Explanation: Suites and Tests are nodes which can be services in CMK.
     #     For this reason, the state of such nodes is the worst state of the RF
-    #     result and every CMK/RobotMK check (runtime, metric).
+    #     result and every CMK/Robotmk check (runtime, metric).
     #     Ex.: Even if a test is RF=PASS (=OK), a runtime exceedance could turn
     #     it to WARNING. Otherwise, if runtime is OK but the test FAILed, it has to
     #     be CRITICAL.
@@ -808,7 +847,7 @@ class RobotItem(object):
         # THIS Node -----
         self._set_node_info()
 
-        self._eval_node_robotframework_status()
+        self._eval_node_robotframework_status(check_params)
         self._eval_node_cmk_runtime(check_params)
         self._eval_node_cmk_perfdata(check_params)
         self._eval_node_cmk_metric(check_params)
