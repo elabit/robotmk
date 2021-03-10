@@ -39,7 +39,7 @@ blacklist = [
 ]
 
 pkg_desc = '''
-    Robotmk integrates Robot Framework results into CheckMK. 
+    Robotmk integrates Robot Framework results into Checkmk. 
     Robot Framework can test web based and native applications. 
     It is easy to learn and highly extendable by libraries. 
     Libraries provide the functionality to use modern test web 

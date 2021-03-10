@@ -31,9 +31,9 @@ converts the XML result into JSON:
 This will create for each test suite: 
 
 * `input_agent.json` = *Agent* test data. This is exactly the robot XML result file plus the first section line ('<<<robot:sep(0)>>>'). This file gets copied with the suite name as filename into the cmk spooldir (default: `/var/lib/check_mk_agent/spool/'`)
-* `input_check.json` = *Check* test data. The JSON exactly represents the data which CheckMK passes to the check ("list of lists").
+* `input_check.json` = *Check* test data. The JSON exactly represents the data which Checkmk passes to the check ("list of lists").
 
-After this step, you have data to test directly in CheckMK/WATO as well as for development. 
+After this step, you have data to test directly in Checkmk/WATO as well as for development. 
 
 ### 3. Define the expected data
 

@@ -1,6 +1,6 @@
 # Robotmk
 
-*A complete solution to integrate **Robot Framework** End2End tests into **CheckMK***
+*A complete solution to integrate **Robot Framework** End2End tests into **Checkmk***
 
 [![Build Status](https://travis-ci.com/simonmeggle/robotmk.svg?branch=develop)](https://travis-ci.com/simonmeggle/robotmk) ![.github/workflows/github-markdown-toc.yml](https://github.com/simonmeggle/robotmk/workflows/.github/workflows/github-markdown-toc.yml/badge.svg)
 
@@ -17,7 +17,7 @@
       * [Documentation](#documentation)
       * [Usage](#usage)
          * [Configure what to execute](#configure-what-to-execute)
-         * [Integrate the new Robot E2E check into CheckMK](#integrate-the-new-robot-e2e-check-into-checkmk)
+         * [Integrate the new Robot E2E check into Checkmk](#integrate-the-new-robot-e2e-check-into-checkmk)
          * [Configure the E2E check](#configure-the-e2e-check)
          * [Discovery level: split up a Robot tests into many CMK services](#discovery-level-split-up-a-robot-tests-into-many-cmk-services)
       * [Development setup](#development-setup)
@@ -42,10 +42,10 @@
 
 **What is Robotmk?** 
 
-`"Robot Framework + CheckMK = Robotmk"`
+`"Robot Framework + Checkmk = Robotmk"`
 
 * [Robot Framework](https://robotframework.org/) is a generic testing framework. It can test any kind of application with the help of *libraries*. 
-* [CheckMK](https://checkmk.com) is a state-of-the-art IT infrastructure monitoring system. 
+* [Checkmk](https://checkmk.com) is a state-of-the-art IT infrastructure monitoring system. 
 * **Robotmk** integrates the results of Robot Framework into Checkmk. It bridges the gap between infrastructure and application testing. 
 
 **Why do I need Robotmk?** 
@@ -56,9 +56,9 @@ But in the end - the reason why you are running IT is to *provide a service* to 
 
 Therefore you shouldn't only monitor infrastructure, but also *the services*. And most important: do it like they do. Use a real browser, mouse and keyboard strokes. Test from End (the user) to End (your IT infrastructure as a whole). This is called **"End2End"-Testing**.
 
-Robot Framework can automate End2End-Tests for you (and much more). Integrating those tests into CheckMK is a great supplement.
+Robot Framework can automate End2End-Tests for you (and much more). Integrating those tests into Checkmk is a great supplement.
 
-**Robotmk** acts as a bridge between Robot Framework and CheckMK. 
+**Robotmk** acts as a bridge between Robot Framework and Checkmk. 
 
 ## State of development
 
@@ -74,17 +74,17 @@ As bugs are getting solved and new features are coming in, there is no guarantee
 ## Key features/components
 
 * Robotmk **bakery rule** - configures E2E clients:
-  * Use the CheckMK WATO rule editor to decide which remote hosts should be deployed with the Robotmk plugin.
+  * Use the Checkmk WATO rule editor to decide which remote hosts should be deployed with the Robotmk plugin.
   * Define which suites should be executed there and the individual parameters. 
 * Robotmk **plugin** - executes RF tests: 
-  * integrated into the CheckMK monitoring agent, it is a kind of wrapper for RF tests on the client side. It gets controlled by the robotmk YML file which is created by the bakery. 
+  * integrated into the Checkmk monitoring agent, it is a kind of wrapper for RF tests on the client side. It gets controlled by the robotmk YML file which is created by the bakery. 
 * Robotmk **check** - evaluates RF results:
   * evaluates the RF result coming from the Checkmk agent. 
-  * 100% configurable by web (WATO), 100% Robot compatible: Robotmk does not require any adaptation to existing Robot tests; they can be integrated in CheckMK without any intervention.
+  * 100% configurable by web (WATO), 100% Robot compatible: Robotmk does not require any adaptation to existing Robot tests; they can be integrated in Checkmk without any intervention.
   * powerful pattern-based definition system for "most general" and/or fine granular control of
     * runtime thresholds: get alarms for suites/tests/keywords running too long. 
     * performance data: get graphs for any runtime. Even insidious performance changes can thus be detected.
-    * service discovery level: rule-based splitting of Robot Framework results into different Checkmk services ("checks" in CheckMK) - without splitting the robot test. 
+    * service discovery level: rule-based splitting of Robot Framework results into different Checkmk services ("checks" in Checkmk) - without splitting the robot test. 
     * reduction of the output to the essential needs for an optimum result.
 
 Read the [feature page](https://robotmk.org) of Robotmk to learn about its history, features and advantages. 
@@ -100,7 +100,7 @@ Read the [feature page](https://robotmk.org) of Robotmk to learn about its histo
 
 ## Requirements
 
-Robotmk works with any CheckMK 1.6x version and edition (CEE and CRE).
+Robotmk works with any Checkmk 1.6x version and edition (CEE and CRE).
 
 *  Enterprise edition (CEE) is recommended if you want to benefit from the agent bakery system which creates agent installation packages and the Robotmk YAML configuration files. 
 * Raw Edition (CRE) also works if you are fine to write this files by hand/generate by some other tool (Ansible etc.). (Nevertheless, consider a worthwile [switch to CEE](https://www.iteratio.com/))
@@ -172,9 +172,9 @@ suites:
     - var1:value1
     - var2:value2
 ```
-### Integrate the new Robot E2E check into CheckMK
+### Integrate the new Robot E2E check into Checkmk
 
-As soon as the new agent is installed on the client, it starts to execute the robot test(s). You will notice that the service "CheckMK Discovery" turns to WARNING because it hs found the first result of out Robot test in the agent output. Let's integrate the new check into the monitoring!
+As soon as the new agent is installed on the client, it starts to execute the robot test(s). You will notice that the service "Checkmk Discovery" turns to WARNING because it hs found the first result of out Robot test in the agent output. Let's integrate the new check into the monitoring!
 
 ![desc](img/disc.gif)
 
@@ -189,7 +189,7 @@ Now we use the `Robotmk rule for discovered services` to
 
 ### Discovery level: split up a Robot tests into many CMK services
 
-Lastly, we decide every "Subsuite" in the Robot test to be represented as an own CheckMK service. 
+Lastly, we decide every "Subsuite" in the Robot test to be represented as an own Checkmk service. 
 "Subsuite1-3" are one (1) level deeper from the top result level. Hence, we use the `Robot Framework Discovery Level rule` to set the discovery level from 0 (top level) to 1. 
 
 
@@ -206,12 +206,12 @@ Why would you want to do this?
 
 ### Installation 
 
-It is assumed that you are developing on a Linux host which already has CheckMK installed. Instead of copying the files into the site (as described in [Installation](#installation)), just create symlinks (`ln -s `) to the apropriate files and directories. 
+It is assumed that you are developing on a Linux host which already has Checkmk installed. Instead of copying the files into the site (as described in [Installation](#installation)), just create symlinks (`ln -s `) to the apropriate files and directories. 
 
 ### Python versions
 This project is based on two Python versions: 
 
-* **Python 2.7** - robotmk **check** on the CheckMK Server (CheckMK will be running soon on Python3)
+* **Python 2.7** - robotmk **check** on the Checkmk Server (Checkmk will be running soon on Python3)
 * **Python 3.6** - robotmk **plugin** on the Robot test host
 
 To run all tests, make sure that you have installed both versions on your machine. 
@@ -306,7 +306,7 @@ Next development steps will be:
   recent Robot Log. Read more about this idea in [issue #1](https://github.com/simonmeggle/robotmk/issues/1).   
 * Create a complete Docker-based test setup which covers all test scenarios. Why not test Robotmk's functionality with Robot/Selenium itself.
 * Create a Docker container to execute Robot tests also in Containers. Expand the agent plugin to trigger Robot containers with API calls to Kubernetes and Docker Swarm to distribute E2E tests.  
-* Create dynamic area-stacked performance graphs in the CheckMK grapher. (No, I won't do this for PNP4Nagios...)
+* Create dynamic area-stacked performance graphs in the Checkmk grapher. (No, I won't do this for PNP4Nagios...)
 
 ## Contributing
 
