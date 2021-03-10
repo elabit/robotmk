@@ -513,9 +513,13 @@ class RobotItem(object):
     # Evaluate the Robot status of this item to a Nagios state & set message
     def _eval_node_robotframework_status(self, check_params):
         if type(self) == RobotKeyword:
-            if bool(check_params.get('show_kwmessages')):
-                # Keywords should only show messages if allowed by WATO rule
-                statustext = self.msg
+            # Keywords should only show messages if allowed by WATO rule
+            if bool(check_params.get(
+                    'show_kwmessages')) and not self.msg is None:
+                # Playwright produces ugly log lines with lots of equal signs
+                statustext = re.sub('={2,}', '==', self.msg)
+                # This is to prevent Mulisite GUI to replace URLs by a unicode icon
+                statustext = re.sub('http://', 'http//', statustext)
             else:
                 statustext = ''
         else:
