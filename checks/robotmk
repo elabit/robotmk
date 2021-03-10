@@ -511,10 +511,13 @@ class RobotItem(object):
         self.result['xpath_name'] = self.xpath_name
 
     # Evaluate the Robot status of this item to a Nagios state & set message
-    def _eval_node_robotframework_status(self):
+    def _eval_node_robotframework_status(self, check_params):
         if type(self) == RobotKeyword:
-            # TODO: When is self.msg set for keywords?
-            statustext = self.msg
+            if bool(check_params.get('show_kwmessages')):
+                # Keywords should only show messages if allowed by WATO rule
+                statustext = self.msg
+            else:
+                statustext = ''
         else:
             statustext = self.text
 
@@ -840,7 +843,7 @@ class RobotItem(object):
         # THIS Node -----
         self._set_node_info()
 
-        self._eval_node_robotframework_status()
+        self._eval_node_robotframework_status(check_params)
         self._eval_node_cmk_runtime(check_params)
         self._eval_node_cmk_perfdata(check_params)
         self._eval_node_cmk_metric(check_params)
