@@ -43,7 +43,7 @@ import platform
 import xml.etree.ElementTree as ET
 
 local_tz = datetime.utcnow().astimezone().tzinfo
-ROBOTMK_VERSION = "v0.2.0"
+ROBOTMK_VERSION = "v1.0.0-beta"
 
 
 class RMKConfig():
@@ -951,19 +951,19 @@ class RMKCtrl(RMKState, Robotmk):
             if not bool(state):
                 error_text = "Suite statefile not found - (seems like the suite did never run)"
                 self.logwarn(error_text)
-                    
+
                 state.update({
                     'id': suite.id,
                     'status': 'fatal',
                     'error': error_text
-                    })
+                })
             else:
-                if state.get('rc',0) >= 252: 
+                if state.get('rc', 0) >= 252:
                     state.update({
                         'status': 'fatal',
                         'error': 'Robot RC was >= 252. This is a fatal error. Robotmk got no XML/HTML to process. You should execute and test the suite manually.'
-                        })
-                else: 
+                    })
+                else:
                     state.update({'status': 'nonfatal'})
 
                 for k in self.keys_to_encode:
