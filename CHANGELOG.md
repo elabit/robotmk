@@ -6,10 +6,25 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
 
+
 ## Unreleased
 ### Added
 
-## [v0.2.0-beta - 2021-03-08]
+### Changed
+
+### Fixed
+
+### Removed
+
+### Deprecated
+
+
+
+## [v1.0.0-beta - 2021-03-11]
+
+WARNING: This first major release is 100% incompatible with former versions.
+Make sure to export all WATO rules because this version is not able to read the
+old data structures.  
 
 - Added WATO option to override the Robotmk service name (#98)
 - Separate Logfiles
@@ -19,17 +34,11 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - Prefix formatting
 - Plugin: Added daily log Robotmk file rotation (#88)
 - New Robotmk Service: Perfometer Thresholds Graphs
-- Controller: responsible for reading the spoolfiles and producing output; this eliminates
-  the checkmk error *missing agent section 'robotmk'*  if the plugin had a problem. 
-- reponsible to monitor the freshness of spoolfiles. The whole "async" mechanism
-  is decoupled form checkmk; this allows to control exactly when a spoolfile is 
-  considered to be stale and what to do in this case. In addition, this eases
-  debugging. 
-- The plugin saves its state with statefiles in tmp; the controller mode reads 
-  them and sources the XML/HTTP files. 
+- splitted Robotmk plugin into controller/runner
 - The data transmission from client to server is done with a JSON container 
-  structure; it provides fields for XML/HTTP content which is compressed by 
-  default. 
+  structure
+- HTML log transport to checkmk server
+
 
 ## [v0.1.9 - 2021-01-16]
 
