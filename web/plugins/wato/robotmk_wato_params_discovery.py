@@ -138,7 +138,6 @@ def _valuespec_inventory_robotmk_rules():
                                 <tt>${SUITENAME}</tt>  -  Name of top level suite (usually same name as path)<br>
                                 <tt>${TAG}</tt>  -  Suite tag<br>
                                 <tt>${SUITEID}</tt>  -  short for <tt>${PATH}_${TAG}</tt><br>
-                                <tt>${EXEC_MODE}</tt>  -  Execution mode<br>
                                 <tt>${SPACE}</tt>  -  Use this if there should be a space between the prefix and the item name<br><br>
                                 The default format string is "<tt>Robot Framework E2E $SUITEID$SPACE-$SPACE</tt>".
                             """)),
