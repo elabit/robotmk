@@ -43,7 +43,7 @@ import platform
 import xml.etree.ElementTree as ET
 
 local_tz = datetime.utcnow().astimezone().tzinfo
-ROBOTMK_VERSION = 'v1.0.0'
+ROBOTMK_VERSION = 'v1.0.1'
 
 
 class RMKConfig():
@@ -1047,7 +1047,7 @@ def xml_remove_html(content):
         if 'html' in s.attrib:
             s.text = '(Robotmk has removed this HTML content for safety reasons)'
     content_wo_html = ET.tostring(
-        xml, encoding='UTF-8', method='xml', xml_declaration=True).decode()
+        xml, encoding='utf8', method='xml').decode()
     return content_wo_html
 
 
