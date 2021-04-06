@@ -81,11 +81,11 @@ def parse_robot(info):
             "Can not load Robotmk JSON data! (json.loads())")
 
     runner_data = info_dict['runner']
-    for idx, suite in enumerate(info_dict['suites']):
+    for idx, json_suite in enumerate(info_dict['suites']):
         for k in keys_to_decode:
-            if k in suite:
-                if bool(suite[k]):
-                    d = suite[k]
+            if k in json_suite:
+                if bool(json_suite[k]):
+                    d = json_suite[k]
                     if runner_data['encoding'] == 'zlib_codec':
                         d = d.encode('utf-8')
                         d_byte = base64.b64decode(d)
@@ -95,9 +95,9 @@ def parse_robot(info):
                         d_decomp = base64.b64decode(d)
                     else:
                         d_decomp = d
-                    suite[k] = d_decomp
+                    json_suite[k] = d_decomp
         try:
-            xml = ET.fromstring(suite['xml'])
+            xml = ET.fromstring(json_suite['xml'])
             xml_root_suite = xml.find('./suite')
         except Exception:
             continue
@@ -110,24 +110,20 @@ def parse_robot(info):
         discovery_setting = namedtuple(
             'DiscoverySetting', 'level blacklist_pattern')._make(setting)
         # now process the root suite
-        # root_item = parse_suite_xml(xml_root_suite, discovery_setting)
-        # and reveal the items in the discovery level:
-        # suite['discovered_items'] = root_item.discovered
-        # suite['parsed'] = copy.deepcopy(root_item)
-        # suite['parsed'] = parse_suite_xml(xml_root_suite, discovery_setting)
         info_dict['suites'][idx]['parsed'] = parse_suite_xml(
             xml_root_suite, discovery_setting)
+        # info_dict['suites'][idx]['parsed'] = idx
     return info_dict
 
 
-def inventory_robot(parsed):
+def inventory_robot(info_dict):
 
     # TODO: Error handling for no suites/runner_data keys?
-    for root_suite in parsed['suites']:
-        if 'parsed' in root_suite:
-            for discovered_item in root_suite['parsed'].discovered:
+    for json_suite in info_dict['suites']:
+        if 'parsed' in json_suite:
+            for discovered_item in json_suite['parsed'].discovered:
                 item_svc_name = add_svc_prefix(discovered_item.name,
-                                               root_suite)
+                                               json_suite)
                 yield item_svc_name, None
     # The meta service reporting overall runtimes, stale spool files etc.
     svc_robotmk = get_setting('robotmk_service_name', 'Robotmk')
@@ -382,6 +378,7 @@ def get_svc_prefix(itemname, root_suite):
                                       TAG=root_suite['tag'],
                                       SUITEID=root_suite['id'],
                                       SUITENAME=root_suite['parsed'].name,
+                                    #   EXEC_MODE=
                                       SPACE=' ')
     return prefix
 
@@ -410,8 +407,7 @@ class RobotItem(object):
         'test': 'RobotTest',
         'kw': 'RobotKeyword'
     }
-    # list of suites/tests/kw which were discovered (depending on discovery_level)
-    discovered = []
+
     indentation_char = u"\u2504"
 
     # Indentation chars.
@@ -453,6 +449,12 @@ class RobotItem(object):
         # list containing all messages from cmk_runtime, cmk_metric of sub nodes
         self.sub_messages = []
 
+        if self.parent is None: 
+            # list of suites/tests/kw which were discovered (depending on discovery_level)
+            # Ref: yoczO3
+            RobotItem.root_suite = self
+            self.discovered = []
+
         # Bool flag to indicate whether this is a node where messages should be added
         # (not needed for Keywords)
         self.is_topnode = False
@@ -466,7 +468,8 @@ class RobotItem(object):
             # Empty blacklist = inventorize all
             if self.discovery_setting.blacklist_pattern == '' or not re.match(
                     self.discovery_setting.blacklist_pattern, self.name):
-                self.discovered.append(self)
+                # Ref: yoczO3
+                self.root_suite.discovered.append(self)
 
     def _get_id(self, xmlnode, index):
         """suites and tests have a id attribute. Fake this for keywords.
@@ -943,8 +946,8 @@ class RobotKeyword(RobotItem):
 def parse_suite_xml(root_xml, discovery_setting):
     # Store discovery level
     RobotItem.discovery_setting = discovery_setting
-    # clear the class var
-    RobotItem.discovered = []
+    # # clear the class var
+    # RobotItem.discovered = []
     # create the topmost suite from the root XML
     root_suite = RobotSuite(root_xml, 0, 0, None, None)
     return root_suite
