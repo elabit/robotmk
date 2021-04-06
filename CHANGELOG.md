@@ -19,10 +19,20 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ### Deprecated
 
 
+## [v1.0.1 - 2021-04-06
 
-## [v1.0.0-beta - 2021-03-11]
+### Fixed
 
-WARNING: This first major release is 100% incompatible with former versions.
+- Two suites on same host were not inventorized correctly (#117)
+
+### Removed
+
+- Removed EXEC_MODE from discovery naming variables - useless 
+
+
+## [v1.0.0-beta - 2021-03-25]
+
+**WARNING: This first major release is 100% incompatible with former versions.**
 Make sure to export all WATO rules because this version is not able to read the
 old data structures.  
 
