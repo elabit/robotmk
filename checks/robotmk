@@ -51,7 +51,7 @@ except:
 
 utc = pytz.utc
 
-ROBOTMK_VERSION = 'v1.0.1'
+ROBOTMK_VERSION = 'v1.0.2'
 
 DEFAULT_SVC_PREFIX = 'Robot Framework E2E $SUITEID$SPACE-$SPACE'
 
@@ -259,7 +259,7 @@ def check_robot(item, checkgroup_parameters, parsed):
         if client_version != ROBOTMK_VERSION:
             first_line.append(
                 "Robotmk version mismatch (!) (server: %s, client: %s)" %
-                (client_version, ROBOTMK_VERSION))
+                (ROBOTMK_VERSION, client_version))
             rc = max(rc, 1)
         else:
             first_line.append("Robotmk version %s (server and client)" %
