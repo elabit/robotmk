@@ -43,7 +43,7 @@ import platform
 import xml.etree.ElementTree as ET
 
 local_tz = datetime.utcnow().astimezone().tzinfo
-ROBOTMK_VERSION = 'v1.0.1'
+ROBOTMK_VERSION = 'v1.0.2'
 
 
 class RMKConfig():
