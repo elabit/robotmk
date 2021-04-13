@@ -41,9 +41,59 @@ from textwrap import dedent
 import subprocess
 import platform
 import xml.etree.ElementTree as ET
+from enum import Enum
+
+
 
 local_tz = datetime.utcnow().astimezone().tzinfo
 ROBOTMK_VERSION = 'v1.0.2'
+
+
+class robotmk():
+    """This is a supplementary library for Robotmk (www.robotmk.org), the Robot Framework integration project for Checkmk. 
+    
+    = Table of contents = 
+
+    - `Purpose`
+    - `Valid log levels`
+    - `Examples`
+    - `Importing`
+    - `Shortcuts`
+    - `Keywords`
+
+    = Purpose =
+    FIXME
+    Use this library 
+    adding states and information to the Robot Framework result. 
+    This is transparent for Robot Framework itself, but only used during the 
+    result evaluation on a _Checkmk_ monitoring system with Robotmk installed. 
+    """
+    ROBOT_LIBRARY_VERSION = ROBOTMK_VERSION
+    @staticmethod
+    def state2str(state, msg):
+        data = {
+            'nagios_state': state, 
+            'msg': msg
+        }
+        #return json.dumps(data).encode('utf-8') 
+        return json.dumps(data)
+
+    def __init__(self):
+        """This library does not take any arguments."""
+        pass
+
+    def add_checkmk_test_state(self, state: str, msg: str):
+        """Adds a(nother) state to the Robotmk evaluation stack. 
+        """
+        print(self.state2str(state, msg))
+
+    def add_checkmk_robotmk_state(self, state: str, msg: str):
+        """Adds a state to the Robotmk service. 
+        """
+        print(self.state2str(state, msg))
+
+
+
 
 
 class RMKConfig():
@@ -387,6 +437,8 @@ class RMKSuite(RMKState):
             'output': f'{suite_filename}_output.xml',
             'log':    f'{suite_filename}_log.html',
             'console':  'NONE',
+            # Make the Robotmk Library Keywords accessible from the .robot file - wherever it is
+            'pythonpath': str(Path(self.global_dict['agent_data_dir']).joinpath('plugins')),
             # 'report': f'{suite_filename}_report.html',
         })
 
@@ -488,7 +540,7 @@ class RMKSuite(RMKState):
         self.suite_dict['log'] = None
 
 
-class Robotmk():
+class RMKPlugin():
     _DEFAULTS = {
         'nt': {
             'agent_data_dir': 'C:/ProgramData/checkmk/agent',
@@ -631,7 +683,7 @@ class Robotmk():
         self.logger.error(text)
 
 
-class RMKrunner(RMKState, Robotmk):
+class RMKrunner(RMKState, RMKPlugin):
     logmark = '#'
 
     def __init__(self):
@@ -798,7 +850,7 @@ class RMKrunner(RMKState, Robotmk):
 # https://stackoverflow.com/a/2251026/14845044
 
 
-class RMKCtrl(RMKState, Robotmk):
+class RMKCtrl(RMKState, RMKPlugin):
     # TODO: Cleanup the XML, remove images (#79)
 
     header = '<<<robotmk>>>'
@@ -1088,7 +1140,7 @@ def test_for_modules():
 
 def main():
     test_for_modules()
-    Robotmk.get_args()
+    RMKPlugin.get_args()
     rmk = RMKCtrl()
     rmk.print_agent_output()
     rmk.loginfo("--- Quitting Controller, bye. ---")

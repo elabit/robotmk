@@ -21,11 +21,14 @@
 # This plugin requires Python > 3.7 and some modules:
 # pip3 install robotframework pyyaml mergedeep python-dateutil
 
-from robotmk import Robotmk, RMKrunner, test_for_modules
+from robotmk import robotmk, RMKPlugin, RMKrunner, test_for_modules
+
+
+
 
 def main():
     test_for_modules()
-    Robotmk.get_args()
+    RMKPlugin.get_args()
     rmk = RMKrunner()
     cmdline_suites='all' # TBD: start suites from cmdline
     rmk.start_suites(cmdline_suites)
