@@ -108,8 +108,13 @@ def parse_robot(info):
                         d_decomp = d
                     json_suite[k] = d_decomp
         try:
-            # FIXME: No Umlauts possible
-            xml = ET.fromstring(json_suite['xml'])
+            # TODO: his should not be done for HTML 
+            # Leave the XML data binary here, because ElementTree has its own decoding
+            # mechaism, see https://stackoverflow.com/a/12349894/14845044
+            # But strangely, this only works if there is no encoding preamble
+            # in front of the XML. Remove this first.
+            xml_str = re.sub(".*(<robot generator=.*)", r"\1", json_suite['xml'], flags=re.DOTALL)
+            xml = ET.fromstring(xml_str)
             xml_root_suite = xml.find('./suite')
         except Exception:
             continue
@@ -173,7 +178,7 @@ def check_robot(item, checkgroup_parameters, parsed):
         else:
             if len(suites_nonstale) > 0:
                 first_line.append(
-                    "%d of %s suite(s) in proper state (%s)" %
+                    "%d of %s suite(s) with recent results (%s)" %
                     (len(suites_nonstale), suites_total,
                      quoted_listitems([s[0] for s in suites_nonstale])))
             if len(suites_stale) > 0:
@@ -267,22 +272,22 @@ def check_robot(item, checkgroup_parameters, parsed):
                           parsed['runner']["execution_mode"])
         
         # 4. Check Robotmk messages (keyword: "Add Checkmk Robotmk State")
+        # Ref. 8nIZ5J
         fflines = []
         for root_suite in parsed['suites']:
             if len(root_suite['parsed'].robotmk_messages) > 0: 
                 firstline_messages = []
                 fflines.append("Messages from suite '%s':" % root_suite['parsed'].name)
                 suite_rc = 0
-                for json_data in root_suite['parsed'].robotmk_messages:
-                    data = json.loads(json_data)
+                for data in root_suite['parsed'].robotmk_messages:
                     stateid = STATES_NO[data['nagios_state']]
                     badge = STATE_BADGES[stateid]
                     fflines.append(" %s %s %s" % (u"\u25cf", badge, data['msg']))
                     rc = max(rc, stateid)
                     suite_rc = max(suite_rc, stateid)
-                first_line.append("%s: Suite '%s' has messages! " % (
+                first_line.append("Suite '%s' has messages %s" % (
+                    root_suite['parsed'].name,
                     STATE_BADGES[suite_rc],
-                    root_suite['parsed'].name 
                     ))
         out_lines.append('\n'.join(fflines))
 
@@ -291,7 +296,7 @@ def check_robot(item, checkgroup_parameters, parsed):
         client_version = parsed['runner']['robotmk_version']
         if client_version != ROBOTMK_VERSION:
             first_line.append(
-                "Robotmk version mismatch (!) (server: %s, client: %s)" %
+                "Robotmk version mismatch (server: %s, client: %s) (!)" %
                 (ROBOTMK_VERSION, client_version))
             rc = max(rc, 1)
         else:
@@ -434,7 +439,7 @@ def strip_svc_prefix(itemname, root_suite):
 
 
 class RobotItem(object):
-    # # maps XML tags to Classes
+    # maps XML tags to Classes
     class_dict = {
         'suite': 'RobotSuite',
         'test': 'RobotTest',
@@ -485,8 +490,9 @@ class RobotItem(object):
         self.msg = xmlnode.findtext('./msg')
         self.text = xmlnode.findtext('./status')
         if xmlnode.attrib['name'] == 'Add Checkmk Robotmk State':
+            data = json.loads(self.msg)['add_checkmk_robotmk_state']
             self.root_suite.robotmk_messages.append(
-                self.msg
+                data
             )
 
         self.name = xmlnode.attrib['name']
@@ -609,14 +615,18 @@ class RobotItem(object):
             NodeResult(check, self.result[check]) for check in self.result_keys
             if self.result.get(check, False)
         ]
+        # All all messages from other node's checks; leave the one which is eventually
+        # the same as the text from the result_robotframework check. (This is the case 
+        # for kw_test_state.) 
         node_messages = [
             node_result.resultuple[1] for node_result in node_results
-            if node_result.resultuple[1]
+            if node_result.resultuple[1] and node_result.resultuple[1] != text
         ]
 
         # If this is a top_node, add the messages from subelements:
         if self.is_topnode:
             # TODO: What are examples of submessages (documentation!)
+            # HEREIWAS
             if bool(check_params.get('show_submessages')):
                 if len(self.sub_messages) > 0:
                     node_messages.extend(self.sub_messages)
@@ -626,7 +636,7 @@ class RobotItem(object):
             # msg set by RF. Add only all others
             node_messages = [msg for msg in node_messages if msg != text]
 
-        # III. Create submessages for the top_node.  (which is for kws: Test, for tests: Suite)
+        # III. Create submessages for the node's top_node.  (which is for kws: Test, for tests: Suite)
         messages_str = ""
         if len(node_messages) > 0:
             # But not all... We do not want messages from cmk_runtime messages if the runtime was
@@ -708,6 +718,42 @@ class RobotItem(object):
         else:
             self.result['cmk_perfdata_list'] = []
 
+    # from Robotmk Keyword Library 
+    # https://pypi.org/project/robotframework-robotmk/ 
+    # The result of this keyword is of NO MEANING for the test. It affects the 
+    # state of the Robotmk service, see Ref. 8nIZ5J
+    def _eval_node_kw_robotmk_state(self):
+        if self.name == 'Add Checkmk Robotmk State' and len(self.msg) > 0:
+            try: 
+                data = json.loads(self.msg)['add_checkmk_robotmk_state']
+                state = STATES_NO[data['nagios_state']]
+                msg   = "%s: %s" % (data['nagios_state'], data['msg'])
+                kw_robotmk_state = (0, msg)
+                self.msg = msg
+                # as an exception, we overwrite the msg of RF here, because we 
+                # do not want to see a raw dict 
+                self.result['result_robotframework'] = kw_robotmk_state
+            except:
+                pass
+
+    # from Robotmk Keyword Library 
+    # https://pypi.org/project/robotframework-robotmk/ 
+    def _eval_node_kw_test_state(self):
+        if self.name == 'Add Checkmk Test State' and len(self.msg) > 0:
+            try: 
+                data = json.loads(self.msg)['add_checkmk_test_state']
+                state = STATES_NO[data['nagios_state']]
+                msg   = "%s: %s" % (data['nagios_state'], data['msg'])
+                kw_test_state = (state, msg)
+                self.msg = msg
+                # as an exception, we overwrite the msg of RF here, because we 
+                # do not want to see a raw dict 
+                self.result['result_robotframework'] = kw_test_state
+            except:
+                kw_test_state = None
+        else:
+            kw_test_state = None
+        self.result['result_kw_test_state'] = kw_test_state
 
     # WIP: see https://github.com/simonmeggle/robotmk/issues/60
     def _eval_node_cmk_metric(self, check_params):
@@ -893,10 +939,11 @@ class RobotItem(object):
 
         # THIS Node -----
         self._set_node_info()
-
         self._eval_node_robotframework_status(check_params)
         self._eval_node_cmk_runtime(check_params)
         self._eval_node_cmk_perfdata(check_params)
+        self._eval_node_kw_robotmk_state()
+        self._eval_node_kw_test_state()
         self._eval_node_cmk_metric(check_params)
         # now generate the padded line incl. the message
         self._set_node_padded_line(check_params)
@@ -978,7 +1025,7 @@ class RobotKeyword(RobotItem):
     runtime_threshold_dict_key = "runtime_threshold_keywords"
     perfdata_creation_dict_key = "perfdata_creation_keywords"
     # What should be evaluated to get the node's status?
-    result_keys = 'result_cmk_runtime result_cmk_metric'.split()
+    result_keys = 'result_cmk_runtime result_cmk_metric result_kw_test_state'.split()
 
     def __init__(self, xmlnode, lv_abs, lv_rel, parent, index):
         super(RobotKeyword, self).__init__(xmlnode, lv_abs, lv_rel, parent,
@@ -1007,6 +1054,7 @@ def parse_suite_xml(root_xml, discovery_setting):
 #  |_| |_|\___|_| .__/ \___|_|
 #               | |
 #               |_|
+
 
 
 def quoted_listitems(inlist):
