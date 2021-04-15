@@ -21,7 +21,7 @@ customfiles = {
 rootpath = Path(os.path.dirname(os.path.realpath(__file__)))
 
 def get_tag():
-    if '--tag' in sys.argv: 
+    if '--tag' in sys.argv:
         tag = sys.argv[sys.argv.index('--tag') + 1]
     else:
         ostream = os.popen('git describe --tags')
@@ -29,7 +29,7 @@ def get_tag():
         # match semantic version
         if not re.match('^v(0|[1-9]\d*)\.(0|[1-9]\d*)\.(0|[1-9]\d*)(?:-((?:0|[1-9]\d*|\d*[a-zA-Z-][0-9a-zA-Z-]*)(?:\.(?:0|[1-9]\d*|\d*[a-zA-Z-][0-9a-zA-Z-]*))*))?(?:\+([0-9a-zA-Z-]+(?:\.[0-9a-zA-Z-]+)*))?$', tag):
             print "ERROR: Last git tag does not match the expected version format! Exiting."
-        sys.exit(1)
+            sys.exit(1)
     return tag
 
 
@@ -45,19 +45,19 @@ def embed_keywordlib(module_string, pluginfile, src_url):
     leftboundary = '#<robotmk-keywordlibrary'
     rightboundary = '#robotmk-keywordlibrary>'
     comment = '# Imported from %s' % src_url
-    repl_string = re.sub(r'^(.*){}.*?{}(.*)'.format(leftboundary, rightboundary), 
+    repl_string = re.sub(r'^(.*){}.*?{}(.*)'.format(leftboundary, rightboundary),
             r"\1%s\n%s\n%s\n%s\2" % (
-                leftboundary, 
-                comment, 
+                leftboundary,
+                comment,
                 module_string,
                 rightboundary),
-            filedata, 
+            filedata,
             flags=re.DOTALL)
 
     with open(pluginfile, 'w') as file:
         file.write(repl_string)
 
-    file.close()    
+    file.close()
 
 tag = get_tag()
 robotmk_keywordlib_url = "https://raw.githubusercontent.com/simonmeggle/robotframework-robotmk/robotmk-%s/robotmk.py" % tag
@@ -79,14 +79,14 @@ blacklist = [
 ]
 
 pkg_desc = '''
-    Robotmk integrates Robot Framework results into Checkmk. 
-    Robot Framework can test web based and native applications. 
-    It is easy to learn and highly extendable by libraries. 
-    Libraries provide the functionality to use modern test web 
-    technologies (Playwright/Selenium), control user interfaces 
-    (ImageHorizon, SikuliX, AutoIT, SAP, ...), REST/SOAP APIs 
-    and many more. It is based on Python and can be extended 
-    by own libraries as well. 
+    Robotmk integrates Robot Framework results into Checkmk.
+    Robot Framework can test web based and native applications.
+    It is easy to learn and highly extendable by libraries.
+    Libraries provide the functionality to use modern test web
+    technologies (Playwright/Selenium), control user interfaces
+    (ImageHorizon, SikuliX, AutoIT, SAP, ...), REST/SOAP APIs
+    and many more. It is based on Python and can be extended
+    by own libraries as well.
     See https://robotframework.org for more information.
 '''
 
