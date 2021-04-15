@@ -51,7 +51,7 @@ except:
 
 utc = pytz.utc
 
-ROBOTMK_VERSION = 'v1.0.2'
+ROBOTMK_VERSION = 'v1.0.3'
 
 DEFAULT_SVC_PREFIX = 'Robot Framework E2E $SUITEID$SPACE-$SPACE'
 

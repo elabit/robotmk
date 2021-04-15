@@ -21,6 +21,19 @@
             "justMyCode": false
         },
         {
+            "name": "mkPackage",
+            "type": "python",
+            "request": "launch",
+            "program": "${file}",
+            "args": [
+                "--tag",
+                "v1.0.2",
+            ],
+            "console": "integratedTerminal",
+            // allow to inspect also foreign code
+            "justMyCode": false
+        },
+        {
             "name": "RobotMK bakery",
             "type": "python",
             "request": "launch",

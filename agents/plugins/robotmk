@@ -45,7 +45,7 @@ from enum import Enum
 
 
 local_tz = datetime.utcnow().astimezone().tzinfo
-ROBOTMK_VERSION = 'v1.0.2'
+ROBOTMK_VERSION = 'v1.0.3'
 
 #<robotmk-keywordlibrary
 #Robotmk Keyword library
