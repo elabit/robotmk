@@ -1,6 +1,6 @@
 {
     // "python.pythonPath": ".tox/check/bin/python",   
-    "python.pythonPath": ".tox/plugin/bin/python",
+    "python.pythonPath": "/bin/python",
     "python.testing.pytestArgs": [
         "agents"
     ],
