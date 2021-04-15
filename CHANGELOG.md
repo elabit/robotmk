@@ -19,6 +19,22 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ### Deprecated
 
 
+## [v1.0.3 - 2021-04-07]
+
+### Added
+
+- Support for Robot Framework Robotmk Keyword library (https://github.com/simonmeggle/robotframework-robotmk) (#112); Keywords supported: `Add Robotmk Message`, `Set Checkmk Test State`
+
+### Fixed
+
+- Fixed wrong XML decoding
+
+## [v1.0.2 - 2021-04-07]
+
+### Fixed
+
+- Fixed version monitoring: swapped variables, closes #118
+
 ## [v1.0.1 - 2021-04-07]
 
 ### Fixed
