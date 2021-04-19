@@ -4,7 +4,7 @@
 
 It has been shown that it is not possible to start a detached process from the controller plugin which survives if the controller exits. 
 
-The assumtion is that the checkmk agent always kills the complete process group even if the runner process was started detached: 
+The assumption is that the checkmk agent always kills the complete process group even if the runner process was started detached: 
 
 ```
     def os_popen(self, cmd):
@@ -35,7 +35,7 @@ The assumtion is that the checkmk agent always kills the complete process group 
 
 An alternative solution must fulfill the following requirements: 
 * `agent_serial`: run all suites as configured in the SYSTEM context (=the Agent context)
-* `external`: useing task scheduler/cron to execute the tests with a special user
+* `external`: using task scheduler/cron to execute the tests with a special user
 
 ### WAY 1: split up controller and runner
 
@@ -47,7 +47,7 @@ Both plugins are located in the custom plugins folder.
   * produces Agent output (stdout) 
 * `robotmk-runner.py` ("Runner")
   * in mode `agent_serial`: executes suites as configured in YML files
-  * in mode `external`: exeucutes nothing
+  * in mode `external`: executes nothing
 
 
 In both modes, the Controller gets executed minutely because its only job is parsing and printing out data. 

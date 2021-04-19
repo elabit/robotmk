@@ -64,7 +64,7 @@ Robot Framework can automate End2End-Tests for you (and much more). Integrating 
 
 **Is Robotmk stable? Can it be used in production?**
 
-Fortunately, the development of Robotmk is driven by customers who believe in the project and use already it in their daily business. This is where worthful feedback and feature requests come from. 
+Fortunately, the development of Robotmk is driven by customers who believe in the project and use it already in their daily business. This is where worthful feedback and feature requests come from. 
 
 Even if they already use Robotmk in production there's no point denying the project is still in an early phase (= major version 0.x). 
 
@@ -174,7 +174,7 @@ suites:
 ```
 ### Integrate the new Robot E2E check into Checkmk
 
-As soon as the new agent is installed on the client, it starts to execute the robot test(s). You will notice that the service "Checkmk Discovery" turns to WARNING because it hs found the first result of out Robot test in the agent output. Let's integrate the new check into the monitoring!
+As soon as the new agent is installed on the client, it starts to execute the robot test(s). You will notice that the service "Checkmk Discovery" turns to WARNING because it has found the first result of our Robot test in the agent output. Let's integrate the new check into the monitoring!
 
 ![desc](img/disc.gif)
 

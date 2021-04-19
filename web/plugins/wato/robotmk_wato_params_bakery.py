@@ -60,7 +60,7 @@ helptext_execution_mode_agent_parallel = "This is only a placeholder for the par
 helptext_execution_mode_external = """
     The Checkmk agent starts the Robotmk <b>controller</b> as a <i>synchronous</i> check plugin in the <i>agent check interval</i>.<br>
     <b>Rule dependency</b>: The rule <i>Deploy custom files with agent</i> (package <tt>robotmk-external</tt>) places the <b>runner</b> within the agent's <tt>bin</tt> directory. 
-    From there, you can start the runner with any external tool (e.g. cron/task scheduler).<br><br>
+    From there, you can start the runner with any external tool (e.g. systemd timer/cron/task scheduler).<br><br>
     If no suites are specified, the runner will execute all suites listed in <tt>robotmk.yml</tt>.<br>
     If no suites are defined at all, the runner will execute all suites found in the <i>Robot suites directory</i>. <br><br>   
     <b>Use cases</b> for this mode: <br>
