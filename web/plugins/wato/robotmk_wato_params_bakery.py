@@ -24,11 +24,14 @@ from cmk.gui.valuespec import (DropdownChoice, Dictionary, ListOf, TextAscii,
 from cmk.gui.plugins.wato import (CheckParameterRulespecWithItem,
                                   rulespec_registry,
                                   RulespecGroupCheckParametersDiscovery,
-                                  RulespecGroupCheckParametersApplications,
                                   HostRulespec)
+try:
+    # V2
+    from cmk.gui.cee.plugins.wato.agent_bakery.rulespecs.utils import RulespecGroupMonitoringAgentsAgentPlugins
+except ImportError:
+    # V1.6
+    from cmk.gui.cee.plugins.wato.agent_bakery import RulespecGroupMonitoringAgentsAgentPlugins
 
-from cmk.gui.cee.plugins.wato.agent_bakery import (
-    RulespecGroupMonitoringAgentsAgentPlugins)
 
 # TODO: Add logging True/False
 # TODO: warn/crit threholds for total_runtime

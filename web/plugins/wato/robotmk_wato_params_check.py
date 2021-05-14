@@ -18,24 +18,15 @@
 # Boston, MA 02110-1301 USA.
 
 from cmk.gui.i18n import _
-from cmk.gui.valuespec import (
-    DropdownChoice,
-    Dictionary,
-    ListOf,
-    TextAscii,
-    Tuple,
-)
+from cmk.gui.valuespec import (DropdownChoice, Dictionary, ListOf, TextAscii,
+                               Tuple, Float)
 
 from cmk.gui.plugins.wato import (
     CheckParameterRulespecWithItem,
     rulespec_registry,
-    RulespecGroupCheckParametersDiscovery,
     RulespecGroupCheckParametersApplications,
-    HostRulespec,
 )
 
-from cmk.gui.cee.plugins.wato.agent_bakery import (
-    RulespecGroupMonitoringAgentsAgentPlugins)
 
 #        _               _
 #       | |             | |
@@ -56,12 +47,10 @@ listof_runtime_threshold_suites = ListOf(Tuple(
         ),
         Float(
             title=("WARN threshold (sec)"),
-            allow_empty=False,
             size=19,
         ),
         Float(
             title=("CRIT threshold (sec)"),
-            allow_empty=False,
             size=19,
         ),
     ],
@@ -82,12 +71,10 @@ listof_runtime_threshold_tests = ListOf(Tuple(
         ),
         Float(
             title=("WARN threshold (sec)"),
-            allow_empty=False,
             size=19,
         ),
         Float(
             title=("CRIT threshold (sec)"),
-            allow_empty=False,
             size=19,
         ),
     ],
@@ -109,12 +96,10 @@ listof_runtime_threshold_keywords = ListOf(
             ),
             Float(
                 title=("WARN threshold (sec)"),
-                allow_empty=False,
                 size=19,
             ),
             Float(
                 title=("CRIT threshold (sec)"),
-                allow_empty=False,
                 size=19,
             ),
         ],
@@ -187,7 +172,6 @@ def _parameter_valuespec_robotmk():
                                         ),
                                         Integer(
                                             title=("depth"),
-                                            allow_empty=False,
                                             size=3,
                                         ),
                                     ],
@@ -211,7 +195,6 @@ def _parameter_valuespec_robotmk():
                                         ),
                                         Integer(
                                             title=("depth"),
-                                            allow_empty=False,
                                             size=3,
                                         ),
                                     ],
@@ -253,7 +236,6 @@ def _parameter_valuespec_robotmk():
                             ListOfStrings(  # /L2
                                 title=_('<b>Suite</b> perfdata'),
                                 orientation="horizontal",
-                                allow_empty=False,
                                 size=60,
                             )),  # L2
                         (
@@ -261,7 +243,6 @@ def _parameter_valuespec_robotmk():
                             ListOfStrings(  # /L2
                                 title=_('<b>Test</b> perfdata'),
                                 orientation="horizontal",
-                                allow_empty=False,
                                 size=60,
                             )),  # L2
                         (
@@ -269,7 +250,6 @@ def _parameter_valuespec_robotmk():
                             ListOfStrings(  # /L2
                                 title=_('<b>Keyword</b> perfdata'),
                                 orientation="horizontal",
-                                allow_empty=False,
                                 size=60,
                             )),  # L2
                     ],

@@ -18,25 +18,15 @@
 # Boston, MA 02110-1301 USA.
 
 from cmk.gui.i18n import _
-from cmk.gui.valuespec import (
-    DropdownChoice,
-    Dictionary,
-    ListOf,
-    TextAscii,
-    Tuple,
-    TextUnicode
-)
+from cmk.gui.valuespec import (DropdownChoice, Dictionary, ListOf, TextAscii,
+                               Tuple, TextUnicode)
 
 from cmk.gui.plugins.wato import (
     CheckParameterRulespecWithItem,
     rulespec_registry,
     RulespecGroupCheckParametersDiscovery,
-    RulespecGroupCheckParametersApplications,
     HostRulespec,
 )
-
-from cmk.gui.cee.plugins.wato.agent_bakery import (
-    RulespecGroupMonitoringAgentsAgentPlugins)
 
 # TODO: Add logging True/False
 # TODO: warn/crit threholds for total_runtime
