@@ -74,9 +74,10 @@ helptext_execution_mode_external = """
 # GLOBAL EXECUTION INTERVAL: only serial ===========================================================
 agent_config_global_suites_execution_interval_agent_serial = Age(
     title=_("Runner <b>execution interval</b>"),
-    help=_("Interval the Checkmk agent will execute the <b>runner</b> plugin asynchronously.<br>"
-           "The default is 15min but strongly depends on the maximum probable runtime of all <i>test suites</i>.<br>Choose an interval which is a good comprimise between frequency and execution runtime headroom.<br>"
-           ),
+    help=
+    _("Interval the Checkmk agent will execute the <b>runner</b> plugin asynchronously.<br>"
+      "The default is 15min but strongly depends on the maximum probable runtime of all <i>test suites</i>.<br>Choose an interval which is a good comprimise between frequency and execution runtime headroom.<br>"
+      ),
     minvalue=1,
     maxvalue=65535,
     default_value=900,
@@ -85,22 +86,24 @@ agent_config_global_suites_execution_interval_agent_serial = Age(
 # GLOBAL CACHE TIME: serial & external =============================================================
 agent_config_global_cache_time_agent_serial = Age(
     title=_("Result <b>cache time</b>"),
-    help=_("Suite state files are updated by the <b>runner</b> after each execution (<i>Runner execution interval</i>).<br>"
-           "The <b>controller</b> monitors the age of those files and expects them to be not older than the <i>global cache time</i>. <br>"
-           "Each suite with a state file older than its <i>result cache time</i> will be reported as 'stale'.<br>"
-           "For obvious reasons, the cache time must always be set higher than the <i>runner execution interval</i>."
-           ),
+    help=
+    _("Suite state files are updated by the <b>runner</b> after each execution (<i>Runner execution interval</i>).<br>"
+      "The <b>controller</b> monitors the age of those files and expects them to be not older than the <i>global cache time</i>. <br>"
+      "Each suite with a state file older than its <i>result cache time</i> will be reported as 'stale'.<br>"
+      "For obvious reasons, the cache time must always be set higher than the <i>runner execution interval</i>."
+      ),
     minvalue=1,
     maxvalue=65535,
     default_value=960,
 )
 agent_config_global_cache_time_external = Age(
     title=_("Global suite cache time"),
-    help=_("Suite state files are updated every time when the <b>runner</b> has executed the suites.<br>"
-           "The <b>controller</b> monitors the age of those files and expects them to be not older than the <i>global cache time</i> or the <i>suite cache time</i> (if set). <br>"
-           "Each suite with a state file older than its <i>cache time</i> will be reported as 'stale'.<br>"
-           "For obvious reasons, this cache time must always be set higher than the execution interval."
-           ),
+    help=
+    _("Suite state files are updated every time when the <b>runner</b> has executed the suites.<br>"
+      "The <b>controller</b> monitors the age of those files and expects them to be not older than the <i>global cache time</i> or the <i>suite cache time</i> (if set). <br>"
+      "Each suite with a state file older than its <i>cache time</i> will be reported as 'stale'.<br>"
+      "For obvious reasons, this cache time must always be set higher than the execution interval."
+      ),
     minvalue=1,
     maxvalue=65535,
     default_value=960,
@@ -109,8 +112,9 @@ agent_config_global_cache_time_external = Age(
 # SUITE CACHE TIMES: parallel & external ===========================================================
 agent_config_suite_suites_cache_time_agent_parallel = Age(
     title=_("Suite cache time"),
-    help=_("Sets the <b>suite specific</b> cache time. (Must be higher than the <i>suite execution interval</i>)"
-           ),
+    help=
+    _("Sets the <b>suite specific</b> cache time. (Must be higher than the <i>suite execution interval</i>)"
+      ),
     minvalue=1,
     maxvalue=65535,
     default_value=960,
@@ -118,8 +122,9 @@ agent_config_suite_suites_cache_time_agent_parallel = Age(
 
 agent_config_suite_suites_cache_time_external = Age(
     title=_("Suite cache time"),
-    help=_("Sets <b>suite specific cache times</b> for <b>individual execution intervals</b>"
-           ),
+    help=
+    _("Sets <b>suite specific cache times</b> for <b>individual execution intervals</b>"
+      ),
     minvalue=1,
     maxvalue=65535,
     default_value=960,
@@ -128,8 +133,9 @@ agent_config_suite_suites_cache_time_external = Age(
 # SUITE EXECUTION INTERVAL: only parallel ==========================================================
 agent_config_suite_suites_execution_interval_agent_parallel = Age(
     title=_("Suite execution interval"),
-    help=_("Sets the interval in which the Robotmk <b>controller</b> will trigger the Robotmk <b>runner</b> to execute <b>this particular suite</b>.<br>"
-           ),
+    help=
+    _("Sets the interval in which the Robotmk <b>controller</b> will trigger the Robotmk <b>runner</b> to execute <b>this particular suite</b>.<br>"
+      ),
     minvalue=1,
     maxvalue=65535,
     default_value=900,
@@ -142,40 +148,43 @@ agent_config_testsuites_tag = Dictionary(
          TextUnicode(help=_(
              "Suites which are <b>added multiple times</b> (to execute them with different parameters) should have a <b>unique tag</b>.<br>"
          ),
-             allow_empty=False,
-             size=30)),
+                     allow_empty=False,
+                     size=30)),
     ])
 
 agent_config_dict_robotdir = Dictionary(
     title=_("Change <b>Robot suites directory</b>"),
-    elements=[("robotdir",
-               TextUnicode(help=_(
-                   "By default the Robotmk plugin will search for Robot suites in the following paths:<br>"
-                   " - <tt>/usr/lib/check_mk_agent/robot</tt> (Linux)<br>"
-                   " - <tt>C:\\ProgramData\\checkmk\\agent\\robot</tt> (Windows) <br>"
-                   "You can override this setting if Robot tests are stored in another path. <br>"
-                   "Windows paths can be given with single backslashes; OS dependent path validation is made during the agent baking.<br>"
-               ),
-                   allow_empty=False,
-                   size=100,
-                   default_value=""))])
+    elements=
+    [("robotdir",
+      TextUnicode(help=_(
+          "By default the Robotmk plugin will search for Robot suites in the following paths:<br>"
+          " - <tt>/usr/lib/check_mk_agent/robot</tt> (Linux)<br>"
+          " - <tt>C:\\ProgramData\\checkmk\\agent\\robot</tt> (Windows) <br>"
+          "You can override this setting if Robot tests are stored in another path. <br>"
+          "Windows paths can be given with single backslashes; OS dependent path validation is made during the agent baking.<br>"
+      ),
+                  allow_empty=False,
+                  size=100,
+                  default_value=""))])
 
 agent_config_testsuites_piggybackhost = Dictionary(
     title=_("Piggyback host"),
     elements=[
         ("piggybackhost",
          MonitoredHostname(
-             help=_("Piggyback allows to assign the results of this particular Robot test to another host."
-                    ),
+             help=
+             _("Piggyback allows to assign the results of this particular Robot test to another host."
+               ),
              allow_empty=False,
          )),
     ])
 
 agent_config_testsuites_path = TextUnicode(
     title=_("Robot test path"),
-    help=_("Name of the <tt>.robot</tt> file or directory containing <tt>.robot</tt> files, relative to the <i>robot suites directory</i><br>"
-           "It is highly recommended to organize Robot suites in <i>directories</i> and to specify the directories here without leading/trailing (back)slashes.<br>"
-           ),
+    help=
+    _("Name of the <tt>.robot</tt> file or directory containing <tt>.robot</tt> files, relative to the <i>robot suites directory</i><br>"
+      "It is highly recommended to organize Robot suites in <i>directories</i> and to specify the directories here without leading/trailing (back)slashes.<br>"
+      ),
     allow_empty=False,
     size=50,
 )
@@ -186,8 +195,9 @@ def gen_agent_config_testsuites_paramsdict():
         ("piggybackhost",
          MonitoredHostname(
              title=_("SPiggyback host"),
-             help=_("Piggyback allows to assign the results of this particular Robot test to another host."
-                    ),
+             help=
+             _("Piggyback allows to assign the results of this particular Robot test to another host."
+               ),
              allow_empty=False,
          )),
     ]
@@ -195,77 +205,85 @@ def gen_agent_config_testsuites_paramsdict():
 
 
 agent_config_testsuites_robotframework_params_dict = Dictionary(
-    help=_("The options here allow to specify the most common cmdline parameters for Robot Framework. (<a href=\"https://robotframework.org/robotframework/latest/RobotFrameworkUserGuide.html#all-command-line-options\">All command line options</a>)"
-           ),
+    help=
+    _("The options here allow to specify the most common cmdline parameters for Robot Framework. (<a href=\"https://robotframework.org/robotframework/latest/RobotFrameworkUserGuide.html#all-command-line-options\">All command line options</a>)"
+      ),
     elements=[
         ("name",
          TextUnicode(
              title=_("Top level suite name (<tt>--name</tt>)"),
-             help=_("Set the name of the top level suite. By default the name is created based on the executed file or directory.<br>"
-                    "This sets the name of a fresh discovered Robot service; an already existing service will hide away and will be found by the discovery under a new name."
-                    ),
+             help=
+             _("Set the name of the top level suite. By default the name is created based on the executed file or directory.<br>"
+               "This sets the name of a fresh discovered Robot service; an already existing service will hide away and will be found by the discovery under a new name."
+               ),
              allow_empty=False,
              size=50,
          )),
         ("suite",
          ListOfStrings(
              title=_("Select suites (<tt>--suite</tt>)"),
-             help=_("Select suites by name. <br>When this option is used with"
-                    " <tt>--test</tt>, <tt>--include</tt> or <tt>--exclude</tt>, only tests in"
-                    " matching suites and also matching other filtering"
-                    " criteria are selected. <br>"
-                    " Name can be a simple pattern similarly as with <tt>--test</tt> and it can contain parent"
-                    " name separated with a dot. <br>"
-                    " For example, <tt>X.Y</tt> selects suite <tt>Y</tt> only if its parent is <tt>X</tt>.<br>"
-                    ),
+             help=
+             _("Select suites by name. <br>When this option is used with"
+               " <tt>--test</tt>, <tt>--include</tt> or <tt>--exclude</tt>, only tests in"
+               " matching suites and also matching other filtering"
+               " criteria are selected. <br>"
+               " Name can be a simple pattern similarly as with <tt>--test</tt> and it can contain parent"
+               " name separated with a dot. <br>"
+               " For example, <tt>X.Y</tt> selects suite <tt>Y</tt> only if its parent is <tt>X</tt>.<br>"
+               ),
              size=40,
          )),
         ("test",
          ListOfStrings(
              title=_("Select test (<tt>--test</tt>)"),
-             help=_("Select tests by name or by long name containing also"
-                    " parent suite name like <tt>Parent.Test</tt>. <br>Name is case"
-                    " and space insensitive and it can also be a simple"
-                    " pattern where <tt>*</tt> matches anything, <tt>?</tt> matches any"
-                    " single character, and <tt>[chars]</tt> matches one character"
-                    " in brackets.<br>"),
+             help=
+             _("Select tests by name or by long name containing also"
+               " parent suite name like <tt>Parent.Test</tt>. <br>Name is case"
+               " and space insensitive and it can also be a simple"
+               " pattern where <tt>*</tt> matches anything, <tt>?</tt> matches any"
+               " single character, and <tt>[chars]</tt> matches one character"
+               " in brackets.<br>"),
              size=40,
          )),
         ("include",
          ListOfStrings(
              title=_("Include tests by tag (<tt>--include</tt>)"),
-             help=_("Select tests by tag. (<a href=\"https://robotframework.org/robotframework/latest/RobotFrameworkUserGuide.html#tagging-test-cases\">About tagging test cases</a>)<br>Similarly as name with <tt>--test</tt>,"
-                    "tag is case and space insensitive and it is possible"
-                    "to use patterns with <tt>*</tt>, <tt>?</tt> and <tt>[]</tt> as wildcards.<br>"
-                    "Tags and patterns can also be combined together with"
-                    "<tt>AND</tt>, <tt>OR</tt>, and <tt>NOT</tt> operators.<br>"
-                    "Examples: <br><tt>foo</tt><br><tt>bar*</tt><br><tt>fooANDbar*</tt><br>"
-                    ),
+             help=
+             _("Select tests by tag. (<a href=\"https://robotframework.org/robotframework/latest/RobotFrameworkUserGuide.html#tagging-test-cases\">About tagging test cases</a>)<br>Similarly as name with <tt>--test</tt>,"
+               "tag is case and space insensitive and it is possible"
+               "to use patterns with <tt>*</tt>, <tt>?</tt> and <tt>[]</tt> as wildcards.<br>"
+               "Tags and patterns can also be combined together with"
+               "<tt>AND</tt>, <tt>OR</tt>, and <tt>NOT</tt> operators.<br>"
+               "Examples: <br><tt>foo</tt><br><tt>bar*</tt><br><tt>fooANDbar*</tt><br>"
+               ),
              size=40,
          )),
         ("exclude",
          ListOfStrings(
              title=_("Exclude tests by tag (<tt>--exclude</tt>)"),
-             help=_("Select test cases not to run by tag. (<a href=\"https://robotframework.org/robotframework/latest/RobotFrameworkUserGuide.html#tagging-test-cases\">About tagging test cases</a>)<br>These tests are"
-                    " not run even if included with <tt>--include</tt>. <br>Tags are"
-                    " matched using same rules as with <tt>--include</tt>.<br>"),
+             help=
+             _("Select test cases not to run by tag. (<a href=\"https://robotframework.org/robotframework/latest/RobotFrameworkUserGuide.html#tagging-test-cases\">About tagging test cases</a>)<br>These tests are"
+               " not run even if included with <tt>--include</tt>. <br>Tags are"
+               " matched using same rules as with <tt>--include</tt>.<br>"),
              size=40,
          )),
         ("critical",
          ListOfStrings(
              title=_("Critical test tag (<tt>--critical</tt>)"),
-             help=_("Tests having the given tag are considered critical. (<b>This is no threshold</b>, see <a href=\"https://robotframework.org/robotframework/latest/RobotFrameworkUserGuide.html#setting-criticality\">About setting criticality</a>)<br>"
-                    "If no critical tags are set, all tests are critical.<br>"
-                    "Tags can be given as a pattern same way as with <tt>--include</tt>.<br>"
-                    ),
+             help=
+             _("Tests having the given tag are considered critical. (<b>This is no threshold</b>, see <a href=\"https://robotframework.org/robotframework/latest/RobotFrameworkUserGuide.html#setting-criticality\">About setting criticality</a>)<br>"
+               "If no critical tags are set, all tests are critical.<br>"
+               "Tags can be given as a pattern same way as with <tt>--include</tt>.<br>"
+               ),
              size=40,
          )),
         ("noncritical",
          ListOfStrings(
              title=_("Non-Critical test tag (<tt>--noncritical</tt>)"),
-             help=_("Tests having the given tag are considered non-critical, even if also <tt>--critical</tt> is set. (<b>This is no threshold</b>, see <a href=\"https://robotframework.org/robotframework/latest/RobotFrameworkUserGuide.html#setting-criticality\">About setting criticality</a>)<br>"
-                    "Tags can be given as a pattern same way as with <tt>--include</tt>.<br>"
-                    ),
+             help=
+             _("Tests having the given tag are considered non-critical, even if also <tt>--critical</tt> is set. (<b>This is no threshold</b>, see <a href=\"https://robotframework.org/robotframework/latest/RobotFrameworkUserGuide.html#setting-criticality\">About setting criticality</a>)<br>"
+               "Tags can be given as a pattern same way as with <tt>--include</tt>.<br>"
+               ),
              size=40,
          )),
         ("variable",
@@ -279,10 +297,11 @@ agent_config_testsuites_robotframework_params_dict = Dictionary(
              ),
              movable=False,
              title=_("Variables (<tt>--variable</tt>)"),
-             help=_("Set variables in the test data. <br>Only scalar variables with string"
-                    " value are supported and name is given without <tt>${}</tt>. <br>"
-                    " (See <tt>--variablefile</tt> for a more powerful variable setting mechanism.)<br>"
-                    ))),
+             help=
+             _("Set variables in the test data. <br>Only scalar variables with string"
+               " value are supported and name is given without <tt>${}</tt>. <br>"
+               " (See <tt>--variablefile</tt> for a more powerful variable setting mechanism.)<br>"
+               ))),
         ("variablefile",
          ListOfStrings(
              title=_("Load variables from file (<tt>--variablefile</tt>)"),
@@ -297,8 +316,9 @@ agent_config_testsuites_robotframework_params_dict = Dictionary(
         ("exitonfailure",
          DropdownChoice(
              title=_("Exit on failure (<tt>--exitonfailure</tt>)"),
-             help=_("Stops test execution if any critical test fails. (<a href=\"https://robotframework.org/robotframework/latest/RobotFrameworkUserGuide.html#stopping-when-first-test-case-fails\">About failed tests</a>)"
-                    ),
+             help=
+             _("Stops test execution if any critical test fails. (<a href=\"https://robotframework.org/robotframework/latest/RobotFrameworkUserGuide.html#stopping-when-first-test-case-fails\">About failed tests</a>)"
+               ),
              choices=[
                  ('yes', _('yes')),
                  ('no', _('no')),
@@ -427,19 +447,20 @@ dropdown_robotmk_logging = DropdownChoice(
 
 dropdown_robotmk_execution_choices = CascadingDropdown(
     title=_("Execution mode"),
-    help=_("The <b>execution mode</b> is a general setting which controls who runs RF suites, how and when.<br>"
-           "For this, Robotmk comes with two agent scripts:<br><br>"
-           "<tt>robotmk.py</tt> - the '<b>controller</b>':<br>"
-           "- determines the configured suites<br>"
-           "- reads their JSON state files<br>"
-           "- writes all JSON objects to STDOUT for the CMK agent<br><br>"
-           "<tt>robotmk-runner.py</tt> - the '<b>runner</b>':<br>"
-           "- determines the configured suites<br>"
-           "- runs the suites<br>"
-           "- collects suite logs and writes their JSON state files <br><br>"
-           "The behaviour and usage of both scripts depends on the execution mode you set here.<br>"
-           "<b>Rule dependency:</b> All modes require the rule '<i>Limit script types to execute</i>' to allow the execution of <tt>.py</tt> files. "
-           ),
+    help=
+    _("The <b>execution mode</b> is a general setting which controls who runs RF suites, how and when.<br>"
+      "For this, Robotmk comes with two agent scripts:<br><br>"
+      "<tt>robotmk.py</tt> - the '<b>controller</b>':<br>"
+      "- determines the configured suites<br>"
+      "- reads their JSON state files<br>"
+      "- writes all JSON objects to STDOUT for the CMK agent<br><br>"
+      "<tt>robotmk-runner.py</tt> - the '<b>runner</b>':<br>"
+      "- determines the configured suites<br>"
+      "- runs the suites<br>"
+      "- collects suite logs and writes their JSON state files <br><br>"
+      "The behaviour and usage of both scripts depends on the execution mode you set here.<br>"
+      "<b>Rule dependency:</b> All modes require the rule '<i>Limit script types to execute</i>' to allow the execution of <tt>.py</tt> files. "
+      ),
     sorted=False,
     choices=[
         ("agent_serial", _("agent_serial"),
@@ -448,26 +469,27 @@ dropdown_robotmk_execution_choices = CascadingDropdown(
                    gen_agent_config_dict_listof_testsuites("agent_serial"),
                    agent_config_global_cache_time_agent_serial,
                    agent_config_global_suites_execution_interval_agent_serial,
-         ])),
-        ("agent_parallel", _("agent_parallel (no yet implemented)"),
-         Tuple(help=_(helptext_execution_mode_agent_parallel),
-               elements=[
-                   gen_agent_config_dict_listof_testsuites("agent_parallel"),
-         ])),
+               ])),
+        # ("agent_parallel", _("agent_parallel (no yet implemented)"),
+        #  Tuple(help=_(helptext_execution_mode_agent_parallel),
+        #        elements=[
+        #            gen_agent_config_dict_listof_testsuites("agent_parallel"),
+        #        ])),
         ("external", _("external"),
          Tuple(help=_(helptext_execution_mode_external),
                elements=[
                    gen_agent_config_dict_listof_testsuites("external"),
                    agent_config_global_cache_time_external,
-         ])),
+               ])),
     ])
 
 
 def _valuespec_agent_config_robotmk():
     return Alternative(
         title=_("Robotmk (Linux, Windows)"),
-        help=_("Robotmk integrates the results of <b>Robot Framework</b> tests into Checkmk. This rule will deploy the <b>Robotmk agent plugin</b> and a generated YML control file (<tt>robotmk.yml</tt>) to the remote host."
-               ),
+        help=
+        _("Robotmk integrates the results of <b>Robot Framework</b> tests into Checkmk. This rule will deploy the <b>Robotmk agent plugin</b> and a generated YML control file (<tt>robotmk.yml</tt>) to the remote host."
+          ),
         style="dropdown",
         elements=[
             Dictionary(
