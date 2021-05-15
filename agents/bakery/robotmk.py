@@ -108,14 +108,14 @@ class RMKConfigAdapter():
         'linux': {
             'newline': "\n",
             'robotdir': "/usr/lib/check_mk_agent/robot",
-            'rmk_ctrl': 'robotmk',
-            'rmk_runner': 'robotmk-runner'
+            'rmk_ctrl': 'robotmk.py',
+            'rmk_runner': 'robotmk-runner.py'
         },
         'posix': {
             'newline': "\n",
             'robotdir': "/usr/lib/check_mk_agent/robot",
-            'rmk_ctrl': 'robotmk',
-            'rmk_runner': 'robotmk-runner'
+            'rmk_ctrl': 'robotmk.py',
+            'rmk_runner': 'robotmk-runner.py'
         },
         'noarch': {
             'cache_time': 900,
