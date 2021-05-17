@@ -1,3 +1,0 @@
-[submodule "python-pytest-check_mk"]
-	path = python-pytest-check_mk
-	url = https://github.com/simonmeggle/python-pytest-check_mk/

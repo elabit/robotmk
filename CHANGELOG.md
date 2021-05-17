@@ -5,18 +5,35 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+The major release numbers 1 and 2 of Robotmk are used to distinguish the MKPs for Checkmk version 1.6.x and 2.x. 
+
+For the time being, all bugfixes will be done in both major versions. Depending on the double effort, new features will also be implemented in both versions. But keep in mind that some new features will only be developed in Robotmk Version 2. 
+
+# Robotmk v2 - Checkmk version 2.x only
+
+## [v2.0.0-beta] - 2021-05-15
+
+This is the first release of Robotmk based on v1.0.3 which is Checkmk V2 compatible. 
+
+# Robotmk v1 - Checkmk version 1.6.x only
 
 
-## Unreleased
+## [v1.0.4] - 2021-05-15
+
+Compatibility release: some code changes which make it easier to maintain the code for two CMK versions. 
+
 ### Added
 
 ### Changed
+
+* The agent plugins now have the default extension `.py`.
 
 ### Fixed
 
 ### Removed
 
 ### Deprecated
+
 
 
 ## [v1.0.3 - 2021-04-07]
