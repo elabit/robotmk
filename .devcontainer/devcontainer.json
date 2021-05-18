@@ -1,30 +1,35 @@
 {
-	"name": "checkMK1.6.0p6",
-	"context": "..",
-	"dockerFile": "Dockerfile",
-
-	// Use 'settings' to set *default* container specific settings.json values on container create. 
-	// You can edit these settings after create using File > Preferences > Settings > Remote.
-	"settings": { 
-		"terminal.integrated.shell.linux": "/bin/bash",
-		"python.pythonPath": "/usr/bin/python",
-		"python.linting.enabled": true,
-		"python.linting.pylintEnabled": true,
-		"python.linting.pylintPath": "/usr/local/bin/pylint"
+	"name": "Checkmk-Robotmk",
+	"build": {
+		"dockerfile": "Dockerfile",
+		"args": {
+			"VARIANT": "1.6.0p24",
+			"PIP": "pip"
+		},
 	},
-
-	// Use 'appPort' to create a container with published ports. If the port isn't working, be sure
-	// your server accepts connections from all interfaces (0.0.0.0 or '*'), not just localhost.
-	"appPort": [ 5000 ],
-
-	// Install flask and any other dependencies
-	"postCreateCommand": "pip install -r requirements.txt",
-
-	// Comment out next line to run as root
-	//"remoteUser": "vscode",
-
-	// Add the IDs of extensions you want installed when the container is created in the array below.
+	"containerEnv": {
+		"CMK_SITE_ID": "cmk",
+		"CMK_PASSWORD": "cmk"
+	},
+	"appPort": 5000,
+	"settings": {
+		"terminal.integrated.shell.linux": "/bin/bash"
+	},
 	"extensions": [
-		"ms-python.python"
-	]
+		"ms-python.python",
+		"littlefoxteam.vscode-python-test-adapter",
+		"jeremyfa.tasks-chooser"
+	],
+	"forwardPorts": [5000],
+
+	"postCreateCommand": ".devcontainer/postCreateCommand.sh",
+
+	"remoteUser": "cmk",
+	"remoteEnv": {
+		"PATH": "/omd/sites/cmk/bin:/omd/sites/cmk/local/lib/python/bin/:${containerEnv:PATH}",
+		"OMD_ROOT": "/omd/sites/cmk",
+		"OMD_SITE": "cmk",
+		"CMK_SITE_ID": "cmk",
+		"WORKSPACE": "${containerWorkspaceFolder}"
+	}
 }

@@ -1,0 +1,28 @@
+{
+    "selectDescription": "Select build setting",
+    "items": [
+
+        {
+            "displayName": "▶︎ Build Robotmk MKP",
+            "description": "Build Robotmk for Checkmk",
+            "command": ".devcontainer/build.sh",
+            "group": {
+                "kind": "build",
+                "isDefault": true
+            }
+        },
+        {
+            "displayName": "▶︎ Set devcontainer to CMK v1.6",
+            "command": "cp .devcontainer/devcontainer{_v1,}.json"
+        },
+        {
+            "displayName": "▶︎ Set devcontainer to CMK v2",
+            "command": "cp .devcontainer/devcontainer{_v2,}.json"
+        }
+    ],
+    "baseItem": {
+        "version": "2.0.0",
+        "type": "shell",
+        "problemMatcher": []
+    }
+}

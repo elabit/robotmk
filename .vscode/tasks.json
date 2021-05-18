@@ -1,0 +1,13 @@
+{
+    "displayName": "▶︎ Build Robotmk MKP",
+    "description": "Build Robotmk for Checkmk",
+    "command": ".devcontainer/build.sh",
+    "group": {
+        "kind": "build",
+        "isDefault": true
+    },
+    "version": "2.0.0",
+    "type": "shell",
+    "problemMatcher": [],
+    "chooserIndex": 0
+}

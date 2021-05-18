@@ -22,3 +22,4 @@ dist/*.vscode/.ropeproject/
 .vscode/.ropeproject/*
 dist/*
 mkpackage.pyc
+*.mkp

@@ -1,0 +1,82 @@
+name: Build_MKP
+
+on:
+  push:
+    branches:
+    - '**'
+    # tags-ignore:
+    # - 'v*'
+
+jobs:
+  build_v1:
+    name: Build Robotmk MKP v1.6x
+    runs-on: ubuntu-latest
+    container:
+      image: checkmk/check-mk-raw:1.6.0-latest
+
+    env:
+      OMD_ROOT: /omd/sites/cmk
+      OMD_SITE: cmk
+      CMK_SITE_ID: cmk
+      WORKSPACE: ${{ github.workspace }}
+
+    steps:
+      - name: Install jq package
+        run: apt update && apt-get -y install jq
+      - name: Create Checkmk Site
+        run: /docker-entrypoint.sh /bin/true
+      - name: add custom deb repository
+        uses: myci-actions/add-deb-repo@4
+        with:
+          repo: deb http://deb.debian.org/debian stretch-backports main contrib non-free
+          repo-name: stretch-backports
+          update: true
+      - name: Install newer git from backports
+        run: apt-get -y -t stretch-backports install git
+
+      - name: Checkout Robotmk repository 
+        uses: actions/checkout@v2
+      - name: Link repository files into container
+        run: .devcontainer/linkfiles.sh
+      - name: Update GITHUB_PATH
+        run: echo "/omd/sites/cmk/bin" >> $GITHUB_PATH
+      - name: Build MKP
+        run: .devcontainer/build.sh
+        id: cmkpkg
+      - name: Upload artifact
+        uses: actions/upload-artifact@v2
+        with:
+          name: ${{ steps.cmkpkg.outputs.artifactname }}
+          path: ${{ steps.cmkpkg.outputs.pkgfile }}
+      - uses: actions/checkout@v2
+  build_v2:
+    name: Build Robotmk MKP v2
+    runs-on: ubuntu-latest
+    container:
+      image: checkmk/check-mk-raw:2.0.0-latest
+
+    env:
+      OMD_ROOT: /omd/sites/cmk
+      OMD_SITE: cmk
+      CMK_SITE_ID: cmk
+      WORKSPACE: ${{ github.workspace }}
+
+    steps:
+      - name: Install jq package
+        run: apt update && apt-get -y install sudo jq
+      - name: Create Checkmk Site
+        run: /docker-entrypoint.sh /bin/true
+      - name: Checkout Robotmk repository
+        uses: actions/checkout@v2
+      - name: Link repository files into container
+        run: .devcontainer/linkfiles.sh
+      - name: Update GITHUB_PATH
+        run: echo "/omd/sites/cmk/bin" >> $GITHUB_PATH
+      - name: Build MKP
+        run: .devcontainer/build.sh
+        id: cmkpkg
+      - name: Upload artifact
+        uses: actions/upload-artifact@v2
+        with:
+            name: ${{ steps.cmkpkg.outputs.artifactname }}
+            path: ${{ steps.cmkpkg.outputs.pkgfile }}
