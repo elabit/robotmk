@@ -34,6 +34,7 @@ function linkpath {
     #chmod 666 $TARGET/*
 }
 
+# Do not only symlink, but also generate needed directories. 
 function link {
     echo "---"
     TARGET=$1
@@ -51,7 +52,7 @@ function linkv1files {
     #   link agent plugins also as custom package 'robotmk-external', can be 
     #   deployed with rule "deploy custom files". The V2 bakery can handle this 
     #   automatically for mode "external", but not the V1 one.
-    link agents_plugins local/share/check_mk/agents/custom/robotmk-external/bin
+    link agents_plugins local/share/check_mk/agents/custom/robotmk-external/lib/bin
     # Check plugin dir
     link checks/v1 local/share/check_mk/checks
     # Bakery script dir

@@ -9,7 +9,7 @@ ENV CMK_PASSWORD="cmk"
 RUN /docker-entrypoint.sh /bin/true
 
 RUN apt-get update && export DEBIAN_FRONTEND=noninteractive \
-    && apt-get -y install --no-install-recommends jq tree htop vim git
+    && apt-get -y install --no-install-recommends jq tree htop vim git telnet file
 
 ADD requirements.txt /tmp/requirements.txt
 RUN PATH="/omd/sites/cmk/bin:${PATH}" \

@@ -138,12 +138,26 @@ The context help can be shown by clicking on the **book icon** in the top right 
 
 ### Environment setup 
 
-TBD
+#### VS Code Build Task
+
+`Ctrl+Shift+B` is bound to `build.sh` which builds the CMK version specific MKP file. 
+
+The resulting MKP can be copied to the host system as follows: 
+
+```
+cd ~/Downloads
+CONTAINER=a596f322c2e8
+docker exec $CONTAINER bash -c "mkdir -p /cmk-mkp; cp /workspaces/robotmk/*.mkp /cmk-mkp"
+docker cp $CONTAINER:/cmk-mkp .
+```
+
 
 ### Debugging the Robotmk check
 
 `ipdb` is a great cmdline debugger for Python. In the following example it is shown how to execute the Robotmk check within the cmk context. 
 A breakpoint in line 120 is set with "b":  
+
+Debugging the Inventory function:
 
 ```
 OMD[cmk]:~$ python -m ipdb bin/cmk -IIv test2Win10simdows
@@ -168,6 +182,17 @@ ps.perf does not support discovery. Skipping it.
     119 def inventory_robot(robot_items):
 1-> 120     robot_service_prefix = get_setting('robot_service_prefix',[])
     121     for robot_item in robot_items:
+```
+
+Debugging the bakery: 
+
+```
+OMD[v1test]:~$ python -m ipdb bin/cmk -Avf win10simdows
+> /opt/omd/sites/v1test/bin/cmk(34)<module>()
+     33
+---> 34 import os
+     35 import sys
+ipdb> b /omd/sites/v1test/lib/python/cmk_base/cee/agent_bakery.py:85     
 ```
 
 ## Next developments
