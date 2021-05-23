@@ -3,8 +3,8 @@
 	"build": {
 		"dockerfile": "Dockerfile",
 		"args": {
-			"VARIANT": "1.6.0p24",
-			"PIP": "pip"
+			"VARIANT": "2.0.0p4",
+			"PIP": "pip3"
 		},
 	},
 	"containerEnv": {
@@ -13,7 +13,9 @@
 	},
 	"appPort": 5000,
 	"settings": {
-		"terminal.integrated.shell.linux": "/bin/bash"
+		"terminal.integrated.shell.linux": "/bin/bash",
+		// Update any extensions in Docker, how dare you 
+		"extensions.autoUpdate": false		
 	},
 	"extensions": [
 		"ms-python.python",
@@ -26,7 +28,7 @@
 
 	"remoteUser": "cmk",
 	"remoteEnv": {
-		"PATH": "/omd/sites/cmk/bin:/omd/sites/cmk/local/lib/python/bin/:${containerEnv:PATH}",
+		"PATH": "/omd/sites/cmk/bin:/omd/sites/cmk/local/lib/python3/bin/:${containerEnv:PATH}",
 		"OMD_ROOT": "/omd/sites/cmk",
 		"OMD_SITE": "cmk",
 		"CMK_SITE_ID": "cmk",
