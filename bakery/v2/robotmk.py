@@ -18,7 +18,7 @@
 # to the Free Software Foundation, Inc., 51 Franklin St,  Fifth Floor,
 # Boston, MA 02110-1301 USA.
 
-ROBOTMK_VERSION = 'v1.1.0-beta.1'
+ROBOTMK_VERSION = 'v1.1.0-beta.2'
 
 from typing import Iterable, TypedDict, List
 from pathlib import Path
@@ -216,7 +216,8 @@ def get_robotmk_files(conf) -> FileGenerator:
         robotmk_yml = robotmk.yml(base_os, robotmk)
         bin_files = robotmk.bin_files(base_os)
         yield controller_plugin
-        yield runner_plugin
+        # in external mode, the runner is only in bin
+        if bool(runner_plugin): yield runner_plugin
         yield robotmk_yml
         for file in bin_files: 
             yield file
