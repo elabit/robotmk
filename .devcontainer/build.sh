@@ -1,13 +1,19 @@
 #!/bin/bash
 set -e
 
+# This file creates a CMK MKP file for the determined CMK version (1/2).
+# It leverages the "mkp" command from CMK, which reads a package description file
+# (JSON). This JSON has similar keys and version specific ones.
+# The similar keys are read from package/pkginfo_common.
+# Version specific keys are merged from package/v_/pkginfo. 
+
+# After the MKP has been built, the script check if it runs within a Github 
+# Workflow. If so, it sets the artifact name as output variable.  
+
 # CMK Major version 
 MVERSION="$(cat $OMD_ROOT/.version_meta/version | cut -d '.' -f1)"
 NAME="robotmk"
 PACKAGEFILE=$OMD_ROOT/var/check_mk/packages/$NAME
-
-echo "HERE:----"
-ls -la
 
 # get the current tag (Release) or commit hash (Artifact)
 export RMK_VERSION=$(git describe --exact-match --tags 2> /dev/null || git rev-parse --short HEAD)
@@ -26,7 +32,7 @@ echo "* Building MKP '$NAME' on $RMK_VERSION for CMK version $MVERSION..."
 set -x
 ls -la $PACKAGEFILE
 mkp -v pack $NAME
-FILE=$(ls -1 *.mkp)
+FILE=$(ls -rt1 *.mkp | tail -1)
 # robotmk.cmk2-v1.1.0.mkp
 # robotmk.v1.1.0-cmk2.mkp
 NEWFILENAME=$NAME.$RMK_VERSION-cmk$MVERSION.mkp

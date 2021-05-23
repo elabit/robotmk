@@ -6,8 +6,8 @@
             "bakery/robotmk.py",
             "plugins/robotmk.py",
             "plugins/robotmk-runner.py",
-            "custom/robotmk-external/bin/robotmk.py",
-            "custom/robotmk-external/bin/robotmk-runner.py"
+            "custom/robotmk-external/lib/bin/robotmk.py",
+            "custom/robotmk-external/lib/bin/robotmk-runner.py"
         ]        
     }
 }
