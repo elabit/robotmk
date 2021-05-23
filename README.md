@@ -145,8 +145,8 @@ The context help can be shown by clicking on the **book icon** in the top right 
 The resulting MKP can be copied to the host system as follows: 
 
 ```
-cd ~/Downloads
 CONTAINER=a596f322c2e8
+cd ~/Downloads
 docker exec $CONTAINER bash -c "mkdir -p /cmk-mkp; cp /workspaces/robotmk/*.mkp /cmk-mkp"
 docker cp $CONTAINER:/cmk-mkp .
 ```
@@ -193,6 +193,23 @@ OMD[v1test]:~$ python -m ipdb bin/cmk -Avf win10simdows
 ---> 34 import os
      35 import sys
 ipdb> b /omd/sites/v1test/lib/python/cmk_base/cee/agent_bakery.py:85     
+```
+
+### Release
+
+`release.sh` is a helper tool which eases (un)releasing a lot. Sometimes a alpha/beta release should to be withdrawn. With the helpf of this script and the github CLI tool (authentication required),
+
+* the release gets deleted
+* tags are removed
+* develop branch gets checked out
+* `chag` undoes the last change to the `CHANGELOG`
+
+
+```
+# unrelease
+bash release.sh unrelease 1.1.0-beta
+# release
+bash release.sh release 1.1.0-beta
 ```
 
 ## Next developments
