@@ -1,23 +1,11 @@
 {
-    // "python.pythonPath": ".tox/check/bin/python",   
-    "python.pythonPath": "/bin/python",
+    "python.pythonPath": "/omd/sites/cmk/bin/python3",
+    "python.linting.flake8Enabled": true,
+    "python.linting.enabled": true,
     "python.testing.pytestArgs": [
-        "agents"
+        "."
     ],
     "python.testing.unittestEnabled": false,
     "python.testing.nosetestsEnabled": false,
-    "python.testing.pytestEnabled": true,
-    "files.watcherExclude": {
-        "**/__pycache__/**": true,
-        "**/.pytest_cache/**": true
-    },
-    "python.linting.enabled": true,
-    "python.linting.flake8Enabled": true,
-    "python.linting.flake8Path": ".tox/plugin/bin/flake8",
-    "python.linting.flake8Args": [
-        "--max-line-length=80",
-    ],
-    "python.formatting.provider": "autopep8",
-    // "python.formatting.yapfPath": "/workspace/robotmk/.tox/plugin/bin/yapf",
-    "editor.formatOnSave": true,
+    "python.testing.pytestEnabled": true
 }

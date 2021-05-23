@@ -5,38 +5,42 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
-The major release numbers 1 and 2 of Robotmk are used to distinguish the MKPs for Checkmk version 1.6.x and 2.x. 
-
-For the time being, all bugfixes will be done in both major versions. Depending on the double effort, new features will also be implemented in both versions. But keep in mind that some new features will only be developed in Robotmk Version 2. 
-
-# Robotmk v2 - Checkmk version 2.x only
-
-## [v2.0.0-beta] - 2021-05-15
-
-This is the first release of Robotmk based on v1.0.3 which is Checkmk V2 compatible. 
-
-# Robotmk v1 - Checkmk version 1.6.x only
 
 
-## [v1.0.4] - 2021-05-15
+## 1.1.0-beta - 2021-05-23
 
-Compatibility release: some code changes which make it easier to maintain the code for two CMK versions. 
+Checkmk V2 Compatibility release
+
+From now on, there are MKP artifacts for both current Checkmk versions: 
+
+* `robotmk.v1.1.0-cmk1.mkp` - Checkmk 1.6x
+* `robotmk.v1.1.0-cmk2.mkp` - Checkmk 2.x
 
 ### Added
+
+* Completely rewritten bakery script for Checkmk Version 2 (Bakery API)
+* Adapted check script for Checkmk Version 2 (Check API)
+* Changed from VM/baremetal development to VS Code devcontainer setup 
+* Added Github Workflows for Artifacts and Release Assets
 
 ### Changed
 
 * The agent plugins now have the default extension `.py`.
+* Agent plugin can auto-determine robotdir, if missing in YML config
+* WATO pages are V1 and V2 compatible
+* Disabled auto-merging of robomk-keywords into agent plugin
+* Changed Logo 
 
 ### Fixed
 
 ### Removed
 
+* Removed pytest - will rebuild the whole test structure from scratch 
+
 ### Deprecated
 
 
-
-## [v1.0.3 - 2021-04-07]
+## v1.0.3 - 2021-04-07
 
 ### Added
 
@@ -46,19 +50,19 @@ Compatibility release: some code changes which make it easier to maintain the co
 
 - Fixed wrong XML decoding
 
-## [v1.0.2 - 2021-04-07]
+## v1.0.2 - 2021-04-07
 
 ### Fixed
 
 - Fixed version monitoring: swapped variables, closes #118
 
-## [v1.0.1 - 2021-04-07]
+## v1.0.1 - 2021-04-07
 
 ### Fixed
 
 - Fixed version monitoring (#118)
 
-## [v1.0.1 - 2021-04-06]
+## v1.0.1 - 2021-04-06
 
 ### Fixed
 
@@ -69,7 +73,7 @@ Compatibility release: some code changes which make it easier to maintain the co
 - Removed EXEC_MODE from discovery naming variables - useless 
 
 
-## [v1.0.0-beta - 2021-03-25]
+## v1.0.0-beta - 2021-03-25
 
 **WARNING: This first major release is 100% incompatible with former versions.**
 Make sure to export all WATO rules because this version is not able to read the
@@ -89,7 +93,7 @@ old data structures.
 - HTML log transport to checkmk server
 
 
-## [v0.1.9 - 2021-01-16]
+## v0.1.9 - 2021-01-16
 
 ### Changed
 
@@ -105,14 +109,14 @@ old data structures.
 - Badges and Unicode symbols for S/T/K do not represent worst state (closes #78)
 - Time of last execution does not work on discovery level (#74)
 
-## [v0.1.8 - 2021-01-06]
+## v0.1.8 - 2021-01-06
 
 ### Fixed
 
 - When using a custom service prefix for discovery, the pattern `%SPACE%` can now
   be used at the prefix end to prevent Multisite cropping the string. (Solves #69)
 
-## [v0.1.7 - 2021-01-05]
+## v0.1.7 - 2021-01-05
 
 ### Fixed/Changed
 
@@ -121,14 +125,14 @@ old data structures.
   services will get new descriptions (=without "Robot"), RRD data tied to the old 
   name will be lost. (closes #50)
 
-## [v0.1.6 - 2021-01-05]
+## v0.1.6 - 2021-01-05
 
 ## Added
 
 - Inventory blacklist: when using discovery level, now it is possible to blacklist certain nodes which should not be 
   inventorized as services. (solves #54)
 
-## [v0.1.5 - 2021-01-04]
+## v0.1.5 - 2021-01-04
 ### Added
 
 - Log/Report/XML files of RF tests are now saved with a timestamp to make debugging easier.
@@ -157,7 +161,7 @@ old data structures.
 - Bakery crashes when Robotmk rule does not contain specific suites (closes #45)
 - Multisite crashes ("no closing quotation") when nasty chars from keyword names get into perflabels (closes #64)
 
-## [v0.1.4] - 2020-11-15
+## v0.1.4 - 2020-11-15
 ### Added
 
 - Bakery/Check: Added spooldir mode; Robotmk plugin can be triggered externally, writes to spooldir of mk agent (#49)
@@ -171,7 +175,7 @@ old data structures.
 ### Fixed
 
 - No graphs when using a discovery level (#53)
-## [v0.1.3] - 2020-0-16
+## v0.1.3 - 2020-0-16
 ### Added 
 
 - Check: Introduce CRITICAL state for thresholds (#22)
@@ -181,19 +185,19 @@ old data structures.
 
 - Check: Solved check crash when only perfdata rule active, not threshold (#40)
 
-## [v0.1.2] - 2020-07-10
+## v0.1.2 - 2020-07-10
 
 ### Fixed
 
 - Bakery: Wrong formatting of variable argument (#38)
 - Plugin: Backslash escaping of Checkmk programdata path (#37)
 
-## [v0.1.1] - 2020-07-01
+## v0.1.1 - 2020-07-01
 
 - First Release; Bakery, Plugin and Check are working together
 
 
-## [vx.x.x] - yyyy-mm-dd
+## vx.x.x - yyyy-mm-dd
 ### Added
 
 ### Changed
