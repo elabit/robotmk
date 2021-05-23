@@ -216,7 +216,8 @@ def get_robotmk_files(conf) -> FileGenerator:
         robotmk_yml = robotmk.yml(base_os, robotmk)
         bin_files = robotmk.bin_files(base_os)
         yield controller_plugin
-        yield runner_plugin
+        # in external mode, the runner is only in bin
+        if bool(runner_plugin): yield runner_plugin
         yield robotmk_yml
         for file in bin_files: 
             yield file
