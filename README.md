@@ -19,26 +19,19 @@
    * [Requirements](#requirements)
    * [Installation](#installation)
    * [Documentation](#documentation)
-   * [Usage](#usage)
-      * [Configure what to execute](#configure-what-to-execute)
-      * [Integrate the new Robot E2E check into Checkmk](#integrate-the-new-robot-e2e-check-into-checkmk)
-      * [Configure the E2E check](#configure-the-e2e-check)
-      * [Discovery level: split up a Robot tests into many CMK services](#discovery-level-split-up-a-robot-tests-into-many-cmk-services)
    * [Development setup](#development-setup)
-      * [Installation](#installation-1)
-      * [Python versions](#python-versions)
-      * [tox](#tox)
-      * [running tests with tox](#running-tests-with-tox)
-      * [Submodule init](#submodule-init)
+      * [Environment setup](#environment-setup)
+         * [VS Code Build Task](#vs-code-build-task)
       * [Debugging the Robotmk check](#debugging-the-robotmk-check)
+      * [Release](#release)
    * [Next developments](#next-developments)
    * [Contributing](#contributing)
    * [License](#license)
    * [Credits/Thanks](#creditsthanks)
-      * [Contributions](#contributions)
       * [Supporters](#supporters)
+   * [Contributors <g-emoji class="g-emoji" alias="sparkles" fallback-src="https://github.githubassets.com/images/icons/emoji/unicode/2728.png">✨</g-emoji>](#contributors-)
 
-<!-- Added by: runner, at: Fri May 21 11:19:29 UTC 2021 -->
+<!-- Added by: runner, at: Mon May 31 16:04:33 UTC 2021 -->
 
 <!--te-->
 
