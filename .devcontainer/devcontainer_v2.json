@@ -3,7 +3,9 @@
 	"build": {
 		"dockerfile": "Dockerfile",
 		"args": {
-			"VARIANT": "2.0.0p4",
+			// "VARIANT": "2.0.0p3",
+			// "VARIANT": "2.0.0p4",
+			"VARIANT": "2.0.0p5",
 			"PIP": "pip3"
 		},
 	},

@@ -172,10 +172,9 @@ agent_config_testsuites_piggybackhost = Dictionary(
     elements=[
         ("piggybackhost",
          MonitoredHostname(
-             help=
+            help=
              _("Piggyback allows to assign the results of this particular Robot test to another host."
                ),
-             allow_empty=False,
          )),
     ])
 
@@ -188,21 +187,6 @@ agent_config_testsuites_path = TextUnicode(
     allow_empty=False,
     size=50,
 )
-
-
-def gen_agent_config_testsuites_paramsdict():
-    dict_elements = [
-        ("piggybackhost",
-         MonitoredHostname(
-             title=_("SPiggyback host"),
-             help=
-             _("Piggyback allows to assign the results of this particular Robot test to another host."
-               ),
-             allow_empty=False,
-         )),
-    ]
-    return Dictionary(elements=dict_elements)
-
 
 agent_config_testsuites_robotframework_params_dict = Dictionary(
     help=
