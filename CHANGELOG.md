@@ -5,8 +5,14 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
-## 1.1.0-beta.2 - 2021-05-23
+## Unreleased
 
+### Fixed
+
+* Fixed bug in v2 bakery (allow_empty crashes only in 2.0.0p5, not p4) (thanks @kleinski, closes #124)
+
+
+## 1.1.0-beta.2 - 2021-05-23
 
 ### Fixed
 
