@@ -10,6 +10,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ### Fixed 
 
 * Fixed bug in agent plugin: robotdir default now gets set before accessing it (Thanks @kleinski, Fixes #127)
+* Fixed bug in agent bakery: WATO returns a dict with double key (cant be changed; access this double key) (Thanks @kleinski, Fixes #127)
 
 ## 1.1.0-beta.3 - 2021-05-31
 
