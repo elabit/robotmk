@@ -200,7 +200,8 @@ class RMKConfig():
                 'path': suitedir.name,
                 'tag': '',
             } for suitedir in
-            Path(self.global_dict['robotdir']).iterdir()}
+            [ x for x in Path(self.global_dict['robotdir']).iterdir() if x.is_dir() or x.name.endswith('.robot') ]
+            }
         return suites_dict
 
     @property
