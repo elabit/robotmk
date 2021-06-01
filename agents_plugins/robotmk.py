@@ -172,16 +172,17 @@ class RMKConfig():
             robotmk_dict_merged_default, envdict)
 
         self.cfg_dict = robotmk_dict_merged_env
+        # Determine the default robotdir path, if no custom one was given
+        if not 'robotdir' in self.cfg_dict['global']: 
+            self.cfg_dict['global'].update({
+                'robotdir' : Path(self.calling_cls._DEFAULTS[os.name]['agent_data_dir']).joinpath('robot')
+            })
         # now that YML and ENV are read, see if there is any suite defined.
         # If not, the fallback is generate suite dict entries for every dir
         # in robotdir.
         if len(self.suites_dict) == 0:
             self.suites_dict = self.__suites_from_robotdirs()
 
-        if not 'robotdir' in self.cfg_dict['global']: 
-            self.cfg_dict['global'].update({
-                'robotdir' : Path(self.calling_cls._DEFAULTS[os.name]['agent_data_dir']).joinpath('robot')
-            })
 
     def __merge_defaults(self):
         defaults = self.calling_cls._DEFAULTS
