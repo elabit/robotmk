@@ -18,7 +18,7 @@
 # to the Free Software Foundation, Inc., 51 Franklin St,  Fifth Floor,
 # Boston, MA 02110-1301 USA.
 
-ROBOTMK_VERSION = 'v1.1.0-beta.3'
+ROBOTMK_VERSION = 'v1.1.0-beta.4'
 
 from typing import Iterable, TypedDict, List
 from pathlib import Path
@@ -126,7 +126,8 @@ class RMK():
         global_dict['transmit_html'] =  conf['transmit_html']
         global_dict['logging'] =  conf['logging']
         global_dict['log_rotation'] =  conf['log_rotation']
-        global_dict['robotdir'] =  conf.get('robotdir')
+        # WATO makes robotdir a nested dict with duplicate key. Form follows function :-/
+        global_dict['robotdir'] =  conf.get('robotdir').get('robotdir')
         if self.execution_mode == 'agent_serial':
             global_dict['cache_time'] = mode_conf[1]
             global_dict['execution_interval'] = mode_conf[2]

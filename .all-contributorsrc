@@ -1,0 +1,24 @@
+{
+  "files": [
+    "README.md"
+  ],
+  "imageSize": 100,
+  "commit": false,
+  "contributors": [
+    {
+      "login": "kleinski",
+      "name": "Marcus Klein",
+      "avatar_url": "https://avatars.githubusercontent.com/u/3239736?v=4",
+      "profile": "http://kleinski.de",
+      "contributions": [
+        "bug"
+      ]
+    }
+  ],
+  "contributorsPerLine": 7,
+  "projectName": "robotmk",
+  "projectOwner": "simonmeggle",
+  "repoType": "github",
+  "repoHost": "https://github.com",
+  "skipCi": true
+}

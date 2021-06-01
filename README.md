@@ -1,4 +1,7 @@
 # Robotmk
+<!-- ALL-CONTRIBUTORS-BADGE:START - Do not remove or modify this section -->
+[![All Contributors](https://img.shields.io/badge/all_contributors-1-orange.svg?style=flat-square)](#contributors-)
+<!-- ALL-CONTRIBUTORS-BADGE:END -->
 
 *A complete solution to integrate **Robot Framework** End2End tests into **Checkmk***
 
@@ -16,26 +19,19 @@
    * [Requirements](#requirements)
    * [Installation](#installation)
    * [Documentation](#documentation)
-   * [Usage](#usage)
-      * [Configure what to execute](#configure-what-to-execute)
-      * [Integrate the new Robot E2E check into Checkmk](#integrate-the-new-robot-e2e-check-into-checkmk)
-      * [Configure the E2E check](#configure-the-e2e-check)
-      * [Discovery level: split up a Robot tests into many CMK services](#discovery-level-split-up-a-robot-tests-into-many-cmk-services)
    * [Development setup](#development-setup)
-      * [Installation](#installation-1)
-      * [Python versions](#python-versions)
-      * [tox](#tox)
-      * [running tests with tox](#running-tests-with-tox)
-      * [Submodule init](#submodule-init)
+      * [Environment setup](#environment-setup)
+         * [VS Code Build Task](#vs-code-build-task)
       * [Debugging the Robotmk check](#debugging-the-robotmk-check)
+      * [Release](#release)
    * [Next developments](#next-developments)
    * [Contributing](#contributing)
    * [License](#license)
    * [Credits/Thanks](#creditsthanks)
-      * [Contributions](#contributions)
       * [Supporters](#supporters)
+   * [Contributors <g-emoji class="g-emoji" alias="sparkles" fallback-src="https://github.githubassets.com/images/icons/emoji/unicode/2728.png">✨</g-emoji>](#contributors-)
 
-<!-- Added by: runner, at: Fri May 21 11:19:29 UTC 2021 -->
+<!-- Added by: runner, at: Mon May 31 16:04:33 UTC 2021 -->
 
 <!--te-->
 
@@ -246,3 +242,23 @@ Thanks to the companies which support the development of Robotmk:
 * [Abraxas Informatik AG](https://www.abraxas.ch/), St. Gallen (CH) -  Jens Dunkelberg
 * [ITERATIO GmbH](http://iteratio.com/), Cologne (GER) - Hardy Düttmann
 * [comNET GmbH](https://www.comnetgmbh.com), Hannover (GER) - Thorben Söhl
+
+## Contributors ✨
+
+Thanks goes to these wonderful people ([emoji key](https://allcontributors.org/docs/en/emoji-key)):
+
+<!-- ALL-CONTRIBUTORS-LIST:START - Do not remove or modify this section -->
+<!-- prettier-ignore-start -->
+<!-- markdownlint-disable -->
+<table>
+  <tr>
+    <td align="center"><a href="http://kleinski.de"><img src="https://avatars.githubusercontent.com/u/3239736?v=4?s=100" width="100px;" alt=""/><br /><sub><b>Marcus Klein</b></sub></a><br /><a href="https://github.com/simonmeggle/robotmk/issues?q=author%3Akleinski" title="Bug reports">🐛</a></td>
+  </tr>
+</table>
+
+<!-- markdownlint-restore -->
+<!-- prettier-ignore-end -->
+
+<!-- ALL-CONTRIBUTORS-LIST:END -->
+
+This project follows the [all-contributors](https://github.com/all-contributors/all-contributors) specification. Contributions of any kind welcome!

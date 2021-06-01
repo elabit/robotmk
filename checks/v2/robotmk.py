@@ -31,7 +31,7 @@ from string import Template
 
 # UTC = pytz.utc
 
-ROBOTMK_VERSION = 'v1.1.0-beta.3'
+ROBOTMK_VERSION = 'v1.1.0-beta.4'
 
 DEFAULT_SVC_PREFIX = 'Robot Framework E2E $SUITEID$SPACE-$SPACE'
 
@@ -287,7 +287,7 @@ def check_robotmk(item, params, section):
                               ROBOTMK_VERSION)
         # putting things together
         summary = ', '.join(first_line) 
-        details = ''.join(out_lines)
+        details = ''.join(out_lines) or None
         yield Result(
             state=State(rc),
             summary=summary,

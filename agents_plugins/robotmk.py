@@ -45,7 +45,7 @@ from enum import Enum
 
 
 local_tz = datetime.utcnow().astimezone().tzinfo
-ROBOTMK_VERSION = 'v1.1.0-beta.3'
+ROBOTMK_VERSION = 'v1.1.0-beta.4'
 
 #<robotmk-keywordlibrary
 # Imported from https://raw.githubusercontent.com/simonmeggle/robotframework-robotmk/robotmk-v1.0.3/robotmk.py
@@ -172,16 +172,17 @@ class RMKConfig():
             robotmk_dict_merged_default, envdict)
 
         self.cfg_dict = robotmk_dict_merged_env
+        # Determine the default robotdir path, if no custom one was given
+        if not 'robotdir' in self.cfg_dict['global']: 
+            self.cfg_dict['global'].update({
+                'robotdir' : Path(self.calling_cls._DEFAULTS[os.name]['agent_data_dir']).joinpath('robot')
+            })
         # now that YML and ENV are read, see if there is any suite defined.
         # If not, the fallback is generate suite dict entries for every dir
         # in robotdir.
         if len(self.suites_dict) == 0:
             self.suites_dict = self.__suites_from_robotdirs()
 
-        if not 'robotdir' in self.cfg_dict['global']: 
-            self.cfg_dict['global'].update({
-                'robotdir' : Path(self.calling_cls._DEFAULTS[os.name]['agent_data_dir']).joinpath('robot')
-            })
 
     def __merge_defaults(self):
         defaults = self.calling_cls._DEFAULTS
@@ -199,7 +200,8 @@ class RMKConfig():
                 'path': suitedir.name,
                 'tag': '',
             } for suitedir in
-            Path(self.global_dict['robotdir']).iterdir()}
+            [ x for x in Path(self.global_dict['robotdir']).iterdir() if x.is_dir() or x.name.endswith('.robot') ]
+            }
         return suites_dict
 
     @property
