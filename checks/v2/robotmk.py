@@ -287,7 +287,7 @@ def check_robotmk(item, params, section):
                               ROBOTMK_VERSION)
         # putting things together
         summary = ', '.join(first_line) 
-        details = ''.join(out_lines)
+        details = ''.join(out_lines) or None
         yield Result(
             state=State(rc),
             summary=summary,
