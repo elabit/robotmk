@@ -31,7 +31,7 @@ from string import Template
 
 # UTC = pytz.utc
 
-ROBOTMK_VERSION = 'v1.1.0-beta.4'
+ROBOTMK_VERSION = 'v1.1.0-beta.5'
 
 DEFAULT_SVC_PREFIX = 'Robot Framework E2E $SUITEID$SPACE-$SPACE'
 
