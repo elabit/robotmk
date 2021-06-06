@@ -48,7 +48,7 @@ local_tz = datetime.utcnow().astimezone().tzinfo
 ROBOTMK_VERSION = 'v1.1.0-beta.4'
 
 #<robotmk-keywordlibrary
-# Imported from https://raw.githubusercontent.com/simonmeggle/robotframework-robotmk/robotmk-v1.0.3/robotmk.py
+# Imported from https://raw.githubusercontent.com/simonmeggle/robotframework-robotmk/
 import json
 
 from robot.api.deco import not_keyword
@@ -87,7 +87,7 @@ class robotmk():
 
 
     """
-    ROBOT_LIBRARY_VERSION = "1.0.3.1"
+    ROBOT_LIBRARY_VERSION = "1.0.4"
 
     @not_keyword
     @staticmethod
@@ -125,7 +125,7 @@ class robotmk():
         """
         print(self.state2str(state, msg))
 
-    def add_robotmk_message(self, state: str, msg: str):
+    def add_monitoring_message(self, state: str, msg: str):
         """Routes a message and state to the "Robotmk" monitoring service in Checkmk. 
 
         This keyword allows to generate a message/state about *administrative topics*, *unfilfilled preconditions* etc. (e.g. wrong screen resolution) and route it to the *Robotmk* service in Checkmk. This service gets automatically created once on every monitored Robot host and reports everything the *monitoring admins* should take care for. The E2E check availability will no be affected because it will remain ``OK``. 
@@ -139,8 +139,8 @@ class robotmk():
         See `Valid state types` section for information about available state types. 
 
         Example:
-        | Add Robotmk Message    WARNING    The user password for FooApp is expiring soon; make sure to change it to keep the test running.
-        | Add Robotmk Message    CRITICAL   Invalid screen resolution detected! E2E suite ${SUITE_NAME} may run, but is built for 1024x768. 
+        | Add Monitoring Message    WARNING    The user password for FooApp is expiring soon; make sure to change it to keep the test running.
+        | Add Monitoring Message    CRITICAL   Invalid screen resolution detected! E2E suite ${SUITE_NAME} may run, but is built for 1024x768. 
         """
         print(self.state2str(state, msg))
 #robotmk-keywordlibrary>
