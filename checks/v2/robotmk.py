@@ -31,7 +31,7 @@ from string import Template
 
 # UTC = pytz.utc
 
-ROBOTMK_VERSION = 'v1.1.0-beta.4'
+ROBOTMK_VERSION = 'v1.1.0-beta.5'
 
 DEFAULT_SVC_PREFIX = 'Robot Framework E2E $SUITEID$SPACE-$SPACE'
 
@@ -53,7 +53,7 @@ STATE_BADGES = {0: '', 1: '(!)', 2: '(!!)', 3: 'UNKNOWN'}
 
 ROBOTMK_KEYWORDS = {
     'Add Checkmk Test State',
-    'Add Robotmk Message',
+    'Add Monitoring Message',
 }
 
 # v2parse
@@ -254,7 +254,7 @@ def check_robotmk(item, params, section):
         first_line.append("execution mode: %s" %
                           parsed_section['runner']["execution_mode"])
         
-        # 4. Check Robotmk messages (coming from keyword: "Add Robotmk Message")
+        # 4. Check Robotmk messages (coming from keyword: "Add Monitoring Message")
         # see Ref. 8nIZ5J
         fflines = []
         for root_suite in parsed_section['suites']:
@@ -374,8 +374,8 @@ class RobotItem(object):
         self.status = xmlnode.find('status').attrib['status']
         self.msg = xmlnode.findtext('./msg')
         self.text = xmlnode.findtext('./status')
-        if xmlnode.attrib['name'] == 'Add Robotmk Message':
-            data = json.loads(self.msg)['add_robotmk_message']
+        if xmlnode.attrib['name'] == 'Add Monitoring Message':
+            data = json.loads(self.msg)['add_monitoring_message']
             self.root_suite.robotmk_messages.append(
                 data
             )
@@ -614,9 +614,9 @@ class RobotItem(object):
     # The result of this keyword is of NO MEANING for the test. It affects the 
     # state of the Robotmk service, see Ref. 8nIZ5J
     def _eval_node_kw_robotmk_state(self):
-        if self.name == 'Add Robotmk Message' and len(self.msg) > 0:
+        if self.name == 'Add Monitoring Message' and len(self.msg) > 0:
             try: 
-                data = json.loads(self.msg)['add_robotmk_message']
+                data = json.loads(self.msg)['add_monitoring_message']
                 state = STATES_NO[data['nagios_state']]
                 msg   = "%s: %s" % (data['nagios_state'], data['msg'])
                 kw_robotmk_state = (0, msg)
