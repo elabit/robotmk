@@ -49,7 +49,7 @@ function release() {
 
     header "Merging develop into master..."
     git checkout master
-    git merge develop --no-ff --no-edit
+    git merge develop --no-ff --no-edit --strategy-option theirs
     header "Create annotated git tag from Changelog entry ..."
     chag tag --addv
     header "Pushing ..."

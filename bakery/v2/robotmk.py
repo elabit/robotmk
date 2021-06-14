@@ -18,7 +18,7 @@
 # to the Free Software Foundation, Inc., 51 Franklin St,  Fifth Floor,
 # Boston, MA 02110-1301 USA.
 
-ROBOTMK_VERSION = 'v1.1.0-beta.5'
+ROBOTMK_VERSION = 'v1.1.0'
 
 from typing import Iterable, TypedDict, List
 from pathlib import Path
