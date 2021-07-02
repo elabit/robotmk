@@ -22,6 +22,15 @@
       "contributions": [
         "mentoring"
       ]
+    },
+    {
+      "login": "a-lohmann",
+      "name": "A. Lohmann",
+      "avatar_url": "https://avatars.githubusercontent.com/u/9255272?v=4",
+      "profile": "https://github.com/a-lohmann",
+      "contributions": [
+        "bug"
+      ]
     }
   ],
   "contributorsPerLine": 7,
