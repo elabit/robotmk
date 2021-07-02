@@ -28,6 +28,7 @@ from dateutil import parser
 import xml.etree.ElementTree as ET
 from collections import namedtuple
 from string import Template
+from cmk.utils.exceptions import MKGeneralException
 
 # UTC = pytz.utc
 
