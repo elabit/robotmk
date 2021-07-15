@@ -133,6 +133,53 @@ The context help can be shown by clicking on the **book icon** in the top right 
 
 ### Environment setup 
 
+#### Starting the VS Code devcontainer
+
+Both flavours of Robotmk (CMK1 and 2) can be developed with Visual Studio Code and the [devcontainer setup](https://code.visualstudio.com/docs/remote/containers). 
+
+Before firing up the devcontainer, you have to select the CMK major version you want to develop in: 
+
+```
+# Setting the environment for Checkmk major version 1: 
+15:18 $ .devcontainer/set_devcontainer_version.sh 1
++ Applying version specific devcontainer.json file..
++ Setting Python version for VS Code...
+Preparation for Checkmk version 1 finished. You can now start the devcontainer in VS Code with 'Remote-Containers: Rebuild Container'.
+```
+Ctrl-Shift-P in VSC brings up the command palette to start the devcontainer. 
+
+In the VS Code terminal you see the CMK site starting. This takes some minutes (at least on my aged Mac). During this step, all relevant files for Robotmk get symlinked into the version specific folder of the CMK Docker container. **Don't try to install the Robotmk MKP into this container!** 
+
+You also see that the script is already trying to create a dummy host `win10simdows`. For some reason, the automation secret is not in place until you log into the CMK site the very first time. Do this and then execute the lines of `.devcontainer/postCreateCommand.sh` by hand: 
+
+```
+OMD[cmk]:/workspaces/robotmk$ SECRET=$(cat /opt/omd/sites/cmk/var/check_mk/web/automation/automation.secret)
+ITE=cmk
+
+curl -k "http://$HOST/$SITE/check_mk/webaOMD[cmk]:/workspaces/robotmk$ HOST=localhost:5000
+pi.py?action=add_host&_username=automation&_secretOMD[cmk]:/workspaces/robotmk$ SITE=cmk
+OMD[cmk]:/workspaces/robotmk$ 
+OMD[cmk]:/workspaces/robotmk$ curl -k "http://$HOST/$SITE/check_mk/webapi.py?action=add_host&_username=automation&_secret=$SECRET&request_format=python&output_format=python" -d "request={'hostname': 'win10simdows', 'folder': '', 'attributes': {'ipaddress': '192.168.116.8'}, 'create_folders': '1'}"
+cmk -R{'result': None, 'result_code': 0}OMD[cmk]:/workspaces/robotmk$ cmk -IIv win10simdows
+Discovering services on: win10simdows
+win10simdows:
++ FETCHING DATA
+ [agent] Execute data source
+ [agent] ERROR: Communication failed: timed out
+ [piggyback] Execute data source
+No piggyback files for 'win10simdows'. Skip processing.
+No piggyback files for '192.168.116.8'. Skip processing.
++ EXECUTING DISCOVERY PLUGINS (0)
+SUCCESS - Found no services, no host labels
+OMD[cmk]:/workspaces/robotmk$ cmk -R
+Generating configuration for core (type cmc)...OK
+Packing config...OK
+Restarting monitoring core...OK
+```
+
+The devcontainer is ready now.
+
+
 #### VS Code Build Task
 
 `Ctrl+Shift+B` is bound to `build.sh` which builds the CMK version specific MKP file. 

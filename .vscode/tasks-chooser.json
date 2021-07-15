@@ -13,11 +13,11 @@
         },
         {
             "displayName": "▶︎ Set devcontainer to CMK v1.6",
-            "command": "cp .devcontainer/devcontainer{_v1,}.json"
+            "command": "bash .devcontainer/set_devcontainer_version.sh 1"
         },
         {
             "displayName": "▶︎ Set devcontainer to CMK v2",
-            "command": "cp .devcontainer/devcontainer{_v2,}.json"
+            "command": "bash .devcontainer/set_devcontainer_version.sh 2"
         }
     ],
     "baseItem": {
