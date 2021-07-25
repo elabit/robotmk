@@ -16,7 +16,7 @@ function main {
         echo "Detected CMK major version 1"
         lsync_v1files
         echo -e "\n###########\nStarting lsyncd to synchronize files...\n"
-        nohup lsyncd ~/.lsyncd
+        nohup lsyncd $OMD_ROOT/.lsyncd
     elif [ $MVERSION == 2 ]; then 
         echo "Detected CMK major version 2"
         linkv2files
