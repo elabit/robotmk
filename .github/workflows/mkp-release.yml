@@ -23,7 +23,7 @@ jobs:
 
     steps:
       - name: Install jq package
-        run: apt update && apt-get -y install jq
+        run: apt update && apt-get -y install jq lsyncd
       - name: Create Checkmk Site
         run: /docker-entrypoint.sh /bin/true
       - name: add custom deb repository
@@ -67,7 +67,7 @@ jobs:
 
     steps:
       - name: Install jq package
-        run: apt update && apt-get -y install sudo jq
+        run: apt update && apt-get -y install sudo jq lsyncd
       - name: Create Checkmk Site
         run: /docker-entrypoint.sh /bin/true
       - name: Checkout Robotmk repository
