@@ -13,6 +13,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 * Fixed a bug on Linux when asynchronous execution failed because the runner could not import the Robotmk module. (#115)
 * Fixed a bug in agent plugin (1.6 & 2): piggyback option without effect (#142)
 * Fixed a bug on Linux: executable bit was not set on agent plugins (#116)
+* Fixed a bug in agent plugin: Client setting UTF-8 not handled (#137)
 
 ### Changed
 
