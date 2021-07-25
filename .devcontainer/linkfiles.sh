@@ -69,7 +69,12 @@ EOF
 function lsync_this {
     echo "---"
     SOURCE=$WORKSPACE/$1
-    DEST=$OMD_ROOT/$2
+    
+    if [ ${2:0:1} == "/" ]; then 
+        DEST=$2
+    else
+        DEST=$OMD_ROOT/$2
+    fi
     echo "Workspace dir: $SOURCE"
     echo "Container dir: $DEST"
     echo "> writing lsync config... "
@@ -111,6 +116,8 @@ function lsync_v1files {
     lsync_this checks/v1 local/share/check_mk/checks
     # Sync Bakery script dir
     lsync_this bakery/v1 local/share/check_mk/agents/bakery
+    # Sync RF test suites 
+    lsync_this rf_tests /usr/lib/check_mk_agent/robot
 }
 
 function linkv2files {
