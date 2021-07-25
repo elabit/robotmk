@@ -14,6 +14,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 * Fixed a bug in agent plugin (1.6 & 2): piggyback option without effect (#142)
 * Fixed a bug on Linux: executable bit was not set on agent plugins (#116)
 * Fixed a bug in agent plugin: Client setting UTF-8 not handled (#137)
+* Fixed a bug in Check (1.6 & 2): Fixed stale suite result handling (#134)
 
 ### Changed
 
