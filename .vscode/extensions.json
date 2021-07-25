@@ -1,0 +1,11 @@
+{
+	// See https://go.microsoft.com/fwlink/?LinkId=827846
+	// for the documentation about the extensions.json format
+	"recommendations": [
+        "yzhang.markdown-all-in-one",
+        "davidanson.vscode-markdownlint",
+        "ms-python.python",
+        "jeremyfa.tasks-chooser",
+        "yzhang.markdown-all-in-one"
+	]
+}

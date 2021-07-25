@@ -28,10 +28,11 @@ from dateutil import parser
 import xml.etree.ElementTree as ET
 from collections import namedtuple
 from string import Template
+from cmk.utils.exceptions import MKGeneralException
 
 # UTC = pytz.utc
 
-ROBOTMK_VERSION = 'v1.1.0'
+ROBOTMK_VERSION = 'v1.1.1-beta'
 
 DEFAULT_SVC_PREFIX = 'Robot Framework E2E $SUITEID$SPACE-$SPACE'
 
@@ -157,6 +158,9 @@ def check_robotmk(item, params, section):
                     (len(suites_nonstale), suites_total,
                      quoted_listitems([suite.id for suite in suites_nonstale])))
             if len(suites_stale) > 0:
+                # Ref: N2UC9N
+                # Stale results are only alarmed by the Robotmk service. The Robotmk
+                # service itself gets only stale. 
                 rc = max(rc, 2)
                 first_line.append(
                     "stale suites: %s (!!) (%s)" %
@@ -307,14 +311,18 @@ def check_robotmk(item, params, section):
                         if age.total_seconds() < root_suite['cache_time']:
                             for i in evaluate_robot_item(discovered_item, params_dict):
                                 yield i
-                            # yield evaluate_robot_item(discovered_item,
-                            #                           params)
                         else:
-                            overdue_sec = round(
-                                age.total_seconds() - root_suite['cache_time'],
-                                1)
-                            yield ignore_robot_item(root_suite, last_end,
-                                                    overdue_sec)
+                            # Keeping the following only for recalling.
+                            # A stale result should not return anything here. 
+                            # It's enough to have it alarmed by the Robotmk 
+                            # stale monitoring check (see Ref. N2UC9N)
+                            pass
+                            # overdue_sec = round(
+                            #     age.total_seconds() - root_suite['cache_time'],
+                            #     1)
+                            # yield ignore_robot_item(root_suite, last_end,
+                            #                         overdue_sec)
+
     # We should not come here. Item cannot be found in parsed data.
     # see PRO TIP: simple return if no data is found
     # http://bit.ly/3epEcf3

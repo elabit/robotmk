@@ -5,6 +5,26 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## 1.1.1-beta - 2021-07-25
+
+### Fixed 
+
+* Fixed two bugs in 1.6 bakery: double nested key in `robotmk.yml` for piggybackhost and robotdir (#141, #143)
+* Fixed a bug on Linux when asynchronous execution failed because the runner could not import the Robotmk module. (#115)
+* Fixed a bug in agent plugin (1.6 & 2): piggyback option without effect (#142)
+* Fixed a bug on Linux: executable bit was not set on agent plugins (#116)
+* Fixed a bug in agent plugin: Client setting UTF-8 not handled (#137)
+* Fixed a bug in Check (1.6 & 2): Fixed stale suite result handling (#134)
+
+### Changed
+
+* log_rotation gets stored now properly as int in `robotmk.yml`
+
+### Added 
+
+* Added documentation for `robotmk.yml` format for non CEE users 
+
+
 ## 1.1.0 - 2021-06-14
 
 ### Changed

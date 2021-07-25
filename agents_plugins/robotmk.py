@@ -45,7 +45,7 @@ from enum import Enum
 
 
 local_tz = datetime.utcnow().astimezone().tzinfo
-ROBOTMK_VERSION = 'v1.1.0'
+ROBOTMK_VERSION = 'v1.1.1-beta'
 
 #<robotmk-keywordlibrary
 # Imported from https://raw.githubusercontent.com/simonmeggle/robotframework-robotmk/
@@ -1052,7 +1052,7 @@ class RMKCtrl(RMKState, RMKPlugin):
                                                  ', '.join(self.suites_dict.keys())))
         for suite in self.config.suite_objs:
             # if (piggyback)host is set, results gets assigned to other CMK host
-            host = suite.suite_dict.get('host', 'localhost')
+            host = suite.suite_dict.get('piggybackhost', 'localhost')
             self.logdebug("Reading statefile of suite '%s': %s" % (
                 suite.id, suite.statefile_path))
             state = suite.read_state_from_file()
@@ -1077,6 +1077,7 @@ class RMKCtrl(RMKState, RMKPlugin):
 
                 for k in self.keys_to_encode:
                     if k in state:
+                        # Do not transfer HTML log if disabled in WATO
                         if k == 'htmllog' and self.global_dict['transmit_html'] == False:
                             state[k] = None
                         else:
@@ -1106,12 +1107,15 @@ class RMKCtrl(RMKState, RMKPlugin):
             # zlib bytestream is base64 wrapped to avoid nasty bytes wihtin the
             # agent output. The check has first to decode the base64 "shell"
             data_encoded = self.to_zlib(data)
+        elif encoding == 'utf_8':
+            # nothing to do, already in utf8
+            data_encoded = data
         else:
             # TODO: Catch the exception! (wrong encoding)!
             pass
         # as we are serializing the data to JSON, let's convert the bytestring
         # again back to UTF-8
-        return data_encoded.decode('utf-8')
+        return data_encoded.decode('utf-8')            
 
     def to_base64(self, data):
         data_base64 = base64.b64encode(data)

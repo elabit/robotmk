@@ -136,11 +136,14 @@ class RMKConfigAdapter():
         global_dict['agent_output_encoding'] = conf['agent_output_encoding']
         global_dict['transmit_html'] = conf['transmit_html']
         global_dict['logging'] = conf['logging']
-        global_dict['log_rotation'] = conf['log_rotation']
-        if 'robotdir' in conf and conf['robotdir'] != {}:
-            global_dict['robotdir'] = conf['robotdir']
-        else:
-            global_dict['robotdir'] = self._DEFAULTS[opsys]['robotdir']
+        global_dict['log_rotation'] = int(conf['log_rotation'])
+
+        robotdir = conf.get('robotdir', None).get('robotdir', None)
+        global_dict.update(self.dict_if_set(
+            'robotdir', 
+            robotdir, 
+            self._DEFAULTS[opsys]['robotdir']))
+
         global_dict['execution_mode'] = execution_mode
 
         # mode_conf:
@@ -172,16 +175,22 @@ class RMKConfigAdapter():
         # >> path, tag, piggyback, robot_params{}, cachetime, execution_int
         if 'suites' in mode_conf[0]:
             for suite_tuple in mode_conf[0]['suites']:
+                #### PATH
                 path = suite_tuple[0]
+
+                #### TAG
                 tag = suite_tuple[1].get('tag', None)
-                # generate a unique ID (path_tag)
                 suiteid = make_suiteid(path, tag)
                 suitedict = {
                     'path': path,
                 }
                 suitedict.update(self.dict_if_set('tag', tag))
-                suitedict.update(suite_tuple[2].get('piggybackhost', {}))
-                # ROBOT PARAMS
+
+                #### PIGGYBACK
+                piggybackhost = suite_tuple[2].get('piggybackhost', {})
+                suitedict.update(self.dict_if_set('piggybackhost', piggybackhost))
+
+                #### ROBOT PARAMS
                 robot_param_dict = suite_tuple[3].get('robot_params', {})
                 # Variables: transform the var 'list of tuples' into a dict.
                 vardict = {}
@@ -191,6 +200,7 @@ class RMKConfigAdapter():
                             vardict.update({t[0]: t[1]})
                 robot_param_dict.update(self.dict_if_set('variable', vardict))
                 suitedict.update(robot_param_dict)
+
                 # CACHE & EXECUTION TIME
                 timing_dict = {}
                 if execution_mode == 'agent_parallel':
@@ -206,12 +216,18 @@ class RMKConfigAdapter():
                     )
                 self.cfg_dict['suites'].update({suiteid: suitedict})
 
+    # If the value is set, return a dict with the key.
+    # If not, return a dict with key and default value. 
+    # If no default value, return an empty dict. 
     @staticmethod
-    def dict_if_set(key, value):
+    def dict_if_set(key, value, default=None):
         if bool(value):
             return {key: value}
         else:
-            return {}
+            if bool(default): 
+                return {key: default}
+            else: 
+                return {}
 
     def get_os_default(self, setting):
         '''Read a setting from the DEFAULTS hash. If no OS setting is found, try noarch.

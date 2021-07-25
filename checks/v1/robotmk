@@ -51,7 +51,7 @@ except:
 
 utc = pytz.utc
 
-ROBOTMK_VERSION = 'v1.1.0'
+ROBOTMK_VERSION = 'v1.1.1-beta'
 
 DEFAULT_SVC_PREFIX = 'Robot Framework E2E $SUITEID$SPACE-$SPACE'
 
@@ -182,6 +182,9 @@ def check_robot(item, checkgroup_parameters, parsed):
                     (len(suites_nonstale), suites_total,
                      quoted_listitems([s[0] for s in suites_nonstale])))
             if len(suites_stale) > 0:
+                # Ref: N2UC9N
+                # Stale results are only alarmed by the Robotmk service. The Robotmk
+                # service itself gets only stale.                 
                 rc = max(rc, 2)
                 first_line.append(
                     "stale suites: %s (!!) (%s)" %
@@ -307,7 +310,7 @@ def check_robot(item, checkgroup_parameters, parsed):
         out = ', '.join(first_line) + '\n' + ''.join(out_lines)
         return rc, out, perfdata_list
     else:
-        # any other regular s/t/k check
+        # item is a regular s/t/k check
         for root_suite in parsed['suites']:
             if 'parsed' in root_suite:
                 for discovered_item in root_suite['parsed'].discovered:
@@ -321,11 +324,16 @@ def check_robot(item, checkgroup_parameters, parsed):
                             return evaluate_robot_item(discovered_item,
                                                        checkgroup_parameters)
                         else:
-                            overdue_sec = round(
-                                age.total_seconds() - root_suite['cache_time'],
-                                1)
-                            return ignore_robot_item(root_suite, last_end,
-                                                     overdue_sec)
+                            # Keeping the following only for recalling.
+                            # A stale result should not return anything here. 
+                            # It's enough to have it alarmed by the Robotmk 
+                            # stale monitoring check (see Ref. N2UC9N)
+                            pass
+                            # overdue_sec = round(
+                            #     age.total_seconds() - root_suite['cache_time'],
+                            #     1)
+                            # return ignore_robot_item(root_suite, last_end,
+                            #                          overdue_sec)
 
 
 # Return only fatal suites

@@ -1,6 +1,6 @@
 # Robotmk
 <!-- ALL-CONTRIBUTORS-BADGE:START - Do not remove or modify this section -->
-[![All Contributors](https://img.shields.io/badge/all_contributors-2-orange.svg?style=flat-square)](#contributors-)
+[![All Contributors](https://img.shields.io/badge/all_contributors-3-orange.svg?style=flat-square)](#contributors-)
 <!-- ALL-CONTRIBUTORS-BADGE:END -->
 
 *A complete solution to integrate **Robot Framework** End2End tests into **Checkmk***
@@ -21,6 +21,7 @@
    * [Documentation](#documentation)
    * [Development setup](#development-setup)
       * [Environment setup](#environment-setup)
+         * [Starting the VS Code devcontainer](#starting-the-vs-code-devcontainer)
          * [VS Code Build Task](#vs-code-build-task)
       * [Debugging the Robotmk check](#debugging-the-robotmk-check)
       * [Release](#release)
@@ -31,7 +32,7 @@
       * [Supporters](#supporters)
    * [Contributors <g-emoji class="g-emoji" alias="sparkles" fallback-src="https://github.githubassets.com/images/icons/emoji/unicode/2728.png">✨</g-emoji>](#contributors-)
 
-<!-- Added by: runner, at: Mon May 31 16:04:33 UTC 2021 -->
+<!-- Added by: runner, at: Sun Jul 25 08:41:08 UTC 2021 -->
 
 <!--te-->
 
@@ -129,9 +130,66 @@ The context help can be shown by clicking on the **book icon** in the top right 
 
 ![How to show the context help](img/show_context_help.gif)
 
+### `robotmk.yml` explained
+
+This section is important if you decide not to use the CMK Enterprise edition (CEE) and to generate the `robotmk.yml` file instead by hand or automated by Ansible, Salt etc. 
+
+Example of `robotmk.yml`:
+
+```
+global:
+  agent_output_encoding: zlib_codec
+  cache_time: 960
+  execution_interval: 900
+  execution_mode: agent_serial
+  log_rotation: '14'
+  logging: true
+  robotdir: /usr/lib/check_mk_agent/robot
+  transmit_html: true
+suites: {}
+```
+
+Explanation: 
+
+* `global:`
+  * `agent_output_encoding`: `zlib_codec|utf_8|base64_codec` Choose `zlib_codec`; the other options are for debugging purposes. Zlib guarantees bandwidth saving. 
+  * `cache_time`
+  * `execution_interval` (only in serial mode) 
+  * `execution_mode`: `agent_serial|external`
+  * `log_rotation`: Number of days to rotate the logs
+  * `logging`: `true|false`
+  * `robotdir`: The folder containing `.robot` files and/or suite dirs 
+  * `transmit_html`: `true|false` - whether to transmit the Robot HTML log to the CMK server. 
+* `suites:` - if Robotmk should execute everythin it can find in `robotdir`, set this to `{}` (empty dict)
+  * `suiteid`: either equal to `path` (see below) or, if the same suite must be executed multiple times, a combination of `path` and `tag`
+    * `path`: relative path to the `.robot` file or a folder within the `robotdir` (the latter one is highly recommended)
+    * `piggybackhost` (optional): if set, the result of this suite will be assigned to another CMK host.
+    * `robot_params` (optional): a list of Robot framework command line switches 
+
+
+
 ## Development setup
 
 ### Environment setup 
+
+#### Starting the VS Code devcontainer
+
+Both flavours of Robotmk (CMK1 and 2) can be developed with Visual Studio Code and the [devcontainer setup](https://code.visualstudio.com/docs/remote/containers). 
+
+Before firing up the devcontainer, you have to select the CMK major version you want to develop in: 
+
+```
+# Setting the environment for Checkmk major version 1: 
+15:18 $ .devcontainer/set_devcontainer_version.sh 1
++ Applying version specific devcontainer.json file..
++ Setting Python version for VS Code...
+Preparation for Checkmk version 1 finished. You can now start the devcontainer in VS Code with 'Remote-Containers: Rebuild Container'.
+```
+Ctrl-Shift-P in VSC brings up the command palette to start the devcontainer. 
+
+In the VS Code terminal you see the CMK site starting. This takes some minutes (at least on my aged Mac). During this step, all relevant files for Robotmk get [lsynced](https://axkibe.github.io/lsyncd/) (V1)/symlinked (V1) into the version specific folder of the CMK Docker container. **Don't try to install the Robotmk MKP into this container!** 
+
+The devcontainer is ready now.
 
 #### VS Code Build Task
 
@@ -254,6 +312,7 @@ Thanks goes to these wonderful people ([emoji key](https://allcontributors.org/d
   <tr>
     <td align="center"><a href="http://kleinski.de"><img src="https://avatars.githubusercontent.com/u/3239736?v=4?s=100" width="100px;" alt=""/><br /><sub><b>Marcus Klein</b></sub></a><br /><a href="https://github.com/simonmeggle/robotmk/issues?q=author%3Akleinski" title="Bug reports">🐛</a></td>
     <td align="center"><a href="https://burntfen.com"><img src="https://avatars.githubusercontent.com/u/910753?v=4?s=100" width="100px;" alt=""/><br /><sub><b>Richard Littauer</b></sub></a><br /><a href="#mentoring-RichardLitt" title="Mentoring">🧑‍🏫</a></td>
+    <td align="center"><a href="https://github.com/a-lohmann"><img src="https://avatars.githubusercontent.com/u/9255272?v=4?s=100" width="100px;" alt=""/><br /><sub><b>A. Lohmann</b></sub></a><br /><a href="https://github.com/simonmeggle/robotmk/issues?q=author%3Aa-lohmann" title="Bug reports">🐛</a></td>
   </tr>
 </table>
 
