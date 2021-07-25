@@ -23,3 +23,5 @@ dist/*.vscode/.ropeproject/
 dist/*
 mkpackage.pyc
 *.mkp
+*.swp
+nohup.out
