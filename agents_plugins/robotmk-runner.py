@@ -18,12 +18,16 @@
 # to the Free Software Foundation, Inc., 51 Franklin St,  Fifth Floor,
 # Boston, MA 02110-1301 USA.
 
-# This plugin requires Python > 3.7 and some modules:
-# pip3 install robotframework pyyaml mergedeep python-dateutil
-
-from robotmk import robotmk, RMKPlugin, RMKrunner, test_for_modules
-
-
+try:
+    # Import the main Robotmk functions from the same directory (Windows)
+    from robotmk import robotmk, RMKPlugin, RMKrunner, test_for_modules
+except ImportError:
+    # If the import fails, try to import robotmk form the parent directory (Linux)
+    # This is the case when the runner gets scheduled asynchronously on Linux where
+    # it is saved in a subfolder
+    import sys, os
+    sys.path.insert(1, os.path.join(sys.path[0], '..'))
+    from robotmk import robotmk, RMKPlugin, RMKrunner, test_for_modules
 
 
 def main():
