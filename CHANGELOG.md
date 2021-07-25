@@ -11,7 +11,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 * Fixed two bugs in 1.6 bakery: double nested key in `robotmk.yml` for piggybackhost and robotdir (#141, #143)
 * Fixed a bug on Linux when asynchronous execution failed because the runner could not import the Robotmk module. (#115)
-* Fixed a bug in agent plugin (1.6 & 2): piggyback option without effect (closes #142)
+* Fixed a bug in agent plugin (1.6 & 2): piggyback option without effect (#142)
+* Fixed a bug on Linux: executable bit was not set on agent plugins (#116)
 
 ### Changed
 

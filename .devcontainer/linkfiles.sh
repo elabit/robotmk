@@ -80,7 +80,7 @@ function lsync_this {
     echo "> writing lsync config... "
     echo "-- $DEST" >> $LSYNCD_CFG
     mkdir -p $DEST
-    rsync --quiet -a $SOURCE/ $DEST
+    rsync --quiet -ap $SOURCE/ $DEST
     write_lsync_cfg $SOURCE $DEST
     write_lsync_cfg $DEST $SOURCE
     echo >> $LSYNCD_CFG
