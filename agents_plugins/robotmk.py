@@ -1052,7 +1052,7 @@ class RMKCtrl(RMKState, RMKPlugin):
                                                  ', '.join(self.suites_dict.keys())))
         for suite in self.config.suite_objs:
             # if (piggyback)host is set, results gets assigned to other CMK host
-            host = suite.suite_dict.get('host', 'localhost')
+            host = suite.suite_dict.get('piggybackhost', 'localhost')
             self.logdebug("Reading statefile of suite '%s': %s" % (
                 suite.id, suite.statefile_path))
             state = suite.read_state_from_file()
