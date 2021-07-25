@@ -130,6 +130,44 @@ The context help can be shown by clicking on the **book icon** in the top right 
 
 ![How to show the context help](img/show_context_help.gif)
 
+### `robotmk.yml` explained
+
+This section is important if you decide not to use the CMK Enterprise edition (CEE) and to generate the `robotmk.yml` file instead by hand or automated by Ansible, Salt etc. 
+
+Example of `robotmk.yml`:
+
+```
+global:
+  agent_output_encoding: zlib_codec
+  cache_time: 960
+  execution_interval: 900
+  execution_mode: agent_serial
+  log_rotation: '14'
+  logging: true
+  robotdir: /usr/lib/check_mk_agent/robot
+  transmit_html: true
+suites: {}
+```
+
+Explanation: 
+
+* `global:`
+  * `agent_output_encoding`: `zlib_codec|utf_8|base64_codec` Choose `zlib_codec`; the other options are for debugging purposes. Zlib guarantees bandwidth saving. 
+  * `cache_time`
+  * `execution_interval` (only in serial mode) 
+  * `execution_mode`: `agent_serial|external`
+  * `log_rotation`: Number of days to rotate the logs
+  * `logging`: `true|false`
+  * `robotdir`: The folder containing `.robot` files and/or suite dirs 
+  * `transmit_html`: `true|false` - whether to transmit the Robot HTML log to the CMK server. 
+* `suites:` - if Robotmk should execute everythin it can find in `robotdir`, set this to `{}` (empty dict)
+  * `suiteid`: either equal to `path` (see below) or, if the same suite must be executed multiple times, a combination of `path` and `tag`
+    * `path`: relative path to the `.robot` file or a folder within the `robotdir` (the latter one is highly recommended)
+    * `piggybackhost` (optional): if set, the result of this suite will be assigned to another CMK host.
+    * `robot_params` (optional): a list of Robot framework command line switches 
+
+
+
 ## Development setup
 
 ### Environment setup 
