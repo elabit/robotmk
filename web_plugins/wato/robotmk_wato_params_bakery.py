@@ -603,8 +603,8 @@ dropdown_robotmk_output_encoding = CascadingDropdown(
 dropdown_robotmk_transmit_html = DropdownChoice(
     title=_("Transmit HTML log to Checkmk server"),
     help=_("""
-    Besides the XML data, the Robotmk plugin also transmits the <b>HTML log file</b> written by Robot Framework to the Checkmk server.\n
-    This option is <b>disabled</b> because the HTML log integration feature is still under development.
+    Robotmk transmits the <b>HTML log file</b> written by Robot Framework to the Checkmk server, where it can be action-linked with the discovered services. <br>
+    This feature needs some <b>configuration</b> which you can find in the <b>Robotmk discovery rule</b>, option <i>'Restrict the HTML log files link creation'</i>.
     """),
     choices=[
         (False, _("No")),

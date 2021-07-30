@@ -120,6 +120,8 @@ function lsync_v1files {
     lsync_this checks/v1 local/share/check_mk/checks
     # Sync Bakery script dir
     lsync_this bakery/v1 local/share/check_mk/agents/bakery
+    # Images & icons
+    lsync_this images local/share/check_mk/web/htdocs/images    
     # Sync RF test suites 
     lsync_this rf_tests /usr/lib/check_mk_agent/robot
     # Folder where agent output can be sourced with rule
@@ -140,6 +142,8 @@ function lsync_v2files {
     lsync_this checks/v2 local/lib/check_mk/base/plugins/agent_based
     # Bakery script dir
     lsync_this bakery/v2 local/lib/check_mk/base/cee/plugins/bakery
+    # Images & icons
+    lsync_this images local/share/check_mk/web/htdocs/images
     # # Sync RF test suites 
     lsync_this rf_tests /usr/lib/check_mk_agent/robot    
     # Folder where agent output can be sourced with rule
