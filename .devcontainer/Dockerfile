@@ -5,7 +5,8 @@ FROM checkmk/check-mk-enterprise:${VARIANT}
 ARG PIP
 
 ENV CMK_PASSWORD="cmk"
-# Creates the OMD site but halts before site start
+# Creates the OMD site, executes post-start hook and halts before site start
+COPY docker-entrypoint.d /docker-entrypoint.d
 RUN /docker-entrypoint.sh /bin/true
 
 # install python3 on the container
@@ -32,5 +33,6 @@ RUN PATH="/omd/sites/cmk/bin:${PATH}" \
 
 # make the robot dir writeable from the CMK site (to link RF example tests) 
 RUN mkdir -p /usr/lib/check_mk_agent/robot && chmod 777 /usr/lib/check_mk_agent/robot
+
 
 ENTRYPOINT ["/bin/bash"]
