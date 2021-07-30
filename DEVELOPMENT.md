@@ -26,24 +26,13 @@ All unreleased work is documented under the `H2` "Unreleased":
 
 ## Release Workflow 
 
-TBD: automate this
+The release workflow of Robotmk is divided into the following steps: 
 
-To release `v1.0.4`:
-
-* `export ROBOTMK_VERSION='1.0.4'`
-* Merge features
-    * Switch to `devel` branch 
-    * merge all features, document in Changelog
-* Changelog/Tag:
-    * Document Changelog entries in `Unreleased`
-    * Create a version entry: `chag update 1.0.4` (without "v")
-    * edit version numbers in scripts (Version Bump)
-    * Commit (make workdir clean)
-    * Create annotated tag from Changelog entry: `chag tag --addv` (adds "v" in front of tag)
-* If there are changes in the Github workflow, Push to `develop` (!)  
-* Checkout `master`, merge `develop`:  `git merge develop --no-ff`
-* Push to master: 
-  * `git push origin master`
-  * `git push origin v1.0.4`
-
-* Create the Release on Github: 
+* Make sure that the `develop` branch is clean (=everything is stashed/committed)
+* Execute `./release.sh release 1.2.0`, which 
+  * executes `chag update` => converting unreleased entries in `CHANGELOG` to the new version
+  * replaces version number variables in Robotmk script files
+  * commits this change as version bump 
+  * merges `develop` into `master`
+  * executes `chag tag --addv` => adds an annotated tag from the Changelog
+  * pushes to `master`
