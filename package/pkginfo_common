@@ -10,7 +10,9 @@
             "plugins/metrics/robotmk.py",
             "plugins/wato/robotmk_wato_params_bakery.py",
             "plugins/wato/robotmk_wato_params_check.py",
-            "plugins/wato/robotmk_wato_params_discovery.py"
+            "plugins/wato/robotmk_wato_params_discovery.py",
+            "htdocs/images/icons/robotmk80.png",
+            "htdocs/images/icons/robotmk80_dot.png"
         ]
     }    
 }
