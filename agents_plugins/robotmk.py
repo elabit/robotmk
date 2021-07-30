@@ -45,8 +45,10 @@ from enum import Enum
 from abc import ABC, abstractmethod 
 import glob
 import copy
+import socket
 
 local_tz = datetime.utcnow().astimezone().tzinfo
+
 ROBOTMK_VERSION = 'v1.2-beta.2'
 
 class RMKConfig():
@@ -393,7 +395,8 @@ class RMKState():
         if not type(kvpair) is list:
             kvpair = [kvpair]
         for item in kvpair:
-            self._state[item[0]] = item[1]
+            if type(item) is tuple:
+                self._state[item[0]] = item[1]
 
     def get_statevar(self, name):
         return self._state.get(name, None)
@@ -867,7 +870,7 @@ class RMKrunner(RMKState, RMKPlugin):
             ('id', 'runner'),
             ('execution_mode', self.global_dict['execution_mode']),
         ])
-        pass
+        self.hostnames = list(set([ socket.getfqdn(), socket.gethostname() ]))
 
     def __str__(self):
         return 'Robotmk Runner'
@@ -1015,7 +1018,10 @@ class RMKrunner(RMKState, RMKPlugin):
                     suite.clear_filenames()
                 self.loginfo(f'Writing suite statefile {suite.statefile_path}')
                 suite.write_state_to_file()
-        self.set_statevars(('end_time', self.get_now_as_dt()))
+        self.set_statevars([
+            ('end_time', self.get_now_as_dt()),
+            ('assigned_host', self.hostnames), 
+        ])
         self.update_runner_statevars()
         self.write_state_to_file()
 
@@ -1085,14 +1091,16 @@ class RMKrunner(RMKState, RMKPlugin):
                         # ...GAME OVER! => MERGE
                         self.loginfo("Even the last attempt was unsuccessful!")
                         self.merge_results(suite)
-        
+        piggybackhost = suite.suite_dict.get('piggybackhost', None)
+        piggyback_tuple = ('piggybackhost', piggybackhost) if piggybackhost else None
         suite.set_statevars([
             ('htmllog', str(Path(suite.outputdir).joinpath(suite.log))),
             ('xml', str(Path(suite.outputdir).joinpath(suite.output))),
             ('end_time', self.get_now_as_dt()),
             ('attempts', attempt),
-            ('max_executions', max_exec), 
-            ('rc', rc)])  
+            ('max_executions', max_exec),             
+            ('rc', rc),
+            piggyback_tuple])  
         self.logdebug(f'Suite ran for {suite.runtime:.2f} seconds')  
         self.loginfo(
             f'Final suite RC: {rc}')        
@@ -1258,6 +1266,8 @@ class RMKCtrl(RMKState, RMKPlugin):
             if host != 'localhost': 
                 self.logdebug(f"Piggyback host: {host}")
                 state.update({'piggybackhost': host})
+            else: 
+                self.logdebug(f"This result will be assigned to this host (no Piggyback).")
 
             if not bool(state):
                 error_text = f"Suite statefile {str(suite.statefile_path)} not found - (seems like the suite did not yet run)"
@@ -1274,7 +1284,7 @@ class RMKCtrl(RMKState, RMKPlugin):
                         'status': 'fatal',
                         'error': 'Robot RC was >= 252. This is a fatal error. Robotmk got no XML/HTML to process. You should execute and test the suite manually.',
                         'xml': None,
-                        'html': None
+                        'htmllog': None
                     })
                 else:
                     state.update({'status': 'nonfatal'})
@@ -1395,11 +1405,20 @@ class RMKHostData(RMKData):
     @property
     def runner_state(self):
         """Return the Runner metadata; append piggyback flag"""
-        r_dict = copy.deepcopy(self._runner_state)
+        r_dict = copy.deepcopy(self._runner_state)        
         if self.is_piggyback: 
-            r_dict.update({'piggybackhost': True})
+            # The runner output produced for piggyback data; assigned_host gets overwritten so that the HTML log 
+            # on the cmk server can be assigned exactly.
+            # See Ref #VfHCJn in robotmk check
+            r_dict.update({
+                'is_piggyback_result': True,
+                'assigned_host': [self.host]
+            })
         else: 
-            r_dict.update({'piggybackhost': False})
+            # The runner output produced for this machine; this is the host which will show the "Robotmk" meta service in CMK.
+            r_dict.update({
+                'is_piggyback_result': False
+            })
         return r_dict
 
     @property
