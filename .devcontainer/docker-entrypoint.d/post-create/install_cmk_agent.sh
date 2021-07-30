@@ -9,3 +9,4 @@
 echo "Installing the Checkmk agent..."
 DEB=$(realpath $(dirname $0))/cmk_agent.deb
 dpkg -i $DEB
+nohup xinetd
