@@ -1,7 +1,7 @@
 #!/usr/bin/python
 # -*- encoding: utf-8; py-indent-offset: 4 -*-
 
-# (c) 2020 Simon Meggle <simon.meggle@elabit.de>
+# (c) 2021 Simon Meggle <simon.meggle@elabit.de>
 
 # This file is part of Robotmk
 # https://robotmk.org
@@ -18,42 +18,25 @@
 # to the Free Software Foundation, Inc., 51 Franklin St,  Fifth Floor,
 # Boston, MA 02110-1301 USA.
 
-import tempfile
-from collections import namedtuple
 import os
+import json, base64, zlib
 import re
-import time
-import ast
-import datetime
-from pytz import timezone
-import pytz
-from dateutil import parser
+import time, datetime
 from dateutil.tz import tzlocal
-from pprint import pprint
+from dateutil import parser
 import xml.etree.ElementTree as ET
-from operator import add, sub
-from random import randint
-import base64
-import zlib
-import json
 from string import Template
-import copy
-try:
-    from natural import date
+from random import randint
+import shutil
+from collections import namedtuple
 
-    def natdate(sec):
-        return date.compress(sec)
-except:
-
-    def natdate(sec):
-        return sec
-
-
-utc = pytz.utc
-
+# V1 specific
+iam = "robotmk"
+# DO NOT DELETE
+inventory_robotmk_rules = []
 ROBOTMK_VERSION = 'v1.2-beta.2'
-
 DEFAULT_SVC_PREFIX = 'Robot Framework E2E $SUITEID$SPACE-$SPACE'
+HTML_LOG_DIR = "%s/%s" % (os.environ['OMD_ROOT'], 'local/share/addons/robotmk')
 
 STATES = {
     0: 'OK',
@@ -76,23 +59,18 @@ ROBOTMK_KEYWORDS = {
     'Add Monitoring Message',
 }
 
-iam = "robotmk"
-# DO NOT DELETE
-inventory_robotmk_rules = []
-
-
 def parse_robot(info):
     keys_to_decode = ['xml', 'htmllog']
     robot_discovery_settings = get_setting('robot_discovery_settings', [])
     try:
-        info_joined = ''.join([l[0] for l in info])
-        info_dict = json.loads(info_joined)
+        st_joined = ''.join([l[0] for l in info])
+        st_dict = json.loads(st_joined)
     except Exception:
         raise MKGeneralException(
             "Can not load Robotmk JSON data! (json.loads())")
 
-    runner_data = info_dict['runner']
-    for idx, json_suite in enumerate(info_dict['suites']):
+    runner_data = st_dict['runner']
+    for idx, json_suite in enumerate(st_dict['suites']):
         for k in keys_to_decode:
             if k in json_suite:
                 if bool(json_suite[k]):
@@ -127,45 +105,63 @@ def parse_robot(info):
         discovery_setting = namedtuple(
             'DiscoverySetting', 'level blacklist_pattern')._make(setting)
         # now process the root suite
-        info_dict['suites'][idx]['parsed'] = parse_suite_xml(
+        st_dict['suites'][idx]['parsed'] = parse_suite_xml(
             xml_root_suite, discovery_setting)
-        # info_dict['suites'][idx]['parsed'] = idx
-    return info_dict
+    return (st_dict, robot_discovery_settings)
 
 
-def inventory_robot(info_dict):
 
-    # TODO: Error handling for no suites/runner_data keys?
-    for json_suite in info_dict['suites']:
-        if 'parsed' in json_suite:
-            for discovered_item in json_suite['parsed'].discovered:
-                item_svc_name = add_svc_prefix(discovered_item.name,
-                                               json_suite)
-                # Display the service on _this_ host if: 
-                # - if this is a piggyback host (agent output for pb hosts contains only selected suites)
-                # or
-                # - if this is the "Robot"-host and the suite has no piggyback host set 
-                if 'piggybackhost' in info_dict['runner'] or not json_suite.get('piggybackhost'):    
-                    yield item_svc_name, None
+# v1discovery
+def discover_robotmk(parsed_info):
+    info_dict = parsed_info[0]
+    service_prefix = get_setting('robot_service_prefix', [])
+    html_show_patterns = get_setting('htmllog', {})
+    is_piggyback_result = info_dict['runner'].get('is_piggyback_result', False)
+    svc_label_robotmk_yes = ServiceLabel(u"robotmk", u"yes")
+    for root_suite in info_dict['suites']:
+        suite_piggybackhost = root_suite.get('piggybackhost', "")        
+        if 'parsed' in root_suite:
+            for discovered_item in root_suite['parsed'].discovered:
+                service_description = add_svc_prefix(discovered_item.name,
+                                               root_suite,
+                                               service_prefix)
+                svc_labels_htmllog = []
+                if (not is_piggyback_result and not suite_piggybackhost) or (is_piggyback_result and suite_piggybackhost): 
+                    svc_labels = ServiceLabels()
+                    # Displaying a hyperlink to the HTML logs on CMK services 
+                    # See Ref #VfHCJn in robotmk agent plugin
+                    svc_labels_htmllog = assign_html_logs(service_description, info_dict, root_suite, html_show_patterns)
+                    for label in svc_labels_htmllog + [svc_label_robotmk_yes]:
+                        svc_labels.add_label(label)
+                    yield Service(
+                        item=service_description,
+                        # parameters=params_dict,
+                        service_labels=svc_labels)
 
     # Display the Robotmk meta service only on the "Robot" host. (for reporting overall runtimes, stale spool files etc.)
-    if not 'piggybackhost' in info_dict['runner']: 
+    if not is_piggyback_result: 
         svc_robotmk = get_setting('robotmk_service_name', 'Robotmk')
-        yield svc_robotmk, None
+        svc_labels = ServiceLabels(ServiceLabel(u"robotmk", u"yes"), ServiceLabel(u"robotmk/type", u"robotmk"))
+        yield Service(
+            item=svc_robotmk,
+            # parameters=params_dict, 
+            service_labels=svc_labels)
 
 
-# item = CMK service to check
-# parsed = dict of runner_data/suites; suites = dict of root suites incl. the
-#          discovered items
+
 def check_robot(item, checkgroup_parameters, parsed):
+    parsed_section = parsed[0]
+    robot_discovery_settings = parsed[1]
+    service_prefix = get_setting('robot_service_prefix', [])
+    svc_robotmk = get_setting('robotmk_service_name', 'Robotmk')
     if checkgroup_parameters == None:
         checkgroup_parameters = {}
-    robot_discovery_settings = get_setting('robot_discovery_settings', [])
-
-    svc_robotmk = get_setting('robotmk_service_name', 'Robotmk')
+    runner_assigned_host = parsed_section['runner'].get('assigned_host', [])
+    # The "Robotmk" service
     if item == svc_robotmk:
+        # item is the Robotmk meta service
         perfdata_list = []
-        suites_total = len(parsed['suites'])
+        suites_total = len(parsed_section['suites'])
         rc = 0
         # list of strings for first output line
         first_line = []
@@ -175,8 +171,8 @@ def check_robot(item, checkgroup_parameters, parsed):
         # I) Staleness Check:
         # result_age vs. cache_time/execution time
 
-        suites_fatal = check_fatal_suites(parsed['suites'])
-        suites_stale, suites_nonstale = check_stale_suites(parsed['suites'])
+        suites_fatal = check_fatal_suites(parsed_section['suites'])
+        suites_stale, suites_nonstale = check_stale_suites(parsed_section['suites'])
         # firstline
         if suites_total == 0:
             first_line.append(
@@ -185,9 +181,9 @@ def check_robot(item, checkgroup_parameters, parsed):
         else:
             if len(suites_nonstale) > 0:
                 first_line.append(
-                    "%d of %s suite(s) with recent results (%s)" %
+                    "%d of %s suite(s) have recent results (%s)" %
                     (len(suites_nonstale), suites_total,
-                     quoted_listitems([s[0] for s in suites_nonstale])))
+                     quoted_listitems([suite.id for suite in suites_nonstale])))
             if len(suites_stale) > 0:
                 # Ref: N2UC9N
                 # Stale results are only alarmed by the Robotmk service. The Robotmk
@@ -196,8 +192,8 @@ def check_robot(item, checkgroup_parameters, parsed):
                 first_line.append(
                     "stale suites: %s (!!) (%s)" %
                     (len(suites_stale),
-                     quoted_listitems([s[0] for s in suites_stale])))
-                out_lines.extend([s[1] for s in suites_stale])
+                     quoted_listitems([suite.id for suite in suites_stale])))
+                out_lines.extend([suite.msg for suite in suites_stale])
             if len(suites_fatal) > 0:
                 rc = max(rc, 2)
                 first_line.append("FATAL suites: %s (!!) (%s)" %
@@ -221,19 +217,18 @@ def check_robot(item, checkgroup_parameters, parsed):
         - parallel mode (controller starts one runner per suite)
         - external mode (a scheduled task starts the runner with suite args)'''
 
-        if 'runtime_total' in parsed['runner']:
-            runner_runtime = round(parsed['runner']["runtime_total"], 1)
+        if 'runtime_total' in parsed_section['runner']:
+            runner_runtime = round(parsed_section['runner']["runtime_total"], 1)
 
             try:
-                if parsed['runner']['execution_mode'] == 'agent_serial':
-                    cache_time = parsed['runner']['cache_time']
-                    execution_interval = parsed['runner']['execution_interval']
+                if parsed_section['runner']['execution_mode'] == 'agent_serial':
+                    cache_time = parsed_section['runner']['cache_time']
+                    execution_interval = parsed_section['runner']['execution_interval']
                     maxruntime = execution_interval
                     maxruntime_str = 'execution interval'
-                elif parsed['runner'][
-                        'execution_mode'] == 'external' and not parsed[
-                            'runner']['selective_run']:
-                    cache_time = parsed['runner']['cache_time']
+                elif parsed_section['runner'][
+                        'execution_mode'] == 'external' and not parsed_section['runner']['selective_run']:
+                    cache_time = parsed_section['runner']['cache_time']
                     maxruntime = cache_time
                     maxruntime_str = 'cache time'
                     execution_interval = None
@@ -258,10 +253,10 @@ def check_robot(item, checkgroup_parameters, parsed):
                     (badge, pct_runtime_usage, runner_runtime) + "%s (%ds)" %
                     (maxruntime_str, maxruntime))
 
+                # TODO: Add _real_ warn/crit thresholds here
                 perfdata_list.append((
                     'runner_runtime', runner_runtime, runner_runtime_warn_s,
                     runner_runtime_crit_s, 0, maxruntime
-                    # TODO: Add warn/crit thresholds here
                 ))
                 perfdata_list.append(('runner_cache_time', "%d" % cache_time))
                 if not execution_interval is None:
@@ -269,22 +264,23 @@ def check_robot(item, checkgroup_parameters, parsed):
                                           "%d" % execution_interval))
                 perfdata_list.append(
                     ('runner_runtime_robotmk',
-                     "%.3f" % parsed['runner']["runtime_robotmk"]))
+                     "%.3f" % parsed_section['runner']["runtime_robotmk"]))
+
                 perfdata_list.append(
                     ('runner_runtime_suites',
-                     "%.3f" % parsed['runner']["runtime_suites"]))
+                     "%.3f" % parsed_section['runner']["runtime_suites"]))
         else:
             rc = max(rc, 2)
             first_line.append("Robotmk Runner did never run (!!)")
 
         # 3. Execution mode
         first_line.append("execution mode: %s" %
-                          parsed['runner']["execution_mode"])
+                          parsed_section['runner']["execution_mode"])
         
-        # 4. Check Robotmk messages (keyword: "Add Monitoring Message")
-        # Ref. 8nIZ5J
+        # 4. Check Robotmk messages (coming from keyword: "Add Monitoring Message")
+        # see Ref. 8nIZ5J
         fflines = []
-        for root_suite in parsed['suites']:
+        for root_suite in parsed_section['suites']:
             if len(root_suite['parsed'].robotmk_messages) > 0: 
                 firstline_messages = []
                 fflines.append("Messages from suite '%s':" % root_suite['parsed'].name)
@@ -303,7 +299,7 @@ def check_robot(item, checkgroup_parameters, parsed):
 
 
         # 5. VERSION CHECK
-        client_version = parsed['runner']['robotmk_version']
+        client_version = parsed_section['runner']['robotmk_version']
         if client_version != ROBOTMK_VERSION:
             first_line.append(
                 "Robotmk version mismatch (server: %s, client: %s) (!)" %
@@ -318,11 +314,20 @@ def check_robot(item, checkgroup_parameters, parsed):
         return rc, out, perfdata_list
     else:
         # item is a regular s/t/k check
-        for root_suite in parsed['suites']:
+        for root_suite in parsed_section['suites']:
             if 'parsed' in root_suite:
+                html_exists = 'htmllog' in root_suite    
+                if html_exists: 
+                    # Discovery part see Ref #exNx1h
+                    for host in runner_assigned_host: 
+                        host_dir = "%s/%s" % (HTML_LOG_DIR, host)
+                        save_htmllog(host_dir, "%s_last_log.html" % root_suite['id'], root_suite['htmllog'])
+                        if root_suite['rc'] > 0: 
+                            save_htmllog(host_dir, "%s_last_error_log.html" % root_suite['id'], root_suite['htmllog'])
+
                 for discovered_item in root_suite['parsed'].discovered:
                     # Remove the prefix to get the original item name
-                    item_without_prefix = strip_svc_prefix(item, root_suite)
+                    item_without_prefix = strip_svc_prefix(item, root_suite, service_prefix)
                     if discovered_item.name == item_without_prefix:
                         now = datetime.datetime.now(tzlocal())
                         last_end = parser.isoparse(root_suite['end_time'])
@@ -343,65 +348,6 @@ def check_robot(item, checkgroup_parameters, parsed):
                             #                          overdue_sec)
 
 
-# Return only fatal suites
-def check_fatal_suites(suites):
-    # TODO: return list of output lines
-    return [s for s in suites if s['status'] == 'fatal']
-
-
-# A suite can be stale in two cases:
-# - A) start_time/end_time exist: the suite ran.
-#   Age is "time since end_time"; stale if age > cache_time
-# - B) only start_time exists: the suite is running (or: hanging forever??).
-#   Age is then "time since start_time"; stale if age > cache_time
-def check_stale_suites(suites):
-    suites_stale = []
-    suites_nonstale = []
-    for root_suite in [s for s in suites if s['status'] != 'fatal']:
-        now = datetime.datetime.now(tzlocal())
-        if 'end_time' in root_suite:
-            # Case A) (suite ran)
-            last_end = parser.isoparse(root_suite['end_time'])
-            age = now - last_end
-            last_end_fmt = last_end.strftime('%Y-%m-%d %H:%M:%S')
-            if age.total_seconds() < root_suite['cache_time']:
-                # nonstale
-                suites_nonstale.append(
-                    (root_suite['id'],
-                     "Suite '%s': (last execution end: %s, " %
-                     (root_suite['id'], last_end_fmt)))
-            else:
-                # stale result
-                overdue_sec = age.total_seconds() - root_suite['cache_time']
-                suites_stale.append(
-                    (root_suite['id'],
-                     "(!!) Suite '%s': (last execution end: %s, " %
-                     (root_suite['id'], last_end_fmt) +
-                     "cache time: %ds, overdue since %.1fs)\n" %
-                     (root_suite['cache_time'], overdue_sec)))
-        else:
-            # Case B) (suite started, no end_time)
-            last_start = parser.isoparse(root_suite['start_time'])
-            age = now - last_start
-            last_start_fmt = last_start.strftime('%Y-%m-%d %H:%M:%S')
-            if age.total_seconds() < root_suite['cache_time']:
-                # nonstale
-                suites_nonstale.append(
-                    (root_suite['id'],
-                     "Suite '%s': (started 1st time at: %s, " %
-                     (root_suite['id'], last_start_fmt)))
-            else:
-                # stale result
-                overdue_sec = age.total_seconds() - root_suite['cache_time']
-                suites_stale.append(
-                    (root_suite['id'],
-                     "(!!) Suite '%s': (started 1st time at %s, " %
-                     (root_suite['id'], last_start_fmt) +
-                     "cache time: %ds, overdue since %.1fs)\n" %
-                     (root_suite['cache_time'], overdue_sec)))
-
-    return (suites_stale, suites_nonstale)
-
 
 def ignore_robot_item(root_suite, last_end, overdue_sec):
     # TODO: (Perhaps make this configurable (OK/UNKNOWN))
@@ -421,34 +367,32 @@ def evaluate_robot_item(robot_item, checkgroup_parameters):
     return rc, output_lines, perfdata
 
 
-def get_svc_prefix(itemname, root_suite):
+def get_svc_prefix_tplstring(itemname, root_suite, prefix):
     '''Determines the prefix for an item as defined with pattern for root suite'''
-    robot_service_prefix = get_setting('robot_service_prefix', [])
-    fmtstring = pattern_match(robot_service_prefix, root_suite['parsed'].name,
+    fmtstring = pattern_match(prefix, root_suite['parsed'].name,
                               DEFAULT_SVC_PREFIX)
     template = Template(fmtstring)
-    prefix = template.safe_substitute(PATH=root_suite['path'],
+    ret_prefix = template.safe_substitute(PATH=root_suite['path'],
                                       TAG=root_suite['tag'],
                                       SUITEID=root_suite['id'],
                                       SUITENAME=root_suite['parsed'].name,
                                     #   EXEC_MODE=
                                       SPACE=' ')
-    return prefix
+    return ret_prefix
 
 
-def add_svc_prefix(itemname, root_suite):
+def add_svc_prefix(itemname, root_suite, prefix):
     '''Returns the item name with a templated prefix string in front of it'''
-    return "%s%s" % (get_svc_prefix(itemname, root_suite), itemname)
+    return "%s%s" % (get_svc_prefix_tplstring(itemname, root_suite, prefix), itemname)
 
 
-def strip_svc_prefix(itemname, root_suite):
+def strip_svc_prefix(itemname, root_suite, prefix):
     '''Strips off the templated prefix string from the front of an item name'''
-    prefix = get_svc_prefix(itemname, root_suite)
-    if itemname.startswith(prefix):
-        return itemname[len(prefix):]
+    prefix_tplstring = get_svc_prefix_tplstring(itemname, root_suite, prefix)
+    if itemname.startswith(prefix_tplstring):
+        return itemname[len(prefix_tplstring):]
     else:
         return itemname
-
 
 # ==============================================================================
 
@@ -727,7 +671,7 @@ class RobotItem(object):
         else:
             self.result['result_cmk_runtime'] = None
 
-    def _eval_node_cmk_perfdata(self, check_params):
+    def _eval_node_cmk_perfdata(self, check_params):   
         # PERFDATA ---- Which elemens should produce performance data?
         # this_runtime_threshold = None
         runtime_threshold = self._get_pattern_value('runtime_threshold',
@@ -849,16 +793,17 @@ class RobotItem(object):
         # Now calculate the depth level for the next sub-item
         next_depth_limit = None
         if depth_limit == None or depth_limit > 0:
-            if depth_limit > 0:
-                # note 1: depth_limit is set, we can descend, calculate next deph from this level
+            if bool(depth_limit):
+                # note 1: depth_limit is set to something else than 0 or None; we can descend.
+                # Now calculate next depth from this level
                 next_depth_limit = depth_limit - 1
             else:
-                if depth_limit_inherited >= 0:
-                    # note 2: No depth limit set, but inherited value. Calculate new one.
-                    next_depth_limit = depth_limit_inherited - 1
-                else:
+                if depth_limit_inherited is None:
                     # note 3: No depth limit, no inherited limit. Set next limit also to None.
                     next_depth_limit = None
+                else:
+                    # note 2: No depth limit set, but inherited value. Calculate new one.
+                    next_depth_limit = depth_limit_inherited - 1
         else:
             # 4 there's 0 defined, this overwrites inherited depth
             next_depth_limit = -1
@@ -1068,7 +1013,6 @@ class RobotKeyword(RobotItem):
     def __str__(self):
         return "Keyword"
 
-
 def parse_suite_xml(root_xml, discovery_setting):
     # Store discovery level
     RobotItem.discovery_setting = discovery_setting
@@ -1089,6 +1033,152 @@ def parse_suite_xml(root_xml, discovery_setting):
 #               | |
 #               |_|
 
+def save_htmllog(dir, logname, raw_html):
+    filename = "%s/%s" % (dir, logname)
+    try:
+        with open(filename, 'w') as f:
+            f.write(raw_html) 
+    except Exception:
+        raise MKGeneralException("Robotmk failed to save the log file %s: %s" % (filename))
+
+def assign_html_logs(svc_desc, info_dict, root_suite, html_show_patterns):
+    # If piggyback was not set anyway, the client tried to determine its hostname
+    # and FQDN (if set) and hopefully there is a match on the Checkmk server. 
+    runner_assigned_host = info_dict['runner'].get('assigned_host', [])
+    svc_labels = []
+    html_exists = 'htmllog' in root_suite
+    if html_exists:
+        # Check part see Ref #exNx1h
+        for host in runner_assigned_host: 
+            # There is 1 HTML log per root suite. Because of the fact that 
+            # the discovery level feature of Robotmk allows to generate more 
+            # than 1 service out of a root suite (example: 1 suite with 
+            # test1..test5 => service test1...5), we need a translation between 
+            # the discovered items (test) and the single log file (suite). 
+            # /hostname
+            #   $SUITE_last_error_log.html
+            #   $SUITE_last_log.html
+            #   /discovered_item1
+            #     suite_last_error_log.html -> ../$SUITE_last_error_log.html          
+            #     suite_last_log.html -> ../$SUITE_last_log.html          
+            #   /discovered_item2
+            #     suite_last_error_log.html -> ../$SUITE_last_error_log.html          
+            #     suite_last_log.html -> ../$SUITE_last_log.html          
+            for log in ['last_log', 'last_error_log']:
+                pattern = html_show_patterns.get(log, '.*')
+                if re.match(pattern, svc_desc): 
+                    svc_dir = "%s/%s/%s" % (HTML_LOG_DIR, host, svc_desc)
+                    #shutil.rmtree(svc_dir, ignore_errors=True)
+                    mkdirp(svc_dir)
+                    src_name = "../%s_%s.html" % (root_suite['id'], log)
+                    dest_name = "%s/%s" % (svc_dir, "suite_%s.html" % log)
+                    lns(src_name, dest_name)
+                    svc_labels.append(ServiceLabel(u"robotmk/html_%s" % log, u"yes"))
+    return svc_labels
+
+def mkdirp(path):
+    """Python2 and 3 compatible replacement for mkdir -p without raising an 
+    exception if the dir already exists"""
+    if not os.path.isdir(path):
+        os.makedirs(path)
+
+def lns(src, dest):
+    """Python2 and 3 compatible replacement for ln -s without raising an 
+    exception if the link already exists"""
+    if not os.path.islink(dest):
+        os.symlink(src, dest)
+
+# create a valid perfdata label which does contain only numbers, letters,
+# dash and underscore. Everything else becomes a underscore.
+def get_perflabel(instr):
+    outstr = re.sub('[^A-Za-z0-9]', '_', instr)
+    return re.sub('_+', '_', outstr)
+
+
+# Return an empty string for the string cast of None
+def xstr(s):
+    if s is None:
+        return ''
+    else:
+        return s
+
+
+def remove_nasty_chars(instr):
+    # Replace all chars which can cause problem in Multisite
+    # no quotes, no brackets
+    outstr = re.sub('[\[\]?+*@{}\'"]', '', xstr(instr))
+    outstr = outstr.replace('$', '')
+    outstr = outstr.replace('\\', '')
+    # Newlines better replace by space
+    outstr = outstr.replace('\n', ' ')
+    # dash for pipe
+    outstr = re.sub('\|', '-', outstr)
+    return outstr
+
+# Return only fatal suites
+def check_fatal_suites(suites):
+    # TODO: return list of output lines
+    return [s for s in suites if s['status'] == 'fatal']
+
+
+# A suite can be stale in two cases:
+# - A) start_time/end_time exist: the suite ran.
+#   Age is "time since end_time"; stale if age > cache_time
+# - B) only start_time exists: the suite is running (or: hanging forever??).
+#   Age is then "time since start_time"; stale if age > cache_time
+def check_stale_suites(suites):
+    suites_stale = []
+    suites_nonstale = []
+    Suite = namedtuple('Suite', 'id,msg')
+    for root_suite in [s for s in suites if s['status'] != 'fatal']:
+        now = datetime.datetime.now(tzlocal())
+        if 'end_time' in root_suite:
+            # Case A) (suite ran)
+            last_end = parser.isoparse(root_suite['end_time'])
+            age = now - last_end
+            last_end_fmt = last_end.strftime('%Y-%m-%d %H:%M:%S')
+            if age.total_seconds() < root_suite['cache_time']:
+                # nonstale
+                msg = "Suite '%s': (last execution end: %s, " % (root_suite['id'], last_end_fmt)
+                suites_nonstale.append(
+                    Suite(
+                        root_suite['id'],
+                        msg
+                    ))                
+            else:
+                # stale result
+                overdue_sec = age.total_seconds() - root_suite['cache_time']
+                msg = "(!!) Suite '%s': (last execution end: %s, " % (root_suite['id'], last_end_fmt) + \
+                    "cache time: %ds, overdue since %.1fs)\n" % (root_suite['cache_time'], overdue_sec)
+                suites_stale.append(
+                    Suite(
+                        root_suite['id'],
+                        msg
+                     ))
+        else:
+            # Case B) (suite started, no end_time)
+            last_start = parser.isoparse(root_suite['start_time'])
+            age = now - last_start
+            last_start_fmt = last_start.strftime('%Y-%m-%d %H:%M:%S')
+            if age.total_seconds() < root_suite['cache_time']:
+                # nonstale
+                msg =  "Suite '%s': (started 1st time at: %s, " % (root_suite['id'], last_start_fmt)
+                suites_nonstale.append(
+                    Suite(
+                        root_suite['id'],
+                        msg
+                    ))
+            else:
+                # stale result
+                overdue_sec = age.total_seconds() - root_suite['cache_time']
+                msg = "(!!) Suite '%s': (started 1st time at %s, " % (root_suite['id'], last_start_fmt) + \
+                     "cache time: %ds, overdue since %.1fs)\n" % (root_suite['cache_time'], overdue_sec)
+                suites_stale.append(
+                    Suite(
+                        root_suite['id'],
+                        msg
+                    ))
+    return (suites_stale, suites_nonstale)
 
 
 def quoted_listitems(inlist):
@@ -1115,6 +1205,92 @@ def pattern_match(patterns, name, default=None):
     return default
 
 
+def timestamp_to_millis(timestamp):
+    Y, M, D, h, m, s, millis = split_timestamp(timestamp)
+    secs = time.mktime(datetime.datetime(Y, M, D, h, m, s).timetuple())
+    return roundup(1000 * secs + millis)
+
+
+def split_timestamp(timestamp):
+    years = int(timestamp[:4])
+    mons = int(timestamp[4:6])
+    days = int(timestamp[6:8])
+    hours = int(timestamp[9:11])
+    mins = int(timestamp[12:14])
+    secs = int(timestamp[15:17])
+    millis = int(timestamp[18:21])
+    return years, mons, days, hours, mins, secs, millis
+
+def roundup(number, ndigits=0, return_type=None):
+    result = round(number, ndigits)
+    if not return_type:
+        return_type = float if ndigits > 0 else int
+    return return_type(result)
+
+
+"""
+HTML <-> text conversions.
+http://stackoverflow.com/questions/328356/extracting-text-from-html-file-using-python
+"""
+
+def html_to_text(html):
+
+    class _HTMLToText(HTMLParser):
+        def __init__(self):
+            HTMLParser.__init__(self)
+            self._buf = []
+            self.hide_output = False
+
+        def handle_starttag(self, tag, attrs):
+            if tag in ('p', 'br') and not self.hide_output:
+                self._buf.append('\n')
+            elif tag in ('script', 'style'):
+                self.hide_output = True
+
+        def handle_startendtag(self, tag, attrs):
+            if tag == 'br':
+                self._buf.append('\n')
+
+        def handle_endtag(self, tag):
+            if tag == 'p':
+                self._buf.append('\n')
+            elif tag in ('script', 'style'):
+                self.hide_output = False
+
+        def handle_data(self, text):
+            if text and not self.hide_output:
+                self._buf.append(re.sub(r'\s+', ' ', text))
+
+        def handle_entityref(self, name):
+            if name in name2codepoint and not self.hide_output:
+                c = chr(name2codepoint[name])
+                self._buf.append(c)
+
+        def handle_charref(self, name):
+            if not self.hide_output:
+                n = int(name[1:], 16) if name.startswith('x') else int(name)
+                self._buf.append(chr(n))
+
+        def get_text(self):
+            return re.sub(r' +', ' ', ''.join(self._buf))
+                
+    """
+    Given a piece of HTML, return the plain text it contains.
+    This handles entities and char refs, but not javascript and stylesheets.
+    """
+    try:
+        from html.parser import HTMLParser
+        from html.entities import name2codepoint
+        parser = _HTMLToText()
+        parser.feed(html)
+        parser.close()
+        return parser.get_text()
+    except:  
+        # on Checkmk1 there is no HTML.Parser; :-/ 
+        return html
+        
+# %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+# V1 Specific functions
 def get_robotmk_pattern_value(setting):
     setting_keyname = getattr(self, "%s_dict_key" % setting)
     patterns = checkgroup_parameters.get(setting, {}).get(setting_keyname, [])
@@ -1132,63 +1308,11 @@ def get_setting(setting, defaultvalue):
     return settings.get(setting, defaultvalue)
 
 
-def timestamp_to_millis(timestamp):
-    Y, M, D, h, m, s, millis = split_timestamp(timestamp)
-    secs = time.mktime(datetime.datetime(Y, M, D, h, m, s).timetuple())
-    return roundup(1000 * secs + millis)
 
-
-def split_timestamp(timestamp):
-    years = int(timestamp[:4])
-    mons = int(timestamp[4:6])
-    days = int(timestamp[6:8])
-    hours = int(timestamp[9:11])
-    mins = int(timestamp[12:14])
-    secs = int(timestamp[15:17])
-    millis = int(timestamp[18:21])
-    return years, mons, days, hours, mins, secs, millis
-
-
-def roundup(number, ndigits=0, return_type=None):
-    result = round(number, ndigits)
-    if not return_type:
-        return_type = float if ndigits > 0 else int
-    return return_type(result)
-
-
-# Return an empty string for the string cast of None
-def xstr(s):
-    if s is None:
-        return ''
-    else:
-        return s
-
-
-# create a valid perfdata label which does contain only numbers, letters,
-# dash and underscore. Everything else becomes a underscore.
-def get_perflabel(instr):
-    outstr = re.sub('[^A-Za-z0-9]', '_', instr)
-    return re.sub('_+', '_', outstr)
-
-
-def remove_nasty_chars(instr):
-    # Replace all chars which can cause problem in Multisite
-    # no quotes, no brackets
-    outstr = re.sub('[\[\]?+*@{}\'"]', '', xstr(instr))
-    outstr = outstr.replace('$', '')
-    outstr = outstr.replace('\\', '')
-    # Newlines better replace by space
-    outstr = outstr.replace('\n', ' ')
-    # dash for pipe
-    outstr = re.sub('\|', '-', outstr)
-    # outstr = re.sub('STATIONS', 'XXXXXXXXXXXXX', outstr)
-    return outstr
-    # return "FOO"
-
-
+# v1register
 check_info['robotmk'] = {
     "parse_function": parse_robot,
-    "inventory_function": inventory_robot,
+    "inventory_function": discover_robotmk,
     "check_function": check_robot,
     "service_description": "",
     "group": "robotmk",

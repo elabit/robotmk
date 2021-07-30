@@ -45,8 +45,10 @@ from enum import Enum
 from abc import ABC, abstractmethod 
 import glob
 import copy
+import socket
 
 local_tz = datetime.utcnow().astimezone().tzinfo
+
 ROBOTMK_VERSION = 'v1.2-beta.2'
 
 class RMKConfig():
@@ -867,7 +869,7 @@ class RMKrunner(RMKState, RMKPlugin):
             ('id', 'runner'),
             ('execution_mode', self.global_dict['execution_mode']),
         ])
-        pass
+        self.hostnames = list(set([ socket.getfqdn(), socket.gethostname() ]))
 
     def __str__(self):
         return 'Robotmk Runner'
@@ -1015,7 +1017,10 @@ class RMKrunner(RMKState, RMKPlugin):
                     suite.clear_filenames()
                 self.loginfo(f'Writing suite statefile {suite.statefile_path}')
                 suite.write_state_to_file()
-        self.set_statevars(('end_time', self.get_now_as_dt()))
+        self.set_statevars([
+            ('end_time', self.get_now_as_dt()),
+            ('assigned_host', self.hostnames), 
+        ])
         self.update_runner_statevars()
         self.write_state_to_file()
 
@@ -1091,7 +1096,7 @@ class RMKrunner(RMKState, RMKPlugin):
             ('xml', str(Path(suite.outputdir).joinpath(suite.output))),
             ('end_time', self.get_now_as_dt()),
             ('attempts', attempt),
-            ('max_executions', max_exec), 
+            ('max_executions', max_exec),             
             ('rc', rc)])  
         self.logdebug(f'Suite ran for {suite.runtime:.2f} seconds')  
         self.loginfo(
@@ -1395,11 +1400,20 @@ class RMKHostData(RMKData):
     @property
     def runner_state(self):
         """Return the Runner metadata; append piggyback flag"""
-        r_dict = copy.deepcopy(self._runner_state)
+        r_dict = copy.deepcopy(self._runner_state)        
         if self.is_piggyback: 
-            r_dict.update({'piggybackhost': True})
+            # The runner output produced for piggyback data; assigned_host gets overwritten so that the HTML log 
+            # on the cmk server can be assigned exactly.
+            # See Ref #VfHCJn in robotmk check
+            r_dict.update({
+                'is_piggyback_result': True,
+                'assigned_host': [self.host]
+            })
         else: 
-            r_dict.update({'piggybackhost': False})
+            # The runner output produced for this machine; this is the host which will show the "Robotmk" meta service in CMK.
+            r_dict.update({
+                'is_piggyback_result': False
+            })
         return r_dict
 
     @property

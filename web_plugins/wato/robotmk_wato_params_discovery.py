@@ -28,6 +28,8 @@ from cmk.gui.plugins.wato import (
     HostRulespec,
 )
 
+from cmk.gui.log import logger   
+
 # TODO: Add logging True/False
 # TODO: warn/crit threholds for total_runtime
 # TODO: timeout nicht mehr automatisch von executoin int. berechnen lassen
@@ -54,10 +56,73 @@ inventory_dict_robotmk_checkname = (
         default_value="Robotmk",
     ))
 
+inventory_dict_robotmk_htmllog = (
+    Tuple(
+        title=_("Restrict the <b>HTML log files</b> link creation"),
+        help=_("""If Robotmk is configured to <i>Transmit HTML logs to server</i>, it can then 
+        display two action icons right of each discovered service which allows to open the <b>last error log</b> and the <b>current log</b>.<br>
+        In order to make this work, just follow these two steps: <br><br>>
+        <b>1.</b> Add the following lines to <tt>$OMD_ROOT/etc/apache/conf.d/check_mk.conf.conf</tt> (replace <tt>$SITE</tt> accordingly):<br>
+        <tt>Alias /$SITE/check_mk/addons "/omd/sites/$SITE/local/share/addons"<br>
+        Directory "/omd/sites/$SITE/local/share/addons"<br>
+        Options +Indexes<br>
+        AllowOverride None<br>
+        /Directory</tt><br>
+        <b>2.</b> In <i>Global settings</i>, create <b>two custom actions</b> pointing to the URLs:<br>
+        * icon <i>robotmk80.png</i>: <tt>addons/robotmk/$HOSTNAME_URL_ENCODED$/$SERVICEDESC$/suite_last_log.html</tt><br>
+        * icon <i>robotmk80_dot.png</i>: <tt>addons/robotmk/$HOSTNAME_URL_ENCODED$/$SERVICEDESC$/suite_last_error_log.html</tt><br>
+        <b>3.</b> Create <b>two rules</b> to <b>assign the created actions</b>:<br>
+        * action id for <i>last log</i>: "service label is <tt>robotmk/html_last_log:yes</tt>"<br>
+        * action id for <i>last error log</i>: "service label is <tt>robotmk/html_last_error_log:yes</tt>"<br><br>  
+        The regular expressions here define where the service label will be shown. <br>Default = <tt>.*</tt> = show on all services.<br><br>
+
+        Remark: The host must exist with the real hostname/FQDN in Checkmk. Robotmk will save max. 2 HTML files per discovered suite to save hard disk space. However, it is advised to monitor the space usage on <tt>$OMD_ROOT/local/share/addons/robotmk</tt>."""),
+        show_titles=True,
+        # orientation="horizontal",
+        elements=[
+            TextAscii(
+                title=("Services to create a last <b>log file</b> link for:"),
+                allow_empty=False,
+                size=40,
+                default_value='.*'
+            ),
+            TextAscii(
+                title=("Services to create a last <b>error log file</b> link for:"),
+                allow_empty=False,
+                size=40,
+                default_value='.*'
+            ),
+        ],
+    )
+)
+
+def forth(data):
+    logger.critical("forth here ----------------------------")
+    logger.critical(data)
+    if type(data) is dict and len(data) == 2:
+        return (
+            data.get('last_log', '.*'),
+            data.get('last_error_log', '.*'),
+        )
+    else: 
+        return ('.*', '.*')
+
+    return ('foo', 'bar')
+
+def back(data):
+    logger.critical("back here ----------------------------")
+    logger.critical(data)
+    return {
+        'last_log': data[0],
+        'last_error_log': data[1],
+    }
+    # return ('back', 'baz')
+
 
 def _valuespec_inventory_robotmk_rules():
     return Dictionary(
         title=_("Robot Framework Service Discovery"),
+        # optional_keys=['robot_discovery_settings','robot_service_prefix','robotmk_service_name'],
         elements=[
             (
                 "robot_discovery_settings",
@@ -66,7 +131,7 @@ def _valuespec_inventory_robotmk_rules():
                         TextAscii(
                             title=("Root suite pattern"),
                             allow_empty=True,
-                            size=25,
+                            size=40,
                             default_value=".*",
                             help=
                             _("Define a regular expression for the root suite in the Robot result you want to set the <b>discovery level</b>. To find out the root suite name, open output.xml of the Robot test and search for the very first suite tag."
@@ -98,14 +163,14 @@ def _valuespec_inventory_robotmk_rules():
                         TextAscii(
                             title=("Node Blacklist"),
                             allow_empty=True,
-                            size=25,
+                            size=40,
                             default_value="",
                             help=
                             _("By default, Robotmk will create services for <i>all</i> nodes on the discovery level. A <b>blacklist</b> pattern selectively hinders Robotmk to inventorize certain services.<br>"
                               "Note: An empty string is interpreted as an empty blacklist = inventorize all (default)."
                               )),
                     ]),  # Tuple
-                    title=_("Discovery level of services from Robot output"),
+                    title=_("<b>Discovery level</b> of services from Robot output"),
                 )  # ListOf
             ),
             (
@@ -115,7 +180,7 @@ def _valuespec_inventory_robotmk_rules():
                         TextAscii(
                             title=("Root suite pattern"),
                             allow_empty=True,
-                            size=25,
+                            size=40,
                             default_value=".*",
                             help=
                             _("Define a regular expression for the root suite in the Robot result you want to set the <b>service name prefix</b>. To find out the root suite name, open output.xml of the Robot test and search for the very first suite tag."
@@ -135,10 +200,18 @@ def _valuespec_inventory_robotmk_rules():
                                 The default format string is "<tt>Robot Framework E2E $SUITEID$SPACE-$SPACE</tt>".
                             """)),
                     ]),  # Tuple_elements
-                    title=_("Naming rules for discovered Robot services"),
+                    title=_("<b>Naming</b> of discovered services"),
                 )  # ListOf
             ),
             inventory_dict_robotmk_checkname,
+            ('htmllog', 
+            Transform(
+                inventory_dict_robotmk_htmllog,
+                # read from rules.mk, present in WATO
+                forth = forth,
+                # read from WATO
+                back = back,
+            ))
         ],  # elements
     )
 
