@@ -1019,21 +1019,21 @@ class RMKCtrl(RMKState, RMKPlugin):
         self.loginfo(
             "Reading suite statefiles and encoding data (%s)..." % encoding)
         self.suites_state = self.check_suite_statefiles(encoding)
-        for host in self.suites_state.keys():
+        if self.suites_state != None:
+            for host in self.suites_state.keys():
+                # discard empty dicts
+                states = [
+                    state for state in self.suites_state[host] if bool(state)]
 
-            # discard empty dicts
-            states = [
-                state for state in self.suites_state[host] if bool(state)]
-
-            host_state = {
-                "runner": meta_data,
-                "suites": states,
-            }
-            json_serialized = json.dumps(host_state, sort_keys=False, indent=2)
-            json_w_header = f'<<<robotmk:sep(0)>>>\n{json_serialized}\n'
-            if host != "localhost":
-                json_w_header = f'<<<<{host}>>>>\n{json_w_header}\n<<<<>>>>\n'
-            output.append(json_w_header)
+                host_state = {
+                    "runner": meta_data,
+                    "suites": states,
+                }
+                json_serialized = json.dumps(host_state, sort_keys=False, indent=2)
+                json_w_header = f'<<<robotmk:sep(0)>>>\n{json_serialized}\n'
+                if host != "localhost":
+                    json_w_header = f'<<<<{host}>>>>\n{json_w_header}\n<<<<>>>>\n'
+                output.append(json_w_header)
         self.loginfo("Agent output printed on STDOUT")
         print(''.join(output))
 
