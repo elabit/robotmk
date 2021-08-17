@@ -371,7 +371,7 @@ agent_config_testsuites_max_executions_tuple = Tuple(
 agent_config_testsuites_max_executions_container = Dictionary(
     title=_("Handling of failed tests/suites"),
     elements=[
-        ("max_test_executions", agent_config_testsuites_max_executions_tuple),
+        ("failed_handling", agent_config_testsuites_max_executions_tuple),
     ])
 
 

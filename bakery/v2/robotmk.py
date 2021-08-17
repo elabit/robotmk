@@ -63,20 +63,25 @@ class RMKSuite():
         suite_dict['tag']= self.tag
         suite_dict['piggybackhost']= self.piggybackhost
         suite_dict.update(self.robot_param_dict)
+        suite_dict.update(self.failed_handling)
         return suite_dict
 
+    # Ref a01uK3
     @property
     def path(self):
         return self.suite_tuple[0]
 
+    # Ref yJE5bu
     @property
     def tag(self):
         return self.suite_tuple[1].get('tag', None)
 
+    # Ref whYeq7
     @property
     def piggybackhost(self):
         return self.suite_tuple[2].get('piggybackhost', None)
 
+    # Ref FF3Vph
     @property
     def robot_param_dict(self):
         robot_params = copy.deepcopy(self.suite_tuple[3].get('robot_params', {}))
@@ -88,6 +93,16 @@ class RMKSuite():
                     vardict.update({t[0]: t[1]})
         robot_params.update(self.dict_if_set('variable', vardict))        
         return robot_params
+
+    # Ref au4uPB
+    @property 
+    def failed_handling(self):
+        failed_handling = copy.deepcopy(self.suite_tuple[4].get('failed_handling', {}))
+        ret = {}
+        if failed_handling:
+            ret.update({'max_executions': failed_handling[0]})
+            ret.update(self.dict_if_set('rerun_selection', failed_handling[1]))
+        return ret
 
     @property
     def suiteid(self):
@@ -138,7 +153,11 @@ class RMK():
             global_dict['cache_time'] = mode_conf[1]        
         if 'suites' in mode_conf[0]:
             # each suite suite_tuple:
-            # >> path, tag, piggyback, robot_params{}
+            # 0) path, Ref a01uK3
+            # 1) tag, Ref yJE5bu
+            # 2) piggybackhost, Ref whYeq7
+            # 3) robot_params{}, Ref FF3Vph
+            # 4) failed_handling, Ref au4uPB
             for suite_tuple in mode_conf[0]['suites']:
                 suite = RMKSuite(suite_tuple)
                 if suite.suiteid in self.cfg_dict['suites']:
