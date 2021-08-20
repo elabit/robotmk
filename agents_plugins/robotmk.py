@@ -417,30 +417,29 @@ class RMKSuite(RMKState):
     def __str__(self):
         return self.id
 
-    def output_filename(self, timestamp, attempt=None, max=None):
-        """Create output file name. The 'attempt' suffix only gets appended if needed;
-        that is, when more than one attempt has top be taken."""
-        if max == 1 or max is None: 
+    def output_filename(self, timestamp, attempt=None):
+        """Create output file name. If attempt is given, it gets appended to the file name."""
+        if attempt is None: 
             suite_filename = "robotframework_%s_%s" % (self.id, timestamp)
         else:
             suite_filename = "robotframework_%s_%s_attempt-%d" % (self.id, timestamp, attempt)
         return suite_filename
 
-    def update_output_filenames(self, attempt=None, max=None):
+    def update_output_filenames(self, attempt=None):
         """Parametrize the output files"""
-        output_prefix = self.output_filename(str(self.timestamp), attempt, max)
+        output_prefix = self.output_filename(str(self.timestamp), attempt)
         self.suite_dict['robot_params'].update({
             'output': "%s_output.xml" % output_prefix,
             'log': "%s_log.html" % output_prefix
             })            
 
+
     def clear_filenames(self):
         '''Reset the log file names if Robot Framework exited with RC > 250
         The files presumed to exist do not in this case.
         '''
-        self.outfile_htmllog = None
-        # self.outfile_htmlreport = None
-        self.outfile_xml = None
+        self.output = None        
+        self.log = None
 
 
     def run_strategy(self):
@@ -523,29 +522,29 @@ class RMKSuite(RMKState):
     def global_dict(self):
         return self.config.cfg_dict['global']
 
-    @property
-    def outfile_xml(self):
-        if not self.suite_dict['output'] is None:
-            return str(Path(self.global_dict['outputdir']).joinpath(
-                self.suite_dict['output']))
-        else:
-            return None
+    # @property
+    # def outfile_xml(self):
+    #     if not self.suite_dict['output'] is None:
+    #         return str(Path(self.global_dict['outputdir']).joinpath(
+    #             self.suite_dict['output']))
+    #     else:
+    #         return None
 
-    @property
-    def outfile_htmllog(self):
-        if not self.suite_dict['log'] is None:
-            return str(Path(self.global_dict['outputdir']).joinpath(
-                self.suite_dict['log']))
-        else:
-            return None
+    # @property
+    # def outfile_htmllog(self):
+    #     if not self.suite_dict['log'] is None:
+    #         return str(Path(self.global_dict['outputdir']).joinpath(
+    #             self.suite_dict['log']))
+    #     else:
+    #         return None
 
-    @outfile_xml.setter
-    def outfile_xml(self, text):
-        self.suite_dict['output'] = None
+    # @outfile_xml.setter
+    # def outfile_xml(self, text):
+    #     self.suite_dict['output'] = None
 
-    @outfile_htmllog.setter
-    def outfile_htmllog(self, text):
-        self.suite_dict['log'] = None
+    # @outfile_htmllog.setter
+    # def outfile_htmllog(self, text):
+    #     self.suite_dict['log'] = None
 
     # Suite timestamp for filenames
     @property
@@ -922,7 +921,7 @@ class RMKrunner(RMKState, RMKPlugin):
                 # if he know about it -> if there is a valid entry in the config.
                 suite.error = error
                 # continue
-            self.loginfo(f'Strategy: ' + str(suite._env_strategy) )
+            self.logdebug(f'Strategy: ' + str(suite._env_strategy) )
             
             rc = self.run_suite(suite)
             
@@ -940,6 +939,22 @@ class RMKrunner(RMKState, RMKPlugin):
         self.write_state_to_file()
 
 
+    def merge_results(self, suite):
+        # output files without attempt suffix
+        suite.update_output_filenames()
+        outputfiles = self.glob_suite_outputfiles(suite)
+        self.logdebug("Merging the results of the following result files into %s: " % suite.output)
+        filenames = [Path(f).name for f in outputfiles]
+        for f in filenames: 
+            self.logdebug(" - %s" % f)
+        rebot(
+            *outputfiles, 
+            outputdir=suite.outputdir, 
+            output=suite.output,
+            log=suite.log,
+            report=None,
+            merge=True
+            )        
 
     def run_suite(self, suite):
         """Execute a single suite, including retries"""
@@ -951,43 +966,49 @@ class RMKrunner(RMKState, RMKPlugin):
         max_exec = suite.max_executions
         for attempt in range(1, max_exec+1):
             if max_exec > 1: 
-                self.loginfo(f"Attempt {attempt}/{max_exec}")
+                self.loginfo(f" > Starting attempt {attempt}/{max_exec}...")
+            else:
+                self.loginfo(f" > Starting suite...")
             # output files with attempt suffix
-            suite.update_output_filenames(attempt, max_exec)
+            suite.update_output_filenames(attempt)
+            # The execution
             rc = suite.run_strategy()
-            self.loginfo(f"Suite returned with RC {rc}")
-            if max_exec > 1: 
-                if rc == 0:
-                    # TODO: merge results
+            self.loginfo(f" < RC: {rc}")
+
+            if rc == 0:
+                if attempt == 1: 
+                    # Suite passed on the first try; exit the loop
+                    break
+                else:
+                    # Suite passed on a retry => MERGE
+                    self.merge_results(suite)
+                    break
+            else: 
+                if max_exec == 1:
+                    # Suite FAILED on the first and only try; exit the loop
                     break
                 else: 
+                    # Suite FAILED and...
                     if attempt < max_exec:
+                        # ...chance for next try!
+                        # save the current output XML and use it for the rerun
                         failed_xml = Path(suite.outputdir).joinpath(suite.output)                        
-                        suite.suite_dict['robot_params'].update(suite.rerun_selection)
                         suite.suite_dict['robot_params'].update({'rerunfailed': str(failed_xml)})                    
+                        # Attempt 2ff can be filtered, add the parameters to the Robot cmdline
+                        suite.suite_dict['robot_params'].update(suite.rerun_selection)
                         self.loginfo(f"Re-testing the failed ones in {failed_xml}")
                     else: 
+                        # ...GAME OVER! => MERGE
                         self.loginfo("Even the last attempt was unsuccessful!")
-                        # output files without attempt suffix
-                        suite.update_output_filenames()
-                        rebot(
-                            *self.glob_suite_outputfiles(suite), 
-                            outputdir=suite.outputdir, 
-                            output=suite.output,
-                            log=suite.log,
-                            report=None,
-                            merge=True
-                            )
-            #                robot_logfiles = [file for file in glob.glob(str(logpath.joinpath('robotframework-*'))) if re.match('.*_\d{10}-(report|log|output)\.(xml|html)', file)]
-            #             with open('stdout.txt', 'w') as stdout:
-            # rebot('o1.xml', 'o2.xml', name='Example', log=None, stdout=stdout)
-                        #rebot — output output.xml — merge output.xml output2.xml
+                        self.merge_results(suite)
         
         suite.set_statevars([
             ('htmllog', str(Path(suite.outputdir).joinpath(suite.log))),
             ('xml', str(Path(suite.outputdir).joinpath(suite.output))),
             ('end_time', self.get_now_as_dt()),
-            ('rc', rc), ])    
+            ('attempts', attempt),
+            ('max_executions', max_exec), 
+            ('rc', rc)])    
         self.loginfo(
             f'Final suite RC: {rc}')        
         return rc
@@ -1286,9 +1307,6 @@ def test_for_modules():
             f'FATAL ERROR!: Robotmk cannot start because of a missing Python3 module (Error was: {str(e)})')
         print('Please execute: pip3 install robotframework pyyaml mergedeep python-dateutil')
         exit(1)
-
-# rmain
-
 
 def main():
     test_for_modules()
