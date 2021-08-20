@@ -509,42 +509,10 @@ class RMKSuite(RMKState):
     def suite_dict(self):
         return self.config.cfg_dict['suites'][self.id]
 
-    # TODO weg
-    # @property
-    # def robot_params(self):
-    #     '''We should pass an arg dict to Robot Framework which is cleaned by
-    #     any Robotmk keys.
-    #     '''
-    #     robotmk_keys = 'cache_time execution_interval path tag piggybackhost'.split()
-    #     return {k: v for (k, v) in self.suite_dict.items() if k not in robotmk_keys}
-
     @property
     def global_dict(self):
         return self.config.cfg_dict['global']
 
-    # @property
-    # def outfile_xml(self):
-    #     if not self.suite_dict['output'] is None:
-    #         return str(Path(self.global_dict['outputdir']).joinpath(
-    #             self.suite_dict['output']))
-    #     else:
-    #         return None
-
-    # @property
-    # def outfile_htmllog(self):
-    #     if not self.suite_dict['log'] is None:
-    #         return str(Path(self.global_dict['outputdir']).joinpath(
-    #             self.suite_dict['log']))
-    #     else:
-    #         return None
-
-    # @outfile_xml.setter
-    # def outfile_xml(self, text):
-    #     self.suite_dict['output'] = None
-
-    # @outfile_htmllog.setter
-    # def outfile_htmllog(self, text):
-    #     self.suite_dict['log'] = None
 
     # Suite timestamp for filenames
     @property
