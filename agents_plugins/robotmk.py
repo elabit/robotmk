@@ -1,5 +1,5 @@
 #!/usr/bin/env python3
-# (c) 2020 Simon Meggle <simon.meggle@elabit.de>
+# (c) 2021 Simon Meggle <simon.meggle@elabit.de>
 
 # This file is part of Robotmk, a module for the integration of Robot
 # framework test results into Checkmk.
@@ -42,6 +42,10 @@ import subprocess
 import platform
 import xml.etree.ElementTree as ET
 from enum import Enum
+from abc import ABC, abstractmethod 
+import glob
+
+from robot.rebot import rebot
 
 
 local_tz = datetime.utcnow().astimezone().tzinfo
@@ -109,9 +113,8 @@ class RMKConfig():
     def lsuites(self):
         return self.cfg_dict['suites'].keys()
 
-    @property
-    def suite_objs(self):
-        return [RMKSuite(id, self) for id in self.cfg_dict['suites']]
+    def suite_objs(self, logger):
+        return [RMKSuite(id, self, logger) for id in self.cfg_dict['suites']]
 
     @property
     def global_dict(self):
@@ -292,9 +295,10 @@ class RMKState():
         return data
 
     def write_state_to_file(self, data=None):
+        """Writes the given data structure into the statefile.
+        Datetime objects are converted to ISO strings."""
         if data is None:
-            data = self._state
-        # statefile always contains ISO datetimes
+            data = self._state        
         data = {k: (v.isoformat() if type(v) is datetime else v)
                 for (k, v) in data.items()}
         try:
@@ -357,18 +361,21 @@ class RMKState():
     #         fn()
     #     return inner
 
-    @property
-    def now(self):
-        # return datetime.now(timezone.utc)
+    def get_now_as_dt(self):
         return datetime.now(local_tz)
+
+    def get_now_as_epoch(self):
+        return int(self.get_now_as_dt().timestamp())
 
 
 class RMKSuite(RMKState):
     logmark = '~'
 
-    def __init__(self, id, config):
+    def __init__(self, id, config, logger):
         self.id = id
         self.config = config
+        self.logger = logger
+        self._timestamp = self.get_now_as_epoch()
         super().__init__()
 
         self.set_statevars([
@@ -378,7 +385,30 @@ class RMKSuite(RMKState):
             ('path', self.suite_dict['path']),
             ('tag', self.suite_dict.get('tag', None)),
         ])
-        pass
+
+        self.suite_dict.setdefault('robot_params', {})    
+        self.suite_dict['robot_params'].update({
+            'outputdir':  self.global_dict['outputdir'],
+            'console':  'NONE'
+        })
+        # Ref: TgWQvr
+        if self.source == "local":
+            self._source_strategy = SourceStrategyFS(path=self.path)
+        elif self.source == "git":
+            self._source_strategy == SourceStrategyGit(path=self.path)
+        elif self.source == "robocorp": 
+            self._source_strategy == SourceStrategyRobocorp(path=self.path)
+        else: 
+            # TODO: catch this
+            pass
+
+        if self.python == "os":
+            self._env_strategy = EnvStrategyOS(self)
+        elif self.python == "rcc":
+            self._env_strategy = EnvStrategyRCC(self)
+        else: 
+            # TODO: catch this
+            pass
 
     def clear_statevars(self):
         data = {k: None for k in 'start_time end_time runtime rc xml htmllog'.split()}
@@ -387,18 +417,22 @@ class RMKSuite(RMKState):
     def __str__(self):
         return self.id
 
-    def update_filenames(self):
-        now = int(time())
-        suite_filename = "robotframework_%s_%s" % (self.id, str(now))
-        self.suite_dict.update({
-            'outputdir':  self.global_dict['outputdir'],
-            'output': f'{suite_filename}_output.xml',
-            'log':    f'{suite_filename}_log.html',
-            'console':  'NONE',
-            # Make the Robotmk Library Keywords accessible from the .robot file - wherever it is
-            'pythonpath': str(Path(self.global_dict['agent_data_dir']).joinpath('plugins')),
-            # 'report': f'{suite_filename}_report.html',
-        })
+    def output_filename(self, timestamp, attempt=None, max=None):
+        """Create output file name. The 'attempt' suffix only gets appended if needed;
+        that is, when more than one attempt has top be taken."""
+        if max == 1 or max is None: 
+            suite_filename = "robotframework_%s_%s" % (self.id, timestamp)
+        else:
+            suite_filename = "robotframework_%s_%s_attempt-%d" % (self.id, timestamp, attempt)
+        return suite_filename
+
+    def update_output_filenames(self, attempt=None, max=None):
+        """Parametrize the output files"""
+        output_prefix = self.output_filename(str(self.timestamp), attempt, max)
+        self.suite_dict['robot_params'].update({
+            'output': "%s_output.xml" % output_prefix,
+            'log': "%s_log.html" % output_prefix
+            })            
 
     def clear_filenames(self):
         '''Reset the log file names if Robot Framework exited with RC > 250
@@ -408,34 +442,11 @@ class RMKSuite(RMKState):
         # self.outfile_htmlreport = None
         self.outfile_xml = None
 
-    def robotize_variables(self):
-        # Preformat Variables to meet the Robot API requirement
-        # --variable name:value --variable name2:value2
-        # => ['name:value', 'name2:value2'] (list of dicts to list of k:v)
-        if 'variable' in self.suite_dict:
-            self.suite_dict['variable'] = list(
-                map(
-                    lambda x: f'{x[0]}:{x[1]}',
-                    self.suite_dict['variable'].items()
-                ))
 
-    def run(self):
-        self.robotize_variables()
-        self.update_filenames()
-        self.write_statevars([
-            ('id', self.id),
-            ('start_time', self.now),
-            ('cache_time', self.get_suite_or_global('cache_time'))
-        ])
-        rc = robot.run(
-            self.path,
-            **self.robot_args)
-        self.set_statevars([
-            ('htmllog', self.outfile_htmllog),
-            ('xml', self.outfile_xml),
-            ('end_time', self.now),
-            ('rc', rc), ])
-        self.rc = rc
+    def run_strategy(self):
+        # Ref: TgWQvr
+        # start the suite either with OS Python/RCC/Docker
+        rc = self._env_strategy.run()
         return rc
 
     def get_suite_or_global(self, name, default=None):
@@ -454,20 +465,59 @@ class RMKSuite(RMKState):
                     ).joinpath(self.suite_dict['path'])
 
     @property
+    def outputdir(self):
+        return self.suite_dict['robot_params']['outputdir']
+    @outputdir.setter
+    def outputdir(self, directory):
+        self.suite_dict['robot_params']['outputdir'] = directory
+
+    @property
+    def output(self):
+        return self.suite_dict['robot_params']['output']
+    @output.setter
+    def output(self, file):
+        self.suite_dict['robot_params']['output'] = file
+
+    @property
+    def log(self):
+        return self.suite_dict['robot_params']['log']
+    @log.setter
+    def log(self, file):
+        self.suite_dict['robot_params']['log'] = file
+
+    @property
     def runtime(self):
         return (self._state['end_time'] - self._state['start_time']).total_seconds()
+
+    @property
+    def python(self): 
+        """Defines which Python interpreter to use (OS/RCC)"""
+        return self.suite_dict.get('python', 'os')
+
+    @property
+    def source(self): 
+        return self.suite_dict.get('source', 'local')        
+
+    @property
+    def max_executions(self):
+        return self.suite_dict.get('failed_handling',{}).get('max_executions',1)
+
+    @property
+    def rerun_selection(self):
+        return self.suite_dict.get('failed_handling', {}).get('rerun_selection',[])
 
     @property
     def suite_dict(self):
         return self.config.cfg_dict['suites'][self.id]
 
-    @property
-    def robot_args(self):
-        '''We should pass an arg dict to Robot Framework which is cleaned by
-        any Robotmk keys.
-        '''
-        robotmk_keys = 'cache_time execution_interval path tag piggybackhost'.split()
-        return {k: v for (k, v) in self.suite_dict.items() if k not in robotmk_keys}
+    # TODO weg
+    # @property
+    # def robot_params(self):
+    #     '''We should pass an arg dict to Robot Framework which is cleaned by
+    #     any Robotmk keys.
+    #     '''
+    #     robotmk_keys = 'cache_time execution_interval path tag piggybackhost'.split()
+    #     return {k: v for (k, v) in self.suite_dict.items() if k not in robotmk_keys}
 
     @property
     def global_dict(self):
@@ -496,6 +546,96 @@ class RMKSuite(RMKState):
     @outfile_htmllog.setter
     def outfile_htmllog(self, text):
         self.suite_dict['log'] = None
+
+    # Suite timestamp for filenames
+    @property
+    def timestamp(self):
+        return self._timestamp
+    @timestamp.setter
+    def timestamp(self, t):
+        self._timestamp = t
+
+# Ref: TgWQvr
+class EnvStrategy():
+    """Strategy interface which Python environment to use"""
+    def __init__(self):
+        pass
+    @abstractmethod
+    def run(self, suite: RMKSuite):
+        pass    
+
+class EnvStrategyOS(EnvStrategy):
+    """Use the System Python environment"""
+    def __init__(self, suite: RMKSuite):
+        self._suite = suite
+        super().__init__()
+
+    def __str__(self): 
+        return("OS Python")
+
+
+    def prepare_rf_args(self):
+        # Format the variables to meet the Robot API requirement
+        # --variable name:value --variable name2:value2
+        # => ['name:value', 'name2:value2'] (list of dicts to list of k:v)
+        variables = self._suite.suite_dict.get('robot_params').get('variable')
+        if variables and type(variables) is not list:
+            variables = list(
+                map(
+                    lambda x: f'{x[0]}:{x[1]}',
+                    variables.items()
+                ))
+            self._suite.suite_dict['robot_params']['variable'] = variables
+        pass
+
+    def run(self):
+        """Runs the Robot suite with the OS Python and RF API"""
+        self.prepare_rf_args()        
+        rc = robot.run(
+            self._suite.path,
+            **self._suite.suite_dict.get('robot_params'))
+        return rc    
+
+class EnvStrategyRCC(EnvStrategy):
+    """Use rcc to create a dedicated environment for the test"""
+    def __init__(self, suite: RMKSuite):
+        self._suite = suite
+    
+    def __str__(self): 
+        return("RCC Env Python")
+
+    def run(self, suite: RMKSuite) -> int:
+        pass    
+
+
+class SourceStrategy():
+    """Strategy interface where to get the test source code from"""
+    def __init__(self, path):
+        self.path = path
+        pass
+    
+class SourceStrategyFS(SourceStrategy):
+    """Read the test source from local filesystem"""
+    def __init__(self, path):
+        super().__init__(path)
+        pass
+
+class SourceStrategyGit(SourceStrategy):
+    """Clone the test source code from git"""
+    def __init__(self, path):
+        super().__init__(path)
+        pass
+
+class SourceStrategyRobocorp(SourceStrategy):
+    """Load a Robocorp Robot"""
+    def __init__(self, path):
+        super().__init__(path)
+        pass
+
+    
+    
+    
+
 
 
 class RMKPlugin():
@@ -730,13 +870,7 @@ class RMKrunner(RMKState, RMKPlugin):
             self._state['end_time'] - self._state['start_time']).total_seconds()
         runtime_suites = sum([suite.runtime for suite in self.suites])
         runtime_robotmk = runtime_total - runtime_suites
-        # suites_nonfatal = [(s.id, s.runtime)
-        #                    for s in self.suites if s.rc < 252]
-        # suites_fatal = [(s.id, s.runtime) for s in self.suites if s.rc >= 252]
-        # suites = {
-        #     'suites_nonfatal': suites_nonfatal,
-        #     'suites_fatal': suites_fatal,
-        # }
+    
         self.set_statevars([
             ('runtime_total', runtime_total),
             ('runtime_suites', runtime_suites),
@@ -747,9 +881,9 @@ class RMKrunner(RMKState, RMKPlugin):
         if self.execution_mode == 'agent_serial':
             self.set_statevars([('cache_time', self.config.global_dict['cache_time']), (
                 'execution_interval', self.config.global_dict['execution_interval'])])
-        elif self.execution_mode == 'agent_parallel':
-            self.set_statevars([('cache_time', self.config.suite_dict['cache_time']), (
-                'execution_interval', self.config.suite_dict['execution_interval'])])
+        # elif self.execution_mode == 'agent_parallel':
+        #     self.set_statevars([('cache_time', self.config.suite_dict['cache_time']), (
+        #         'execution_interval', self.config.suite_dict['execution_interval'])])
         elif self.execution_mode == 'external':
             if self.selective_run:
                 self.set_statevars(
@@ -769,12 +903,13 @@ class RMKrunner(RMKState, RMKPlugin):
     def suites_dict(self):
         return self.config.cfg_dict['suites']
 
-    def start_suites(self, suites_cmdline):
+    def run_suites(self, suites_cmdline):
+        """Executes all suites of robotmk.yml/robotdir"""
         self.update_suites2start(suites_cmdline)
-        self.suites = self.config.suite_objs
+        self.suites = self.config.suite_objs(self.logger)
         self.loginfo(
             ' => Suites to start: %s' % ', '.join([s.id for s in self.suites]))
-        self.write_statevars(('start_time', self.now))
+        self.write_statevars(('start_time', self.get_now_as_dt()))
         for suite in self.suites:
             id = suite.id
             self.loginfo(
@@ -787,10 +922,11 @@ class RMKrunner(RMKState, RMKPlugin):
                 # if he know about it -> if there is a valid entry in the config.
                 suite.error = error
                 # continue
-            self.logdebug(f'Starting suite')
-            rc = suite.run()
-            self.loginfo(
-                f'Suite finished with RC {rc}')
+            self.loginfo(f'Strategy: ' + str(suite._env_strategy) )
+            
+            rc = self.run_suite(suite)
+            
+
             if rc > 250:
                 self.logerror(
                     'RC > 250 = Robot exited with fatal error. There are no logs written.')
@@ -799,18 +935,70 @@ class RMKrunner(RMKState, RMKPlugin):
                 suite.clear_filenames()
             self.loginfo(f'Writing suite statefile {suite.statefile_path}')
             suite.write_state_to_file()
-        self.set_statevars(('end_time', self.now))
+        self.set_statevars(('end_time', self.get_now_as_dt()))
         self.update_runner_statevars()
         self.write_state_to_file()
 
-# rcontroller
 
-# https://stackoverflow.com/a/2251026/14845044
 
+    def run_suite(self, suite):
+        """Execute a single suite, including retries"""
+        suite.write_statevars([
+            ('id', suite.id),
+            ('start_time', suite.get_now_as_dt()),
+            ('cache_time', suite.get_suite_or_global('cache_time'))
+        ])
+        max_exec = suite.max_executions
+        for attempt in range(1, max_exec+1):
+            if max_exec > 1: 
+                self.loginfo(f"Attempt {attempt}/{max_exec}")
+            # output files with attempt suffix
+            suite.update_output_filenames(attempt, max_exec)
+            rc = suite.run_strategy()
+            self.loginfo(f"Suite returned with RC {rc}")
+            if max_exec > 1: 
+                if rc == 0:
+                    # TODO: merge results
+                    break
+                else: 
+                    if attempt < max_exec:
+                        failed_xml = Path(suite.outputdir).joinpath(suite.output)                        
+                        suite.suite_dict['robot_params'].update(suite.rerun_selection)
+                        suite.suite_dict['robot_params'].update({'rerunfailed': str(failed_xml)})                    
+                        self.loginfo(f"Re-testing the failed ones in {failed_xml}")
+                    else: 
+                        self.loginfo("Even the last attempt was unsuccessful!")
+                        # output files without attempt suffix
+                        suite.update_output_filenames()
+                        rebot(
+                            *self.glob_suite_outputfiles(suite), 
+                            outputdir=suite.outputdir, 
+                            output=suite.output,
+                            log=suite.log,
+                            report=None,
+                            merge=True
+                            )
+            #                robot_logfiles = [file for file in glob.glob(str(logpath.joinpath('robotframework-*'))) if re.match('.*_\d{10}-(report|log|output)\.(xml|html)', file)]
+            #             with open('stdout.txt', 'w') as stdout:
+            # rebot('o1.xml', 'o2.xml', name='Example', log=None, stdout=stdout)
+                        #rebot — output output.xml — merge output.xml output2.xml
+        
+        suite.set_statevars([
+            ('htmllog', str(Path(suite.outputdir).joinpath(suite.log))),
+            ('xml', str(Path(suite.outputdir).joinpath(suite.output))),
+            ('end_time', self.get_now_as_dt()),
+            ('rc', rc), ])    
+        self.loginfo(
+            f'Final suite RC: {rc}')        
+        return rc
+
+    def glob_suite_outputfiles(self, suite):
+        """Returns a list of XML output files of all execution attempts"""
+        output_filename = suite.output_filename(suite.timestamp)
+        outputfiles = [file for file in glob.glob(str(Path(suite.outputdir).joinpath("%s_attempt*_output.xml" % output_filename)))]
+        return outputfiles
 
 class RMKCtrl(RMKState, RMKPlugin):
-    # TODO: Cleanup the XML, remove images (#79)
-
     header = '<<<robotmk>>>'
     logmark = '='
 
@@ -859,7 +1047,7 @@ class RMKCtrl(RMKState, RMKPlugin):
         if self.execution_mode == 'agent_serial':
             execution_interval = timedelta(
                 seconds=self.config.global_dict['execution_interval'])
-            if never_ran or (self.now > start_time + execution_interval):
+            if never_ran or (self.get_now_as_dt() > start_time + execution_interval):
                 if never_ran:
                     self.loginfo(
                         "Execution interval (%ds) for Runner is elapsed since last start." % (execution_interval.seconds))
@@ -881,7 +1069,7 @@ class RMKCtrl(RMKState, RMKPlugin):
             else:
                 # Idle...
                 secs_to_execute = (
-                    start_time + execution_interval - self.now).seconds
+                    start_time + execution_interval - self.get_now_as_dt()).seconds
                 self.loginfo("Nothing to do. Next Runner execution in %ds (interval=%ds)" % (
                     secs_to_execute, execution_interval.seconds))
 
@@ -951,7 +1139,7 @@ class RMKCtrl(RMKState, RMKPlugin):
         states = defaultdict(list)
         self.loginfo("%d Suites to check: %s" % (len(self.suites_dict.keys()),
                                                  ', '.join(self.suites_dict.keys())))
-        for suite in self.config.suite_objs:
+        for suite in self.config.suite_objs(self.logger):
             # if (piggyback)host is set, results gets assigned to other CMK host
             host = suite.suite_dict.get('piggybackhost', 'localhost')
             self.logdebug("Reading statefile of suite '%s': %s" % (
@@ -1087,6 +1275,7 @@ def test_for_modules():
         import yaml
         global robot
         import robot
+        import robot.rebot
         global mergedeep
         import mergedeep
         global parser
@@ -1095,6 +1284,7 @@ def test_for_modules():
         print('<<<robotmk>>>')
         print(
             f'FATAL ERROR!: Robotmk cannot start because of a missing Python3 module (Error was: {str(e)})')
+        print('Please execute: pip3 install robotframework pyyaml mergedeep python-dateutil')
         exit(1)
 
 # rmain

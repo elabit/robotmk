@@ -1,5 +1,5 @@
 #!/usr/bin/env python3
-# (c) 2020 Simon Meggle <simon.meggle@elabit.de>
+# (c) 2021 Simon Meggle <simon.meggle@elabit.de>
 
 # This file is part of Robotmk, a module for the integration of Robot
 # framework test results into Checkmk.
@@ -20,7 +20,7 @@
 
 try:
     # Import the main Robotmk functions from the same directory (Windows)
-    from robotmk import robotmk, RMKPlugin, RMKrunner, test_for_modules
+    from robotmk import *
 except ImportError:
     # If the import fails, try to import robotmk form the parent directory (Linux)
     # This is the case when the runner gets scheduled asynchronously on Linux where
@@ -35,7 +35,7 @@ def main():
     RMKPlugin.get_args()
     rmk = RMKrunner()
     cmdline_suites='all' # TBD: start suites from cmdline
-    rmk.start_suites(cmdline_suites)
+    rmk.run_suites(cmdline_suites)
     rmk.loginfo("... Quitting Runner, bye. ---") 
     # It is important to write at least one byte to the agent so that it can save this
     # as a state with a cache_time. 
