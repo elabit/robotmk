@@ -61,9 +61,12 @@ class RMKSuite():
         suite_dict = DictNoNone()
         suite_dict['path']= self.path
         suite_dict['tag']= self.tag
+        # Ref whYeq7
         suite_dict['piggybackhost']= self.piggybackhost
-        suite_dict.update(self.robot_param_dict)
-        suite_dict.update(self.failed_handling)
+        # Ref FF3Vph
+        suite_dict['robot_params'] = self.robot_params
+        # Ref au4uPB
+        suite_dict['failed_handling'] = self.failed_handling
         return suite_dict
 
     # Ref a01uK3
@@ -83,16 +86,16 @@ class RMKSuite():
 
     # Ref FF3Vph
     @property
-    def robot_param_dict(self):
-        robot_params = copy.deepcopy(self.suite_tuple[3].get('robot_params', {}))
+    def robot_params(self):
+        params = copy.deepcopy(self.suite_tuple[3].get('robot_params', {}))
         # Variables: transform the var 'list of tuples' into a dict.
-        vardict = {}
-        for (k1, v1) in robot_params.items():
+        variables_dict = {}
+        for (k1, v1) in params.items():
             if k1 == 'variable':
                 for t in v1:
-                    vardict.update({t[0]: t[1]})
-        robot_params.update(self.dict_if_set('variable', vardict))        
-        return robot_params
+                    variables_dict.update({t[0]: t[1]})
+        params.update(self.dict_if_set('variable', variables_dict))    
+        return params
 
     # Ref au4uPB
     @property 
