@@ -75,7 +75,7 @@ helptext_execution_mode_external = """
 agent_config_global_suites_execution_interval_agent_serial = Age(
     title=_("Runner <b>execution interval</b>"),
     help=
-    _("Interval the Checkmk agent will execute the <b>runner</b> plugin asynchronously.<br>"
+    _("This configures the interval in which the Checkmk agent will execute the <b>runner</b> plugin asynchronously.<br>"
       "The default is 15min but strongly depends on the maximum probable runtime of all <i>test suites</i>.<br>Choose an interval which is a good comprimise between frequency and execution runtime headroom.<br>"
       ),
     minvalue=1,
@@ -90,7 +90,8 @@ agent_config_global_cache_time_agent_serial = Age(
     _("Suite state files are updated by the <b>runner</b> after each execution (<i>Runner execution interval</i>).<br>"
       "The <b>controller</b> monitors the age of those files and expects them to be not older than the <i>global cache time</i>. <br>"
       "Each suite with a state file older than its <i>result cache time</i> will be reported as 'stale'.<br>"
-      "For obvious reasons, the cache time must always be set higher than the <i>runner execution interval</i>, including reruns of failed tests/subsuites (if configured)."
+      "For obvious reasons, the cache time must always be set higher than the <i>runner execution interval</i>, including reruns of failed tests/subsuites (if configured).<br>"
+      "(Do not confuse it with the <i>cache time</i> which Checkmk uses for the agent plugin configuration.)"
       ),
     minvalue=1,
     maxvalue=65535,
@@ -388,7 +389,7 @@ def gen_agent_config_dict_listof_testsuites(mode):
                                  ListOf(
                                      gen_testsuite_tuple(mode),
                                      help=_("""
-                    Click on '<i>Add test suite</i>' to add the suites to the execution list and to specify additional parameters, piggyback host and execution order. <br>
+                    Click on '<i>Add test suite</i>' to specify the suites to be executed, including additional parameters, piggyback host and execution order. This is the recommended way.<br>
                     If you do not add any suite here, the Robotmk plugin will add every <tt>.robot</tt> file/every directory within the <i>Robot suites directory</i> to the execution list - without any further parametrization.<br>"""
                                             ),
                                      add_label=_("Add test suite"),
@@ -446,7 +447,7 @@ dropdown_robotmk_transmit_html = DropdownChoice(
 dropdown_robotmk_log_rotation = CascadingDropdown(
     title=_("Number of days to keep Robot XML/HTML log files on the host"),
     help=_(
-        "This settings helps to keep the test host clean by <b>deleting the log files</b> after a certain amount of days. Log files are: <br>"
+        "This setting helps to keep the test host clean by <b>deleting the log files</b> after a certain amount of days. Log files are: <br>"
         "<tt>robotframework-$SUITENAME-$timestamp-output.xml<br>"
         "<tt>robotframework-$SUITENAME-$timestamp-log.html<br>"),
     choices=[
