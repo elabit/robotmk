@@ -18,6 +18,10 @@
         {
             "displayName": "▶︎ Set devcontainer to CMK v2",
             "command": "bash .devcontainer/set_devcontainer_version.sh 2"
+        },
+        {
+            "displayName": "▶︎ Create dummyhost",
+            "command": "bash /workspaces/robotmk/.devcontainer/create_dummyhost.sh"
         }
     ],
     "baseItem": {

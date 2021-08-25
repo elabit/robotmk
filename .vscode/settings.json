@@ -1,5 +1,5 @@
 {
-    "python.pythonPath": "/omd/sites/cmk/bin/python3",
+    "python.pythonPath": "/omd/sites/cmk/bin/python",
     "python.linting.flake8Enabled": true,
     "python.linting.enabled": true,
     "python.testing.pytestArgs": [
@@ -10,10 +10,12 @@
     "python.testing.pytestEnabled": true,
     "python.languageServer": "Pylance",
     "python.autoComplete.extraPaths": [
-        "/omd/sites/cmk/lib/python3"
+        // "/omd/sites/cmk/lib/python3"
+        "/omd/sites/cmk/lib/python"
     ],
     "files.eol": "\n",
     "python.analysis.extraPaths": [
-        "/omd/sites/cmk/lib/python3"
+        // "/omd/sites/cmk/lib/python3"
+        "/omd/sites/cmk/lib/python"
     ]
 }

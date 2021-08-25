@@ -19,7 +19,7 @@
 
 from cmk.gui.i18n import _
 from cmk.gui.valuespec import (DropdownChoice, Dictionary, ListOf, TextAscii,
-                               Tuple, CascadingDropdown)
+                               Tuple, CascadingDropdown, Integer)
 
 from cmk.gui.plugins.wato import (CheckParameterRulespecWithItem,
                                   rulespec_registry,
@@ -61,8 +61,8 @@ helptext_execution_mode_agent_parallel = """(not yet implemented)"""
 # <b>Use cases</b> for this mode: same as '<i>agent_serial</i>' - in addition, this mode makes sense on test clients which have the CPU/Mem resources for parallel test execution."""
 helptext_execution_mode_agent_parallel = "This is only a placeholder for the parallel execution of RF suites. <b>Please choose another mode.</b>"
 helptext_execution_mode_external = """
-    The Checkmk agent starts the Robotmk <b>controller</b> as a <i>synchronous</i> check plugin in the <i>agent check interval</i>.<br>
-    <b>Rule dependency</b>: The rule <i>Deploy custom files with agent</i> (package <tt>robotmk-external</tt>) places the <b>runner</b> within the agent's <tt>bin</tt> directory. 
+    The Checkmk agent starts the Robotmk <b>controller</b> as a <i>synchronous</i> check plugin in the <i>agent check interval</i>.<br><br>
+    <b>Important note for Checkmk 1.6</b>: The rule <i>Deploy custom files with agent</i> (package <tt>robotmk-external</tt>) must be used to place the <b>runner</b> within the agent's <tt>bin</tt> directory (there is no other way in Checkmk 1 to deploy files to that folder).<br>
     From there, you can start the runner with any external tool (e.g. systemd timer/cron/task scheduler).<br><br>
     If no suites are specified, the runner will execute all suites listed in <tt>robotmk.yml</tt>.<br>
     If no suites are defined at all, the runner will execute all suites found in the <i>Robot suites directory</i>. <br><br>   
@@ -75,7 +75,7 @@ helptext_execution_mode_external = """
 agent_config_global_suites_execution_interval_agent_serial = Age(
     title=_("Runner <b>execution interval</b>"),
     help=
-    _("Interval the Checkmk agent will execute the <b>runner</b> plugin asynchronously.<br>"
+    _("This configures the interval in which the Checkmk agent will execute the <b>runner</b> plugin asynchronously.<br>"
       "The default is 15min but strongly depends on the maximum probable runtime of all <i>test suites</i>.<br>Choose an interval which is a good comprimise between frequency and execution runtime headroom.<br>"
       ),
     minvalue=1,
@@ -90,7 +90,8 @@ agent_config_global_cache_time_agent_serial = Age(
     _("Suite state files are updated by the <b>runner</b> after each execution (<i>Runner execution interval</i>).<br>"
       "The <b>controller</b> monitors the age of those files and expects them to be not older than the <i>global cache time</i>. <br>"
       "Each suite with a state file older than its <i>result cache time</i> will be reported as 'stale'.<br>"
-      "For obvious reasons, the cache time must always be set higher than the <i>runner execution interval</i>."
+      "For obvious reasons, the cache time must always be set higher than the <i>runner execution interval</i>, including reruns of failed tests/subsuites (if configured).<br>"
+      "(Do not confuse it with the <i>cache time</i> which Checkmk uses for the agent plugin configuration.)"
       ),
     minvalue=1,
     maxvalue=65535,
@@ -102,7 +103,7 @@ agent_config_global_cache_time_external = Age(
     _("Suite state files are updated every time when the <b>runner</b> has executed the suites.<br>"
       "The <b>controller</b> monitors the age of those files and expects them to be not older than the <i>global cache time</i> or the <i>suite cache time</i> (if set). <br>"
       "Each suite with a state file older than its <i>cache time</i> will be reported as 'stale'.<br>"
-      "For obvious reasons, this cache time must always be set higher than the execution interval."
+      "For obvious reasons, this cache time must always be set higher than the execution interval, including reruns of failed tests/subsuites (if configured)."
       ),
     minvalue=1,
     maxvalue=65535,
@@ -113,7 +114,7 @@ agent_config_global_cache_time_external = Age(
 agent_config_suite_suites_cache_time_agent_parallel = Age(
     title=_("Suite cache time"),
     help=
-    _("Sets the <b>suite specific</b> cache time. (Must be higher than the <i>suite execution interval</i>)"
+    _("Sets the <b>suite specific</b> cache time. (Must be higher than the <i>suite execution interval</i>, including reruns of failed tests/subsuites)"
       ),
     minvalue=1,
     maxvalue=65535,
@@ -123,7 +124,7 @@ agent_config_suite_suites_cache_time_agent_parallel = Age(
 agent_config_suite_suites_cache_time_external = Age(
     title=_("Suite cache time"),
     help=
-    _("Sets <b>suite specific cache times</b> for <b>individual execution intervals</b>"
+    _("Sets <b>suite specific cache times</b> for <b>individual execution intervals, including reruns of failed tests/subsuites</b>"
       ),
     minvalue=1,
     maxvalue=65535,
@@ -188,6 +189,67 @@ agent_config_testsuites_path = TextUnicode(
     size=50,
 )
 
+# TEST SELECTION DICT ELEMENTS =================================================
+# To be used in test selection and rerunfailed
+# Ref: 7uBbn2
+dict_el_suite_selection = (
+    "suite",
+        ListOfStrings(
+            title=_("Select suites (<tt>--suite</tt>)"),
+            help=
+            _("Select suites by name. <br>When this option is used with"
+            " <tt>--test</tt>, <tt>--include</tt> or <tt>--exclude</tt>, only tests in"
+            " matching suites and also matching other filtering"
+            " criteria are selected. <br>"
+            " Name can be a simple pattern similarly as with <tt>--test</tt> and it can contain parent"
+            " name separated with a dot. <br>"
+            " For example, <tt>X.Y</tt> selects suite <tt>Y</tt> only if its parent is <tt>X</tt>.<br>"
+            ),
+            size=40,
+        )
+)
+dict_el_test_selection = (
+    "test",
+        ListOfStrings(
+            title=_("Select test (<tt>--test</tt>)"),
+            help=
+            _("Select tests by name or by long name containing also"
+            " parent suite name like <tt>Parent.Test</tt>. <br>Name is case"
+            " and space insensitive and it can also be a simple"
+            " pattern where <tt>*</tt> matches anything, <tt>?</tt> matches any"
+            " single character, and <tt>[chars]</tt> matches one character"
+            " in brackets.<br>"),
+            size=40,
+        )
+)
+dict_el_test_include = (
+    "include",
+        ListOfStrings(
+            title=_("Include tests by tag (<tt>--include</tt>)"),
+            help=
+            _("Select tests by tag. (<a href=\"https://robotframework.org/robotframework/latest/RobotFrameworkUserGuide.html#tagging-test-cases\">About tagging test cases</a>)<br>Similarly as name with <tt>--test</tt>,"
+            "tag is case and space insensitive and it is possible"
+            "to use patterns with <tt>*</tt>, <tt>?</tt> and <tt>[]</tt> as wildcards.<br>"
+            "Tags and patterns can also be combined together with"
+            "<tt>AND</tt>, <tt>OR</tt>, and <tt>NOT</tt> operators.<br>"
+            "Examples: <br><tt>foo</tt><br><tt>bar*</tt><br><tt>fooANDbar*</tt><br>"
+            ),
+            size=40,
+        )
+)
+
+dict_el_test_exclude = (
+    "exclude",
+        ListOfStrings(
+            title=_("Exclude tests by tag (<tt>--exclude</tt>)"),
+            help=
+            _("Select test cases not to run by tag. (<a href=\"https://robotframework.org/robotframework/latest/RobotFrameworkUserGuide.html#tagging-test-cases\">About tagging test cases</a>)<br>These tests are"
+            " not run even if included with <tt>--include</tt>. <br>Tags are"
+            " matched using same rules as with <tt>--include</tt>.<br>"),
+            size=40,
+        )
+)
+
 agent_config_testsuites_robotframework_params_dict = Dictionary(
     help=
     _("The options here allow to specify the most common cmdline parameters for Robot Framework. (<a href=\"https://robotframework.org/robotframework/latest/RobotFrameworkUserGuide.html#all-command-line-options\">All command line options</a>)"
@@ -203,54 +265,11 @@ agent_config_testsuites_robotframework_params_dict = Dictionary(
              allow_empty=False,
              size=50,
          )),
-        ("suite",
-         ListOfStrings(
-             title=_("Select suites (<tt>--suite</tt>)"),
-             help=
-             _("Select suites by name. <br>When this option is used with"
-               " <tt>--test</tt>, <tt>--include</tt> or <tt>--exclude</tt>, only tests in"
-               " matching suites and also matching other filtering"
-               " criteria are selected. <br>"
-               " Name can be a simple pattern similarly as with <tt>--test</tt> and it can contain parent"
-               " name separated with a dot. <br>"
-               " For example, <tt>X.Y</tt> selects suite <tt>Y</tt> only if its parent is <tt>X</tt>.<br>"
-               ),
-             size=40,
-         )),
-        ("test",
-         ListOfStrings(
-             title=_("Select test (<tt>--test</tt>)"),
-             help=
-             _("Select tests by name or by long name containing also"
-               " parent suite name like <tt>Parent.Test</tt>. <br>Name is case"
-               " and space insensitive and it can also be a simple"
-               " pattern where <tt>*</tt> matches anything, <tt>?</tt> matches any"
-               " single character, and <tt>[chars]</tt> matches one character"
-               " in brackets.<br>"),
-             size=40,
-         )),
-        ("include",
-         ListOfStrings(
-             title=_("Include tests by tag (<tt>--include</tt>)"),
-             help=
-             _("Select tests by tag. (<a href=\"https://robotframework.org/robotframework/latest/RobotFrameworkUserGuide.html#tagging-test-cases\">About tagging test cases</a>)<br>Similarly as name with <tt>--test</tt>,"
-               "tag is case and space insensitive and it is possible"
-               "to use patterns with <tt>*</tt>, <tt>?</tt> and <tt>[]</tt> as wildcards.<br>"
-               "Tags and patterns can also be combined together with"
-               "<tt>AND</tt>, <tt>OR</tt>, and <tt>NOT</tt> operators.<br>"
-               "Examples: <br><tt>foo</tt><br><tt>bar*</tt><br><tt>fooANDbar*</tt><br>"
-               ),
-             size=40,
-         )),
-        ("exclude",
-         ListOfStrings(
-             title=_("Exclude tests by tag (<tt>--exclude</tt>)"),
-             help=
-             _("Select test cases not to run by tag. (<a href=\"https://robotframework.org/robotframework/latest/RobotFrameworkUserGuide.html#tagging-test-cases\">About tagging test cases</a>)<br>These tests are"
-               " not run even if included with <tt>--include</tt>. <br>Tags are"
-               " matched using same rules as with <tt>--include</tt>.<br>"),
-             size=40,
-         )),
+         # Ref: 7uBbn2
+        dict_el_suite_selection,
+        dict_el_test_selection,
+        dict_el_test_include,
+        dict_el_test_exclude,
         ("critical",
          ListOfStrings(
              title=_("Critical test tag (<tt>--critical</tt>)"),
@@ -318,6 +337,45 @@ agent_config_testsuites_robotframework_params_container = Dictionary(
         ("robot_params", agent_config_testsuites_robotframework_params_dict),
     ])
 
+agent_config_testsuites_max_executions_selection_dict = Dictionary(
+    help=_("""
+    With the following options it is possible to further filter the list of tests/suites to re-run. (Documentation: <a href=http://robotframework.org/robotframework/latest/RobotFrameworkUserGuide.html#re-executing-failed-test-cases>Re-executing failed test cases</a>)
+    """),
+    elements=[
+        # Ref: 7uBbn2
+        dict_el_suite_selection,
+        dict_el_test_selection,
+        dict_el_test_include,
+        dict_el_test_exclude,
+    ]
+)
+
+
+
+agent_config_testsuites_max_executions_tuple = Tuple(
+    help=_("""
+    Robotmk can <b>immediately re-execute failed tests</b> n-times before submitting the result to the agent. After the n-th iteration, the total suite result contains the most current result of each test case.<br>
+    Use this only as a last resort, for example when applications behave unreliable. Also take into account that the re-execution of failed tests/suites requires additional headroom for the <i>result cache time</i>. 
+    """),
+    elements=[
+            Integer(
+                title=_("Maximum executions"),
+                help=_("The maximum number of iterations (including the first attempt)"),
+                minvalue=1,
+                default_value=1
+            ),
+            agent_config_testsuites_max_executions_selection_dict
+    ])
+
+
+
+agent_config_testsuites_max_executions_container = Dictionary(
+    title=_("Handling of failed tests/suites"),
+    elements=[
+        ("failed_handling", agent_config_testsuites_max_executions_tuple),
+    ])
+
+
 
 # Make the help text of SuitList dependent on the type of execution
 def gen_agent_config_dict_listof_testsuites(mode):
@@ -331,7 +389,7 @@ def gen_agent_config_dict_listof_testsuites(mode):
                                  ListOf(
                                      gen_testsuite_tuple(mode),
                                      help=_("""
-                    Click on '<i>Add test suite</i>' to add the suites to the execution list and to specify additional parameters, piggyback host and execution order. <br>
+                    Click on '<i>Add test suite</i>' to specify the suites to be executed, including additional parameters, piggyback host and execution order. This is the recommended way.<br>
                     If you do not add any suite here, the Robotmk plugin will add every <tt>.robot</tt> file/every directory within the <i>Robot suites directory</i> to the execution list - without any further parametrization.<br>"""
                                             ),
                                      add_label=_("Add test suite"),
@@ -346,17 +404,7 @@ def gen_testsuite_tuple(mode):
             agent_config_testsuites_tag,
             agent_config_testsuites_piggybackhost,
             agent_config_testsuites_robotframework_params_container,
-            # timing settings (there aren't any - set globally)
-        ])
-    if mode == 'agent_parallel':
-        return Tuple(elements=[
-            agent_config_testsuites_path,
-            agent_config_testsuites_tag,
-            agent_config_testsuites_piggybackhost,
-            agent_config_testsuites_robotframework_params_container,
-            # timing settings
-            agent_config_suite_suites_cache_time_agent_parallel,
-            agent_config_suite_suites_execution_interval_agent_parallel,
+            agent_config_testsuites_max_executions_container,
         ])
     if mode == 'external':
         return Tuple(elements=[
@@ -364,8 +412,7 @@ def gen_testsuite_tuple(mode):
             agent_config_testsuites_tag,
             agent_config_testsuites_piggybackhost,
             agent_config_testsuites_robotframework_params_container,
-            # timing settings
-            # agent_config_suite_suites_cache_time_external,
+            agent_config_testsuites_max_executions_container,
         ])
 
 
@@ -400,7 +447,7 @@ dropdown_robotmk_transmit_html = DropdownChoice(
 dropdown_robotmk_log_rotation = CascadingDropdown(
     title=_("Number of days to keep Robot XML/HTML log files on the host"),
     help=_(
-        "This settings helps to keep the test host clean by <b>deleting the log files</b> after a certain amount of days. Log files are: <br>"
+        "This setting helps to keep the test host clean by <b>deleting the log files</b> after a certain amount of days. Log files are: <br>"
         "<tt>robotframework-$SUITENAME-$timestamp-output.xml<br>"
         "<tt>robotframework-$SUITENAME-$timestamp-log.html<br>"),
     choices=[
