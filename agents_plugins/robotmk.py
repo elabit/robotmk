@@ -45,7 +45,7 @@ from enum import Enum
 
 
 local_tz = datetime.utcnow().astimezone().tzinfo
-ROBOTMK_VERSION = 'v1.1.1'
+ROBOTMK_VERSION = 'v1.2-beta'
 
 class RMKConfig():
     _PRESERVED_WORDS = [
