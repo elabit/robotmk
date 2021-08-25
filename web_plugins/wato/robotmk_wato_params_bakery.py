@@ -339,7 +339,7 @@ agent_config_testsuites_robotframework_params_container = Dictionary(
 
 agent_config_testsuites_max_executions_selection_dict = Dictionary(
     help=_("""
-    With the following options it is possible to further filter the list of tests/suites to re-run. (Documentation: <a href=http://robotframework.org/robotframework/latest/RobotFrameworkUserGuide.html#re-executing-failed-test-cases>Re-executing failed test cases</a>)
+    With the following options it is possible to further filter the list of tests/suites to re-run. (Documentation: <a href=\"http://robotframework.org/robotframework/latest/RobotFrameworkUserGuide.html#re-executing-failed-test-cases\">Re-executing failed test cases</a>)
     """),
     elements=[
         # Ref: 7uBbn2
