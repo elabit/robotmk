@@ -1,7 +1,7 @@
 #!/usr/bin/env python
 # -*- encoding: utf-8; py-indent-offset: 4 -*-
 
-# (c) 2020 Simon Meggle <simon.meggle@elabit.de>
+# (c) 2021 Simon Meggle <simon.meggle@elabit.de>
 
 # This file is part of Robotmk
 # https://robotmk.org
@@ -18,6 +18,8 @@
 # to the Free Software Foundation, Inc., 51 Franklin St,  Fifth Floor,
 # Boston, MA 02110-1301 USA.
 
+ROBOTMK_VERSION = 'v1.2-beta'
+
 import cmk.utils.paths
 import os
 import yaml
@@ -25,6 +27,21 @@ import re
 import copy
 from cmk.utils.exceptions import MKGeneralException
 
+
+DEFAULTS = {
+    'windows': {
+        'newline': "\r\n",
+    },
+    'linux': {
+        'newline': "\n",
+    },
+    'posix': {
+        'newline': "\n",
+    },
+    'noarch': {
+        'cache_time': 900,
+    }
+}
 
 def bake_robotmk(opsys, conf, conf_dir, plugins_dir):
     # ALWAYS (!) make a deepcopy of the conf dict. Even if you do not change
@@ -36,29 +53,19 @@ def bake_robotmk(opsys, conf, conf_dir, plugins_dir):
         raise MKGeneralException(
             "Error in bakery plugin 'robotmk': Robotmk is only supported on Windows and Linux."
         )
-    config = RMKConfigAdapter(myconf, opsys, execution_mode)
+    config = RMK(myconf, opsys, execution_mode)
 
-    # Robotmk RUNNER plugin (async, OS specific)
+    # Robotmk RUNNER plugin
+    # executed async, OS-specific
     if execution_mode == "agent_serial":
         if opsys == "windows":
             # async mode in Windows: write configfile in INI-style, will be converted
             # during installation to YML
-            # There the Robotmk terminology needs explanation:
-            # - The plugin "cache time" is in fact the "execution interval".
-            # - The plugin "timeout" is the max time the plugin is allowed to run
-            #   before going stale = "cache time".
-
-            with Path(conf_dir, "check_mk.ini.plugins.%s" %
-                      config.os_rmk_runner).open("w") as out:
-                out.write(u"    execution %s = async\r\n" %
-                          config.os_rmk_runner)
-                out.write(u"    cache_age %s = %d\r\n" %
-                          (config.os_rmk_runner,
-                           config.global_dict['execution_interval']))
+            with Path(conf_dir, "check_mk.ini.plugins.robotmk-runner.py").open("w") as out:
+                out.write(u"    execution robotmk-runner.py = async\r\n")
+                out.write(u"    cache_age robotmk-runner.py = %d\r\n" % config.global_dict['execution_interval'])
                 # Kill the plugin before the next async execution will start
-                out.write(
-                    u"    timeout %s = %d\r\n" %
-                    (config.os_rmk_runner, config.global_dict['cache_time']))
+                out.write(u"    timeout robotmk-runner.py = %d\r\n" % config.global_dict['cache_time'])
                 out.write(u"\r\n")
                 plugins_dir_async = plugins_dir
         elif opsys == "linux":
@@ -72,177 +79,195 @@ def bake_robotmk(opsys, conf, conf_dir, plugins_dir):
                 ("robotmk", "Robotmk is supported on Windows and Linux only"))
 
         src = str(
-            Path(
-                cmk.utils.paths.local_agents_dir).joinpath('plugins').joinpath(
-                    RMKConfigAdapter._DEFAULTS['linux']['rmk_runner']))
-        dest = str(Path(plugins_dir_async).joinpath(config.os_rmk_runner))
+            Path(cmk.utils.paths.local_agents_dir).joinpath('plugins/robotmk-runner.py'))
+        dest = str(Path(plugins_dir_async).joinpath('robotmk-runner.py'))
 
         shutil.copy2(src, dest)
+    elif execution_mode == "external":
+        # In CMK1 and external mode, the custom package "robotmk" must be deployed. 
+        pass
 
     # II) Robotmk Controller plugin
+    # executed sync, regular plugin
     src = str(
-        Path(cmk.utils.paths.local_agents_dir).joinpath('plugins').joinpath(
-            RMKConfigAdapter._DEFAULTS['linux']['rmk_ctrl']))
-    dest = str(Path(plugins_dir).joinpath(config.os_rmk_ctrl))
+        Path(cmk.utils.paths.local_agents_dir).joinpath('plugins/robotmk.py'))
+    dest = str(Path(plugins_dir).joinpath('robotmk.py'))
     shutil.copy2(src, dest)
 
-    # I)I) Generate YML config file
+    # III) Generate robotmk.YML config file
     with open(conf_dir + "/robotmk.yml", "w") as robotmk_yml:
-        robotmk_yml.write(header)
-        yaml.safe_dump(config.cfg_dict,
-                       robotmk_yml,
-                       line_break=config.os_newline,
-                       encoding='utf-8',
-                       allow_unicode=True,
-                       sort_keys=True)
+        yml_lines = get_yml_lines(config)
+        for line in yml_lines: 
+            robotmk_yml.write(line + config.os_newline)
+    pass
+
+def get_yml_lines(config):
+    header = "# This file is part of Robotmk, a module for the integration of Robot\n" +\
+        "# framework test results into Checkmk.\n" +\
+        "#\n" +\
+        "# https://robotmk.org\n" +\
+        "# https://github.com/simonmeggle/robotmk\n" +\
+        "# https://robotframework.org/\n" +\
+        "# ROBOTMK VERSION: %s\n" % ROBOTMK_VERSION
+    headerlist = header.split('\n')   
+    # PyYAML is very picky with Dict subclasses; add a representer to dump the data. 
+    # https://github.com/yaml/pyyaml/issues/142#issuecomment-732556045
+    yaml.add_representer(
+        DictNoNone, 
+        lambda dumper, data: dumper.represent_mapping('tag:yaml.org,2002:map', data.items())
+        )
+    # Unicode representer, see https://stackoverflow.com/a/62207530
+    yaml.add_representer(
+        unicode, 
+        lambda dumper, data: dumper.represent_scalar(u'tag:yaml.org,2002:str', data)
+        )
+
+    bodylist = yaml.dump(
+        config.cfg_dict,
+        default_flow_style=False,
+        allow_unicode=True,
+        encoding='utf-8',
+        sort_keys=True).split('\n')         
+    return headerlist + bodylist
 
 
-class RMKConfigAdapter():
-    _DEFAULTS = {
-        'windows': {
-            'newline': "\r\n",
-            'robotdir': "C:\\ProgramData\\checkmk\\agent\\robot",
-            'rmk_ctrl': 'robotmk.py',
-            'rmk_runner': 'robotmk-runner.py'
-        },
-        'linux': {
-            'newline': "\n",
-            'robotdir': "/usr/lib/check_mk_agent/robot",
-            'rmk_ctrl': 'robotmk.py',
-            'rmk_runner': 'robotmk-runner.py'
-        },
-        'posix': {
-            'newline': "\n",
-            'robotdir': "/usr/lib/check_mk_agent/robot",
-            'rmk_ctrl': 'robotmk.py',
-            'rmk_runner': 'robotmk-runner.py'
-        },
-        'noarch': {
-            'cache_time': 900,
-        }
-    }
+# This dict only adds the new key only if 
+# * the key already exists
+# * the value is a boolean in fact 
+# * the value contains something meaningful
+# This prevents that empty dicts are set as values.
+class DictNoNone(dict):
+    def __setitem__(self, key, value):
+        if (key in self or type(value) is bool) or bool(value):
+            dict.__setitem__(self, key, value)
 
-    def __init__(self, conf, opsys, execution_mode):
-        self.opsys = opsys
-        self.os_newline = self.get_os_default('newline')
-        self.os_rmk_ctrl = self.get_os_default('rmk_ctrl')
-        self.os_rmk_runner = self.get_os_default('rmk_runner')
-        self.cfg_dict = {
-            'global': {},
-            'suites': {},
-        }
-        global_dict = self.cfg_dict['global']
-        suites_dict = self.cfg_dict['suites']
-        global_dict['agent_output_encoding'] = conf['agent_output_encoding']
-        global_dict['transmit_html'] = conf['transmit_html']
-        global_dict['logging'] = conf['logging']
-        global_dict['log_rotation'] = int(conf['log_rotation'])
+# This class is common with CMK 1/2
+class RMKSuite():
+    def __init__(self, suite_tuple):
+        self.suite_tuple = suite_tuple      
 
-        robotdir = conf.get('robotdir', None).get('robotdir', None)
-        global_dict.update(self.dict_if_set(
-            'robotdir', 
-            robotdir, 
-            self._DEFAULTS[opsys]['robotdir']))
+    @property
+    def suite2dict(self): 
+        suite_dict = DictNoNone()
+        suite_dict['path']= self.path
+        suite_dict['tag']= self.tag
+        # Ref whYeq7
+        suite_dict['piggybackhost']= self.piggybackhost
+        # Ref FF3Vph
+        suite_dict['robot_params'] = self.robot_params
+        # Ref au4uPB
+        suite_dict['failed_handling'] = self.failed_handling
+        return suite_dict
 
-        global_dict['execution_mode'] = execution_mode
+    # Ref a01uK3
+    @property
+    def path(self):
+        return self.suite_tuple[0]
 
-        # mode_conf:
-        # >> suite tuples, cache, execution
-        mode_conf = conf['execution_mode'][1]
-        # mode specific settings
-        # Because of the WATO structure ("function follows form") we do not have
-        # keys here, but only a list of Tuples. Depending on the mode, fields
-        # are hidden, the indizes my vary!
-        #                        serial       parallel      external      idx
-        # global
-        #   cache_time           x                          x             1
-        #   execution_interval   x                                        0
-        # suite
-        #   cache_time                        x             x
-        #   execution_interval                x
+    # Ref yJE5bu
+    @property
+    def tag(self):
+        return self.suite_tuple[1].get('tag', None)
 
-        if execution_mode in ['agent_serial']:
-            global_dict['cache_time'] = mode_conf[1]
-            global_dict['execution_interval'] = mode_conf[2]
-        elif execution_mode in ['agent_parallel']:
-            # set nothing, done in suites!
-            pass
-        elif execution_mode in ['external']:
-            # For now, we assume that the external mode is meant to execute all
-            # suites exactly as configured. Hence, we can use the global cache time.
-            global_dict['cache_time'] = mode_conf[1]
-        # suite_tuple:
-        # >> path, tag, piggyback, robot_params{}, cachetime, execution_int
-        if 'suites' in mode_conf[0]:
-            for suite_tuple in mode_conf[0]['suites']:
-                #### PATH
-                path = suite_tuple[0]
+    # Ref whYeq7
+    @property
+    def piggybackhost(self):
+        return self.suite_tuple[2].get('piggybackhost', None)
 
-                #### TAG
-                tag = suite_tuple[1].get('tag', None)
-                suiteid = make_suiteid(path, tag)
-                suitedict = {
-                    'path': path,
-                }
-                suitedict.update(self.dict_if_set('tag', tag))
+    # Ref FF3Vph
+    @property
+    def robot_params(self):
+        params = copy.deepcopy(self.suite_tuple[3].get('robot_params', {}))
+        # Variables: transform the var 'list of tuples' into a dict.
+        variables_dict = {}
+        for (k1, v1) in params.items():
+            if k1 == 'variable':
+                for t in v1:
+                    variables_dict.update({t[0]: t[1]})
+        params.update(self.dict_if_set('variable', variables_dict))    
+        return params
 
-                #### PIGGYBACK
-                piggybackhost = suite_tuple[2].get('piggybackhost', {})
-                suitedict.update(self.dict_if_set('piggybackhost', piggybackhost))
+    # Ref au4uPB
+    @property 
+    def failed_handling(self):
+        failed_handling = copy.deepcopy(self.suite_tuple[4].get('failed_handling', {}))
+        ret = {}
+        if failed_handling:
+            ret.update({'max_executions': failed_handling[0]})
+            ret.update(self.dict_if_set('rerun_selection', failed_handling[1]))
+        return ret
 
-                #### ROBOT PARAMS
-                robot_param_dict = suite_tuple[3].get('robot_params', {})
-                # Variables: transform the var 'list of tuples' into a dict.
-                vardict = {}
-                for (k1, v1) in robot_param_dict.iteritems():
-                    if k1 == 'variable':
-                        for t in v1:
-                            vardict.update({t[0]: t[1]})
-                robot_param_dict.update(self.dict_if_set('variable', vardict))
-                suitedict.update(robot_param_dict)
+    @property
+    def suiteid(self):
+        '''Create a unique ID from the Robot path (dir/.robot file) and the tag. 
+        with underscores for everything but letters, numbers and dot.'''
+        if bool(self.tag):
+            tag_suffix = "_%s" % self.tag
+        else:
+            tag_suffix = ""
+        composite = "%s%s" % (self.path, tag_suffix)
+        outstr = re.sub('[^A-Za-z0-9\.]', '_', composite)
+        # make underscores unique
+        return re.sub('_+', '_', outstr).lower()
 
-                # CACHE & EXECUTION TIME
-                timing_dict = {}
-                if execution_mode == 'agent_parallel':
-                    timing_dict.update({'cache_time': suite_tuple[4]})
-                    timing_dict.update({'execution_interval': suite_tuple[5]})
-                # if execution_mode == 'external':
-                #     timing_dict.update(
-                #         {'cache_time': global_dict['cache_time']})
-                suitedict.update(timing_dict)
-                if suiteid in self.cfg_dict['suites']:
-                    raise MKGeneralException(
-                        "Error in bakery plugin 'robotmk': Suite with ID %s is not unique. Please use tags to solve this problem."
-                    )
-                self.cfg_dict['suites'].update({suiteid: suitedict})
-
-    # If the value is set, return a dict with the key.
-    # If not, return a dict with key and default value. 
-    # If no default value, return an empty dict. 
     @staticmethod
-    def dict_if_set(key, value, default=None):
+    # Return a dict with key:value only if value is set
+    def dict_if_set(key, value):
         if bool(value):
             return {key: value}
         else:
-            if bool(default): 
-                return {key: default}
-            else: 
-                return {}
+            return {}
 
-    def get_os_default(self, setting):
-        '''Read a setting from the DEFAULTS hash. If no OS setting is found, try noarch.
-        Args:
-            setting (str): Setting name
-        Returns:
-            str: The setting value
-        '''
-        value = self._DEFAULTS[self.opsys].get(setting, None)
-        if value is None:
-            value = self._DEFAULTS['noarch'].get(setting, None)
-            if value is None:
-                raise MKGeneralException(
-                    "Error in bakery plugin 'robotmk': Cannot determine OS.")
-        return value
+# This class is common with CMK 1/2
+
+class RMK():
+    def __init__(self, conf, opsys, execution_mode):
+        self.os_newline = get_os_default('newline', opsys)
+
+        self.execution_mode = conf['execution_mode'][0]
+        mode_conf = conf['execution_mode'][1]        
+        self.cfg_dict = {
+            'global': DictNoNone(),
+            'suites': DictNoNone(),
+        }
+        # handy dict shortcuts
+        global_dict = self.cfg_dict['global']
+        suites_dict = self.cfg_dict['suites']
+        global_dict['execution_mode'] =  self.execution_mode
+        global_dict['agent_output_encoding'] =  conf['agent_output_encoding']
+        global_dict['transmit_html'] =  conf['transmit_html']
+        global_dict['logging'] =  conf['logging']
+        global_dict['log_rotation'] =  conf['log_rotation']
+        # WATO makes robotdir a nested dict with duplicate key. Form follows function :-/
+        global_dict['robotdir'] =  conf.get('robotdir', {}).get('robotdir', None)
+
+        if self.execution_mode == 'agent_serial':
+            global_dict['cache_time'] = mode_conf[1]
+            global_dict['execution_interval'] = mode_conf[2]
+            self.execution_interval = mode_conf[2]
+        elif self.execution_mode == 'external':
+            # For now, we assume that the external mode is meant to execute all
+            # suites exactly as configured. Hence, we can use the global cache time.
+            global_dict['cache_time'] = mode_conf[1]  
+
+        if 'suites' in mode_conf[0]:
+            # each suite suite_tuple:
+            # 0) path, Ref a01uK3
+            # 1) tag, Ref yJE5bu
+            # 2) piggybackhost, Ref whYeq7
+            # 3) robot_params{}, Ref FF3Vph
+            # 4) failed_handling, Ref au4uPB            
+            for suite_tuple in mode_conf[0]['suites']:
+                suite = RMKSuite(suite_tuple)
+                if suite.suiteid in self.cfg_dict['suites']:
+                    raise MKGeneralException(
+                        "Error in bakery plugin 'robotmk': Suite with ID %s is not unique. Please use tags to solve this problem." % suite.suiteid 
+                    )      
+
+                self.cfg_dict['suites'].update({
+                    suite.suiteid: suite.suite2dict})        
+
+        pass
 
     @property
     def global_dict(self):
@@ -251,6 +276,23 @@ class RMKConfigAdapter():
     @property
     def suites_dict(self):
         return self.cfg_dict['suites']
+
+def get_os_default(setting, opsys):
+    '''Read a setting from the DEFAULTS hash. If no OS setting is found, try noarch.
+    Args:
+        setting (str): Setting name
+    Returns:
+        str: The setting value
+    '''
+    value = DEFAULTS[opsys].get(setting, None)
+    if value is None:
+        value = DEFAULTS['noarch'].get(setting, None)
+        if value is None:
+            raise MKGeneralException(
+                "Error in bakery plugin 'robotmk': Cannot find setting '%s' for OS %s." % (setting, opsys))
+    return value
+
+
 
 
 def make_suiteid(robotpath, tag):
@@ -271,9 +313,4 @@ bakery_info["robotmk"] = {
     "os": ["linux", "windows"],
 }
 
-header = """# This file is part of Robotmk, a module for the integration of Robot
-# framework test results into Checkmk.
-#
-# https://robotmk.org
-# https://github.com/simonmeggle/robotmk
-# https://robotframework.org/#tools\n\n"""
+

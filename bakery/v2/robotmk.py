@@ -50,8 +50,7 @@ class DictNoNone(dict):
         if (key in self or type(value) is bool) or bool(value):
             dict.__setitem__(self, key, value)
 
-
-
+# This class is common with CMK 1/2
 class RMKSuite():
     def __init__(self, suite_tuple):
         self.suite_tuple = suite_tuple      
@@ -61,33 +60,51 @@ class RMKSuite():
         suite_dict = DictNoNone()
         suite_dict['path']= self.path
         suite_dict['tag']= self.tag
+        # Ref whYeq7
         suite_dict['piggybackhost']= self.piggybackhost
-        suite_dict.update(self.robot_param_dict)
+        # Ref FF3Vph
+        suite_dict['robot_params'] = self.robot_params
+        # Ref au4uPB
+        suite_dict['failed_handling'] = self.failed_handling
         return suite_dict
 
+    # Ref a01uK3
     @property
     def path(self):
         return self.suite_tuple[0]
 
+    # Ref yJE5bu
     @property
     def tag(self):
         return self.suite_tuple[1].get('tag', None)
 
+    # Ref whYeq7
     @property
     def piggybackhost(self):
         return self.suite_tuple[2].get('piggybackhost', None)
 
+    # Ref FF3Vph
     @property
-    def robot_param_dict(self):
-        robot_params = copy.deepcopy(self.suite_tuple[3].get('robot_params', {}))
+    def robot_params(self):
+        params = copy.deepcopy(self.suite_tuple[3].get('robot_params', {}))
         # Variables: transform the var 'list of tuples' into a dict.
-        vardict = {}
-        for (k1, v1) in robot_params.items():
+        variables_dict = {}
+        for (k1, v1) in params.items():
             if k1 == 'variable':
                 for t in v1:
-                    vardict.update({t[0]: t[1]})
-        robot_params.update(self.dict_if_set('variable', vardict))        
-        return robot_params
+                    variables_dict.update({t[0]: t[1]})
+        params.update(self.dict_if_set('variable', variables_dict))    
+        return params
+
+    # Ref au4uPB
+    @property 
+    def failed_handling(self):
+        failed_handling = copy.deepcopy(self.suite_tuple[4].get('failed_handling', {}))
+        ret = {}
+        if failed_handling:
+            ret.update({'max_executions': failed_handling[0]})
+            ret.update(self.dict_if_set('rerun_selection', failed_handling[1]))
+        return ret
 
     @property
     def suiteid(self):
@@ -110,6 +127,7 @@ class RMKSuite():
         else:
             return {}
 
+# This class is common with CMK 1/2
 class RMK():
     def __init__(self, conf):
         self.execution_mode = conf['execution_mode'][0]
@@ -127,7 +145,8 @@ class RMK():
         global_dict['logging'] =  conf['logging']
         global_dict['log_rotation'] =  conf['log_rotation']
         # WATO makes robotdir a nested dict with duplicate key. Form follows function :-/
-        global_dict['robotdir'] =  conf.get('robotdir').get('robotdir')
+        global_dict['robotdir'] =  conf.get('robotdir', {}).get('robotdir', None)
+
         if self.execution_mode == 'agent_serial':
             global_dict['cache_time'] = mode_conf[1]
             global_dict['execution_interval'] = mode_conf[2]
@@ -135,10 +154,15 @@ class RMK():
         elif self.execution_mode == 'external':
             # For now, we assume that the external mode is meant to execute all
             # suites exactly as configured. Hence, we can use the global cache time.
-            global_dict['cache_time'] = mode_conf[1]        
+            global_dict['cache_time'] = mode_conf[1]   
+
         if 'suites' in mode_conf[0]:
             # each suite suite_tuple:
-            # >> path, tag, piggyback, robot_params{}
+            # 0) path, Ref a01uK3
+            # 1) tag, Ref yJE5bu
+            # 2) piggybackhost, Ref whYeq7
+            # 3) robot_params{}, Ref FF3Vph
+            # 4) failed_handling, Ref au4uPB
             for suite_tuple in mode_conf[0]['suites']:
                 suite = RMKSuite(suite_tuple)
                 if suite.suiteid in self.cfg_dict['suites']:
@@ -150,13 +174,21 @@ class RMK():
                     suite.suiteid: suite.suite2dict})        
         pass
 
+    @property
+    def global_dict(self):
+        return self.cfg_dict['global']
+
+    @property
+    def suites_dict(self):
+        return self.cfg_dict['suites']
+
+
     def controller_plugin(self, opsys: OS) -> Plugin:
         return  Plugin(
             base_os=opsys,
             source=Path('robotmk.py'),
         )
-
-       
+  
     def runner_plugin(self, opsys: OS) -> Plugin:
         # TODO: when external mode:
         #  => bin!     
@@ -181,9 +213,9 @@ class RMK():
                 "Error: Execution mode %s is not supported." % self.execution_mode 
             )              
 
-    def yml(self, opsys: OS, robotmk) -> PluginConfig:
+    def yml(self, opsys: OS, config) -> PluginConfig:
         return PluginConfig(base_os=opsys,
-            lines=_get_yml_lines(robotmk),
+            lines=_get_yml_lines(config),
             target=Path('robotmk.yml'),
             include_header=True)
 
@@ -198,24 +230,18 @@ class RMK():
                 ))
         return files
 
-    @property
-    def global_dict(self):
-        return self.cfg_dict['global']
 
-    @property
-    def suites_dict(self):
-        return self.cfg_dict['suites']
 
 def get_robotmk_files(conf) -> FileGenerator:
     # ALWAYS (!) make a deepcopy of the conf dict. Even if you do not change
     # anything on it, there are strange changes ocurring while building the
     # packages of OS. A deepcopy solves this completely.
-    robotmk = RMK(copy.deepcopy(conf))    
+    config = RMK(copy.deepcopy(conf))    
     for base_os in [OS.LINUX, OS.WINDOWS]: 
-        controller_plugin =  robotmk.controller_plugin(base_os)
-        runner_plugin =  robotmk.runner_plugin(base_os)
-        robotmk_yml = robotmk.yml(base_os, robotmk)
-        bin_files = robotmk.bin_files(base_os)
+        controller_plugin =  config.controller_plugin(base_os)
+        runner_plugin =  config.runner_plugin(base_os)
+        robotmk_yml = config.yml(base_os, config)
+        bin_files = config.bin_files(base_os)
         yield controller_plugin
         # in external mode, the runner is only in bin
         if bool(runner_plugin): yield runner_plugin
@@ -223,7 +249,7 @@ def get_robotmk_files(conf) -> FileGenerator:
         for file in bin_files: 
             yield file
 
-def _get_yml_lines(robotmk) -> List[str]:
+def _get_yml_lines(config) -> List[str]:
 
     header = "# This file is part of Robotmk, a module for the integration of Robot\n" +\
         "# framework test results into Checkmk.\n" +\
@@ -240,7 +266,7 @@ def _get_yml_lines(robotmk) -> List[str]:
         lambda dumper, data: dumper.represent_mapping('tag:yaml.org,2002:map', data.items())
         )
     bodylist = yaml.dump(
-        robotmk.cfg_dict,
+        config.cfg_dict,
         default_flow_style=False,
         allow_unicode=True,
         sort_keys=True).split('\n')         

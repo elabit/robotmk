@@ -1,8 +1,8 @@
 {
-    "displayName": "▶︎ Set devcontainer to CMK v2",
-    "command": "cp .devcontainer/devcontainer{_v2,}.json",
+    "displayName": "▶︎ Create dummyhost",
+    "command": "bash /workspaces/robotmk/.devcontainer/create_dummyhost.sh",
     "version": "2.0.0",
     "type": "shell",
     "problemMatcher": [],
-    "chooserIndex": 2
+    "chooserIndex": 3
 }
