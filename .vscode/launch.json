@@ -18,6 +18,22 @@
             "justMyCode": false
         },
         {
+            "name": "devc V2.x bakery localhost",
+            "type": "python",
+            "request": "launch",
+            "program": "/omd/sites/cmk/bin/cmk",
+            "args": [
+                "-A",
+                "-v",
+                "-f",
+                "localhost"
+            ],
+            "console": "integratedTerminal",
+            "python": "/omd/sites/cmk/bin/python3",
+            // allow to inspect also foreign code
+            "justMyCode": false
+        },
+        {
             "name": "devc V2.x bakery win10simdows",
             "type": "python",
             "request": "launch",

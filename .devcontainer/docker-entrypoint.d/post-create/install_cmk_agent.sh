@@ -5,6 +5,8 @@
 # As agent installers are only available after the first login into the site, 
 # we do not have access to them. Instead, a recent deb gets installed. Will work
 # for most needs...  
+# As soon as the first installer has been baken by the bakery, the agent will 
+# anyhow have a version from the CMK server.  
 
 echo "Installing the Checkmk agent..."
 DEB=$(realpath $(dirname $0))/cmk_agent.deb

@@ -3,7 +3,7 @@
 	"build": {
 		"dockerfile": "Dockerfile",
 		"args": {
-			"VARIANT": "1.6.0p24",
+			"VARIANT": "1.6.0p25",
 			"PIP": "pip"
 		},
 	},
@@ -16,7 +16,7 @@
 		"terminal.integrated.shell.linux": "/bin/bash",
 		// Update any extensions in Docker, how dare you 
 		"extensions.autoUpdate": false,
-		"python.pythonPath": "/omd/sites/cmk/bin/python2"
+		"python.pythonPath": "/omd/sites/cmk/bin/python"
 	},
 	"extensions": [
 		"ms-python.python",
