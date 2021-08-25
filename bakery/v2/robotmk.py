@@ -50,8 +50,7 @@ class DictNoNone(dict):
         if (key in self or type(value) is bool) or bool(value):
             dict.__setitem__(self, key, value)
 
-
-
+# This class is common with CMK 1/2
 class RMKSuite():
     def __init__(self, suite_tuple):
         self.suite_tuple = suite_tuple      
@@ -128,6 +127,7 @@ class RMKSuite():
         else:
             return {}
 
+# This class is common with CMK 1/2
 class RMK():
     def __init__(self, conf):
         self.execution_mode = conf['execution_mode'][0]
@@ -145,7 +145,8 @@ class RMK():
         global_dict['logging'] =  conf['logging']
         global_dict['log_rotation'] =  conf['log_rotation']
         # WATO makes robotdir a nested dict with duplicate key. Form follows function :-/
-        global_dict['robotdir'] =  conf.get('robotdir').get('robotdir')
+        global_dict['robotdir'] =  conf.get('robotdir', {}).get('robotdir', None)
+
         if self.execution_mode == 'agent_serial':
             global_dict['cache_time'] = mode_conf[1]
             global_dict['execution_interval'] = mode_conf[2]
@@ -153,7 +154,8 @@ class RMK():
         elif self.execution_mode == 'external':
             # For now, we assume that the external mode is meant to execute all
             # suites exactly as configured. Hence, we can use the global cache time.
-            global_dict['cache_time'] = mode_conf[1]        
+            global_dict['cache_time'] = mode_conf[1]   
+
         if 'suites' in mode_conf[0]:
             # each suite suite_tuple:
             # 0) path, Ref a01uK3
@@ -172,13 +174,21 @@ class RMK():
                     suite.suiteid: suite.suite2dict})        
         pass
 
+    @property
+    def global_dict(self):
+        return self.cfg_dict['global']
+
+    @property
+    def suites_dict(self):
+        return self.cfg_dict['suites']
+
+
     def controller_plugin(self, opsys: OS) -> Plugin:
         return  Plugin(
             base_os=opsys,
             source=Path('robotmk.py'),
         )
-
-       
+  
     def runner_plugin(self, opsys: OS) -> Plugin:
         # TODO: when external mode:
         #  => bin!     
@@ -203,9 +213,9 @@ class RMK():
                 "Error: Execution mode %s is not supported." % self.execution_mode 
             )              
 
-    def yml(self, opsys: OS, robotmk) -> PluginConfig:
+    def yml(self, opsys: OS, config) -> PluginConfig:
         return PluginConfig(base_os=opsys,
-            lines=_get_yml_lines(robotmk),
+            lines=_get_yml_lines(config),
             target=Path('robotmk.yml'),
             include_header=True)
 
@@ -220,24 +230,18 @@ class RMK():
                 ))
         return files
 
-    @property
-    def global_dict(self):
-        return self.cfg_dict['global']
 
-    @property
-    def suites_dict(self):
-        return self.cfg_dict['suites']
 
 def get_robotmk_files(conf) -> FileGenerator:
     # ALWAYS (!) make a deepcopy of the conf dict. Even if you do not change
     # anything on it, there are strange changes ocurring while building the
     # packages of OS. A deepcopy solves this completely.
-    robotmk = RMK(copy.deepcopy(conf))    
+    config = RMK(copy.deepcopy(conf))    
     for base_os in [OS.LINUX, OS.WINDOWS]: 
-        controller_plugin =  robotmk.controller_plugin(base_os)
-        runner_plugin =  robotmk.runner_plugin(base_os)
-        robotmk_yml = robotmk.yml(base_os, robotmk)
-        bin_files = robotmk.bin_files(base_os)
+        controller_plugin =  config.controller_plugin(base_os)
+        runner_plugin =  config.runner_plugin(base_os)
+        robotmk_yml = config.yml(base_os, config)
+        bin_files = config.bin_files(base_os)
         yield controller_plugin
         # in external mode, the runner is only in bin
         if bool(runner_plugin): yield runner_plugin
@@ -245,7 +249,7 @@ def get_robotmk_files(conf) -> FileGenerator:
         for file in bin_files: 
             yield file
 
-def _get_yml_lines(robotmk) -> List[str]:
+def _get_yml_lines(config) -> List[str]:
 
     header = "# This file is part of Robotmk, a module for the integration of Robot\n" +\
         "# framework test results into Checkmk.\n" +\
@@ -262,7 +266,7 @@ def _get_yml_lines(robotmk) -> List[str]:
         lambda dumper, data: dumper.represent_mapping('tag:yaml.org,2002:map', data.items())
         )
     bodylist = yaml.dump(
-        robotmk.cfg_dict,
+        config.cfg_dict,
         default_flow_style=False,
         allow_unicode=True,
         sort_keys=True).split('\n')         
