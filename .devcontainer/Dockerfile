@@ -5,8 +5,6 @@ FROM checkmk/check-mk-enterprise:${VARIANT}
 ARG PIP
 
 ENV CMK_PASSWORD="cmk"
-# Creates the OMD site but halts before site start
-RUN /docker-entrypoint.sh /bin/true
 
 # install python3 on the container
 RUN apt-get update && export DEBIAN_FRONTEND=noninteractive \ 
@@ -25,12 +23,17 @@ RUN pip3 install robotframework pyyaml mergedeep python-dateutil ipdb
 RUN apt-get update && export DEBIAN_FRONTEND=noninteractive \
     && apt-get -y install --no-install-recommends jq tree htop vim git telnet file lsyncd
 
-ADD requirements.txt /tmp/requirements.txt
-RUN PATH="/omd/sites/cmk/bin:${PATH}" \
-    OMD_ROOT="/omd/sites/cmk" \
-    /omd/sites/cmk/bin/${PIP} install -r /tmp/requirements.txt
+# Creates the OMD site, executes post-start hook and halts before site start
+COPY docker-entrypoint.d /docker-entrypoint.d
+RUN /docker-entrypoint.sh /bin/true
 
-# make the robot dir writeable from the CMK site (to link RF example tests) 
-RUN mkdir -p /usr/lib/check_mk_agent/robot && chmod 777 /usr/lib/check_mk_agent/robot
+# ADD requirements.txt /tmp/requirements.txt
+# RUN PATH="/omd/sites/cmk/bin:${PATH}" \
+#     OMD_ROOT="/omd/sites/cmk" \
+#     /omd/sites/cmk/bin/${PIP} install -r /tmp/requirements.txt
+
+# make the agent dir writeable from the CMK site (to link RF example tests) 
+RUN chgrp -R cmk /usr/lib/check_mk_agent && chmod g+w /usr/lib/check_mk_agent
+
 
 ENTRYPOINT ["/bin/bash"]

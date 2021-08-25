@@ -15,7 +15,8 @@
 	"settings": {
 		"terminal.integrated.shell.linux": "/bin/bash",
 		// Update any extensions in Docker, how dare you 
-		"extensions.autoUpdate": false
+		"extensions.autoUpdate": false,
+		"python.pythonPath": "/omd/sites/cmk/bin/python2"
 	},
 	"extensions": [
 		"ms-python.python",

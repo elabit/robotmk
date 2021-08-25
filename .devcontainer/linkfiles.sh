@@ -15,25 +15,25 @@ function main {
     if [ $MVERSION == 1 ]; then 
         echo "Detected CMK major version 1"
         lsync_v1files
-        echo -e "\n###########\nStarting lsyncd to synchronize files...\n"
-        nohup lsyncd $OMD_ROOT/.lsyncd
     elif [ $MVERSION == 2 ]; then 
         echo "Detected CMK major version 2"
-        linkv2files
+        lsync_v2files
     else
         echo "Detected CMK major version $MVERSION is not supported by this script (only 1 and 2). Exiting."
         usage
     fi 
+    echo -e "\n###########\nStarting lsyncd to synchronize files...\n"
+    nohup lsyncd $OMD_ROOT/.lsyncd
 }
 
 function rmpath {
-    echo "clearing $LINKNAME"
-    rm -rf $OMD_ROOT/$1
+    echo "clearing $1"
+    rm -rf $1
 }
 
 function linkpath {
     TARGET=$WORKSPACE/$1
-    LINKNAME=$OMD_ROOT/$2
+    LINKNAME=$2
     echo "linking $TARGET -> $LINKNAME"
     # make sure that the link's parent dir exists
     mkdir -p $(dirname $LINKNAME)
@@ -45,8 +45,12 @@ function linkpath {
 function link {
     echo "---"
     TARGET=$1
-    LINKNAME=$2
-    rmpath $LINKNAME
+    if [ ${2:0:1} == "/" ]; then 
+        LINKNAME=$2
+    else
+        LINKNAME=/omd/sites/cmk/$2
+    fi    
+    #rmpath $LINKNAME
     linkpath $TARGET $LINKNAME
 }
 
@@ -120,16 +124,20 @@ function lsync_v1files {
     lsync_this rf_tests /usr/lib/check_mk_agent/robot
 }
 
-function linkv2files {
+function lsync_v2files {
+    # write global lsyncd config
+    write_lsyncd_header    
     # checkman
-    link checkman local/share/check_mk/checkman
+    lsync_this checkman local/share/check_mk/checkman
     # Metrics, WATO, agent_plugins
-    link web_plugins local/share/check_mk/web/plugins
-    link agents_plugins local/share/check_mk/agents/plugins
+    lsync_this web_plugins local/share/check_mk/web/plugins
+    lsync_this agents_plugins local/share/check_mk/agents/plugins
     # Check plugin dir
-    link checks/v2 local/lib/check_mk/base/plugins/agent_based
+    lsync_this checks/v2 local/lib/check_mk/base/plugins/agent_based
     # Bakery script dir
-    link bakery/v2 local/lib/check_mk/base/cee/plugins/bakery
+    lsync_this bakery/v2 local/lib/check_mk/base/cee/plugins/bakery
+    # # Sync RF test suites 
+    lsync_this rf_tests /usr/lib/check_mk_agent/robot    
 }
 
 main
