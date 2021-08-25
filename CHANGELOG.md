@@ -5,6 +5,25 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## Unreleased
+
+### Fixed
+
+* Fixed bug in agent plugin when no suite dir is present at all
+* Cleanup in v1.6 bakery script
+
+### Added 
+
+* New WATO option: option to re-execute failed tests of a suite (#150)
+
+### Changed 
+
+* Robot params in robotmk.yml are now within subkey "robot_params"
+
+### Removed
+
+* Removed Robotmk keywords from agent plugin; better install with pip
+
 ## 1.1.1 - 2021-07-29
 
 * Fixed CRLF bug, thanks @NimVek (#146)
