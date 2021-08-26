@@ -101,12 +101,13 @@ class RMKConfig():
         self.calling_cls.loginfo(
             'No suites defined in YML and ENV; seeking for dirs in %s/...' %
             self.global_dict['robotdir'])
+        # Collect all .robot files and all directories (ecept hidden ones like .vscode)
         suites_dict = {
             suitedir.name: {
                 'path': suitedir.name,
                 'tag': '',
             } for suitedir in
-            [ x for x in Path(self.global_dict['robotdir']).iterdir() if x.is_dir() or x.name.endswith('.robot') ]
+            [ x for x in Path(self.global_dict['robotdir']).iterdir() if (x.is_dir() or x.name.endswith('.robot')) and not x.name.startswith('.') ]
             }
         return suites_dict
 
