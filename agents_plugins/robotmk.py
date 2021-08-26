@@ -44,6 +44,7 @@ import xml.etree.ElementTree as ET
 from enum import Enum
 from abc import ABC, abstractmethod 
 import glob
+import contextlib
 
 from robot.rebot import rebot
 
@@ -915,13 +916,16 @@ class RMKrunner(RMKState, RMKPlugin):
         filenames = [Path(f).name for f in outputfiles]
         for f in filenames: 
             self.logdebug(" - %s" % f)
+        # rebot wants to print out the generated file names on stdout; write to devnull
+        devnull = open(os.devnull, 'w')                    
         rebot(
             *outputfiles, 
             outputdir=suite.outputdir, 
             output=suite.output,
             log=suite.log,
             report=None,
-            merge=True
+            merge=True,
+            stdout=devnull
             )        
 
     def run_suite(self, suite):
