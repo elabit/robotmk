@@ -44,7 +44,7 @@ import xml.etree.ElementTree as ET
 from enum import Enum
 from abc import ABC, abstractmethod 
 import glob
-import contextlib
+import copy
 
 from robot.rebot import rebot
 
@@ -1277,14 +1277,24 @@ class RMKHostData(RMKData):
     @property
     def state(self):
         return {
-            "runner": self._runner_state,
-            "suites": self._suite_states
+            "runner": self.runner_state,
+            "suites": self.suite_states
         }
 
     @property
-    def _suite_states(self):
+    def runner_state(self):
+        """Return the Runner metadata; append piggyback flag"""
+        r_dict = copy.deepcopy(self._runner_state)
+        if self.is_piggyback: 
+            r_dict.update({'piggybackhost': True})
+        else: 
+            r_dict.update({'piggybackhost': False})
+        return r_dict
+
+    @property
+    def suite_states(self):
         """Return the suites for the set host; the executing host gets all suites back."""
-        if self.host == 'localhost': 
+        if not self.is_piggyback: 
             # iterate over ALL hosts, the executing host must report its own suites as well as the piggyback ones
             return [state for host in self._all_suites_state.keys() for state in self._all_suites_state[host] if bool(state)] 
         else: 
@@ -1296,9 +1306,16 @@ class RMKHostData(RMKData):
         """Return the agent output for runner/suites, including the optional piggyback header. """
         json_serialized = json.dumps(self.state, sort_keys=False, indent=2)
         json_w_header = f'<<<robotmk:sep(0)>>>\n{json_serialized}\n'
-        if self.host != "localhost":
+        if self.is_piggyback:
             json_w_header = f'<<<<{self.host}>>>>\n{json_w_header}<<<<>>>>\n'        
         return json_w_header
+
+    @property
+    def is_piggyback(self):
+        if self.host == 'localhost': 
+            return False
+        else: 
+            return True
 
 def xml_remove_html(content):
     xml = ET.fromstring(content)
