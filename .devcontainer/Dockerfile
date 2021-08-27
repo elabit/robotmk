@@ -1,7 +1,7 @@
 # See here for image contents: https://github.com/microsoft/vscode-dev-containers/tree/v0.155.1/containers/ubuntu/.devcontainer/base.Dockerfile
 
 ARG VARIANT
-# FROM checkmk/check-mk-enterprise:${VARIANT}
+# Build the dev images with .devcontainer/build-devcontainer.sh !
 FROM robotmk-cmk-python3:${VARIANT}
 ARG PIP
 

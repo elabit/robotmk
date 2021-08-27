@@ -252,9 +252,9 @@ def _parameter_valuespec_robotmk():
                 )),  # L1 / perfdata_creation
             ("includedate",
              DropdownChoice(
-                 title=_("Include execution date in first output line"),
+                 title=_("Include execution time in test/suites output line"),
                  help=
-                 _("If checked, the first output line of the check will also contain the timestamp when the suite was finished."
+                 _("If checked, top level suites and tests will show their last execution."
                    ),
                  choices=[
                      ('yes', _('yes')),

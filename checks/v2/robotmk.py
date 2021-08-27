@@ -32,7 +32,7 @@ from cmk.utils.exceptions import MKGeneralException
 
 # UTC = pytz.utc
 
-ROBOTMK_VERSION = 'v1.2-beta'
+ROBOTMK_VERSION = 'v1.2-beta.2'
 
 DEFAULT_SVC_PREFIX = 'Robot Framework E2E $SUITEID$SPACE-$SPACE'
 
@@ -116,15 +116,21 @@ def discover_robotmk(params, section):
                 item_svc_name = add_svc_prefix(discovered_item.name,
                                                json_suite,
                                                params)
-                yield Service(
-                    item=item_svc_name,
-                    parameters=params_dict)
+                # Display the service on this host: 
+                # - if this is a piggyback host (agent output for pb hosts contains only selected suites)
+                # or
+                # - if this is not a pb- but the "Robot"-host and the suite has no piggyback entry 
+                if info_dict['runner']['piggybackhost'] or not json_suite.get('piggybackhost'):    
+                    yield Service(
+                        item=item_svc_name,
+                        parameters=params_dict)
 
-    # The meta service reporting overall runtimes, stale spool files etc.
-    svc_robotmk = params.get('robotmk_service_name', 'Robotmk')
-    yield Service(
-        item=svc_robotmk,
-        parameters=params_dict)
+    # Display the Robotmk meta service only on the "Robot" host. (for reporting overall runtimes, stale spool files etc.)
+    if not info_dict['runner']['piggybackhost']: 
+        svc_robotmk = params.get('robotmk_service_name', 'Robotmk')
+        yield Service(
+            item=svc_robotmk,
+            parameters=params_dict)
         
     
 # v2check
@@ -412,6 +418,20 @@ class RobotItem(object):
                 # Ref: yoczO3
                 self.root_suite.discovered.append(self)
 
+    @property
+    def text(self): 
+        # Return back plain text if the text has a HTML prefix.
+        # This is the necessary for test messages created by rebot after merging test results. 
+        # Change when this https://github.com/robotframework/robotframework/issues/4068 has been solved.         
+        if self._text.startswith('*HTML* '): 
+            return html_to_text(self._text).replace('*HTML* ', '')
+        else: 
+            return self._text
+
+    @text.setter
+    def text(self, text):
+        self._text = text
+
     def _get_id(self, xmlnode, index):
         """suites and tests have a id attribute. Fake this for keywords.
         because indexing is important for Checkmk graphs."""
@@ -475,8 +495,6 @@ class RobotItem(object):
 
     # create the "base line" with the node name and the RF status
     def _set_node_padded_line(self, check_params):
-        # TODO: What are requirements for a line?
-
         # I. Begin with the baseline formatting. The baseline is pure related to the Robot result
         # ---- [K] 'MyKeyword': PASS (...)"
 
@@ -490,12 +508,17 @@ class RobotItem(object):
         # - last suite execution
         # -
         endtime_str = ""
-        # FIXME: This is bug #74! Is it solved?
         if self.is_topnode and bool(check_params.get('includedate')):
-            endtime = datetime.datetime.strptime(self.end_time,
-                                                 '%Y%m%d %H:%M:%S.%f')
-            endtime_str = " (last execution: %s) " % endtime.strftime(
-                '%m/%d %H:%M:%S')
+            if self.end_time == 'N/A': 
+                endtime_str = " (last execution: N/A, all retries failed)"
+            else:
+                try: 
+                    endtime = datetime.datetime.strptime(self.end_time,
+                                                        '%Y%m%d %H:%M:%S.%f')
+                    endtime_str = " (last execution: %s) " % endtime.strftime(
+                        '%m/%d %H:%M:%S')
+                except: 
+                    endtime_str = " (unknown error: cannot determine execution time)"
         baseline = ("%s %s %s '%s': %s%s%s%s" %
                     (self.padstring, '--SYMBOL--', self.abbreviation,
                      remove_nasty_chars(self.name), self.status, endtime_str,
@@ -1153,6 +1176,66 @@ def roundup(number, ndigits=0, return_type=None):
     if not return_type:
         return_type = float if ndigits > 0 else int
     return return_type(result)
+
+"""
+HTML <-> text conversions.
+http://stackoverflow.com/questions/328356/extracting-text-from-html-file-using-python
+"""
+from html.parser import HTMLParser
+from html.entities import name2codepoint
+import re
+
+class _HTMLToText(HTMLParser):
+    def __init__(self):
+        HTMLParser.__init__(self)
+        self._buf = []
+        self.hide_output = False
+
+    def handle_starttag(self, tag, attrs):
+        if tag in ('p', 'br') and not self.hide_output:
+            self._buf.append('\n')
+        elif tag in ('script', 'style'):
+            self.hide_output = True
+
+    def handle_startendtag(self, tag, attrs):
+        if tag == 'br':
+            self._buf.append('\n')
+
+    def handle_endtag(self, tag):
+        if tag == 'p':
+            self._buf.append('\n')
+        elif tag in ('script', 'style'):
+            self.hide_output = False
+
+    def handle_data(self, text):
+        if text and not self.hide_output:
+            self._buf.append(re.sub(r'\s+', ' ', text))
+
+    def handle_entityref(self, name):
+        if name in name2codepoint and not self.hide_output:
+            c = chr(name2codepoint[name])
+            self._buf.append(c)
+
+    def handle_charref(self, name):
+        if not self.hide_output:
+            n = int(name[1:], 16) if name.startswith('x') else int(name)
+            self._buf.append(chr(n))
+
+    def get_text(self):
+        return re.sub(r' +', ' ', ''.join(self._buf))
+
+def html_to_text(html):
+    """
+    Given a piece of HTML, return the plain text it contains.
+    This handles entities and char refs, but not javascript and stylesheets.
+    """
+    parser = _HTMLToText()
+    try:
+        parser.feed(html)
+        parser.close()
+    except:  #HTMLParseError: No good replacement?
+        pass
+    return parser.get_text()
 
 
 # v2register

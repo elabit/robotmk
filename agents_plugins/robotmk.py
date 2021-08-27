@@ -44,12 +44,13 @@ import xml.etree.ElementTree as ET
 from enum import Enum
 from abc import ABC, abstractmethod 
 import glob
+import copy
 
 from robot.rebot import rebot
 
 
 local_tz = datetime.utcnow().astimezone().tzinfo
-ROBOTMK_VERSION = 'v1.2-beta'
+ROBOTMK_VERSION = 'v1.2-beta.2'
 
 class RMKConfig():
     _PRESERVED_WORDS = [
@@ -100,12 +101,13 @@ class RMKConfig():
         self.calling_cls.loginfo(
             'No suites defined in YML and ENV; seeking for dirs in %s/...' %
             self.global_dict['robotdir'])
+        # Collect all .robot files and all directories (ecept hidden ones like .vscode)
         suites_dict = {
             suitedir.name: {
                 'path': suitedir.name,
                 'tag': '',
             } for suitedir in
-            [ x for x in Path(self.global_dict['robotdir']).iterdir() if x.is_dir() or x.name.endswith('.robot') ]
+            [ x for x in Path(self.global_dict['robotdir']).iterdir() if (x.is_dir() or x.name.endswith('.robot')) and not x.name.startswith('.') ]
             }
         return suites_dict
 
@@ -389,7 +391,8 @@ class RMKSuite(RMKState):
         self.suite_dict.setdefault('robot_params', {})    
         self.suite_dict['robot_params'].update({
             'outputdir':  self.global_dict['outputdir'],
-            'console':  'NONE'
+            'console':  'NONE',
+            'report':   'NONE'
         })
         # Ref: TgWQvr
         if self.source == "local":
@@ -705,7 +708,7 @@ class RMKPlugin():
             fh = TimedRotatingFileHandler(
                 Path(self._DEFAULTS[os.name]['logdir']
                      ).joinpath('robotmk_%s.log' % repr(calling_cls)),
-                when="h", interval=24, backupCount=30)
+                when="midnight", backupCount=30)
             file_formatter = logging.Formatter(
                 fmt='%(asctime)s %(name)10s [%(process)5d] %(levelname)7s: %(message)s')
             fh.setFormatter(file_formatter)
@@ -915,13 +918,16 @@ class RMKrunner(RMKState, RMKPlugin):
         filenames = [Path(f).name for f in outputfiles]
         for f in filenames: 
             self.logdebug(" - %s" % f)
+        # rebot wants to print out the generated file names on stdout; write to devnull
+        devnull = open(os.devnull, 'w')                    
         rebot(
             *outputfiles, 
             outputdir=suite.outputdir, 
             output=suite.output,
             log=suite.log,
             report=None,
-            merge=True
+            merge=True,
+            stdout=devnull
             )        
 
     def run_suite(self, suite):
@@ -993,6 +999,7 @@ class RMKCtrl(RMKState, RMKPlugin):
 
     def __init__(self):
         super().__init__()
+        self.cleanup_logs()
 
     def __str__(self):
         return 'Robotmk Controller'
@@ -1024,6 +1031,7 @@ class RMKCtrl(RMKState, RMKPlugin):
             pass
 
     def schedule_runner(self):
+        # ORPHANED method - delete someday
         # self.loginfo(">>> Runner scheduling (%s) <<<" % self.execution_mode)
         if self._state == {}:
             never_ran = True
@@ -1076,44 +1084,36 @@ class RMKCtrl(RMKState, RMKPlugin):
           - the runner's statefile (total execution time, cache time, executed suites etc.)
         - content of all suite statefiles as configured
         '''
-        # self.loginfo(">>> Agent output generation <<<")
-        output = []
+        
+        
         encoding = self.global_dict['agent_output_encoding']
-        meta_data = {
+        runner_state = {
             "encoding": encoding,
             "robotmk_version": ROBOTMK_VERSION,
         }
         self.logdebug("Reading the Runner statefile %s" %
                       self.statefile_path)
         self._state = self.read_state_from_file()
-        meta_data.update(self._state)
+        runner_state.update(self._state)
 
         # Some keys from the runner state file should be overwritten with current values:
-        meta_data.update({
+        runner_state.update({
             'robotmk_version': ROBOTMK_VERSION,
             'execution_mode': self.execution_mode}
         )
+        RMKData._runner_state = runner_state
 
         self.loginfo(
             "Reading suite statefiles and encoding data (%s)..." % encoding)
-        self.suites_state = self.check_suite_statefiles(encoding)
-        if self.suites_state != None:
-            for host in self.suites_state.keys():
-                # discard empty dicts
-                states = [
-                    state for state in self.suites_state[host] if bool(state)]
-
-                host_state = {
-                    "runner": meta_data,
-                    "suites": states,
-                }
-                json_serialized = json.dumps(host_state, sort_keys=False, indent=2)
-                json_w_header = f'<<<robotmk:sep(0)>>>\n{json_serialized}\n'
-                if host != "localhost":
-                    json_w_header = f'<<<<{host}>>>>\n{json_w_header}\n<<<<>>>>\n'
-                output.append(json_w_header)
-        self.loginfo("Agent output printed on STDOUT")
+        self.all_suites_state = self.check_suite_statefiles(encoding)
+        output = []
+        # write Robotmk output: runner & all suites
+        if self.all_suites_state != None:
+            for host in self.all_suites_state.keys():
+                host_data = RMKHostData(self.all_suites_state, host)
+                output.append(host_data.serialized_data)
         print(''.join(output))
+        self.logdebug("Agent output was printed on STDOUT")
 
     @property
     def global_dict(self):
@@ -1123,20 +1123,33 @@ class RMKCtrl(RMKState, RMKPlugin):
     def suites_dict(self):
         return self.config.cfg_dict['suites']
 
+    @property
+    def outputdir(self):
+        return self.global_dict['outputdir']
+
     def check_suite_statefiles(self, encoding):
         '''Check the state files of suites; encode specific keys'''
         states = defaultdict(list)
         self.loginfo("%d Suites to check: %s" % (len(self.suites_dict.keys()),
                                                  ', '.join(self.suites_dict.keys())))
-        for suite in self.config.suite_objs(self.logger):
-            # if (piggyback)host is set, results gets assigned to other CMK host
-            host = suite.suite_dict.get('piggybackhost', 'localhost')
-            self.logdebug("Reading statefile of suite '%s': %s" % (
-                suite.id, suite.statefile_path))
+        for suite in self.config.suite_objs(self.logger):            
+            self.loginfo(f"- Suite: {suite}")
+            self.logdebug("Reading statefile: %s" % (str(suite.statefile_path)))
             state = suite.read_state_from_file()
+            
+            # If Piggybachost is set, the reult gets assigned to another host. 
+            # The output must be written to the Robotmk host
+            # AND (!) the piggyback host, because the Robotmk service needs to know the metadata of all
+            # configured suites. 
+            # Set the piggyback information also within the suite data because during check time Robotmk has to 
+            # decide whether the Robotmk service should be displayed (=no piggyback) or not (piggyback).
+            host = suite.suite_dict.get('piggybackhost', 'localhost')
+            if host != 'localhost': 
+                self.logdebug(f"Piggyback host: {host}")
+                state.update({'piggybackhost': host})
 
             if not bool(state):
-                error_text = "Suite statefile not found - (seems like the suite did never run)"
+                error_text = f"Suite statefile {str(suite.statefile_path)} not found - (seems like the suite did not yet run)"
                 self.logwarn(error_text)
 
                 state.update({
@@ -1230,6 +1243,80 @@ class RMKCtrl(RMKState, RMKPlugin):
         return content
 
 
+    def cleanup_logs(self):
+        # cleanup logs which begin like this
+        file_pattern = str(Path(self.outputdir).joinpath('robotframework_*'))
+        if not 'log_rotation' in self.global_dict: 
+            self.logwarn("robotmk.yml does not contain 'log_rotation' (you fiddled around, ehm?). Assuming default: 14")
+            max_fileage = 14
+        else: 
+            max_fileage = int(self.global_dict['log_rotation'])
+        self.logdebug("Logstate file retention: %d day(s)" % max_fileage)
+        # and end with this
+        file_regex = '.*_\d{10}_.*(log|output)\.(xml|html)'
+        robot_logfiles = [file for file in glob.glob(file_pattern) if re.match(file_regex, file)]
+        for item in robot_logfiles:
+            if os.path.isfile(item):
+                filedate = datetime.fromtimestamp(os.path.getmtime(item))
+                if filedate < datetime.now() - timedelta(days = int(max_fileage)):
+                    self.logdebug(f'Deleting old log file {item} (%s)...' % filedate.strftime('%Y.%m.%d %H:%M:%S'))
+                    os.remove(item)
+
+class RMKData():
+    _runner_state = {}
+
+    def __init__(self):
+        pass
+
+class RMKHostData(RMKData):
+    def __init__(self, all_suites_state, host):
+        self._all_suites_state = all_suites_state
+        self.host = host 
+        super().__init__()   
+
+    @property
+    def state(self):
+        return {
+            "runner": self.runner_state,
+            "suites": self.suite_states
+        }
+
+    @property
+    def runner_state(self):
+        """Return the Runner metadata; append piggyback flag"""
+        r_dict = copy.deepcopy(self._runner_state)
+        if self.is_piggyback: 
+            r_dict.update({'piggybackhost': True})
+        else: 
+            r_dict.update({'piggybackhost': False})
+        return r_dict
+
+    @property
+    def suite_states(self):
+        """Return the suites for the set host; the executing host gets all suites back."""
+        if not self.is_piggyback: 
+            # iterate over ALL hosts, the executing host must report its own suites as well as the piggyback ones
+            return [state for host in self._all_suites_state.keys() for state in self._all_suites_state[host] if bool(state)] 
+        else: 
+            #For piggyback hosty only return their suites
+            return [state for state in self._all_suites_state[self.host] if bool(state)] 
+
+    @property
+    def serialized_data(self):
+        """Return the agent output for runner/suites, including the optional piggyback header. """
+        json_serialized = json.dumps(self.state, sort_keys=False, indent=2)
+        json_w_header = f'<<<robotmk:sep(0)>>>\n{json_serialized}\n'
+        if self.is_piggyback:
+            json_w_header = f'<<<<{self.host}>>>>\n{json_w_header}<<<<>>>>\n'        
+        return json_w_header
+
+    @property
+    def is_piggyback(self):
+        if self.host == 'localhost': 
+            return False
+        else: 
+            return True
+
 def xml_remove_html(content):
     xml = ET.fromstring(content)
     root = xml.find('./suite')
@@ -1281,7 +1368,7 @@ def main():
     RMKPlugin.get_args()
     rmk = RMKCtrl()
     rmk.print_agent_output()
-    rmk.loginfo("--- Quitting Controller, bye. ---")
+    rmk.loginfo("Quitting Controller, bye.")
 
 
 if __name__ == '__main__':

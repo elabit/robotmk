@@ -11,26 +11,21 @@
 ![desc](img/robotmk_banner.png)
 
 <!--ts-->
-* [Robotmk](#robotmk)
-   * [Description](#description)
-   * [State of development](#state-of-development)
-   * [Key features/components](#key-featurescomponents)
-   * [Usage scenarios](#usage-scenarios)
-   * [Requirements](#requirements)
-   * [Installation](#installation)
-   * [Documentation](#documentation)
-   * [Development setup](#development-setup)
-      * [Environment setup](#environment-setup)
-         * [Starting the VS Code devcontainer](#starting-the-vs-code-devcontainer)
-         * [VS Code Build Task](#vs-code-build-task)
-      * [Debugging the Robotmk check](#debugging-the-robotmk-check)
-      * [Release](#release)
-   * [Next developments](#next-developments)
-   * [Contributing](#contributing)
-   * [License](#license)
-   * [Credits/Thanks](#creditsthanks)
-      * [Supporters](#supporters)
-   * [Contributors <g-emoji class="g-emoji" alias="sparkles" fallback-src="https://github.githubassets.com/images/icons/emoji/unicode/2728.png">✨</g-emoji>](#contributors-)
+- [Robotmk](#robotmk)
+  - [Description](#description)
+  - [State of development](#state-of-development)
+  - [Key features/components](#key-featurescomponents)
+  - [Usage scenarios](#usage-scenarios)
+  - [Requirements](#requirements)
+  - [Installation](#installation)
+  - [Documentation](#documentation)
+    - [`robotmk.yml` explained](#robotmkyml-explained)
+  - [Next developments](#next-developments)
+  - [Contributing](#contributing)
+  - [License](#license)
+  - [Credits/Thanks](#creditsthanks)
+    - [Supporters](#supporters)
+  - [Contributors ✨](#contributors-)
 
 <!-- Added by: runner, at: Sun Jul 25 08:41:08 UTC 2021 -->
 
@@ -72,9 +67,12 @@ Incompatibilities will always be reflected in a major version change. As soon as
 
 * Robotmk **bakery rule** - configures E2E clients:
   * Use the Checkmk WATO rule editor to decide which remote hosts should be deployed with the Robotmk plugin.
-  * Define which suites should be executed there and the individual parameters. 
-* Robotmk **plugin** - executes RF tests: 
-  * integrated into the Checkmk monitoring agent, it is a kind of wrapper for RF tests on the client side. It gets controlled by the robotmk YML file which is created by the bakery. 
+  * Define which suites should be executed on the test host
+  * Parametrize the Robot tests with commandline options of Robot Framework - no CLI needed. 
+  * Let Robot Framework repeat failed tests for certain number of attempts. This is a very useful and outstanding feature to get more stable results if the SUT behaves unconsistently. 
+* Robotmk **plugins** - executes RF tests: 
+  * the `robotmk-runner` is a kind of wrapper for RF tests on the client side. It gets controlled by the robotmk YML file which is created by the bakery. 
+  * the `robotmk` plugin is executed as a normal plugin and reads the results written by the runner plugin.
 * Robotmk **check** - evaluates RF results:
   * evaluates the RF result coming from the Checkmk agent. 
   * 100% configurable by web (WATO), 100% Robot compatible: Robotmk does not require any adaptation to existing Robot tests; they can be integrated in Checkmk without any intervention.
@@ -83,6 +81,10 @@ Incompatibilities will always be reflected in a major version change. As soon as
     * performance data: get graphs for any runtime. Even insidious performance changes can thus be detected.
     * service discovery level: rule-based splitting of Robot Framework results into different Checkmk services ("checks" in Checkmk) - without splitting the robot test. 
     * reduction of the output to the essential needs for an optimum result.
+* [Robotmk Keyword Library](https://pypi.org/project/robotframework-robotmk/):
+  * Set custom monitoring states
+  * Add monitoring metrics
+  * Add custom performance data
 
 Read the [feature page](https://robotmk.org) of Robotmk to learn about its history, features and advantages. 
 
@@ -99,7 +101,7 @@ Read the [feature page](https://robotmk.org) of Robotmk to learn about its histo
 
 Robotmk works with any Checkmk 1.6x and 2.x version and edition (CEE and CRE).
 
-*  Enterprise edition (CEE) is recommended if you want to benefit from the agent bakery system which creates agent installation packages and the Robotmk YAML configuration files. 
+* Enterprise edition (CEE) is recommended if you want to benefit from the agent bakery system which creates agent installation packages and the Robotmk YAML configuration files. 
 * Raw Edition (CRE) also works if you are fine to write this files by hand/generate by some other tool (Ansible etc.). (Nevertheless, consider a worthwile [switch to CEE](https://www.iteratio.com/))
 
 ## Installation
@@ -122,6 +124,8 @@ OMD[cmk]:~$ cmk -L | grep robot
 robotmk     tcp    (no man page present)
 ```
 
+In a distributed monitoring environment, make sure to check the option `Replicate extensions` in the remote site's connection options. 
+
 ## Documentation
 
 All Robotmk rules come with a very **detailled and comprehensive context help**. This covers 95% of all information which is needed to work with Robotmk. 
@@ -131,6 +135,8 @@ The context help can be shown by clicking on the **book icon** in the top right 
 ![How to show the context help](img/show_context_help.gif)
 
 ### `robotmk.yml` explained
+
+**Warning:** The format of `robotmk.yml` can change at any time! This example may be outdated.
 
 This section is important if you decide not to use the CMK Enterprise edition (CEE) and to generate the `robotmk.yml` file instead by hand or automated by Ansible, Salt etc. 
 
@@ -180,7 +186,7 @@ Next development steps will be:
   CMK server. HTML logs could also include (embedded?) screenshots, animated GIF screen-recordings etc. 
   The goal is to implement a service action button which guides you directly to the most
   recent Robot Log. Read more about this idea in [issue #1](https://github.com/simonmeggle/robotmk/issues/1).   
-* Create a Docker container to execute Robot tests also in Containers. Expand the agent plugin to trigger Robot containers with API calls to Kubernetes and Docker Swarm to distribute E2E tests.  
+* Integrate RCC from the [Robocorp toolchain](https://robocorp.com/docs/rcc/overview) to make Python environments portable. 
 
 ## Contributing
 
