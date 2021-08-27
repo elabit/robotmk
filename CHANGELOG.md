@@ -5,6 +5,22 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## Unreleased
+
+### Fixed
+
+* Fix: suppress stdout when merging rerun XMLs with rebot, closes #165
+* Fix: Do not collect hidden dirs as suites (closes #130)
+* Fix: check crashes if all test attempts of rerunfailed were NOK, endtime not available (fixes #166)
+* Agent plugin: fixed missing logstate rotation, robotmk logs now every midnight (fixes #155)
+* Agent Plugin: respect piggyback option, assign to multiple hosts (#145)
+
+### Changed 
+
+* Agent plugin: disable report.html creation (closes #163)
+* Test message gets converted to HTML when rebot merged it (#150)
+  
+
 ## 1.2-beta - 2021-08-25
 
 ### Fixed
