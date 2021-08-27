@@ -590,8 +590,6 @@ class RobotItem(object):
 
     # create the "base line" with the node name and the RF status
     def _set_node_padded_line(self, check_params):
-        # TODO: What are requirements for a line?
-
         # I. Begin with the baseline formatting. The baseline is pure related to the Robot result
         # ---- [K] 'MyKeyword': PASS (...)"
 
@@ -605,12 +603,17 @@ class RobotItem(object):
         # - last suite execution
         # -
         endtime_str = ""
-        # FIXME: This is bug #74! Is it solved?
         if self.is_topnode and bool(check_params.get('includedate')):
-            endtime = datetime.datetime.strptime(self.end_time,
-                                                 '%Y%m%d %H:%M:%S.%f')
-            endtime_str = " (last execution: %s) " % endtime.strftime(
-                '%m/%d %H:%M:%S')
+            if self.end_time == 'N/A': 
+                endtime_str = " (last execution: N/A, all retries failed)"
+            else:
+                try: 
+                    endtime = datetime.datetime.strptime(self.end_time,
+                                                        '%Y%m%d %H:%M:%S.%f')
+                    endtime_str = " (last execution: %s) " % endtime.strftime(
+                        '%m/%d %H:%M:%S')
+                except: 
+                    endtime_str = " (unknown error: cannot determine execution time)"
         baseline = ("%s %s %s '%s': %s%s%s%s" %
                     (self.padstring, '--SYMBOL--', self.abbreviation,
                      remove_nasty_chars(self.name), self.status, endtime_str,
