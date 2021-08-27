@@ -527,6 +527,20 @@ class RobotItem(object):
                 # Ref: yoczO3
                 self.root_suite.discovered.append(self)
 
+    @property
+    def text(self): 
+        # Return back plain text if the text has a HTML prefix.
+        # This is the necessary for test messages created by rebot after merging test results. 
+        # Change when this https://github.com/robotframework/robotframework/issues/4068 has been solved. 
+        if self._text.startswith('*HTML* '): 
+            return html_to_text(self._text).replace('*HTML* ', '')
+        else: 
+            return self._text
+
+    @text.setter
+    def text(self, text):
+        self._text = text
+
     def _get_id(self, xmlnode, index):
         """suites and tests have a id attribute. Fake this for keywords.
         because indexing is important for Checkmk graphs."""
