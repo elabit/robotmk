@@ -708,7 +708,7 @@ class RMKPlugin():
             fh = TimedRotatingFileHandler(
                 Path(self._DEFAULTS[os.name]['logdir']
                      ).joinpath('robotmk_%s.log' % repr(calling_cls)),
-                when="h", interval=24, backupCount=30)
+                when="midnight", backupCount=30)
             file_formatter = logging.Formatter(
                 fmt='%(asctime)s %(name)10s [%(process)5d] %(levelname)7s: %(message)s')
             fh.setFormatter(file_formatter)
@@ -999,6 +999,7 @@ class RMKCtrl(RMKState, RMKPlugin):
 
     def __init__(self):
         super().__init__()
+        self.cleanup_logs()
 
     def __str__(self):
         return 'Robotmk Controller'
@@ -1030,6 +1031,7 @@ class RMKCtrl(RMKState, RMKPlugin):
             pass
 
     def schedule_runner(self):
+        # ORPHANED method - delete someday
         # self.loginfo(">>> Runner scheduling (%s) <<<" % self.execution_mode)
         if self._state == {}:
             never_ran = True
@@ -1128,6 +1130,10 @@ class RMKCtrl(RMKState, RMKPlugin):
     @property
     def suites_dict(self):
         return self.config.cfg_dict['suites']
+
+    @property
+    def outputdir(self):
+        return self.global_dict['outputdir']
 
     def check_suite_statefiles(self, encoding):
         '''Check the state files of suites; encode specific keys'''
@@ -1235,6 +1241,25 @@ class RMKCtrl(RMKState, RMKPlugin):
             content = default
         return content
 
+
+    def cleanup_logs(self):
+        # cleanup logs which begin like this
+        file_pattern = str(Path(self.outputdir).joinpath('robotframework_*'))
+        if not 'log_rotation' in self.global_dict: 
+            self.logwarn("robotmk.yml does not contain 'log_rotation' (you fiddled around, ehm?). Assuming default: 14")
+            max_fileage = 14
+        else: 
+            max_fileage = int(self.global_dict['log_rotation'])
+        self.logdebug("Logstate file retention: %d day(s)" % max_fileage)
+        # and end with this
+        file_regex = '.*_\d{10}_.*(log|output)\.(xml|html)'
+        robot_logfiles = [file for file in glob.glob(file_pattern) if re.match(file_regex, file)]
+        for item in robot_logfiles:
+            if os.path.isfile(item):
+                filedate = datetime.fromtimestamp(os.path.getmtime(item))
+                if filedate < datetime.now() - timedelta(days = int(max_fileage)):
+                    self.logdebug(f'Deleting old log file {item} (%s)...' % filedate.strftime('%Y.%m.%d %H:%M:%S'))
+                    os.remove(item)
 
 def xml_remove_html(content):
     xml = ET.fromstring(content)
