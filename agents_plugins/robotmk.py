@@ -391,7 +391,8 @@ class RMKSuite(RMKState):
         self.suite_dict.setdefault('robot_params', {})    
         self.suite_dict['robot_params'].update({
             'outputdir':  self.global_dict['outputdir'],
-            'console':  'NONE'
+            'console':  'NONE',
+            'report':   'NONE'
         })
         # Ref: TgWQvr
         if self.source == "local":
