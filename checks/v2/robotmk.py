@@ -32,7 +32,7 @@ from cmk.utils.exceptions import MKGeneralException
 
 # UTC = pytz.utc
 
-ROBOTMK_VERSION = 'v1.2-beta'
+ROBOTMK_VERSION = 'v1.2-beta.2'
 
 DEFAULT_SVC_PREFIX = 'Robot Framework E2E $SUITEID$SPACE-$SPACE'
 

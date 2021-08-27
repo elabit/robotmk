@@ -50,7 +50,7 @@ from robot.rebot import rebot
 
 
 local_tz = datetime.utcnow().astimezone().tzinfo
-ROBOTMK_VERSION = 'v1.2-beta'
+ROBOTMK_VERSION = 'v1.2-beta.2'
 
 class RMKConfig():
     _PRESERVED_WORDS = [
