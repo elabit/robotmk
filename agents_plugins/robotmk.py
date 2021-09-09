@@ -544,9 +544,28 @@ class EnvStrategyOS(EnvStrategy):
         return("OS Python")
 
 
-    def prepare_rf_args(self):
+    def prepare_rf_cli_args(self):
+        # Format the variables to meet the Robot CLI requirement
+        # All list elements are passed as a single parameter, e.g. 
+        # variable: 
+        #   name: value
+        #   name2: value2
+        # => --variable name:value --variable name2:value2
+        variables = self._suite.suite_dict.get('robot_params').get('variable')
+        if variables and type(variables) is not list:
+            variables = list(
+                map(
+                    lambda x: f'{x[0]}:{x[1]}',
+                    variables.items()
+                ))
+            self._suite.suite_dict['robot_params']['variable'] = variables
+        pass
+
+    def prepare_rf_api_args(self):
         # Format the variables to meet the Robot API requirement
-        # --variable name:value --variable name2:value2
+        # variable: 
+        #   name: value
+        #   name2: value2
         # => ['name:value', 'name2:value2'] (list of dicts to list of k:v)
         variables = self._suite.suite_dict.get('robot_params').get('variable')
         if variables and type(variables) is not list:
@@ -560,7 +579,8 @@ class EnvStrategyOS(EnvStrategy):
 
     def run(self):
         """Runs the Robot suite with the OS Python and RF API"""
-        self.prepare_rf_args()        
+        # self.prepare_rf_api_args()        
+        self.prepare_rf_cli_args()        
         rc = robot.run(
             self._suite.path,
             **self._suite.suite_dict.get('robot_params'))
