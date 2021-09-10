@@ -46,9 +46,6 @@ from abc import ABC, abstractmethod
 import glob
 import copy
 
-from robot.rebot import rebot
-
-
 local_tz = datetime.utcnow().astimezone().tzinfo
 ROBOTMK_VERSION = 'v1.2-beta.2'
 
@@ -462,10 +459,20 @@ class RMKSuite(RMKState):
 
     @property
     def path(self):
-        return Path(self.global_dict['robotdir']
-                    # ).joinpath(self.robotpath)
+        '''The absolute path to the Robot test (directory or .robot file),
+        built from the robotdir and the relative path given in WATO'''
+        return Path(self.global_dict['robotdir']                    
                     ).joinpath(self.suite_dict['path'])
 
+    @property
+    def pathdir(self):
+        '''The absolute path of the Robot test directory,
+        built from the robotdir and the DIRECTORY of the path given in WATO'''
+        if self.path.is_dir:
+            return self.path
+        else: 
+            return self.path.parent
+        
     @property
     def outputdir(self):
         return self.suite_dict['robot_params']['outputdir']
@@ -544,46 +551,63 @@ class EnvStrategyOS(EnvStrategy):
         return("OS Python")
 
 
-    def prepare_rf_cli_args(self):
-        # Format the variables to meet the Robot CLI requirement
-        # All list elements are passed as a single parameter, e.g. 
-        # variable: 
-        #   name: value
-        #   name2: value2
-        # => --variable name:value --variable name2:value2
-        variables = self._suite.suite_dict.get('robot_params').get('variable')
-        if variables and type(variables) is not list:
-            variables = list(
-                map(
-                    lambda x: f'{x[0]}:{x[1]}',
-                    variables.items()
-                ))
-            self._suite.suite_dict['robot_params']['variable'] = variables
-        pass
+    def prepare_rf_args(self):
+        # Format the robot_params to meet the Robot CLI requirement    
+        # (See https://robot-framework.readthedocs.io/en/latest/autodoc/robot.html#robot.run.run_cli)    
+        robot_params = self._suite.suite_dict.get('robot_params')
+        arglist = []
+        for k,v in robot_params.items(): 
+            arg = f'--{k}'
+            # create something we can iterate over
+            if isinstance(v, str): 
+                # key:value    => convert to 1 el list
+                vlist = [v] 
+            elif isinstance(v, dict): 
+                if k == 'variable':
+                    # key:var-dict => convert to list of varkey:varvalue
+                    vlist = list(map(lambda x: f'{x[0]}:{x[1]}', v.items()))
+                else: 
+                    self._suite.logger.warn(f"The Robot Framework parameter {k} is a dict but cannot be converted to cmdline arguments (values: {str(v)})")
+            elif isinstance(v, list): 
+                if k == 'argumentfile' or k == 'variablefile': 
+                    # make the file args absolute file paths
+                    v = [ str(self._suite.pathdir.joinpath(n)) for n in v]
+                # key:list     => no conversion
+                vlist = v
 
-    def prepare_rf_api_args(self):
-        # Format the variables to meet the Robot API requirement
-        # variable: 
-        #   name: value
-        #   name2: value2
-        # => ['name:value', 'name2:value2'] (list of dicts to list of k:v)
-        variables = self._suite.suite_dict.get('robot_params').get('variable')
-        if variables and type(variables) is not list:
-            variables = list(
-                map(
-                    lambda x: f'{x[0]}:{x[1]}',
-                    variables.items()
-                ))
-            self._suite.suite_dict['robot_params']['variable'] = variables
-        pass
+            for value in vlist: 
+                # values which are boolean(-like) are single parameters without option
+                if type(value) is bool or value in ['yes', 'no', 'True', 'False']:
+                    arglist.extend([arg])
+                else: 
+                    arglist.extend([arg,value])        
+        return arglist
+
+    # def prepare_rf_api_args(self):
+    #     # Format the variables to meet the Robot API requirement
+    #     # variable: 
+    #     #   name: value
+    #     #   name2: value2
+    #     # => ['name:value', 'name2:value2'] (list of dicts to list of k:v)
+    #     variables = self._suite.suite_dict.get('robot_params').get('variable')
+    #     if variables and type(variables) is not list:
+    #         variables = list(
+    #             map(
+    #                 lambda x: f'{x[0]}:{x[1]}',
+    #                 variables.items()
+    #             ))
+    #         self._suite.suite_dict['robot_params']['variable'] = variables
+    #     pass
+
+    
 
     def run(self):
-        """Runs the Robot suite with the OS Python and RF API"""
+        """Runs the Robot suite with the OS Python and RF CLI API"""
         # self.prepare_rf_api_args()        
-        self.prepare_rf_cli_args()        
-        rc = robot.run(
-            self._suite.path,
-            **self._suite.suite_dict.get('robot_params'))
+        cli_args = self.prepare_rf_args()  
+        cli_args.append(str(self._suite.path))   
+        self._suite.logger.debug(f"Robot arguments: {' '.join(cli_args)}")   
+        rc = robot.run_cli(cli_args, exit=False)
         return rc    
 
 class EnvStrategyRCC(EnvStrategy):
@@ -1371,7 +1395,8 @@ def test_for_modules():
         import yaml
         global robot
         import robot
-        import robot.rebot
+        global rebot
+        from robot.rebot import rebot
         global mergedeep
         import mergedeep
         global parser
