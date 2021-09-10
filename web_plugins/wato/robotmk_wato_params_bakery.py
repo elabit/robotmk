@@ -479,15 +479,14 @@ dropdown_robotmk_log_rotation = CascadingDropdown(
         "<tt>robotframework-$SUITENAME-$timestamp-output.xml<br>"
         "<tt>robotframework-$SUITENAME-$timestamp-log.html<br>"),
     choices=[
-        ('0', _('0 (keep only the last logfile)')),
-        ('1', _('1')),
-        ('3', _('3')),
-        ('7', _('7')),
-        ('14', _('14')),
-        ('30', _('30')),
-        ('90', _('90')),
-        ('365', _('365')),
-        ('never', _('Keep all log files')),
+        (1, _('1')),
+        (3, _('3')),
+        (7, _('7')),
+        (14, _('14')),
+        (30, _('30')),
+        (90, _('90')),
+        (365, _('365')),
+        # ('never', _('Keep all log files')),
     ],
     default_value="14",
     sorted=False)

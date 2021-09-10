@@ -5,6 +5,27 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## Unreleased
+
+### Changed
+
+* Agent plugin: log rotation accepts values from 1 to 365 (0 and "always" removed) #170
+
+### Added 
+
+* New option "argumentfile" allows to specify RF arguments by multiple files (#154)
+
+### Changed 
+
+* Agent plugin: the execution of Robot Framework was changed from Python API to 
+  CLI mode because API does not allow all command line parameters (like argumentsfile).
+  This should not have any impact on existing tests. 
+
+### Removed
+
+* Options `critical` and `noncritical` were removed from the WATO page because they
+  are not supported by RF4.0 anymore. (#154) 
+
 ## 1.2-beta.2 - 2021-08-27
 
 ### Fixed
