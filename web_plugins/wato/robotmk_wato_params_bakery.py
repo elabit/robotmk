@@ -168,6 +168,20 @@ agent_config_dict_robotdir = Dictionary(
                   size=100,
                   default_value=""))])
 
+# agent_config_dict_outputdir = Dictionary(
+#     title=_("Change <b>output directory</b>"),
+#     elements=
+#     [("outputdir",
+#       TextUnicode(help=_(
+#           "By default Robotmk configures Robot Framework to write result/log data into the following paths:<br>"
+#           " - <tt>/tmp/robotmk</tt> (Linux)<br>"
+#           " - <tt>C:\\Windows\\Temp\\robotmk</tt> (Windows) <br>"
+#           "Windows paths can be given with single backslashes; OS dependent path validation is made during the agent baking.<br>"
+#       ),
+#                   allow_empty=False,
+#                   size=100,
+#                   default_value=""))])
+
 agent_config_testsuites_piggybackhost = Dictionary(
     title=_("Piggyback host"),
     elements=[
@@ -250,9 +264,49 @@ dict_el_test_exclude = (
         )
 )
 
+
+dict_el_suite_argsfile = (
+    "argumentfile",
+        ListOfStrings(
+            title=_("Load arguments from file (<tt>--argumentfile</tt>)"),
+            help=
+            _("Name of files containing <b>additional command line arguments</b> for Robot Framework. The paths are relative to the <i>robot suites directory</i>.<br>"
+            "Argument files allow placing all or some command line options and arguments into an external file where they will be read. This is useful for more exotic RF parameters not natively supported by Robotmk or for problematic characters.<br>"
+            "The arguments given here are taken into use along with possible other command line options. (See also <a href=\"https://robotframework.org/robotframework/latest/RobotFrameworkUserGuide.html#argument-files\">About argument files</a>)<br><br>"),
+            size=70,
+        )
+)
+
+# dict_el_suite_customargs = (
+#     "customargs",
+#         TextUnicode(
+#             title=_("Custom command line arguments"),
+#             help=
+#             _("This option allows to pass any other <a href=\"https://robotframework.org/robotframework/latest/RobotFrameworkUserGuide.html#using-command-line-options\">command line options</a> to Robot Framework.<br>"
+#             "These arguments are taken into use along with possible other command line options."),
+#             allow_empty=False,
+#             size=80,
+#         )
+# )
+
+dict_el_suite_variablefile = (
+    "variablefile",
+        ListOfStrings(
+            title=_("Load variables from file (<tt>--variablefile</tt>)"),
+            help=_(
+                "Python or YAML file file to read variables from. (<a href=\"https://robotframework.org/robotframework/latest/RobotFrameworkUserGuide.html#variable-files\">About variable files</a>)<br>Possible arguments to the variable file can be given"
+                " after the path using colon or semicolon as separator.<br>"
+                "Examples:<br> "
+                "<tt>path/vars.yaml</tt><br>"
+                "<tt>set_environment.py:testing</tt><br>"),
+            size=70,
+        )
+)
+
 agent_config_testsuites_robotframework_params_dict = Dictionary(
-    help=
-    _("The options here allow to specify the most common cmdline parameters for Robot Framework. (<a href=\"https://robotframework.org/robotframework/latest/RobotFrameworkUserGuide.html#all-command-line-options\">All command line options</a>)"
+    help=_(
+        "The options here allow to specify the most common <b>commandline parameters</b> for Robot Framework.<br>"
+        "In order to use other parameters (see <a href=\"https://robotframework.org/robotframework/latest/RobotFrameworkUserGuide.html#all-command-line-options\">All command line options</a>), you can use the option 'Load arguments from file'.<br> (Feel free to <a href=\"https://github.com/simonmeggle/robotmk/issues\">file an issue</a> if you think that a special parameter should be added here)"
       ),
     elements=[
         ("name",
@@ -270,25 +324,6 @@ agent_config_testsuites_robotframework_params_dict = Dictionary(
         dict_el_test_selection,
         dict_el_test_include,
         dict_el_test_exclude,
-        ("critical",
-         ListOfStrings(
-             title=_("Critical test tag (<tt>--critical</tt>)"),
-             help=
-             _("Tests having the given tag are considered critical. (<b>This is no threshold</b>, see <a href=\"https://robotframework.org/robotframework/latest/RobotFrameworkUserGuide.html#setting-criticality\">About setting criticality</a>)<br>"
-               "If no critical tags are set, all tests are critical.<br>"
-               "Tags can be given as a pattern same way as with <tt>--include</tt>.<br>"
-               ),
-             size=40,
-         )),
-        ("noncritical",
-         ListOfStrings(
-             title=_("Non-Critical test tag (<tt>--noncritical</tt>)"),
-             help=
-             _("Tests having the given tag are considered non-critical, even if also <tt>--critical</tt> is set. (<b>This is no threshold</b>, see <a href=\"https://robotframework.org/robotframework/latest/RobotFrameworkUserGuide.html#setting-criticality\">About setting criticality</a>)<br>"
-               "Tags can be given as a pattern same way as with <tt>--include</tt>.<br>"
-               ),
-             size=40,
-         )),
         ("variable",
          ListOf(
              Tuple(
@@ -305,22 +340,15 @@ agent_config_testsuites_robotframework_params_dict = Dictionary(
                " value are supported and name is given without <tt>${}</tt>. <br>"
                " (See <tt>--variablefile</tt> for a more powerful variable setting mechanism.)<br>"
                ))),
-        ("variablefile",
-         ListOfStrings(
-             title=_("Load variables from file (<tt>--variablefile</tt>)"),
-             help=_(
-                 "Python or YAML file file to read variables from. (<a href=\"https://robotframework.org/robotframework/latest/RobotFrameworkUserGuide.html#variable-files\">About variable files</a>)<br>Possible arguments to the variable file can be given"
-                 " after the path using colon or semicolon as separator.<br>"
-                 "Examples:<br> "
-                 "<tt>path/vars.yaml</tt><br>"
-                 "<tt>set_environment.py:testing</tt><br>"),
-             size=40,
-         )),
+        dict_el_suite_variablefile,               
+        # dict_el_suite_customargs,
+        dict_el_suite_argsfile,
         ("exitonfailure",
          DropdownChoice(
              title=_("Exit on failure (<tt>--exitonfailure</tt>)"),
-             help=
-             _("Stops test execution if any critical test fails. (<a href=\"https://robotframework.org/robotframework/latest/RobotFrameworkUserGuide.html#stopping-when-first-test-case-fails\">About failed tests</a>)"
+             help=_(
+                 "By default, Robot Framework tries to execute <i>every</i> test. If a test fails, the remaining keywords are skipped and the next test starts (see <a href=\"https://robotframework.org/robotframework/latest/RobotFrameworkUserGuide.html#stopping-when-first-test-case-fails\">About failed tests</a>)<br>"
+                 "With this option set to 'yes', Robot Framework will leave the suite execution after the first test has failed."
                ),
              choices=[
                  ('yes', _('yes')),
