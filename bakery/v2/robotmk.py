@@ -40,9 +40,9 @@ from .bakery_api.v1 import (
    SystemBinary
 )
 
-# This dict only adds the new key only if 
+# This dict only adds the new key only if
 # * the key already exists
-# * the value is a boolean in fact 
+# * the value is a boolean in fact
 # * the value contains something meaningful
 # This prevents that empty dicts are set as values.
 class DictNoNone(dict):
@@ -52,11 +52,11 @@ class DictNoNone(dict):
 
 # This class is common with CMK 1/2
 class RMKSuite():
-    def __init__(self, suite_tuple):
-        self.suite_tuple = suite_tuple      
+    def __init__(self, suite_dict):
+        self.suite_dict = suite_dict
 
     @property
-    def suite2dict(self): 
+    def suite2dict(self):
         suite_dict = DictNoNone()
         suite_dict['path']= self.path
         suite_dict['tag']= self.tag
@@ -68,47 +68,37 @@ class RMKSuite():
         suite_dict['failed_handling'] = self.failed_handling
         return suite_dict
 
-    # Ref a01uK3
     @property
     def path(self):
-        return self.suite_tuple[0]
+        return self.suite_dict['path']
 
-    # Ref yJE5bu
     @property
     def tag(self):
-        return self.suite_tuple[1].get('tag', None)
+        return self.suite_dict.get('tag', None)
 
-    # Ref whYeq7
     @property
     def piggybackhost(self):
-        return self.suite_tuple[2].get('piggybackhost', None)
+        return self.suite_dict.get('piggybackhost', None)
 
-    # Ref FF3Vph
     @property
     def robot_params(self):
-        params = copy.deepcopy(self.suite_tuple[3].get('robot_params', {}))
+        params = copy.deepcopy(self.suite_dict.get('robot_params', {}))
         # Variables: transform the var 'list of tuples' into a dict.
         variables_dict = {}
         for (k1, v1) in params.items():
             if k1 == 'variable':
                 for t in v1:
                     variables_dict.update({t[0]: t[1]})
-        params.update(self.dict_if_set('variable', variables_dict))    
+        params.update(self.dict_if_set('variable', variables_dict))
         return params
 
-    # Ref au4uPB
-    @property 
+    @property
     def failed_handling(self):
-        failed_handling = copy.deepcopy(self.suite_tuple[4].get('failed_handling', {}))
-        ret = {}
-        if failed_handling:
-            ret.update({'max_executions': failed_handling[0]})
-            ret.update(self.dict_if_set('rerun_selection', failed_handling[1]))
-        return ret
+        return self.suite_dict.get('failed_handling', {})
 
     @property
     def suiteid(self):
-        '''Create a unique ID from the Robot path (dir/.robot file) and the tag. 
+        '''Create a unique ID from the Robot path (dir/.robot file) and the tag.
         with underscores for everything but letters, numbers and dot.'''
         if bool(self.tag):
             tag_suffix = "_%s" % self.tag
@@ -131,7 +121,7 @@ class RMKSuite():
 class RMK():
     def __init__(self, conf):
         self.execution_mode = conf['execution_mode'][0]
-        mode_conf = conf['execution_mode'][1]        
+        mode_conf = conf['execution_mode'][1]
         self.cfg_dict = {
             'global': DictNoNone(),
             'suites': DictNoNone(),
@@ -144,34 +134,28 @@ class RMK():
         global_dict['transmit_html'] =  conf['transmit_html']
         global_dict['logging'] =  conf['logging']
         global_dict['log_rotation'] =  conf['log_rotation']
-        # WATO makes robotdir a nested dict with duplicate key. Form follows function :-/
-        global_dict['robotdir'] =  conf.get('robotdir', {}).get('robotdir', None)
+        global_dict['robotdir'] =  conf['dirs'].get('robotdir', None)
+        global_dict['outputdir'] =  conf['dirs'].get('outputdir', None)
 
         if self.execution_mode == 'agent_serial':
-            global_dict['cache_time'] = mode_conf[1]
-            global_dict['execution_interval'] = mode_conf[2]
-            self.execution_interval = mode_conf[2]
+            global_dict['cache_time'] = mode_conf['cache_time']
+            global_dict['execution_interval'] = mode_conf['execution_interval']
+            self.execution_interval = mode_conf['execution_interval']
         elif self.execution_mode == 'external':
             # For now, we assume that the external mode is meant to execute all
             # suites exactly as configured. Hence, we can use the global cache time.
-            global_dict['cache_time'] = mode_conf[1]   
+            global_dict['cache_time'] = mode_conf['cache_time']
 
-        if 'suites' in mode_conf[0]:
-            # each suite suite_tuple:
-            # 0) path, Ref a01uK3
-            # 1) tag, Ref yJE5bu
-            # 2) piggybackhost, Ref whYeq7
-            # 3) robot_params{}, Ref FF3Vph
-            # 4) failed_handling, Ref au4uPB
-            for suite_tuple in mode_conf[0]['suites']:
-                suite = RMKSuite(suite_tuple)
+        if len(mode_conf['suites']) > 0:
+            for suite_dict in mode_conf['suites']:
+                suite = RMKSuite(suite_dict)
                 if suite.suiteid in self.cfg_dict['suites']:
                     raise MKGeneralException(
-                        "Error in bakery plugin 'robotmk': Suite with ID %s is not unique. Please use tags to solve this problem." % suite.suiteid 
-                    )      
+                        "Error in bakery plugin 'robotmk': Suite with ID %s is not unique. Please use tags to solve this problem." % suite.suiteid
+                    )
 
                 self.cfg_dict['suites'].update({
-                    suite.suiteid: suite.suite2dict})        
+                    suite.suiteid: suite.suite2dict})
         pass
 
     @property
@@ -188,19 +172,19 @@ class RMK():
             base_os=opsys,
             source=Path('robotmk.py'),
         )
-  
+
     def runner_plugin(self, opsys: OS) -> Plugin:
         # TODO: when external mode:
-        #  => bin!     
-        #  when not: 
+        #  => bin!
+        #  when not:
         #  no target, interval!
         if self.execution_mode == 'external':
             # Runner and Controller have to be deployed as bin
             # /omd/sites/v2/lib/python3/cmk/base/cee/bakery/core_bakelets/bin_files.py
 
-            # cmk.utils.paths.local_agents_dir ?? 
+            # cmk.utils.paths.local_agents_dir ??
             pass
-        elif self.execution_mode == 'agent_serial': 
+        elif self.execution_mode == 'agent_serial':
             # the runner plugin gets
             return Plugin(
                 base_os=opsys,
@@ -208,10 +192,10 @@ class RMK():
                 # TODO: interval=interval,
                 interval=self.execution_interval,
             )
-        else: 
+        else:
             raise MKGeneralException(
-                "Error: Execution mode %s is not supported." % self.execution_mode 
-            )              
+                "Error: Execution mode %s is not supported." % self.execution_mode
+            )
 
     def yml(self, opsys: OS, config) -> PluginConfig:
         return PluginConfig(base_os=opsys,
@@ -220,8 +204,8 @@ class RMK():
             include_header=True)
 
     def bin_files(self, opsys: OS):
-        files = []            
-        if self.execution_mode == 'external':  
+        files = []
+        if self.execution_mode == 'external':
             for file in 'robotmk.py robotmk-runner.py'.split():
                 files.append(SystemBinary(
                     base_os=opsys,
@@ -236,8 +220,8 @@ def get_robotmk_files(conf) -> FileGenerator:
     # ALWAYS (!) make a deepcopy of the conf dict. Even if you do not change
     # anything on it, there are strange changes ocurring while building the
     # packages of OS. A deepcopy solves this completely.
-    config = RMK(copy.deepcopy(conf))    
-    for base_os in [OS.LINUX, OS.WINDOWS]: 
+    config = RMK(copy.deepcopy(conf))
+    for base_os in [OS.LINUX, OS.WINDOWS]:
         controller_plugin =  config.controller_plugin(base_os)
         runner_plugin =  config.runner_plugin(base_os)
         robotmk_yml = config.yml(base_os, config)
@@ -246,7 +230,7 @@ def get_robotmk_files(conf) -> FileGenerator:
         # in external mode, the runner is only in bin
         if bool(runner_plugin): yield runner_plugin
         yield robotmk_yml
-        for file in bin_files: 
+        for file in bin_files:
             yield file
 
 def _get_yml_lines(config) -> List[str]:
@@ -258,18 +242,18 @@ def _get_yml_lines(config) -> List[str]:
         "# https://github.com/simonmeggle/robotmk\n" +\
         "# https://robotframework.org/\n" +\
         "# ROBOTMK VERSION: %s\n" % ROBOTMK_VERSION
-    headerlist = header.split('\n')   
-    # PyYAML is very picky with Dict subclasses; add a representer to dump the data. 
+    headerlist = header.split('\n')
+    # PyYAML is very picky with Dict subclasses; add a representer to dump the data.
     # https://github.com/yaml/pyyaml/issues/142#issuecomment-732556045
     yaml.add_representer(
-        DictNoNone, 
+        DictNoNone,
         lambda dumper, data: dumper.represent_mapping('tag:yaml.org,2002:map', data.items())
         )
     bodylist = yaml.dump(
         config.cfg_dict,
         default_flow_style=False,
         allow_unicode=True,
-        sort_keys=True).split('\n')         
+        sort_keys=True).split('\n')
     return headerlist + bodylist
 
 register.bakery_plugin(
