@@ -2,15 +2,14 @@
 
 VERSION=$1
 
-echo "+ Applying version specific devcontainer.json file.."
-cp .devcontainer/devcontainer{_v$1,}.json
+echo "+ Applying CMK$VERSION specific devcontainer.json file.."
+cat .devcontainer/v$VERSION/devcontainer.json > .devcontainer/devcontainer.json
 
-echo "+ Setting Python version for VS Code... "
+echo "+ Configuring Python for CMK$VERSION... "
+cat .vscode/v$VERSION/settings.json > .vscode/settings.json 
 
-if [ $VERSION -eq "1" ]; then 
-    sed -i 's#cmk/bin/python3"#cmk/bin/python"#' .vscode/settings.json 
-else 
-    sed -i 's#cmk/bin/python"#cmk/bin/python3"#' .vscode/settings.json 
-fi
+echo "+ Setting debug configuration for CMK$VERSION "
+cat .vscode/v$VERSION/launch.json > .vscode/launch.json 
 
-echo "Preparation for Checkmk version $VERSION finished. You can now start the devcontainer in VS Code with 'Remote-Containers: Rebuild Container'."
+echo "Preparation for Checkmk version $VERSION finished."
+echo "You can now start the devcontainer in VS Code with 'Remote-Containers: Rebuild Container'."
