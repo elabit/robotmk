@@ -23,7 +23,7 @@ function main {
         usage
     fi 
     echo -e "\n###########\nStarting lsyncd to synchronize files...\n"
-    nohup lsyncd $OMD_ROOT/.lsyncd
+    nohup lsyncd $OMD_ROOT/.lsyncd 2>&1 > /dev/null
 }
 
 function rmpath {
@@ -122,6 +122,10 @@ function lsync_v1files {
     lsync_this bakery/v1 local/share/check_mk/agents/bakery
     # Sync RF test suites 
     lsync_this rf_tests /usr/lib/check_mk_agent/robot
+    # Folder where agent output can be sourced with rule
+    # "Datasource Programs > Individual program call instead of agent access"
+    # (folder gets created in postCreateCommand.sh)
+    lsync_this agent_output var/check_mk/agent_output
 }
 
 function lsync_v2files {
@@ -138,6 +142,10 @@ function lsync_v2files {
     lsync_this bakery/v2 local/lib/check_mk/base/cee/plugins/bakery
     # # Sync RF test suites 
     lsync_this rf_tests /usr/lib/check_mk_agent/robot    
+    # Folder where agent output can be sourced with rule
+    # "Datasource Programs > Individual program call instead of agent access"
+    # (folder gets created in postCreateCommand.sh)
+    lsync_this agent_output var/check_mk/agent_output    
 }
 
 main
