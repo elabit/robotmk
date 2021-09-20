@@ -688,7 +688,7 @@ def _valuespec_agent_config_robotmk():
         elements=[
             Transform(
                 Dictionary(
-                    title=_("Deploy the Robotmk pluginEE"),
+                    title=_("Deploy the Robotmk plugin"),
                     elements=[
                         # agent_serial, agent_parallel, external
                         ("execution_mode", dropdown_robotmk_execution_choices),

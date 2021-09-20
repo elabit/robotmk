@@ -688,15 +688,13 @@ class RMKPlugin():
         parser = ArgumentParser(
             formatter_class=RawTextHelpFormatter,
             epilog=dedent("""\
-                # Operation modes
-                Without any arguments, Robotmk works in 'controller mode'. It determines the suites
-                which are defined in robotmk.yml to run on this machine. If there are no suites de-
-                fined, the suite names are taken from the directory names within the robot suites
-                directory.
-                If called in 'runner mode', robotmk executes Robot Framework suites. With "--run",
-                the default is "all" = run all suites defined (either by YML or by directory
-                inspection). If suites are specified as option to "--run", only those are run.
-
+                This is the controller part of Robotmk. It
+                    - determines the configured suites
+                    - reads their JSON state files
+                    - writes all JSON objects to STDOUT for the CMK agent
+                The Checkmk agent starts the Robotmk controller as a synchronous 
+                check plugin in the agent check interval.
+                
                 # Configuration by environment variables
                 Any setting can also be given by environment variables.
                 Example:
