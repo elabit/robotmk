@@ -48,7 +48,7 @@ STATES_NO = {
     'CRITICAL': 2,
     'UNKNOWN': 3
 }
-ROBOT_NAGIOS = {'PASS': 0, 'FAIL': 2}
+ROBOT_NAGIOS_STATUS = {'PASS': 0, 'FAIL': 2}
 
 STATE_BADGES = {0: '', 1: '(!)', 2: '(!!)', 3: 'UNKNOWN'}
 
@@ -490,7 +490,7 @@ class RobotItem(object):
         else:
             statustext = self.text
 
-        self.result['result_robotframework'] = (ROBOT_NAGIOS[self.status],
+        self.result['result_robotframework'] = (ROBOT_NAGIOS_STATUS[self.status],
                                                 remove_nasty_chars(statustext))
 
     # create the "base line" with the node name and the RF status
@@ -856,8 +856,8 @@ class RobotItem(object):
                                                       check_params)
         if descend_allowed:
             # Since RF4.0, the XML contains also keywords which would have come 
-            # after a FAILed keyword. However, they are useless for Robotmk. 
-            for subnode in [ i for i in self.subnodes if i.status != 'NOT RUN']:
+            # after a FAILed keyword (NOT RUN, SKIP). However, they are useless for Robotmk. 
+            for subnode in [ i for i in self.subnodes if i.status in ROBOT_NAGIOS_STATUS.keys()]:
                 subresult = subnode.get_checkmk_result(node_top, check_params,
                                                        next_depth_limit)
                 self.subresults.append(subresult)

@@ -7,16 +7,17 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## Unreleased
 
-### Changed
+### Fixed
 
-* Agent plugin: log rotation accepts values from 1 to 365 (0 and "always" removed) #170
+* Check: Check fails if test/kw status is SKIP or NOT RUN (#168)
 
 ### Added 
 
 * New option "argumentfile" allows to specify RF arguments by multiple files (#154)
 
-### Changed 
+### Changed
 
+* Agent plugin: log rotation accepts values from 1 to 365 (0 and "always" removed) #170
 * Agent plugin: the execution of Robot Framework was changed from Python API to 
   CLI mode because API does not allow all command line parameters (like argumentsfile).
   This should not have any impact on existing tests. 
