@@ -116,17 +116,17 @@ def discover_robotmk(params, section):
                 item_svc_name = add_svc_prefix(discovered_item.name,
                                                json_suite,
                                                params)
-                # Display the service on this host: 
+                # Display the service on _this_ host if: 
                 # - if this is a piggyback host (agent output for pb hosts contains only selected suites)
                 # or
-                # - if this is not a pb- but the "Robot"-host and the suite has no piggyback entry 
-                if info_dict['runner']['piggybackhost'] or not json_suite.get('piggybackhost'):    
+                # - if this is the "Robot"-host and the suite has no piggyback host set 
+                if 'piggybackhost' in info_dict['runner'] or not json_suite.get('piggybackhost'):    
                     yield Service(
                         item=item_svc_name,
                         parameters=params_dict)
 
     # Display the Robotmk meta service only on the "Robot" host. (for reporting overall runtimes, stale spool files etc.)
-    if not info_dict['runner']['piggybackhost']: 
+    if not 'piggybackhost' in info_dict['runner']: 
         svc_robotmk = params.get('robotmk_service_name', 'Robotmk')
         yield Service(
             item=svc_robotmk,
