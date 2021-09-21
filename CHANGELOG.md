@@ -14,6 +14,9 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ### Added 
 
 * New option "argumentfile" allows to specify RF arguments by multiple files (#154)
+* WATO allows now to set output/robot/log directory independently
+* Improved agent plugin logging levels (introduced standard log levels)
+
 
 ### Changed
 
@@ -21,6 +24,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 * Agent plugin: the execution of Robot Framework was changed from Python API to 
   CLI mode because API does not allow all command line parameters (like argumentsfile).
   This should not have any impact on existing tests. 
+* By default, Robotmk writes ALL log and state files into the agent log dir on Windows
+  and into `/var/log/` on Linux. 
 
 ### Removed
 

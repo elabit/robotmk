@@ -297,10 +297,9 @@ agent_config_dict_dirs = Dictionary(
     elements=[
         ("robotdir", TextUnicode(
             help=_(
-                "By default the Robotmk plugin will search for Robot suites in the following paths:<br>"
+                "Defines where the Robotmk plugin will search for <b>Robot suites</b>. By default this is:<br>"
                 " - <tt>/usr/lib/check_mk_agent/robot</tt> (Linux)<br>"
                 " - <tt>C:\\ProgramData\\checkmk\\agent\\robot</tt> (Windows) <br>"
-                "You can override this setting if Robot tests are stored in another path. <br>"
                 "Windows paths can be given with single backslashes; OS dependent path validation is made during the agent baking.<br>"
             ),
             title=_("Robot suites directory (<tt>robotdir</tt>)"),
@@ -311,12 +310,25 @@ agent_config_dict_dirs = Dictionary(
         ),
         ("outputdir", TextUnicode(
             help=_(
-                "By default Robotmk configures Robot Framework to write result/log data into the following paths:<br>"
-                " - <tt>/tmp/robotmk</tt> (Linux)<br>"
-                " - <tt>C:\\Windows\\Temp\\robotmk</tt> (Windows) <br>"
+                "Defines where Robot Framework <b>XML/HTML</b> and the <b>Robotmk JSON state files</b> will be stored. By default this is:<br>"                
+                " - <tt>/var/log/robotmk</tt> (Linux)<br>"
+                " - <tt>C:\\ProgramData\\checkmk\\agent\\log\\robotmk</tt> (Windows) <br>"
                 "Windows paths can be given with single backslashes; OS dependent path validation is made during the agent baking.<br>"
             ),
-            title=_("Log/state directory"),
+            title=_("Output directory"),
+            allow_empty=False,
+            size=100,
+            default_value=""
+            )
+        ),
+        ("logdir", TextUnicode(
+            help=_(
+                "Defines where Robotmk <b>controller/runner execution log files</b> will be written to. By default this is:<br>"
+                " - <tt>/var/log/robotmk</tt> (Linux)<br>"
+                " - <tt>C:\\ProgramData\\checkmk\\agent\\log\\robotmk</tt> (Windows) <br>"
+                "Windows paths can be given with single backslashes; OS dependent path validation is made during the agent baking.<br>"
+            ),
+            title=_("Log directory"),
             allow_empty=False,
             size=100,
             default_value=""
@@ -620,15 +632,19 @@ dropdown_robotmk_log_rotation = CascadingDropdown(
     sorted=False)
 
 dropdown_robotmk_logging = DropdownChoice(
-    title=_("Robotmk logging"),
+    title=_("Robotmk log level"),
     help=_("""
-    By default, the Robotmk plugin writes all steps and decisions into <tt>robotmk.log</tt>."""
+    By default, the Robotmk plugin writes a <b>log file</b> for the controller and runner plugin. You can set the <b>verbosity</b> here."""
            ),
     choices=[
-        (False, _("No")),
-        (True, _("Yes")),
+        ("OFF", _("Off (No logging)")),
+        ("CRITICAL", _("Critical (least verbose)")),        
+        ("ERROR", _("Error")),
+        ("WARNING", _("Warning")),
+        ("INFO", _("Info")),
+        ("DEBUG", _("Debug (most verbose)")),
     ],
-    default_value=True,
+    default_value="INFO",
 )
 
 dropdown_robotmk_execution_choices = CascadingDropdown(
@@ -696,7 +712,7 @@ def _valuespec_agent_config_robotmk():
                         ("transmit_html", dropdown_robotmk_transmit_html),
                         # Ref YEZDRT (forth example)
                         # ("transmit_html1", dropdown_robotmk_transmit_html),
-                        ("logging", dropdown_robotmk_logging),
+                        ("log_level", dropdown_robotmk_logging),
                         ("log_rotation", dropdown_robotmk_log_rotation),
                         ("dirs", agent_config_dict_dirs),
                     ],

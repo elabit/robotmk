@@ -51,8 +51,9 @@ ROBOTMK_VERSION = 'v1.2-beta.2'
 
 class RMKConfig():
     _PRESERVED_WORDS = [
-        'agent_output_encoding',
         'execution_mode',
+        'agent_output_encoding',
+        'transmit_html',        
         'log_rotation',
         'cache_time',
         'execution_interval',
@@ -63,31 +64,68 @@ class RMKConfig():
 
     def __init__(self, calling_cls):
         self.calling_cls = calling_cls
+        # CONFIG MERGING
+        # (At this time there is no logging. Instead, the following steps can
+        # add a message to the 'error' key in the result dict which gets evaluated
+        # when logging setup is done.)
+
         # merge I: combine the os and noarch defaults
         defaults_dict = self.__merge_defaults()
-        # merge II: YML config overwrites the defaults
-        robotmk_dict = self.read_robotmk_yml()
-        robotmk_dict_merged_default = mergedeep.merge(
-            robotmk_dict, defaults_dict)
-        # merge III: environment vars overwrite the YML config
+        # merge II: Read robotmk.yml, overwrite the defaults
+        robotmk_yml = self.read_robotmk_yml()
+        robotmk_yml_merged_default = mergedeep.merge(
+            defaults_dict, robotmk_yml)
+        # merge III: Read environment vars, overwrite the YML config
         envdict = self.read_env2dictionary()
         robotmk_dict_merged_env = mergedeep.merge(
-            robotmk_dict_merged_default, envdict)
+            robotmk_yml_merged_default, envdict)
 
+        # The config is ready now
         self.cfg_dict = robotmk_dict_merged_env
-        # Determine the default robotdir path, if no custom one was given
-        if not 'robotdir' in self.cfg_dict['global']: 
-            self.cfg_dict['global'].update({
-                'robotdir' : Path(self.calling_cls._DEFAULTS[os.name]['agent_data_dir']).joinpath('robot')
-            })
+        # Create directories for logging etc.
+        self.prepare_dirs()
+        # prepare the logger and write the separator
+        self.setup_logging()            
+        # Check for errors
+        self.validate_config()
+
         # now that YML and ENV are read, see if there is any suite defined.
         # If not, the fallback is generate suite dict entries for every dir
         # in robotdir.
         if len(self.suites_dict) == 0:
             self.suites_dict = self.__suites_from_robotdirs()
 
+    def prepare_dirs(self):
+        """Create needed directories"""
+        # In case that the YML parsing failed, the default dirs are created. This 
+        # ensures that the parsing error can be logged in any case.        
+        for dir in 'robotdir outputdir logdir'.split(): 
+            if dir in self.global_dict:
+                ret = assert_dir(self.global_dict[dir]) 
+                # If we got something other than a boolean true...
+                if not type(ret) is bool: 
+                    # ...this error cannot be logged, exit abormally.
+                    print(f"FATAL: Robotmk failed to create '{self.global_dict[dir]}'! Aborting!")
+                    sys.exit(1)
+
+    def setup_logging(self):
+        """Prepare the logger given with the calling class and write the separator"""
+        self.calling_cls.setup_logging(
+            calling_cls=self.calling_cls,
+            log_dir=self.global_dict['logdir'],
+            log_level=self.global_dict['log_level'],
+            cli_verbose=self.calling_cls.cmdline_args.verbose)
+        self.calling_cls.loginfo(self.calling_cls.logmark * 20)
+
+    def validate_config(self):
+        """See if there was any fatal error during the config parsing where on logging was available)"""
+        if 'error' in self.cfg_dict:
+            all_errors = ','.join([ self.cfg_dict['error'][s] for s in self.cfg_dict['error'] ])
+            self.calling_cls.logfatal(all_errors)
+            sys.exit(1)    
 
     def __merge_defaults(self):
+        """Merge OS defaults with noarch defaults """
         defaults = self.calling_cls._DEFAULTS
         merged_defaults = {
             'global': mergedeep.merge(defaults[os.name], defaults['noarch'])
@@ -113,6 +151,7 @@ class RMKConfig():
         return self.cfg_dict['suites'].keys()
 
     def suite_objs(self, logger):
+        """List comprehension which generates list of suite objects"""
         return [RMKSuite(id, self, logger) for id in self.cfg_dict['suites']]
 
     @property
@@ -168,7 +207,8 @@ class RMKConfig():
             if not varname.startswith(prefix):
                 continue
             else:
-                self.calling_cls.logdebug(f'ENV: Found variable {varname}')
+                # REPLACE LOG
+                #self.calling_cls.logdebug(f'ENV: Found variable {varname}')
                 varname_strip = varname.replace(prefix, '')
                 candidates = []
                 for subkey in suite_subkeys:
@@ -237,26 +277,32 @@ class RMKConfig():
         return value
 
     def read_robotmk_yml(self):
+        """Reads the robotmk.yml file and returns the dict. 
+        In case of any error, the dict contains the error key. 
+        An empty dict indicates that the config was read form the environment."""
         robotmk_yml = Path(self.get_robotmk_var(
             'agent_config_dir')).joinpath(
             self.get_robotmk_var('robotmk_yml'))
         if os.access(robotmk_yml, os.R_OK):
-            self.calling_cls.logdebug(
-                f'Reading configuration file {robotmk_yml}')
+            # REPLACE LOG
+            # self.calling_cls.logdebug(
+            #     f'Reading configuration file {robotmk_yml}')
             # TEST: Reading a valid robotmk.yml
             try:
                 with open(robotmk_yml, 'r', encoding='utf-8') as stream:
                     robotmk_yml_config = yaml.safe_load(stream)
                 return robotmk_yml_config
             except yaml.YAMLError as exc:
-                self.calling_cls.logerror("Error while parsing YAML file:")
-                if hasattr(exc, 'problem_mark'):
-                    self.calling_cls.logerror(f'''Parser says: {str(exc.problem_mark)}
-                             {str(exc.problem)} {str(exc.context)}''')
-                    exit(1)
+                # REPLACE LOG
+                #self.calling_cls.logerror("Error while parsing YAML file:")
+                #if hasattr(exc, 'problem_mark'):
+                    #self.calling_cls.logerror(f'''Parser says: {str(exc.problem_mark)}
+                    #         {str(exc.problem)} {str(exc.context)}''')
+                return {'error': {'read_robotmk_yml': f'robotmk.yml exists, but an error occurred while parsing the file! ({exc})'}}
         else:
             # TEST: Valid config 100% from environment (-> Docker!)
-            self.calling_cls.loginfo("No control file %s found. ")
+            # REPLACE LOG
+            #self.calling_cls.loginfo("No control file %s found. ")
             return {}
 
 
@@ -391,6 +437,9 @@ class RMKSuite(RMKState):
             'console':  'NONE',
             'report':   'NONE'
         })
+
+        # STRATEGY SELECTOR
+        # Decide how to execute what 
         # Ref: TgWQvr
         if self.source == "local":
             self._source_strategy = SourceStrategyFS(path=self.path)
@@ -583,6 +632,7 @@ class EnvStrategyOS(EnvStrategy):
                     arglist.extend([arg,value])        
         return arglist
 
+    # Not neede since we changed to the CLI call mode
     # def prepare_rf_api_args(self):
     #     # Format the variables to meet the Robot API requirement
     #     # variable: 
@@ -658,28 +708,34 @@ class RMKPlugin():
             'agent_data_dir': 'C:/ProgramData/checkmk/agent',
             'agent_config_dir': 'C:/ProgramData/checkmk/agent/config',
             'agent_spool_dir': 'C:/ProgramData/checkmk/agent/spool',
-            'outputdir': "C:/Windows/temp",
-            'logdir': "C:/Windows/temp",
+            'robotdir': 'C:/ProgramData/checkmk/agent/robot',
+            'outputdir': 'C:/ProgramData/checkmk/agent/log/robotmk',
+            'logdir': 'C:/ProgramData/checkmk/agent/log/robotmk'
         },
         'posix': {
             'agent_data_dir': '/usr/lib/check_mk_agent',
             'agent_config_dir': '/etc/check_mk',
             'agent_spool_dir': '/var/lib/check_mk_agent/spool',
-            'outputdir': "/tmp/robot",
-            'logdir': "/var/log/",
+            'robotdir': '/usr/lib/check_mk_agent/robot',
+            'outputdir': "/var/log/robotmk",
+            'logdir': "/var/log/robotmk",
         },
         'noarch': {
+            'execution_mode': 'agent_serial',
+            'agent_output_encoding': 'zlib_codec',
+            'transmit_html': False,
             'robotmk_yml': 'robotmk.yml',
-            'logging': True
+            'log_level': 'INFO',
+            'log_rotation': 14,
+            'cache_time': 960,
+            'execution_interval': 900
         }
     }
 
     def __init__(self):
-        self.__setup_logging(
-            calling_cls=self, verbose=self.cmdline_args.verbose)
-        # self.loginfo("="*20 + " %s " % str(self) + "="*20)
-        # self.loginfo(self.logmark * 20 + " %s " % str(self) + self.logmark*20)
-        self.loginfo(self.logmark * 20)
+        # self.setup_logging(
+        #     calling_cls=self, verbose=self.cmdline_args.verbose)
+        # self.loginfo(self.logmark * 20)
         self.config = RMKConfig(calling_cls=self)
         self.execution_mode = self.config.global_dict['execution_mode']
 
@@ -740,31 +796,35 @@ class RMKPlugin():
                             help="""Print the Robotmk log to console.""")
         cls.cmdline_args = parser.parse_args()
 
-    def __setup_logging(self, calling_cls, verbose=False):
-        if self._DEFAULTS['noarch']['logging']:
-            instance_name = calling_cls.__class__.__name__
-            logger = logging.getLogger(instance_name)
-            logger.setLevel(logging.DEBUG)
+    def setup_logging(self, calling_cls, log_dir, log_level='DEBUG', cli_verbose=False):
+        #if self._DEFAULTS['noarch']['logging']:
+        instance_name = calling_cls.__class__.__name__
+        logger = logging.getLogger(instance_name)
+        if log_level == 'OFF':
+            # increase CRITICAL by 1 disables logging at all
+            level = logging.getLevelName('CRITICAL') + 1
+        else:
+            level = logging.getLevelName(log_level)
+        logger.setLevel(level)
 
-            # File log
-            fh = TimedRotatingFileHandler(
-                Path(self._DEFAULTS[os.name]['logdir']
-                     ).joinpath('robotmk_%s.log' % repr(calling_cls)),
-                when="midnight", backupCount=30)
-            file_formatter = logging.Formatter(
+        # File log
+        fh = TimedRotatingFileHandler(
+            Path(log_dir).joinpath('robotmk_%s.log' % repr(calling_cls)),
+            when="midnight", backupCount=30)
+        file_formatter = logging.Formatter(
+            fmt='%(asctime)s %(name)10s [%(process)5d] %(levelname)7s: %(message)s')
+        fh.setFormatter(file_formatter)
+        fh.setLevel(level)
+        logger.addHandler(fh)
+        self.logger = logger
+        # stdout
+        if cli_verbose:
+            console = logging.StreamHandler()
+            console_formatter = logging.Formatter(
                 fmt='%(asctime)s %(name)10s [%(process)5d] %(levelname)7s: %(message)s')
-            fh.setFormatter(file_formatter)
-            fh.setLevel(logging.DEBUG)
-            logger.addHandler(fh)
-            self.logger = logger
-            # stdout
-            if verbose:
-                console = logging.StreamHandler()
-                console_formatter = logging.Formatter(
-                    fmt='%(asctime)s %(name)10s [%(process)5d] %(levelname)7s: %(message)s')
-                console.setFormatter(console_formatter)
-                console.setLevel(logging.DEBUG)
-                self.logger.addHandler(console)
+            console.setFormatter(console_formatter)
+            console.setLevel(logging.DEBUG)
+            self.logger.addHandler(console)
 
     def asinstance(f):
         '''Ensures that a function only gets called by instances
@@ -791,6 +851,10 @@ class RMKPlugin():
     @asinstance
     def logerror(self, text):
         self.logger.error(text)
+
+    @asinstance
+    def logfatal(self, text):
+        self.logger.fatal(text)
 
 
 class RMKrunner(RMKState, RMKPlugin):
@@ -827,8 +891,9 @@ class RMKrunner(RMKState, RMKPlugin):
         if (len(suites_cmdline) == 1 and suites_cmdline[0] == "all"):
             # there are no specific suites to run, run all
             self.selective_run = False
-            self.loginfo(
-                "No suite arguments given to '--run'; will execute all as configured.")
+            # Useless to log until the runner does not support selective runs
+            #self.loginfo(
+            #    "No suite arguments given to '--run'; will execute all as configured.")
         else:
             self.loginfo(
                 "'--run' has suite arguments; merging with list of suites...")
@@ -922,31 +987,34 @@ class RMKrunner(RMKState, RMKPlugin):
         self.loginfo(
             ' => Suites to start: %s' % ', '.join([s.id for s in self.suites]))
         self.write_statevars(('start_time', self.get_now_as_dt()))
-        for suite in self.suites:
-            id = suite.id
-            self.loginfo(
-                f"{4*RMKSuite.logmark} Suite ID: {id} {4*RMKSuite.logmark}")
-            if not os.path.exists(suite.path):
-                error = "Suite path %s does not exist. " % suite.path
-                self.logerror(error)
-                # The statefile will contain iD and error text of this failed
-                # suite run. But the controller will only "find" this statefile
-                # if he know about it -> if there is a valid entry in the config.
-                suite.error = error
-                # continue
-            self.logdebug(f'Strategy: ' + str(suite._env_strategy) )
-            
-            rc = self.run_suite(suite)
-            
+        if len(self.suites) == 0:
+            self.logwarn(f"No suites defined and no suites in {self.global_dict['robotdir']}: nothing to do. (?)")
+        else:
+            for suite in self.suites:
+                id = suite.id
+                self.loginfo(
+                    f"{4*RMKSuite.logmark} Suite ID: {id} {4*RMKSuite.logmark}")
+                if not os.path.exists(suite.path):
+                    error = "Suite path %s does not exist. " % suite.path
+                    self.logerror(error)
+                    # The statefile will contain iD and error text of this failed
+                    # suite run. But the controller will only "find" this statefile
+                    # if he know about it -> if there is a valid entry in the config.
+                    suite.error = error
+                    # continue
+                self.logdebug(f'Strategy: ' + str(suite._env_strategy) )
+                
+                rc = self.run_suite(suite)
+                
 
-            if rc > 250:
-                self.logerror(
-                    'RC > 250 = Robot exited with fatal error. There are no logs written.')
-                self.logerror(
-                    'Please run the robot command manually to debug.')
-                suite.clear_filenames()
-            self.loginfo(f'Writing suite statefile {suite.statefile_path}')
-            suite.write_state_to_file()
+                if rc > 250:
+                    self.logerror(
+                        'RC > 250 = Robot exited with fatal error. There are no logs written.')
+                    self.logerror(
+                        'Please run the robot command manually to debug.')
+                    suite.clear_filenames()
+                self.loginfo(f'Writing suite statefile {suite.statefile_path}')
+                suite.write_state_to_file()
         self.set_statevars(('end_time', self.get_now_as_dt()))
         self.update_runner_statevars()
         self.write_state_to_file()
@@ -1024,7 +1092,8 @@ class RMKrunner(RMKState, RMKPlugin):
             ('end_time', self.get_now_as_dt()),
             ('attempts', attempt),
             ('max_executions', max_exec), 
-            ('rc', rc)])    
+            ('rc', rc)])  
+        self.logdebug(f'Suite ran for {suite.runtime:.2f} seconds')  
         self.loginfo(
             f'Final suite RC: {rc}')        
         return rc
@@ -1203,25 +1272,25 @@ class RMKCtrl(RMKState, RMKPlugin):
                 if state.get('rc', 0) >= 252:
                     state.update({
                         'status': 'fatal',
-                        'error': 'Robot RC was >= 252. This is a fatal error. Robotmk got no XML/HTML to process. You should execute and test the suite manually.'
+                        'error': 'Robot RC was >= 252. This is a fatal error. Robotmk got no XML/HTML to process. You should execute and test the suite manually.',
+                        'xml': None,
+                        'html': None
                     })
                 else:
                     state.update({'status': 'nonfatal'})
-
-                for k in self.keys_to_encode:
-                    if k in state:
-                        # Do not transfer HTML log if disabled in WATO
-                        if k == 'htmllog' and self.global_dict['transmit_html'] == False:
-                            state[k] = None
-                        else:
-                            content = self.read_file(state[k])
-                            if k == 'xml':
-                                # Remove any HTML content (embedded images) to not clutter the CMK multisite
-                                content = xml_remove_html(content)
-                                pass
-                            state[k] = self.encode(
-                                content,
-                                suite.global_dict['agent_output_encoding'])
+                    for k in self.keys_to_encode:
+                        if k in state:
+                            # Do not transfer HTML log if disabled in WATO
+                            if k == 'htmllog' and self.global_dict['transmit_html'] == False:
+                                state[k] = None
+                            else:
+                                content = self.read_file(state[k])
+                                if k == 'xml':
+                                    # Remove any HTML content (embedded images) to not clutter the CMK multisite
+                                    content = xml_remove_html(content)                                
+                                state[k] = self.encode(
+                                    content,
+                                    suite.global_dict['agent_output_encoding'])
             states[host].append(state)
         if bool(states):
             return states
@@ -1385,6 +1454,15 @@ def localized_iso(iso):
 
 def iso_asdatetime(iso):
     return parser.isoparse(iso)
+
+def assert_dir(dirname):
+    """Creates the given directory; returns true if it succeeded. 
+    Otherwise, the error object is returned."""
+    try: 
+        Path(dirname).mkdir(parents=True, exist_ok=True)
+        return True
+    except Exception as e: 
+        return e
 
 
 def test_for_modules():

@@ -132,10 +132,11 @@ class RMK():
         global_dict['execution_mode'] =  self.execution_mode
         global_dict['agent_output_encoding'] =  conf['agent_output_encoding']
         global_dict['transmit_html'] =  conf['transmit_html']
-        global_dict['logging'] =  conf['logging']
+        global_dict['log_level'] =  conf['log_level']
         global_dict['log_rotation'] =  conf['log_rotation']
         global_dict['robotdir'] =  conf['dirs'].get('robotdir', None)
         global_dict['outputdir'] =  conf['dirs'].get('outputdir', None)
+        global_dict['logdir'] =  conf['dirs'].get('logdir', None)
 
         if self.execution_mode == 'agent_serial':
             global_dict['cache_time'] = mode_conf['cache_time']
