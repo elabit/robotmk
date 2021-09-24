@@ -16,7 +16,11 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 * New option "argumentfile" allows to specify RF arguments by multiple files (#154)
 * WATO allows now to set output/robot/log directory independently
 * Improved agent plugin logging levels (introduced standard log levels)
-
+* All Robotmk services can be searched by service labels: 
+  * all Robotmk services: `robotmk:yes`
+  * Robotmk monitoring service: `robotmk/type:robotmk`
+  * Robot Framework result service: `robotmk/type:result`
+* New option: display action links to Robot HTML log files (#1) *yeah, issue #1 solved!* 
 
 ### Changed
 
