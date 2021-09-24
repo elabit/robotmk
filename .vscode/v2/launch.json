@@ -34,6 +34,38 @@
             "justMyCode": false
         },
         {
+            "name": "devc V2.x Inventory localhost",
+            "type": "python",
+            "request": "launch",
+            "program": "/omd/sites/cmk/bin/cmk",
+            "args": [
+                "-v",
+                "-II",
+                "--debug",
+                "localhost"
+            ],
+            "console": "integratedTerminal",
+            "python": "/omd/sites/cmk/bin/python3",
+            // allow to inspect also foreign code
+            "justMyCode": false
+        },
+        {
+            "name": "devc V2.x Inventory localfoo",
+            "type": "python",
+            "request": "launch",
+            "program": "/omd/sites/cmk/bin/cmk",
+            "args": [
+                "-v",
+                "-II",
+                "--debug",
+                "localfoo"
+            ],
+            "console": "integratedTerminal",
+            "python": "/omd/sites/cmk/bin/python3",
+            // allow to inspect also foreign code
+            "justMyCode": false
+        },
+        {
             "name": "devc V2.x check localhost",
             "type": "python",
             "request": "launch",
@@ -43,6 +75,22 @@
                 "-n",
                 "-p",
                 "localhost"
+            ],
+            "console": "integratedTerminal",
+            "python": "/omd/sites/cmk/bin/python3",
+            // allow to inspect also foreign code
+            "justMyCode": false
+        },
+        {
+            "name": "devc V2.x check localfoo",
+            "type": "python",
+            "request": "launch",
+            "program": "/omd/sites/cmk/bin/cmk",
+            "args": [
+                "-v",
+                "-n",
+                "-p",
+                "localfoo"
             ],
             "console": "integratedTerminal",
             "python": "/omd/sites/cmk/bin/python3",
