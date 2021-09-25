@@ -34,23 +34,29 @@ function main (){
 
 
 function release() {
+    assert_gh_login
     assert_tag_unique $VTAG
     assert_branch "develop"
     assert_notdirty
-    header "Moving changelog entries from Unreleased to $TAG ..."
-    chag update $TAG
 
-    header "Replacing Robotmk version in repository ..."
+    header "=== Setting pre-release tag pre-$VTAG ..."
+    git tag pre-$VTAG
+    header "=== Moving changelog entries from Unreleased to $TAG ..."
+    chag update $TAG
+    header "Committing: 'CHANGELOG: $VTAG'"
+    git add . && git commit -m "CHANGELOG: $VTAG"
+
+    header "=== Replacing Robotmk version in repository ..."
     grep -Hlr 'ROBOTMK_VERSION =' * | grep -v release | xargs sed -i '' -e "s/ROBOTMK_VERSION =.*/ROBOTMK_VERSION = '$VTAG'/"
 
-    header "Committing this as 'Version bump $VTAG'"
+    header "Committing: 'Version bump $VTAG'"
     git add . && git commit -m "Version bump: $VTAG"
-    echo ">>>>> Workflow result and artifacts on https://github.com/simonmeggle/robotmk/actions/workflows/mkp-artifact.yml!"
+    echo "Workflow result and artifacts are on https://github.com/simonmeggle/robotmk/actions/workflows/mkp-artifact.yml!"
 
-    header "Merging develop into master..."
+    header "=== Merging develop into master..."
     git checkout master
     git merge develop --no-ff --no-edit --strategy-option theirs
-    header "Create annotated git tag from Changelog entry ..."
+    header "=== Create annotated git tag from Changelog entry ..."
     chag tag --addv
     header "Pushing ..."
     git push origin master
@@ -59,15 +65,17 @@ function release() {
 
 function unrelease() {
     assert_gh_login
+    assert_branch "develop"
     # assert_notdirty
-    header "Changing to develop branch ..."
+    header "=== Changing to develop branch ..."
     git checkout develop
-    header "Removing the release with tag $VTAG ..."
+    header "=== Removing the release with tag $VTAG ..."
     gh release delete $VTAG -y
-    header "Removing tags ..."
+    header "=== Removing tags ..."
     git push origin :refs/tags/$VTAG 
     git tag -d $VTAG
-    header "Resetting Changelog: headline $TAG -> 'Unreleased'"
+    exit 
+    header "=== Resetting Changelog: headline $TAG -> 'Unreleased'"
     sed -i '' -e "s/## $TAG.*/## Unreleased/" CHANGELOG.md
 }
 
@@ -94,7 +102,7 @@ function header() {
 function assert_gh_login() {
     gh auth status 2>&1 > /dev/null
     if [ $? -gt 0 ]; then 
-        echo "ERROR: you do not seem to be loggedn in with gh CLI. Exiting."
+        echo "ERROR: you do not seem to be logged in with gh CLI. Exiting."
         exit 1
     fi 
 }
