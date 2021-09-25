@@ -18,23 +18,26 @@
 # to the Free Software Foundation, Inc., 51 Franklin St,  Fifth Floor,
 # Boston, MA 02110-1301 USA.
 
-#import
-from .agent_based_api.v1 import *
+import os
 import json, base64, zlib
 import re
 import time, datetime
 from dateutil.tz import tzlocal
 from dateutil import parser
 import xml.etree.ElementTree as ET
-from collections import namedtuple
 from string import Template
+from random import randint
+import shutil
+from collections import namedtuple
+
+# V2 specific
+# from .agent_based_api.v1 import *
+from cmk.base.plugins.agent_based.agent_based_api.v1 import *
 from cmk.utils.exceptions import MKGeneralException
 
-# UTC = pytz.utc
-
-ROBOTMK_VERSION = 'v1.2-beta.2'
-
+ROBOTMK_VERSION = 'v1.2-beta.3'
 DEFAULT_SVC_PREFIX = 'Robot Framework E2E $SUITEID$SPACE-$SPACE'
+HTML_LOG_DIR = "%s/%s" % (os.environ['OMD_ROOT'], 'local/share/addons/robotmk')
 
 STATES = {
     0: 'OK',
@@ -48,7 +51,7 @@ STATES_NO = {
     'CRITICAL': 2,
     'UNKNOWN': 3
 }
-ROBOT_NAGIOS = {'PASS': 0, 'FAIL': 2}
+ROBOT_NAGIOS_STATUS = {'PASS': 0, 'FAIL': 2}
 
 STATE_BADGES = {0: '', 1: '(!)', 2: '(!!)', 3: 'UNKNOWN'}
 
@@ -57,7 +60,6 @@ ROBOTMK_KEYWORDS = {
     'Add Monitoring Message',
 }
 
-# v2parse
 def parse_robotmk(params, string_table):
     keys_to_decode = ['xml', 'htmllog']
     robot_discovery_settings = params.get('robot_discovery_settings', [])
@@ -100,43 +102,50 @@ def parse_robotmk(params, string_table):
         # now process the root suite
         st_dict['suites'][idx]['parsed'] = parse_suite_xml(
             xml_root_suite, discovery_setting)
-        # st_dict['suites'][idx]['parsed'] = idx
     return (st_dict, params.__dict__['_data'])
-
 
 
 # v2discovery
 def discover_robotmk(params, section):
     info_dict, params_dict = parse_robotmk(params, section)
-    
-    # TODO: Error handling for no suites/runner_data keys?
-    for json_suite in info_dict['suites']:
-        if 'parsed' in json_suite:
-            for discovered_item in json_suite['parsed'].discovered:
-                item_svc_name = add_svc_prefix(discovered_item.name,
-                                               json_suite,
-                                               params)
-                # Display the service on this host: 
-                # - if this is a piggyback host (agent output for pb hosts contains only selected suites)
-                # or
-                # - if this is not a pb- but the "Robot"-host and the suite has no piggyback entry 
-                if info_dict['runner']['piggybackhost'] or not json_suite.get('piggybackhost'):    
+    service_prefix = params.get('robot_service_prefix', [])
+    html_show_patterns = params_dict.get('htmllog', {})
+    is_piggyback_result = info_dict['runner'].get('is_piggyback_result', False)
+    svc_label_robotmk_yes = ServiceLabel(u"robotmk", u"yes")
+    for root_suite in info_dict['suites']:
+        suite_piggybackhost = root_suite.get('piggybackhost', "")
+        if 'parsed' in root_suite:
+            for discovered_item in root_suite['parsed'].discovered:
+                service_description = add_svc_prefix(discovered_item.name,
+                                               root_suite,
+                                               service_prefix)
+                svc_labels_htmllog = []
+                if (not is_piggyback_result and not suite_piggybackhost) or (is_piggyback_result and suite_piggybackhost): 
+                    # Displaying a hyperlink to the HTML logs on CMK services 
+                    # See Ref #VfHCJn in robotmk agent plugin
+                    svc_labels_htmllog = assign_html_logs(service_description, info_dict, root_suite, html_show_patterns)
+                    svc_labels = svc_labels_htmllog + [svc_label_robotmk_yes]
                     yield Service(
-                        item=item_svc_name,
-                        parameters=params_dict)
-
+                        item=service_description,
+                        parameters=params_dict,
+                        labels=svc_labels)
+ 
     # Display the Robotmk meta service only on the "Robot" host. (for reporting overall runtimes, stale spool files etc.)
-    if not info_dict['runner']['piggybackhost']: 
+    if not is_piggyback_result: 
         svc_robotmk = params.get('robotmk_service_name', 'Robotmk')
+        svc_labels = [ServiceLabel(u"robotmk", u"yes"), ServiceLabel(u"robotmk/type", u"robotmk")]
         yield Service(
             item=svc_robotmk,
-            parameters=params_dict)
-        
-    
-# v2check
+            parameters=params_dict, 
+            labels=svc_labels)
+
+
 def check_robotmk(item, params, section):
     parsed_section, params_dict = parse_robotmk(params, section)
+    service_prefix = params.get('robot_service_prefix', [])
     svc_robotmk = params_dict.get('robotmk_service_name', 'Robotmk')
+    runner_assigned_host = parsed_section['runner'].get('assigned_host', [])
+    # The "Robotmk" service
     if item == svc_robotmk:
         # item is the Robotmk meta service
         perfdata_list = []
@@ -295,6 +304,7 @@ def check_robotmk(item, params, section):
         else:
             first_line.append("Robotmk version %s (server and client)" %
                               ROBOTMK_VERSION)
+
         # putting things together
         summary = ', '.join(first_line) 
         details = ''.join(out_lines) or None
@@ -307,9 +317,18 @@ def check_robotmk(item, params, section):
         # item is a regular s/t/k check
         for root_suite in parsed_section['suites']:
             if 'parsed' in root_suite:
+                html_exists = 'htmllog' in root_suite    
+                if html_exists: 
+                    # Discovery part see Ref #exNx1h
+                    for host in runner_assigned_host: 
+                        host_dir = "%s/%s" % (HTML_LOG_DIR, host)
+                        save_htmllog(host_dir, "%s_last_log.html" % root_suite['id'], root_suite['htmllog'])
+                        if root_suite['rc'] > 0: 
+                            save_htmllog(host_dir, "%s_last_error_log.html" % root_suite['id'], root_suite['htmllog'])
+
                 for discovered_item in root_suite['parsed'].discovered:
                     # Remove the prefix to get the original item name
-                    item_without_prefix = strip_svc_prefix(item, root_suite, params)
+                    item_without_prefix = strip_svc_prefix(item, root_suite, service_prefix)
                     if discovered_item.name == item_without_prefix:
                         now = datetime.datetime.now(tzlocal())
                         last_end = parser.isoparse(root_suite['end_time'])
@@ -318,7 +337,7 @@ def check_robotmk(item, params, section):
                             for i in evaluate_robot_item(discovered_item, params_dict):
                                 yield i
                         else:
-                            # Keeping the following only for recalling.
+                            # Keeping the following only for recalling....
                             # A stale result should not return anything here. 
                             # It's enough to have it alarmed by the Robotmk 
                             # stale monitoring check (see Ref. N2UC9N)
@@ -332,9 +351,59 @@ def check_robotmk(item, params, section):
     # We should not come here. Item cannot be found in parsed data.
     # see PRO TIP: simple return if no data is found
     # http://bit.ly/3epEcf3
-    return    
+    return  
+
+def ignore_robot_item(root_suite, last_end, overdue_sec):
+    # TODO: (Perhaps make this configurable (OK/UNKNOWN))
+    last_end_fmt = last_end.strftime('%Y-%m-%d %H:%M:%S')
+    out = "Result of suite '%s' is too old. " % root_suite['id'] + \
+        "Last execution end: %s, " % last_end_fmt + \
+        "overdue since %ss " % (overdue_sec) + \
+        "(cache time: %ss)" % str(root_suite['cache_time'])
+    return 3, out
 
 
+def evaluate_robot_item(robot_item, params):
+    item_result = robot_item.get_checkmk_result(robot_item, params)
+    rc = item_result['worststate']
+    result = Result(
+        state=State(rc),
+        summary=item_result['padded_lines_list'][0],
+        details='\n'.join(item_result['padded_lines_list'])
+    )
+    # Return back a list of everything which should be yielded
+    # Perfdata are generated in ref #5LSK99
+    return [result] + item_result['cmk_perfdata_list']
+
+
+def get_svc_prefix_tplstring(itemname, root_suite, prefix):
+    '''Determines the prefix for an item as defined with pattern for root suite'''
+    fmtstring = pattern_match(prefix, root_suite['parsed'].name,
+                              DEFAULT_SVC_PREFIX)
+    template = Template(fmtstring)
+    ret_prefix = template.safe_substitute(PATH=root_suite['path'],
+                                      TAG=root_suite['tag'],
+                                      SUITEID=root_suite['id'],
+                                      SUITENAME=root_suite['parsed'].name,
+                                    #   EXEC_MODE=
+                                      SPACE=' ')
+    return ret_prefix
+
+
+def add_svc_prefix(itemname, root_suite, prefix):
+    '''Returns the item name with a templated prefix string in front of it'''
+    return "%s%s" % (get_svc_prefix_tplstring(itemname, root_suite, prefix), itemname)
+
+
+def strip_svc_prefix(itemname, root_suite, prefix):
+    '''Strips off the templated prefix string from the front of an item name'''
+    prefix_tplstring = get_svc_prefix_tplstring(itemname, root_suite, prefix)
+    if itemname.startswith(prefix_tplstring):
+        return itemname[len(prefix_tplstring):]
+    else:
+        return itemname
+
+# ==============================================================================
 
 
 class RobotItem(object):
@@ -490,7 +559,7 @@ class RobotItem(object):
         else:
             statustext = self.text
 
-        self.result['result_robotframework'] = (ROBOT_NAGIOS[self.status],
+        self.result['result_robotframework'] = (ROBOT_NAGIOS_STATUS[self.status],
                                                 remove_nasty_chars(statustext))
 
     # create the "base line" with the node name and the RF status
@@ -856,8 +925,8 @@ class RobotItem(object):
                                                       check_params)
         if descend_allowed:
             # Since RF4.0, the XML contains also keywords which would have come 
-            # after a FAILed keyword. However, they are useless for Robotmk. 
-            for subnode in [ i for i in self.subnodes if i.status != 'NOT RUN']:
+            # after a FAILed keyword (NOT RUN, SKIP). However, they are useless for Robotmk. 
+            for subnode in [ i for i in self.subnodes if i.status in ROBOT_NAGIOS_STATUS.keys()]:
                 subresult = subnode.get_checkmk_result(node_top, check_params,
                                                        next_depth_limit)
                 self.subresults.append(subresult)
@@ -890,9 +959,7 @@ class RobotSuite(RobotItem):
     # which subnode types are allowed
     allowed_subnodes = ['suite', 'test']
     symbol_ok = "\u25ef"
-    # symbol_ok = "25ef"
     symbol_nok = "\u2b24"
-    # symbol_nok = "2b24"
     # which key in dict output_depth is holding the values for tests
     output_depth_dict_key = "output_depth_suites"
     runtime_threshold_dict_key = "runtime_threshold_suites"
@@ -916,9 +983,7 @@ class RobotTest(RobotItem):
     # which subnode types are allowed
     allowed_subnodes = ['kw']
     symbol_ok = "\u25a1"
-    # symbol_ok = "25a1"
     symbol_nok = "\u25a0"
-    # symbol_nok = "25a0"
     # which key in dict output_depth is holding the values for tests
     output_depth_dict_key = "output_depth_tests"
     runtime_threshold_dict_key = "runtime_threshold_tests"
@@ -948,9 +1013,7 @@ class RobotKeyword(RobotItem):
     # which subnode types are allowed
     allowed_subnodes = ['kw']
     symbol_ok = "\u25cb"
-    # symbol_ok = "25cb"
     symbol_nok = "\u25cf"
-    # symbol_nok = "25cf"
     # which key in dict output_depth is holding the values for keywords
     output_depth_dict_key = "output_depth_keywords"
     runtime_threshold_dict_key = "runtime_threshold_keywords"
@@ -975,7 +1038,7 @@ def parse_suite_xml(root_xml, discovery_setting):
     root_suite = RobotSuite(root_xml, 0, 0, None, None)
     return root_suite
 
-#helper
+
 #   _          _
 #  | |        | |
 #  | |__   ___| |_ __   ___ _ __
@@ -985,6 +1048,60 @@ def parse_suite_xml(root_xml, discovery_setting):
 #               | |
 #               |_|
 
+def save_htmllog(dir, logname, raw_html):
+    filename = "%s/%s" % (dir, logname)
+    try:
+        with open(filename, 'w') as f:
+            f.write(raw_html) 
+    except Exception:
+        raise MKGeneralException("Robotmk failed to save the log file %s: %s" % (filename))
+
+def assign_html_logs(svc_desc, info_dict, root_suite, html_show_patterns):
+    # If piggyback was not set anyway, the client tried to determine its hostname
+    # and FQDN (if set) and hopefully there is a match on the Checkmk server. 
+    runner_assigned_host = info_dict['runner'].get('assigned_host', [])
+    svc_labels = []
+    html_exists = 'htmllog' in root_suite
+    if html_exists:
+        # Check part see Ref #exNx1h
+        for host in runner_assigned_host: 
+            # There is 1 HTML log per root suite. Because of the fact that 
+            # the discovery level feature of Robotmk allows to generate more 
+            # than 1 service out of a root suite (example: 1 suite with 
+            # test1..test5 => service test1...5), we need a translation between 
+            # the discovered items (test) and the single log file (suite). 
+            # /hostname
+            #   $SUITE_last_error_log.html
+            #   $SUITE_last_log.html
+            #   /discovered_item1
+            #     suite_last_error_log.html -> ../$SUITE_last_error_log.html          
+            #     suite_last_log.html -> ../$SUITE_last_log.html          
+            #   /discovered_item2
+            #     suite_last_error_log.html -> ../$SUITE_last_error_log.html          
+            #     suite_last_log.html -> ../$SUITE_last_log.html          
+            for log in ['last_log', 'last_error_log']:
+                pattern = html_show_patterns.get(log, '.*')
+                if re.match(pattern, svc_desc): 
+                    svc_dir = "%s/%s/%s" % (HTML_LOG_DIR, host, svc_desc)
+                    #shutil.rmtree(svc_dir, ignore_errors=True)
+                    mkdirp(svc_dir)
+                    src_name = "../%s_%s.html" % (root_suite['id'], log)
+                    dest_name = "%s/%s" % (svc_dir, "suite_%s.html" % log)
+                    lns(src_name, dest_name)
+                    svc_labels.append(ServiceLabel(u"robotmk/html_%s" % log, u"yes"))
+    return svc_labels
+
+def mkdirp(path):
+    """Python2 and 3 compatible replacement for mkdir -p without raising an 
+    exception if the dir already exists"""
+    if not os.path.isdir(path):
+        os.makedirs(path)
+
+def lns(src, dest):
+    """Python2 and 3 compatible replacement for ln -s without raising an 
+    exception if the link already exists"""
+    if not os.path.islink(dest):
+        os.symlink(src, dest)
 
 # create a valid perfdata label which does contain only numbers, letters,
 # dash and underscore. Everything else becomes a underscore.
@@ -1065,8 +1182,7 @@ def check_stale_suites(suites):
                     Suite(
                         root_suite['id'],
                         msg
-                    ))
-                    
+                    ))                    
             else:
                 # stale result
                 overdue_sec = age.total_seconds() - root_suite['cache_time']
@@ -1079,57 +1195,6 @@ def check_stale_suites(suites):
                     ))
     return (suites_stale, suites_nonstale)
 
-
-def ignore_robot_item(root_suite, last_end, overdue_sec):
-    # TODO: (Perhaps make this configurable (OK/UNKNOWN))
-    last_end_fmt = last_end.strftime('%Y-%m-%d %H:%M:%S')
-    out = "Result of suite '%s' is too old. " % root_suite['id'] + \
-        "Last execution end: %s, " % last_end_fmt + \
-        "overdue since %ss " % (overdue_sec) + \
-        "(cache time: %ss)" % str(root_suite['cache_time'])
-    return 3, out
-
-
-def evaluate_robot_item(robot_item, params):
-    item_result = robot_item.get_checkmk_result(robot_item, params)
-    rc = item_result['worststate']
-    result = Result(
-        state=State(rc),
-        summary=item_result['padded_lines_list'][0],
-        details='\n'.join(item_result['padded_lines_list'])
-    )
-    # Return back a list of everything which should be yielded
-    # Perfdata are generated in ref #5LSK99
-    return [result] + item_result['cmk_perfdata_list']
-
-
-def get_svc_prefix(itemname, root_suite, params):
-    '''Determines the prefix for an item as defined with pattern for root suite'''
-    robot_service_prefix = params.get('robot_service_prefix', []) 
-    fmtstring = pattern_match(robot_service_prefix, root_suite['parsed'].name,
-                              DEFAULT_SVC_PREFIX)
-    template = Template(fmtstring)
-    prefix = template.safe_substitute(PATH=root_suite['path'],
-                                      TAG=root_suite['tag'],
-                                      SUITEID=root_suite['id'],
-                                      SUITENAME=root_suite['parsed'].name,
-                                    #   EXEC_MODE=
-                                      SPACE=' ')
-    return prefix
-
-
-def add_svc_prefix(itemname, root_suite, params):
-    '''Returns the item name with a templated prefix string in front of it'''
-    return "%s%s" % (get_svc_prefix(itemname, root_suite, params), itemname)
-
-
-def strip_svc_prefix(itemname, root_suite, params):
-    '''Strips off the templated prefix string from the front of an item name'''
-    prefix = get_svc_prefix(itemname, root_suite, params)
-    if itemname.startswith(prefix):
-        return itemname[len(prefix):]
-    else:
-        return itemname
 
 def quoted_listitems(inlist):
     return ', '.join(["'%s'" % s for s in inlist])
@@ -1177,65 +1242,71 @@ def roundup(number, ndigits=0, return_type=None):
         return_type = float if ndigits > 0 else int
     return return_type(result)
 
+
 """
 HTML <-> text conversions.
 http://stackoverflow.com/questions/328356/extracting-text-from-html-file-using-python
 """
-from html.parser import HTMLParser
-from html.entities import name2codepoint
-import re
-
-class _HTMLToText(HTMLParser):
-    def __init__(self):
-        HTMLParser.__init__(self)
-        self._buf = []
-        self.hide_output = False
-
-    def handle_starttag(self, tag, attrs):
-        if tag in ('p', 'br') and not self.hide_output:
-            self._buf.append('\n')
-        elif tag in ('script', 'style'):
-            self.hide_output = True
-
-    def handle_startendtag(self, tag, attrs):
-        if tag == 'br':
-            self._buf.append('\n')
-
-    def handle_endtag(self, tag):
-        if tag == 'p':
-            self._buf.append('\n')
-        elif tag in ('script', 'style'):
-            self.hide_output = False
-
-    def handle_data(self, text):
-        if text and not self.hide_output:
-            self._buf.append(re.sub(r'\s+', ' ', text))
-
-    def handle_entityref(self, name):
-        if name in name2codepoint and not self.hide_output:
-            c = chr(name2codepoint[name])
-            self._buf.append(c)
-
-    def handle_charref(self, name):
-        if not self.hide_output:
-            n = int(name[1:], 16) if name.startswith('x') else int(name)
-            self._buf.append(chr(n))
-
-    def get_text(self):
-        return re.sub(r' +', ' ', ''.join(self._buf))
 
 def html_to_text(html):
+
+    class _HTMLToText(HTMLParser):
+        def __init__(self):
+            HTMLParser.__init__(self)
+            self._buf = []
+            self.hide_output = False
+
+        def handle_starttag(self, tag, attrs):
+            if tag in ('p', 'br') and not self.hide_output:
+                self._buf.append('\n')
+            elif tag in ('script', 'style'):
+                self.hide_output = True
+
+        def handle_startendtag(self, tag, attrs):
+            if tag == 'br':
+                self._buf.append('\n')
+
+        def handle_endtag(self, tag):
+            if tag == 'p':
+                self._buf.append('\n')
+            elif tag in ('script', 'style'):
+                self.hide_output = False
+
+        def handle_data(self, text):
+            if text and not self.hide_output:
+                self._buf.append(re.sub(r'\s+', ' ', text))
+
+        def handle_entityref(self, name):
+            if name in name2codepoint and not self.hide_output:
+                c = chr(name2codepoint[name])
+                self._buf.append(c)
+
+        def handle_charref(self, name):
+            if not self.hide_output:
+                n = int(name[1:], 16) if name.startswith('x') else int(name)
+                self._buf.append(chr(n))
+
+        def get_text(self):
+            return re.sub(r' +', ' ', ''.join(self._buf))
+                
     """
     Given a piece of HTML, return the plain text it contains.
     This handles entities and char refs, but not javascript and stylesheets.
     """
-    parser = _HTMLToText()
     try:
+        from html.parser import HTMLParser
+        from html.entities import name2codepoint
+        parser = _HTMLToText()
         parser.feed(html)
         parser.close()
-    except:  #HTMLParseError: No good replacement?
-        pass
-    return parser.get_text()
+        return parser.get_text()
+    except:  
+        # on Checkmk1 there is no HTML.Parser; :-/ 
+        return html
+
+# %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+# V2 specific functions
+
 
 
 # v2register
@@ -1252,5 +1323,3 @@ register.check_plugin(
     check_default_parameters={},
 )
 
-
-#theend

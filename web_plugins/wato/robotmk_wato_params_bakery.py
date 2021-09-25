@@ -19,12 +19,15 @@
 
 from cmk.gui.i18n import _
 from cmk.gui.valuespec import (DropdownChoice, Dictionary, ListOf, TextAscii,
-                               Tuple, CascadingDropdown, Integer)
+                               Tuple, CascadingDropdown, Integer, Transform)
 
 from cmk.gui.plugins.wato import (CheckParameterRulespecWithItem,
                                   rulespec_registry,
                                   RulespecGroupCheckParametersDiscovery,
                                   HostRulespec)
+
+from cmk.gui.log import logger   
+
 try:
     # V2
     from cmk.gui.cee.plugins.wato.agent_bakery.rulespecs.utils import RulespecGroupMonitoringAgentsAgentPlugins
@@ -33,9 +36,6 @@ except ImportError:
     from cmk.gui.cee.plugins.wato.agent_bakery import RulespecGroupMonitoringAgentsAgentPlugins
 
 
-# TODO: Add logging True/False
-# TODO: warn/crit threholds for total_runtime
-# TODO: timeout nicht mehr automatisch von executoin int. berechnen lassen
 
 #   _           _
 #  | |         | |
@@ -46,10 +46,151 @@ except ImportError:
 #                              __/ |
 #                             |___/
 
+# This dict only adds the new key only if 
+# * the key already exists
+# * the value is a boolean in fact 
+# * the value contains something meaningful
+# This prevents that empty dicts are set as values.
+class DictNoNone(dict):
+    def __setitem__(self, key, value):
+        if (key in self or type(value) is bool) or bool(value):
+            dict.__setitem__(self, key, value)
+
+# Ref d3vh2I
+# This class will be used as a helper for the Transform class. 
+# The methods forth/back are planned as constructors for the instance and will 
+# transform the data in the needed way. 
+class RMKConfig():
+    def __init__(self):
+        self._cfg_dict = {
+            'global': DictNoNone(),
+            'suites': DictNoNone(),
+        }        
+
+    @property
+    def as_canonical_dict(self):
+        """Returns the RMK Config as the canonical dictionary"""
+        logger.critical("ASDICT -------")
+        logger.critical(self._cfg_dict)
+        return self._cfg_dict
+
+
+    @classmethod
+    def wato_back(cls, data):
+        """Convert the data structure coming from WATO and return the RMK dict"""
+        # logger.critical("WATO BACK -------")
+        # logger.critical(data)
+        # rmk_config = RMKConfig()
+        # rmk_config._cfg_dict = data
+        
+        # rmk_config.execution_mode = data['execution_mode'][0]
+        # rmk_config.agent_output_encoding = data['agent_output_encoding']
+        # rmk_config.transmit_html = data['transmit_html']
+        # rmk_config.logging = data['logging']
+        # rmk_config.log_rotation = data['log_rotation']
+        # rmk_config.robotdir = data['dirs'].get('robotdir', None)
+        # rmk_config.outputdir = data['dirs'].get('outputdir', None)
+        return data
+        return rmk_config.as_canonical_dict
+
+    @classmethod
+    def wato_forth(cls, data):
+        """Convert the canonical data structure coming from the rule to present in WATO"""
+        # logger.critical("WATO FORTH -------")
+        # logger.critical(data)
+        # See Ref YEZDRT which demonstrates a new WATO field.
+        # The forth here checks if it is present in the loaded data and adds it, if not.
+        # if not 'transmit_html1' in data: 
+        #     data['transmit_html1'] = True
+        # rmk_config = RMKConfig()
+        # rmk_config._cfg_dict = data
+        # logger.critical(rmk_config.execution_mode)
+        # logger.critical(rmk_config.agent_output_encoding)
+        # logger.critical(rmk_config.transmit_html)
+        # logger.critical(rmk_config.logging)
+        # logger.critical(rmk_config.log_rotation)
+        # logger.critical(rmk_config.robotdir)
+        # logger.critical(rmk_config.outputdir)
+        return data
+
+    @classmethod
+    def from_env(cls):
+        """Creates the RMK Config from environment variables (TBD)"""
+        rmk_config = RMKConfig()
+        return rmk_config._conf
+
+
+    @property
+    def global_dict(self):
+        return self._cfg_dict['global']
+
+    @property
+    def suites_dict(self):
+        return self.cfg_dict['suites']
+    # ------------------------
+    @property
+    def execution_mode(self):
+        return self.global_dict['execution_mode']
+
+    @execution_mode.setter
+    def execution_mode(self, val):
+        self.global_dict['execution_mode'] = val
+    # ------------------------
+    @property
+    def agent_output_encoding(self):
+        return self.global_dict['agent_output_encoding']
+
+    @agent_output_encoding.setter
+    def agent_output_encoding(self, val):
+        self.global_dict['agent_output_encoding'] = val
+    # ------------------------
+    @property
+    def transmit_html(self):
+        return self.global_dict['transmit_html']
+
+    @transmit_html.setter
+    def transmit_html(self, val):
+        self.global_dict['transmit_html'] = val
+    # ------------------------
+    @property
+    def logging(self):
+        return self.global_dict['logging']
+
+    @logging.setter
+    def logging(self, val):
+        self.global_dict['logging'] = val
+    # ------------------------
+    @property
+    def log_rotation(self):
+        return self.global_dict['log_rotation']
+
+    @log_rotation.setter
+    def log_rotation(self, val):
+        self.global_dict['log_rotation'] = val
+    # ------------------------
+    @property
+    def robotdir(self):
+        return self.global_dict['robotdir']
+
+    @robotdir.setter
+    def robotdir(self, val):
+        self.global_dict['robotdir'] = val
+    # ------------------------
+    @property
+    def outputdir(self):
+        return self.global_dict['outputdir']
+
+    @outputdir.setter
+    def outputdir(self, val):
+        self.global_dict['outputdir'] = val
+
+
+
+
 # EXECUTION MODE Help Texts --------------------------------
 helptext_execution_mode_agent_serial = """
     The Checkmk agent starts the Robotmk <b>controller</b> as a <i>synchronous</i> check plugin in the <i>agent check interval</i>.<br>
-    It also starts the Robotmk <b>runner</b> as an <i>asynchronous</i> check plugin in the <i>runner execution interval</i>.<br>
+    Simultanously, the agent starts the Robotmk <b>runner</b> as an <i>asynchronous</i> check plugin in the <i>runner execution interval</i>.<br>
     If you do not specify suites, the runner will execute all suites in the <i>Robot suites directory</i>. <br><br>
     <b>Use cases</b> for this mode:<br>
     In general, all Robot tests which can run headless and do not require a certain OS user."""
@@ -98,7 +239,7 @@ agent_config_global_cache_time_agent_serial = Age(
     default_value=960,
 )
 agent_config_global_cache_time_external = Age(
-    title=_("Global suite cache time"),
+    title=_("Result <b>cache time</b>"),
     help=
     _("Suite state files are updated every time when the <b>runner</b> has executed the suites.<br>"
       "The <b>controller</b> monitors the age of those files and expects them to be not older than the <i>global cache time</i> or the <i>suite cache time</i> (if set). <br>"
@@ -142,42 +283,64 @@ agent_config_suite_suites_execution_interval_agent_parallel = Age(
     default_value=900,
 )
 
-agent_config_testsuites_tag = Dictionary(
+
+agent_config_testsuites_tag = TextUnicode(
     title=_("Suite tag"),
+    help=_("Suites which are <b>added multiple times</b> (to execute them with different parameters) should have a <b>unique tag</b>.<br>"),
+    allow_empty=False,
+    size=30)
+
+
+agent_config_dict_dirs = Dictionary(
+    title=_("Change <b>default directories</b>"),
+    help=_("This settings allow to override paths where Robotmk stores files. "),
     elements=[
-        ("tag",
-         TextUnicode(help=_(
-             "Suites which are <b>added multiple times</b> (to execute them with different parameters) should have a <b>unique tag</b>.<br>"
-         ),
-                     allow_empty=False,
-                     size=30)),
+        ("robotdir", TextUnicode(
+            help=_(
+                "Defines where the Robotmk plugin will search for <b>Robot suites</b>. By default this is:<br>"
+                " - <tt>/usr/lib/check_mk_agent/robot</tt> (Linux)<br>"
+                " - <tt>C:\\ProgramData\\checkmk\\agent\\robot</tt> (Windows) <br>"
+                "Windows paths can be given with single backslashes; OS dependent path validation is made during the agent baking.<br>"
+            ),
+            title=_("Robot suites directory (<tt>robotdir</tt>)"),
+            allow_empty=False,
+            size=100,
+            default_value=""
+            )
+        ),
+        ("outputdir", TextUnicode(
+            help=_(
+                "Defines where Robot Framework <b>XML/HTML</b> and the <b>Robotmk JSON state files</b> will be stored. By default this is:<br>"                
+                " - <tt>/var/log/robotmk</tt> (Linux)<br>"
+                " - <tt>C:\\ProgramData\\checkmk\\agent\\log\\robotmk</tt> (Windows) <br>"
+                "Windows paths can be given with single backslashes; OS dependent path validation is made during the agent baking.<br>"
+            ),
+            title=_("Output directory"),
+            allow_empty=False,
+            size=100,
+            default_value=""
+            )
+        ),
+        ("logdir", TextUnicode(
+            help=_(
+                "Defines where Robotmk <b>controller/runner execution log files</b> will be written to. By default this is:<br>"
+                " - <tt>/var/log/robotmk</tt> (Linux)<br>"
+                " - <tt>C:\\ProgramData\\checkmk\\agent\\log\\robotmk</tt> (Windows) <br>"
+                "Windows paths can be given with single backslashes; OS dependent path validation is made during the agent baking.<br>"
+            ),
+            title=_("Log directory"),
+            allow_empty=False,
+            size=100,
+            default_value=""
+            )
+        ),
     ])
 
-agent_config_dict_robotdir = Dictionary(
-    title=_("Change <b>Robot suites directory</b>"),
-    elements=
-    [("robotdir",
-      TextUnicode(help=_(
-          "By default the Robotmk plugin will search for Robot suites in the following paths:<br>"
-          " - <tt>/usr/lib/check_mk_agent/robot</tt> (Linux)<br>"
-          " - <tt>C:\\ProgramData\\checkmk\\agent\\robot</tt> (Windows) <br>"
-          "You can override this setting if Robot tests are stored in another path. <br>"
-          "Windows paths can be given with single backslashes; OS dependent path validation is made during the agent baking.<br>"
-      ),
-                  allow_empty=False,
-                  size=100,
-                  default_value=""))])
-
-agent_config_testsuites_piggybackhost = Dictionary(
+# TODO: how to limit to only 1 host?
+agent_config_testsuites_piggybackhost = MonitoredHostname( 
     title=_("Piggyback host"),
-    elements=[
-        ("piggybackhost",
-         MonitoredHostname(
-            help=
-             _("Piggyback allows to assign the results of this particular Robot test to another host."
-               ),
-         )),
-    ])
+    help=_("Piggyback allows to assign the results of this particular Robot test to another host."),
+)
 
 agent_config_testsuites_path = TextUnicode(
     title=_("Robot test path"),
@@ -250,9 +413,38 @@ dict_el_test_exclude = (
         )
 )
 
+
+dict_el_suite_argsfile = (
+    "argumentfile",
+        ListOfStrings(
+            title=_("Load arguments from file (<tt>--argumentfile</tt>)"),
+            help=
+            _("Name of files containing <b>additional command line arguments</b> for Robot Framework. The paths are relative to the <i>robot suites directory</i>.<br>"
+            "Argument files allow placing all or some command line options and arguments into an external file where they will be read. This is useful for more exotic RF parameters not natively supported by Robotmk or for problematic characters.<br>"
+            "The arguments given here are taken into use along with possible other command line options. (See also <a href=\"https://robotframework.org/robotframework/latest/RobotFrameworkUserGuide.html#argument-files\">About argument files</a>)<br><br>"),
+            size=70,
+        )
+)
+
+dict_el_suite_variablefile = (
+    "variablefile",
+        ListOfStrings(
+            title=_("Load variables from file (<tt>--variablefile</tt>)"),
+            help=_(
+                "Python or YAML file file to read variables from. (<a href=\"https://robotframework.org/robotframework/latest/RobotFrameworkUserGuide.html#variable-files\">About variable files</a>)<br>Possible arguments to the variable file can be given"
+                " after the path using colon or semicolon as separator.<br>"
+                "Examples:<br> "
+                "<tt>path/vars.yaml</tt><br>"
+                "<tt>set_environment.py:testing</tt><br>"),
+            size=70,
+        )
+)
+
 agent_config_testsuites_robotframework_params_dict = Dictionary(
-    help=
-    _("The options here allow to specify the most common cmdline parameters for Robot Framework. (<a href=\"https://robotframework.org/robotframework/latest/RobotFrameworkUserGuide.html#all-command-line-options\">All command line options</a>)"
+    title=_("Robot Framework parameters"),
+    help=_(
+        "The options here allow to specify the most common <b>commandline parameters</b> for Robot Framework.<br>"
+        "In order to use other parameters (see <a href=\"https://robotframework.org/robotframework/latest/RobotFrameworkUserGuide.html#all-command-line-options\">All command line options</a>), you can use the option 'Load arguments from file'.<br> (Feel free to <a href=\"https://github.com/simonmeggle/robotmk/issues\">file an issue</a> if you think that a special parameter should be added here)"
       ),
     elements=[
         ("name",
@@ -270,25 +462,6 @@ agent_config_testsuites_robotframework_params_dict = Dictionary(
         dict_el_test_selection,
         dict_el_test_include,
         dict_el_test_exclude,
-        ("critical",
-         ListOfStrings(
-             title=_("Critical test tag (<tt>--critical</tt>)"),
-             help=
-             _("Tests having the given tag are considered critical. (<b>This is no threshold</b>, see <a href=\"https://robotframework.org/robotframework/latest/RobotFrameworkUserGuide.html#setting-criticality\">About setting criticality</a>)<br>"
-               "If no critical tags are set, all tests are critical.<br>"
-               "Tags can be given as a pattern same way as with <tt>--include</tt>.<br>"
-               ),
-             size=40,
-         )),
-        ("noncritical",
-         ListOfStrings(
-             title=_("Non-Critical test tag (<tt>--noncritical</tt>)"),
-             help=
-             _("Tests having the given tag are considered non-critical, even if also <tt>--critical</tt> is set. (<b>This is no threshold</b>, see <a href=\"https://robotframework.org/robotframework/latest/RobotFrameworkUserGuide.html#setting-criticality\">About setting criticality</a>)<br>"
-               "Tags can be given as a pattern same way as with <tt>--include</tt>.<br>"
-               ),
-             size=40,
-         )),
         ("variable",
          ListOf(
              Tuple(
@@ -305,22 +478,15 @@ agent_config_testsuites_robotframework_params_dict = Dictionary(
                " value are supported and name is given without <tt>${}</tt>. <br>"
                " (See <tt>--variablefile</tt> for a more powerful variable setting mechanism.)<br>"
                ))),
-        ("variablefile",
-         ListOfStrings(
-             title=_("Load variables from file (<tt>--variablefile</tt>)"),
-             help=_(
-                 "Python or YAML file file to read variables from. (<a href=\"https://robotframework.org/robotframework/latest/RobotFrameworkUserGuide.html#variable-files\">About variable files</a>)<br>Possible arguments to the variable file can be given"
-                 " after the path using colon or semicolon as separator.<br>"
-                 "Examples:<br> "
-                 "<tt>path/vars.yaml</tt><br>"
-                 "<tt>set_environment.py:testing</tt><br>"),
-             size=40,
-         )),
+        dict_el_suite_variablefile,               
+        # dict_el_suite_customargs,
+        dict_el_suite_argsfile,
         ("exitonfailure",
          DropdownChoice(
              title=_("Exit on failure (<tt>--exitonfailure</tt>)"),
-             help=
-             _("Stops test execution if any critical test fails. (<a href=\"https://robotframework.org/robotframework/latest/RobotFrameworkUserGuide.html#stopping-when-first-test-case-fails\">About failed tests</a>)"
+             help=_(
+                 "By default, Robot Framework tries to execute <i>every</i> test. If a test fails, the remaining keywords are skipped and the next test starts (see <a href=\"https://robotframework.org/robotframework/latest/RobotFrameworkUserGuide.html#stopping-when-first-test-case-fails\">About failed tests</a>)<br>"
+                 "With this option set to 'yes', Robot Framework will leave the suite execution after the first test has failed."
                ),
              choices=[
                  ('yes', _('yes')),
@@ -331,16 +497,11 @@ agent_config_testsuites_robotframework_params_dict = Dictionary(
     ],
 )
 
-agent_config_testsuites_robotframework_params_container = Dictionary(
-    title=_("Robot Framework parameters"),
-    elements=[
-        ("robot_params", agent_config_testsuites_robotframework_params_dict),
-    ])
-
 agent_config_testsuites_max_executions_selection_dict = Dictionary(
     help=_("""
     With the following options it is possible to further filter the list of tests/suites to re-run. (Documentation: <a href=\"http://robotframework.org/robotframework/latest/RobotFrameworkUserGuide.html#re-executing-failed-test-cases\">Re-executing failed test cases</a>)
     """),
+    title=_("Re-execution filter"),
     elements=[
         # Ref: 7uBbn2
         dict_el_suite_selection,
@@ -352,20 +513,23 @@ agent_config_testsuites_max_executions_selection_dict = Dictionary(
 
 
 
-agent_config_testsuites_max_executions_tuple = Tuple(
+agent_config_testsuites_max_executions_tuple = Dictionary(
+    title=_("Handling of failed tests/suites"),
     help=_("""
     Robotmk can <b>immediately re-execute failed tests</b> n-times before submitting the result to the agent. After the n-th iteration, the total suite result contains the most current result of each test case.<br>
     Use this only as a last resort, for example when applications behave unreliable. Also take into account that the re-execution of failed tests/suites requires additional headroom for the <i>result cache time</i>. 
     """),
     elements=[
-            Integer(
+            ("max_executions", Integer(
                 title=_("Maximum executions"),
                 help=_("The maximum number of iterations (including the first attempt)"),
                 minvalue=1,
-                default_value=1
-            ),
-            agent_config_testsuites_max_executions_selection_dict
-    ])
+                default_value=2
+            )),
+            ("rerun_selection", agent_config_testsuites_max_executions_selection_dict),
+    ],
+    optional_keys=['rerun_selection'],
+)
 
 
 
@@ -380,40 +544,45 @@ agent_config_testsuites_max_executions_container = Dictionary(
 # Make the help text of SuitList dependent on the type of execution
 def gen_agent_config_dict_listof_testsuites(mode):
     titledict = {
-        'agent_serial': 'to execute with one runner',
+        'agent_serial': 'to execute',
         'agent_parallel': 'to execute individually',
         'external': 'to be executed externally'
     }
-    return Dictionary(title=_("Specify <b>suites</b> " + titledict[mode]),
-                      elements=[("suites",
-                                 ListOf(
-                                     gen_testsuite_tuple(mode),
-                                     help=_("""
-                    Click on '<i>Add test suite</i>' to specify the suites to be executed, including additional parameters, piggyback host and execution order. This is the recommended way.<br>
-                    If you do not add any suite here, the Robotmk plugin will add every <tt>.robot</tt> file/every directory within the <i>Robot suites directory</i> to the execution list - without any further parametrization.<br>"""
-                                            ),
-                                     add_label=_("Add test suite"),
-                                     movable=True,
-                                 ))])
-
+    return ListOf(
+        gen_testsuite_tuple(mode),
+        help=_("""
+Click on '<i>Add test suite</i>' to specify the suites to be executed, including additional parameters, piggyback host and execution order. This is the recommended way.<br>
+If you do not add any suite here, the Robotmk plugin will add every <tt>.robot</tt> file/every directory within the <i>Robot suites directory</i> to the execution list - without any further parametrization.<br>"""
+            ),
+        add_label=_("Add test suite"),
+        movable=True,
+        title=_("Suites"),
+    )
 
 def gen_testsuite_tuple(mode):
     if mode == 'agent_serial':
-        return Tuple(elements=[
-            agent_config_testsuites_path,
-            agent_config_testsuites_tag,
-            agent_config_testsuites_piggybackhost,
-            agent_config_testsuites_robotframework_params_container,
-            agent_config_testsuites_max_executions_container,
-        ])
+        return Dictionary(
+            elements=[
+                ("path", agent_config_testsuites_path),
+                ("tag", agent_config_testsuites_tag),
+                ("piggybackhost", agent_config_testsuites_piggybackhost),
+                ("robot_params", agent_config_testsuites_robotframework_params_dict),
+                ("failed_handling", agent_config_testsuites_max_executions_tuple),
+            ],
+            optional_keys=['tag', 'piggybackhost', 'robot_params', 'failed_handling']
+        )
+
     if mode == 'external':
-        return Tuple(elements=[
-            agent_config_testsuites_path,
-            agent_config_testsuites_tag,
-            agent_config_testsuites_piggybackhost,
-            agent_config_testsuites_robotframework_params_container,
-            agent_config_testsuites_max_executions_container,
-        ])
+        return Dictionary(
+            elements=[
+                ("path", agent_config_testsuites_path),
+                ("tag", agent_config_testsuites_tag),
+                ("piggybackhost", agent_config_testsuites_piggybackhost),
+                ("robot_params", agent_config_testsuites_robotframework_params_dict),
+                ("failed_handling", agent_config_testsuites_max_executions_tuple),
+            ],
+            optional_keys=['tag', 'piggybackhost', 'robot_params', 'failed_handling']
+        )
 
 
 dropdown_robotmk_output_encoding = CascadingDropdown(
@@ -432,16 +601,16 @@ dropdown_robotmk_output_encoding = CascadingDropdown(
 )
 
 dropdown_robotmk_transmit_html = DropdownChoice(
-    title=_("Transmit HTML log"),
+    title=_("Transmit HTML log to Checkmk server"),
     help=_("""
-    Besides the XML data, the Robotmk plugin also transmits the <b>HTML log file</b> written by Robot Framework to the Checkmk server.\n
-    You can disable the HTML log transmission if you do not have a need for this kind of logs on the server.
+    Robotmk transmits the <b>HTML log file</b> written by Robot Framework to the Checkmk server, where it can be action-linked with the discovered services. <br>
+    This feature needs some <b>configuration</b> which you can find in the <b>Robotmk discovery rule</b>, option <i>'Restrict the HTML log files link creation'</i>.
     """),
     choices=[
         (False, _("No")),
         (True, _("Yes")),
     ],
-    default_value=True,
+    default_value=False,
 )
 
 dropdown_robotmk_log_rotation = CascadingDropdown(
@@ -451,29 +620,31 @@ dropdown_robotmk_log_rotation = CascadingDropdown(
         "<tt>robotframework-$SUITENAME-$timestamp-output.xml<br>"
         "<tt>robotframework-$SUITENAME-$timestamp-log.html<br>"),
     choices=[
-        ('0', _('0 (keep only the last logfile)')),
-        ('1', _('1')),
-        ('3', _('3')),
-        ('7', _('7')),
-        ('14', _('14')),
-        ('30', _('30')),
-        ('90', _('90')),
-        ('365', _('365')),
-        ('never', _('Keep all log files')),
+        (1, _('1')),
+        (3, _('3')),
+        (7, _('7')),
+        (14, _('14')),
+        (30, _('30')),
+        (90, _('90')),
+        (365, _('365')),
     ],
-    default_value="14",
+    default_value=14,
     sorted=False)
 
 dropdown_robotmk_logging = DropdownChoice(
-    title=_("Robotmk logging"),
+    title=_("Robotmk log level"),
     help=_("""
-    By default, the Robotmk plugin writes all steps and decisions into <tt>robotmk.log</tt>."""
+    By default, the Robotmk plugin writes a <b>log file</b> for the controller and runner plugin. You can set the <b>verbosity</b> here."""
            ),
     choices=[
-        (False, _("No")),
-        (True, _("Yes")),
+        ("OFF", _("Off (No logging)")),
+        ("CRITICAL", _("Critical (least verbose)")),        
+        ("ERROR", _("Error")),
+        ("WARNING", _("Warning")),
+        ("INFO", _("Info")),
+        ("DEBUG", _("Debug (most verbose)")),
     ],
-    default_value=True,
+    default_value="INFO",
 )
 
 dropdown_robotmk_execution_choices = CascadingDropdown(
@@ -494,24 +665,32 @@ dropdown_robotmk_execution_choices = CascadingDropdown(
       ),
     sorted=False,
     choices=[
-        ("agent_serial", _("agent_serial"),
-         Tuple(help=_(helptext_execution_mode_agent_serial),
-               elements=[
-                   gen_agent_config_dict_listof_testsuites("agent_serial"),
-                   agent_config_global_cache_time_agent_serial,
-                   agent_config_global_suites_execution_interval_agent_serial,
-               ])),
+        ("agent_serial", _("agent_serial"), Dictionary(
+            help=_(helptext_execution_mode_agent_serial),
+            optional_keys=False,
+            elements=[
+                ("suites", gen_agent_config_dict_listof_testsuites("agent_serial")),
+                ("cache_time", agent_config_global_cache_time_agent_serial),
+                ("execution_interval", agent_config_global_suites_execution_interval_agent_serial),
+            ])),
+        #  Tuple(help=_(helptext_execution_mode_agent_serial),
+        #        elements=[
+        #            gen_agent_config_dict_listof_testsuites("agent_serial"),
+        #            agent_config_global_cache_time_agent_serial,
+        #            agent_config_global_suites_execution_interval_agent_serial,
+        #        ])),
         # ("agent_parallel", _("agent_parallel (no yet implemented)"),
         #  Tuple(help=_(helptext_execution_mode_agent_parallel),
         #        elements=[
         #            gen_agent_config_dict_listof_testsuites("agent_parallel"),
         #        ])),
-        ("external", _("external"),
-         Tuple(help=_(helptext_execution_mode_external),
-               elements=[
-                   gen_agent_config_dict_listof_testsuites("external"),
-                   agent_config_global_cache_time_external,
-               ])),
+        ("external", _("external"), Dictionary(
+            help=_(helptext_execution_mode_external),
+            optional_keys=False,
+            elements=[
+                ("suites", gen_agent_config_dict_listof_testsuites("external")),
+                ("cache_time", agent_config_global_cache_time_external),
+            ])),
     ])
 
 
@@ -523,19 +702,29 @@ def _valuespec_agent_config_robotmk():
           ),
         style="dropdown",
         elements=[
-            Dictionary(
-                title=_("Deploy the Robotmk plugin"),
-                elements=[
-                    ("robotdir", agent_config_dict_robotdir),
-                    # agent_serial, agent_parallel, external
-                    ("execution_mode", dropdown_robotmk_execution_choices),
-                    ("agent_output_encoding",
-                     dropdown_robotmk_output_encoding),
-                    ("transmit_html", dropdown_robotmk_transmit_html),
-                    ("logging", dropdown_robotmk_logging),
-                    ("log_rotation", dropdown_robotmk_log_rotation),
-                ],
-                optional_keys=["auth_instances"],
+            Transform(
+                Dictionary(
+                    title=_("Deploy the Robotmk plugin"),
+                    elements=[
+                        # agent_serial, agent_parallel, external
+                        ("execution_mode", dropdown_robotmk_execution_choices),
+                        ("agent_output_encoding", dropdown_robotmk_output_encoding),
+                        ("transmit_html", dropdown_robotmk_transmit_html),
+                        # Ref YEZDRT (forth example)
+                        # ("transmit_html1", dropdown_robotmk_transmit_html),
+                        ("log_level", dropdown_robotmk_logging),
+                        ("log_rotation", dropdown_robotmk_log_rotation),
+                        ("dirs", agent_config_dict_dirs),
+                    ],
+                    optional_keys=False,
+                ),
+                # Ref d3vh2I
+                # read from rules.mk, present in WATO
+                forth = RMKConfig.wato_forth,
+                # forth = lambda x: x,
+                # read from WATO
+                back = RMKConfig.wato_back
+                # back = lambda x: x,
             ),
             FixedValue(
                 None,
@@ -543,7 +732,6 @@ def _valuespec_agent_config_robotmk():
                 totext=_("(No Robot Framework tests on this machine)"),
             ),
         ])
-
 
 rulespec_registry.register(
     HostRulespec(

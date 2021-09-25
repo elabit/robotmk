@@ -27,7 +27,7 @@ except ImportError:
     # it is saved in a subfolder
     import sys, os
     sys.path.insert(1, os.path.join(sys.path[0], '..'))
-    from robotmk import robotmk, RMKPlugin, RMKrunner, test_for_modules
+    from robotmk import *
 
 
 def main():

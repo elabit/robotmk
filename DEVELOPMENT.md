@@ -72,7 +72,17 @@ docker cp $CONTAINER:/cmk-mkp .
 ```
 
 
-## Debugging the Robotmk check
+## Debugging
+
+### Simulating agent output 
+
+Agent output (e.g. from a CMK crash dump) can be injected into the container by placing the output as a file in the folder `agent_output`.
+
+Then create a rule `Individual program call instead of agent access` which uses this command to source the output file instead of using an agent: 
+
+    	cat ~/var/check_mk/agent_output/$HOSTNAME$
+
+### ipdb 
 
 `ipdb` is a great cmdline debugger for Python. In the following example it is shown how to execute the Robotmk check within the cmk context. 
 A breakpoint in line 120 is set with "b":  

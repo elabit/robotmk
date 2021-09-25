@@ -5,6 +5,37 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## 1.2-beta.3 - 2021-09-25
+
+### Fixed
+
+* Check: Check fails if test/kw status is SKIP or NOT RUN (#168)
+
+### Added 
+
+* New option "argumentfile" allows to specify RF arguments by multiple files (#154)
+* WATO allows now to set output/robot/log directory independently
+* Improved agent plugin logging levels (introduced standard log levels)
+* All Robotmk services can be searched by service labels: 
+  * all Robotmk services: `robotmk:yes`
+  * Robotmk monitoring service: `robotmk/type:robotmk`
+  * Robot Framework result service: `robotmk/type:result`
+* New option: display action links to Robot HTML log files (#1) *yeah, issue #1 solved!* 
+
+### Changed
+
+* Agent plugin: log rotation accepts values from 1 to 365 (0 and "always" removed) #170
+* Agent plugin: the execution of Robot Framework was changed from Python API to 
+  CLI mode because API does not allow all command line parameters (like argumentsfile).
+  This should not have any impact on existing tests. 
+* By default, Robotmk writes ALL log and state files into the agent log dir on Windows
+  and into `/var/log/` on Linux. 
+
+### Removed
+
+* Options `critical` and `noncritical` were removed from the WATO page because they
+  are not supported by RF4.0 anymore. (#154) 
+
 ## 1.2-beta.2 - 2021-08-27
 
 ### Fixed

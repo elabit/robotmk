@@ -1,0 +1,29 @@
+{
+    "version": "0.2.0",
+    "configurations": [
+        {
+            "name": "devc V1.6 bakery win10simdows",
+            "type": "python",
+            "request": "launch",
+            "program": "/omd/sites/cmk/bin/cmk",
+            "args": [
+                "-A",
+                "-v",
+                "-f",
+                "win10simdows"
+            ],
+            "console": "integratedTerminal",
+            "python": "/omd/sites/cmk/bin/python",
+            // allow to inspect also foreign code
+            "justMyCode": false
+        },
+        {
+            "name": "Python: Current File",
+            "type": "python",
+            "request": "launch",
+            "program": "${file}",
+            "console": "integratedTerminal",
+            "justMyCode": false
+        }
+    ]
+}
