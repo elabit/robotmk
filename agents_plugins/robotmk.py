@@ -1279,7 +1279,7 @@ class RMKCtrl(RMKState, RMKPlugin):
                         'status': 'fatal',
                         'error': 'Robot RC was >= 252. This is a fatal error. Robotmk got no XML/HTML to process. You should execute and test the suite manually.',
                         'xml': None,
-                        'html': None
+                        'htmllog': None
                     })
                 else:
                     state.update({'status': 'nonfatal'})

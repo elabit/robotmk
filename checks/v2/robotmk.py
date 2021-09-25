@@ -317,7 +317,7 @@ def check_robotmk(item, params, section):
         # item is a regular s/t/k check
         for root_suite in parsed_section['suites']:
             if 'parsed' in root_suite:
-                html_exists = 'htmllog' in root_suite    
+                html_exists = bool(root_suite.get('htmllog'))
                 if html_exists: 
                     # Discovery part see Ref #exNx1h
                     for host in runner_assigned_host: 
@@ -1054,14 +1054,14 @@ def save_htmllog(dir, logname, raw_html):
         with open(filename, 'w') as f:
             f.write(raw_html) 
     except Exception:
-        raise MKGeneralException("Robotmk failed to save the log file %s: %s" % (filename))
+        raise MKGeneralException("Robotmk failed to save the log file %s" % filename)
 
 def assign_html_logs(svc_desc, info_dict, root_suite, html_show_patterns):
     # If piggyback was not set anyway, the client tried to determine its hostname
     # and FQDN (if set) and hopefully there is a match on the Checkmk server. 
     runner_assigned_host = info_dict['runner'].get('assigned_host', [])
     svc_labels = []
-    html_exists = 'htmllog' in root_suite
+    html_exists = bool(root_suite.get('htmllog'))
     if html_exists:
         # Check part see Ref #exNx1h
         for host in runner_assigned_host: 
