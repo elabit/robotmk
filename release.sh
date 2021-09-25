@@ -25,6 +25,7 @@ function main (){
     fi    
     export TAG
     export VTAG="v$TAG"
+    export preVTAG="pre-$VTAG"
     if [ $MODE == 'release' ]; then 
         release
     elif [ $MODE == 'unrelease' ]; then
@@ -39,9 +40,9 @@ function release() {
     assert_branch "develop"
     assert_notdirty
 
-    header "=== Setting pre-release tag pre-$VTAG ..."
-    git tag pre-$VTAG
-    header "=== Moving changelog entries from Unreleased to $TAG ..."
+    header "Setting pre-release tag $preVTAG ..."
+    git tag $preVTAG
+    header "Moving changelog entries from Unreleased to $TAG ..."
     chag update $TAG
     header "Committing: 'CHANGELOG: $VTAG'"
     git add . && git commit -m "CHANGELOG: $VTAG"
@@ -74,9 +75,11 @@ function unrelease() {
     header "=== Removing tags ..."
     git push origin :refs/tags/$VTAG 
     git tag -d $VTAG
+    header "Removing tags ..."
     exit 
-    header "=== Resetting Changelog: headline $TAG -> 'Unreleased'"
-    sed -i '' -e "s/## $TAG.*/## Unreleased/" CHANGELOG.md
+    header "Resetting the 'develop' branch to the tag $preVTAG ..."
+    git reset --hard $preVTAG
+    git tag -d $preVTAG 
 }
 
 function assert_branch {
