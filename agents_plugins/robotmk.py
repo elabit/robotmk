@@ -395,7 +395,8 @@ class RMKState():
         if not type(kvpair) is list:
             kvpair = [kvpair]
         for item in kvpair:
-            self._state[item[0]] = item[1]
+            if type(item) is tuple:
+                self._state[item[0]] = item[1]
 
     def get_statevar(self, name):
         return self._state.get(name, None)
@@ -1090,14 +1091,16 @@ class RMKrunner(RMKState, RMKPlugin):
                         # ...GAME OVER! => MERGE
                         self.loginfo("Even the last attempt was unsuccessful!")
                         self.merge_results(suite)
-        
+        piggybackhost = suite.suite_dict.get('piggybackhost', None)
+        piggyback_tuple = ('piggybackhost', piggybackhost) if piggybackhost else None
         suite.set_statevars([
             ('htmllog', str(Path(suite.outputdir).joinpath(suite.log))),
             ('xml', str(Path(suite.outputdir).joinpath(suite.output))),
             ('end_time', self.get_now_as_dt()),
             ('attempts', attempt),
             ('max_executions', max_exec),             
-            ('rc', rc)])  
+            ('rc', rc),
+            piggyback_tuple])  
         self.logdebug(f'Suite ran for {suite.runtime:.2f} seconds')  
         self.loginfo(
             f'Final suite RC: {rc}')        
@@ -1263,6 +1266,8 @@ class RMKCtrl(RMKState, RMKPlugin):
             if host != 'localhost': 
                 self.logdebug(f"Piggyback host: {host}")
                 state.update({'piggybackhost': host})
+            else: 
+                self.logdebug(f"This result will be assigned to this host (no Piggyback).")
 
             if not bool(state):
                 error_text = f"Suite statefile {str(suite.statefile_path)} not found - (seems like the suite did not yet run)"

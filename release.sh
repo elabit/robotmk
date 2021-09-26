@@ -76,9 +76,9 @@ function unrelease() {
     git push origin :refs/tags/$VTAG 
     header "Removing tags ..."
     git tag -d $VTAG
-    header "Resetting the 'develop' branch to the tag $preVTAG ..."
-    git reset --hard $preVTAG
-    git tag -d $preVTAG 
+    #header "Resetting the 'develop' branch to the tag $preVTAG ..."
+    #git reset --hard $preVTAG
+    #git tag -d $preVTAG 
 }
 
 function assert_branch {
