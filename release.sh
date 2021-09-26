@@ -74,9 +74,8 @@ function unrelease() {
     gh release delete $VTAG -y
     header "=== Removing tags ..."
     git push origin :refs/tags/$VTAG 
-    git tag -d $VTAG
     header "Removing tags ..."
-    exit 
+    git tag -d $VTAG
     header "Resetting the 'develop' branch to the tag $preVTAG ..."
     git reset --hard $preVTAG
     git tag -d $preVTAG 
