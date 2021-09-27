@@ -5,6 +5,61 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+
+## Unreleased 
+
+Important note: With this release, Robotmk WATO rules make use of the `Transform` 
+class which allows to write update-safe WATO rules. 
+This Robotmk release contains a huge change on the WATO rules; therefore it was 
+impossible to make it compatible to earlier versions with `Transform`. 
+Therefore, installing this particular Robotmk version on earlier versions will 
+make existing WATO rules unreadable/unusable for a last time. Make sure to save
+your rules (screenshot, JSON dump etc.) 
+
+### Fixed
+
+* Check: Check fails if test/kw status is SKIP or NOT RUN (#168)
+* Fix: suppress stdout when merging rerun XMLs with rebot, closes #165
+* Fix: Do not collect hidden dirs as suites (closes #130)
+* Fix: check crashes if all test attempts of rerunfailed were NOK, endtime not available (fixes #166)
+* Agent plugin: fixed missing logstate rotation, robotmk logs now every midnight (fixes #155)
+* Agent Plugin: respect piggyback option, assign to multiple hosts (#145)
+* Fixed bug in agent plugin when no suite dir is present at all
+* Cleanup in v1.6 bakery script
+
+### Added 
+
+* WATO rules now use the `Transform` class under the hood (#164)
+* New option "argumentfile" allows to specify RF arguments by multiple files (#154)
+* WATO allows now to set output/robot/log directory independently (#105)
+* Improved agent plugin logging levels (introduced standard log levels)
+* All Robotmk services can be searched by service labels: 
+  * all Robotmk services: `robotmk:yes`
+  * Robotmk monitoring service: `robotmk/type:robotmk`
+  * Robot Framework result service: `robotmk/type:result`
+* New option: display action links to Robot HTML log files (#1) (*yeah, issue #1 solved!*)
+* New WATO option: option to re-execute failed tests of a suite (#150)
+
+
+### Changed
+
+* Agent plugin: log rotation accepts values from 1 to 365 (0 and "always" removed) #170
+* Agent plugin: the execution of Robot Framework was changed from Python API to 
+  CLI mode because API does not allow all command line parameters (like argumentsfile).
+  This should not have any impact on existing tests. 
+* By default, Robotmk writes ALL log and state files into the agent log dir on Windows
+  and into `/var/log/` on Linux. (#105)
+* Agent plugin: disable report.html creation (closes #163)
+* Test message gets converted to HTML when rebot merged it (#150)
+* Robot params in robotmk.yml are now within subkey "robot_params"
+
+
+### Removed
+
+* Options `critical` and `noncritical` were removed from the WATO page because they
+  are not supported by RF4.0 anymore. (#154) 
+* Removed Robotmk keywords from agent plugin; better install with pip
+
 ## 1.2-beta.3 - 2021-09-26
 
 ### Fixed
