@@ -11,23 +11,24 @@
 ![desc](img/robotmk_banner.png)
 
 <!--ts-->
-- [Robotmk](#robotmk)
-  - [Description](#description)
-  - [State of development](#state-of-development)
-  - [Key features/components](#key-featurescomponents)
-  - [Usage scenarios](#usage-scenarios)
-  - [Requirements](#requirements)
-  - [Installation](#installation)
-  - [Documentation](#documentation)
-    - [`robotmk.yml` explained](#robotmkyml-explained)
-  - [Next developments](#next-developments)
-  - [Contributing](#contributing)
-  - [License](#license)
-  - [Credits/Thanks](#creditsthanks)
-    - [Supporters](#supporters)
-  - [Contributors ✨](#contributors-)
+* [Robotmk](#robotmk)
+   * [Description](#description)
+   * [Key features/components](#key-featurescomponents)
+   * [Usage scenarios](#usage-scenarios)
+   * [State of development](#state-of-development)
+   * [Requirements](#requirements)
+   * [Installation](#installation)
+   * [Documentation](#documentation)
+   * [Learning Resources](#learning-resources)
+   * [Professional Support](#professional-support)
+   * [Next developments](#next-developments)
+   * [Contributing](#contributing)
+   * [License](#license)
+   * [Credits/Thanks](#creditsthanks)
+      * [Supporters](#supporters)
+   * [Contributors <g-emoji class="g-emoji" alias="sparkles" fallback-src="https://github.githubassets.com/images/icons/emoji/unicode/2728.png">✨</g-emoji>](#contributors-)
 
-<!-- Added by: runner, at: Sun Jul 25 08:41:08 UTC 2021 -->
+<!-- Added by: runner, at: Mon Sep 27 05:07:09 UTC 2021 -->
 
 <!--te-->
 
