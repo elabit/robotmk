@@ -58,25 +58,28 @@ inventory_dict_robotmk_checkname = (
 
 inventory_dict_robotmk_htmllog = (
     Tuple(
-        title=_("Restrict the <b>HTML log files</b> link creation"),
-        help=_("""If Robotmk is configured to <i>Transmit HTML logs to server</i>, it can then 
-        display two action icons right of each discovered service which allows to open the <b>last error log</b> and the <b>current log</b>.<br>
-        In order to make this work, just follow these two steps: <br><br>>
-        <b>1.</b> Add the following lines to <tt>$OMD_ROOT/etc/apache/conf.d/check_mk.conf.conf</tt> (replace <tt>$SITE</tt> accordingly):<br>
-        <tt>Alias /$SITE/check_mk/addons "/omd/sites/$SITE/local/share/addons"<br>
-        Directory "/omd/sites/$SITE/local/share/addons"<br>
+        title=_("<b>HTML log file</b> integration (experimental)"),
+        help=_("""Robotmk can display two action icons right of each discovered service which allows to open the <b>last error log</b> and the <b>current log</b>.<br>
+        In order to make this work, just follow these two steps: <br><br>
+        <b>1.</b> In rule <i>Robotmk (Linux, Windows)</i>, configure Robotmk clients to <i>Transmit HTML logs to server</i>.<br>
+        <b>2.</b> Add the following lines to <tt>$OMD_ROOT/etc/apache/conf.d/check_mk.conf</tt> (replace <tt>--SITE--</tt> with your site name):<br><br>
+        <tt>Alias /--SITE--/check_mk/addons "/omd/sites/--SITE--/local/share/addons"<br>
+        <Directory "/omd/sites/--SITE--/local/share/addons"><br>
         Options +Indexes<br>
         AllowOverride None<br>
-        /Directory</tt><br>
-        <b>2.</b> In <i>Global settings</i>, create <b>two custom actions</b> pointing to the URLs:<br>
-        * icon <i>robotmk80.png</i>: <tt>addons/robotmk/$HOSTNAME_URL_ENCODED$/$SERVICEDESC$/suite_last_log.html</tt><br>
-        * icon <i>robotmk80_dot.png</i>: <tt>addons/robotmk/$HOSTNAME_URL_ENCODED$/$SERVICEDESC$/suite_last_error_log.html</tt><br>
-        <b>3.</b> Create <b>two rules</b> to <b>assign the created actions</b>:<br>
-        * action id for <i>last log</i>: "service label is <tt>robotmk/html_last_log:yes</tt>"<br>
-        * action id for <i>last error log</i>: "service label is <tt>robotmk/html_last_error_log:yes</tt>"<br><br>  
-        The regular expressions here define where the service label will be shown. <br>Default = <tt>.*</tt> = show on all services.<br><br>
+        </Directory></tt><br> <br>
+        <b>3.</b> In <i>Global settings > Custom icons and actions</i>, create <b>two custom actions</b>:<br>
+        * id:<tt>robotmk_last_log</tt>, tite: "Robot Framework: last HTML log", icon: <i>robotmk80.png</i>, action URL: <tt>addons/robotmk/$HOSTNAME_URL_ENCODED$/$SERVICEDESC$/suite_last_log.html</tt><br>
+        * id:<tt>robotmk_last_error_log</tt>, tite: "Robot Framework: last error HTML log", icon: <i>robotmk80_dot.png</i>, action URL: <tt>addons/robotmk/$HOSTNAME_URL_ENCODED$/$SERVICEDESC$/suite_last_error_log.html</tt><br>
+        <b>4.</b> In rule <i>Custom icons or actions for services in status GUI</i>, assign those actions with the following conditions:<br>
+        * action <tt>robotmk_last_log</tt>: condition "service label is <tt>robotmk/html_last_log:yes</tt>"<br>
+        * action <tt>robotmk_last_error_log</tt>: condition "service label is <tt>robotmk/html_last_error_log:yes</tt>"<br><br>
 
-        Remark: The host must exist with the real hostname/FQDN in Checkmk. Robotmk will save max. 2 HTML files per discovered suite to save hard disk space. However, it is advised to monitor the space usage on <tt>$OMD_ROOT/local/share/addons/robotmk</tt>."""),
+        Remarks: <br>
+        - The host must exist with the real hostname/FQDN in Checkmk. Robotmk will save max. 2 HTML files per discovered suite to save hard disk space. However, it is advised to monitor the space usage on <tt>$OMD_ROOT/local/share/addons/robotmk</tt>.<br>
+        - Be advised that this feature is in an early beta state and changing the Apache configuration as above is not covered by customer support. Any authenticated user will be able to see <i>all</i> HTML logs.<br>
+        - HTML logs are always saved on the machine where the Robotmk check is running on; there is currently no way for distributed setups.<br><br>
+        The regular expressions below here define where the service label will be shown. <br>Default = <tt>.*</tt> = show HTML logs on all Robotmk services."""),
         show_titles=True,
         # orientation="horizontal",
         elements=[
