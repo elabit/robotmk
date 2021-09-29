@@ -62,6 +62,7 @@ function release() {
     header "Pushing ..."
     git push origin master
     git push origin $VTAG
+    git checkout develop
 }
 
 function unrelease() {

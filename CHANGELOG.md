@@ -5,6 +5,11 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## 1.2.1.1 - 2021-09-29
+
+### Changed
+
+* Improved the documentation for HTML log integration WATO discovery rule
 
 ## 1.2 - 2021-09-27
 
