@@ -62,12 +62,12 @@ inventory_dict_robotmk_htmllog = (
         help=_("""Robotmk can display two action icons right of each discovered service which allows to open the <b>last error log</b> and the <b>current log</b>.<br>
         In order to make this work, just follow these two steps: <br><br>
         <b>1.</b> In rule <i>Robotmk (Linux, Windows)</i>, configure Robotmk clients to <i>Transmit HTML logs to server</i>.<br>
-        <b>2.</b> Add the following lines to <tt>$OMD_ROOT/etc/apache/conf.d/check_mk.conf</tt> (replace <tt>--SITE--</tt> with your site name):<br><br>
+        <b>2.</b> Add the following lines to <tt>$OMD_ROOT/etc/apache/conf.d/check_mk.conf</tt> (replace <tt>--SITE--</tt> with your site name) and execute <tt>omd reload apache</tt>:<br><br>
         <tt>Alias /--SITE--/check_mk/addons "/omd/sites/--SITE--/local/share/addons"<br>
-        <Directory "/omd/sites/--SITE--/local/share/addons"><br>
+        < Directory "/omd/sites/--SITE--/local/share/addons"><br>
         Options +Indexes<br>
         AllowOverride None<br>
-        </Directory></tt><br> <br>
+        < /Directory></tt><br> <br>
         <b>3.</b> In <i>Global settings > Custom icons and actions</i>, create <b>two custom actions</b>:<br>
         * id:<tt>robotmk_last_log</tt>, tite: "Robot Framework: last HTML log", icon: <i>robotmk80.png</i>, action URL: <tt>addons/robotmk/$HOSTNAME_URL_ENCODED$/$SERVICEDESC$/suite_last_log.html</tt><br>
         * id:<tt>robotmk_last_error_log</tt>, tite: "Robot Framework: last error HTML log", icon: <i>robotmk80_dot.png</i>, action URL: <tt>addons/robotmk/$HOSTNAME_URL_ENCODED$/$SERVICEDESC$/suite_last_error_log.html</tt><br>
