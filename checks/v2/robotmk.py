@@ -35,7 +35,7 @@ from collections import namedtuple
 from cmk.base.plugins.agent_based.agent_based_api.v1 import *
 from cmk.utils.exceptions import MKGeneralException
 
-ROBOTMK_VERSION = 'v1.2.1.2'
+ROBOTMK_VERSION = 'v1.2.2'
 DEFAULT_SVC_PREFIX = 'Robot Framework E2E $SUITEID$SPACE-$SPACE'
 HTML_LOG_DIR = "%s/%s" % (os.environ['OMD_ROOT'], 'local/share/addons/robotmk')
 
@@ -489,13 +489,19 @@ class RobotItem(object):
 
     @property
     def text(self): 
+        text = self._text
+
+        # Remove nasty Playwright log header lines and log messages
+        text = re.sub('Note: use DEBUG=pw:api environment variable to capture Playwright logs.', '', text)
+        text = re.sub('={60}|={27} logs ={27}', '', text)
+        
         # Return back plain text if the text has a HTML prefix.
         # This is the necessary for test messages created by rebot after merging test results. 
         # Change when this https://github.com/robotframework/robotframework/issues/4068 has been solved.         
-        if self._text.startswith('*HTML* '): 
-            return html_to_text(self._text).replace('*HTML* ', '')
+        if text.startswith('*HTML* '): 
+            return html_to_text(text)
         else: 
-            return self._text
+            return text
 
     @text.setter
     def text(self, text):
@@ -1243,66 +1249,17 @@ def roundup(number, ndigits=0, return_type=None):
     return return_type(result)
 
 
-"""
-HTML <-> text conversions.
-http://stackoverflow.com/questions/328356/extracting-text-from-html-file-using-python
-"""
-
 def html_to_text(html):
-
-    class _HTMLToText(HTMLParser):
-        def __init__(self):
-            HTMLParser.__init__(self)
-            self._buf = []
-            self.hide_output = False
-
-        def handle_starttag(self, tag, attrs):
-            if tag in ('p', 'br') and not self.hide_output:
-                self._buf.append('\n')
-            elif tag in ('script', 'style'):
-                self.hide_output = True
-
-        def handle_startendtag(self, tag, attrs):
-            if tag == 'br':
-                self._buf.append('\n')
-
-        def handle_endtag(self, tag):
-            if tag == 'p':
-                self._buf.append('\n')
-            elif tag in ('script', 'style'):
-                self.hide_output = False
-
-        def handle_data(self, text):
-            if text and not self.hide_output:
-                self._buf.append(re.sub(r'\s+', ' ', text))
-
-        def handle_entityref(self, name):
-            if name in name2codepoint and not self.hide_output:
-                c = chr(name2codepoint[name])
-                self._buf.append(c)
-
-        def handle_charref(self, name):
-            if not self.hide_output:
-                n = int(name[1:], 16) if name.startswith('x') else int(name)
-                self._buf.append(chr(n))
-
-        def get_text(self):
-            return re.sub(r' +', ' ', ''.join(self._buf))
-                
     """
     Given a piece of HTML, return the plain text it contains.
-    This handles entities and char refs, but not javascript and stylesheets.
     """
-    try:
-        from html.parser import HTMLParser
-        from html.entities import name2codepoint
-        parser = _HTMLToText()
-        parser.feed(html)
-        parser.close()
-        return parser.get_text()
-    except:  
-        # on Checkmk1 there is no HTML.Parser; :-/ 
-        return html
+    # Remove Prefix
+    html = re.sub('\*HTML\* ', '', html)
+    html = re.sub('<span class="merge">Test has been re-executed and results merged.</span>', 'Test has been re-executed and the results were merged: ', html)
+
+    html = re.sub('<script.*?>|</script>|<style.*?>|<style>|<span.*?>|</span>|<a.*?>|</a>|<hr>', '', html)
+    html = re.sub('<br>|<p>', '\\n', html)
+    return html 
 
 # %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 # V2 specific functions
