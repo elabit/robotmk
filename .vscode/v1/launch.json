@@ -46,6 +46,34 @@
             "justMyCode": false
         },        
         {
+            "name": "devc V1.6 inventory localhost",
+            "type": "python",
+            "request": "launch",
+            "program": "/omd/sites/cmk/bin/cmk",
+            "args": [
+                "-IIv",
+                "localhost"
+            ],
+            "console": "integratedTerminal",
+            "python": "/omd/sites/cmk/bin/python",
+            // allow to inspect also foreign code
+            "justMyCode": false
+        },        
+        {
+            "name": "devc V1.6 check localhost",
+            "type": "python",
+            "request": "launch",
+            "program": "/omd/sites/cmk/bin/cmk",
+            "args": [
+                "-vv",
+                "localhost"
+            ],
+            "console": "integratedTerminal",
+            "python": "/omd/sites/cmk/bin/python",
+            // allow to inspect also foreign code
+            "justMyCode": false
+        },        
+        {
             "name": "Python: Current File",
             "type": "python",
             "request": "launch",
