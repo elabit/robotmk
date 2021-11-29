@@ -337,30 +337,19 @@ def check_robotmk(item, params, section):
                             for i in evaluate_robot_item(discovered_item, params_dict):
                                 yield i
                         else:
-                            # Keeping the following only for recalling....
-                            # A stale result should not return anything here. 
-                            # It's enough to have it alarmed by the Robotmk 
-                            # stale monitoring check (see Ref. N2UC9N)
-                            pass
-                            # overdue_sec = round(
-                            #     age.total_seconds() - root_suite['cache_time'],
-                            #     1)
-                            # yield ignore_robot_item(root_suite, last_end,
-                            #                         overdue_sec)
+                            ignore = ignore_robot_item(root_suite, last_end, age)
+                            yield ignore
 
-    # We should not come here. Item cannot be found in parsed data.
-    # see PRO TIP: simple return if no data is found
-    # http://bit.ly/3epEcf3
     return  
 
-def ignore_robot_item(root_suite, last_end, overdue_sec):
-    # TODO: (Perhaps make this configurable (OK/UNKNOWN))
+def ignore_robot_item(root_suite, last_end, age):
+    overdue_sec = round(age.total_seconds() - root_suite['cache_time'],1)
     last_end_fmt = last_end.strftime('%Y-%m-%d %H:%M:%S')
     out = "Result of suite '%s' is too old. " % root_suite['id'] + \
         "Last execution end: %s, " % last_end_fmt + \
         "overdue since %ss " % (overdue_sec) + \
         "(cache time: %ss)" % str(root_suite['cache_time'])
-    return 3, out
+    return IgnoreResults(out)
 
 
 def evaluate_robot_item(robot_item, params):
