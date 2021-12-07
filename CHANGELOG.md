@@ -5,6 +5,12 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## 1.2.4 - 2021-12-07
+
+* Check: Check crashes when the suite never ran. In this case, no XML is present
+  and no data can be parsed. The corrected behaviour now is to skip the discovery
+  of suites but to let the "Robotmk" service report that suites are missing results. (#178)
+
 ## 1.2.3 - 2021-11-29
 
 ### Fixed
