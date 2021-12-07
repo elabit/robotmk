@@ -86,22 +86,22 @@ def parse_robotmk(params, string_table):
                     else:
                         d_decomp = d
                     json_suite[k] = d_decomp
-        try:
+        if 'xml' in json_suite:
             xml = ET.fromstring(json_suite['xml'])
             xml_root_suite = xml.find('./suite')
-        except Exception:
-            continue
+            setting = pattern_match(robot_discovery_settings,
+                                    xml_root_suite.attrib['name'], (0, ''))
+            discovery_setting = namedtuple(
+                'DiscoverySetting', 'level blacklist_pattern')._make(setting)
+            # now process the root suite
+            st_dict['suites'][idx]['parsed'] = parse_suite_xml(
+                xml_root_suite, discovery_setting)
+        else: 
+            pass
             # Seems to be a good idea not to raise an exception here.
             # The Robotmk service can report this error, too.
             #raise MKGeneralException("Fatal parsing error. Robotmk cannot " +\
             #    "find XML/HTML data. %s" % suite.get('error', ''))
-        setting = pattern_match(robot_discovery_settings,
-                                xml_root_suite.attrib['name'], (0, ''))
-        discovery_setting = namedtuple(
-            'DiscoverySetting', 'level blacklist_pattern')._make(setting)
-        # now process the root suite
-        st_dict['suites'][idx]['parsed'] = parse_suite_xml(
-            xml_root_suite, discovery_setting)
     return (st_dict, params.__dict__['_data'])
 
 
@@ -277,20 +277,21 @@ def check_robotmk(item, params, section):
         # see Ref. 8nIZ5J
         fflines = []
         for root_suite in parsed_section['suites']:
-            if len(root_suite['parsed'].robotmk_messages) > 0: 
-                firstline_messages = []
-                fflines.append("Messages from suite '%s':" % root_suite['parsed'].name)
-                suite_rc = 0
-                for data in root_suite['parsed'].robotmk_messages:
-                    stateid = STATES_NO[data['nagios_state']]
-                    badge = STATE_BADGES[stateid]
-                    fflines.append(" %s %s %s" % (u"\u25cf", badge, data['msg']))
-                    rc = max(rc, stateid)
-                    suite_rc = max(suite_rc, stateid)
-                first_line.append("Suite '%s' has messages %s" % (
-                    root_suite['parsed'].name,
-                    STATE_BADGES[suite_rc],
-                    ))
+            if 'parsed' in root_suite:
+                if len(root_suite['parsed'].robotmk_messages) > 0: 
+                    firstline_messages = []
+                    fflines.append("Messages from suite '%s':" % root_suite['parsed'].name)
+                    suite_rc = 0
+                    for data in root_suite['parsed'].robotmk_messages:
+                        stateid = STATES_NO[data['nagios_state']]
+                        badge = STATE_BADGES[stateid]
+                        fflines.append(" %s %s %s" % (u"\u25cf", badge, data['msg']))
+                        rc = max(rc, stateid)
+                        suite_rc = max(suite_rc, stateid)
+                    first_line.append("Suite '%s' has messages %s" % (
+                        root_suite['parsed'].name,
+                        STATE_BADGES[suite_rc],
+                        ))
         out_lines.append('\n'.join(fflines))
 
 
