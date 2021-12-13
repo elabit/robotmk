@@ -35,7 +35,7 @@ from collections import namedtuple
 from cmk.base.plugins.agent_based.agent_based_api.v1 import *
 from cmk.utils.exceptions import MKGeneralException
 
-ROBOTMK_VERSION = 'v1.2.5'
+ROBOTMK_VERSION = 'v1.2.6'
 DEFAULT_SVC_PREFIX = 'Robot Framework E2E $SUITEID$SPACE-$SPACE'
 HTML_LOG_DIR = "%s/%s" % (os.environ['OMD_ROOT'], 'local/share/addons/robotmk')
 
@@ -684,7 +684,8 @@ class RobotItem(object):
                                                     check_params)
         perfdata_wanted = self._get_pattern_value('perfdata_creation',
                                                   check_params)
-        if perfdata_wanted and self.elapsed_time != None:
+        # Only generate perfdata for RF PASS state. 
+        if perfdata_wanted and self.elapsed_time != None and self.status == 'PASS':
             perflabel = get_perflabel("%s_%s" % (self.id, self.name))
             if runtime_threshold:
                 cmk_perfdata = Metric(
