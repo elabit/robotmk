@@ -49,7 +49,7 @@ import socket
 
 local_tz = datetime.utcnow().astimezone().tzinfo
 
-ROBOTMK_VERSION = 'v1.2.5'
+ROBOTMK_VERSION = 'v1.2.6'
 
 class RMKConfig():
     _PRESERVED_WORDS = [
