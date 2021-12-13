@@ -86,7 +86,7 @@ def parse_robotmk(params, string_table):
                     else:
                         d_decomp = d
                     json_suite[k] = d_decomp
-        if 'xml' in json_suite:
+        if json_suite.get('xml') != None:
             xml = ET.fromstring(json_suite['xml'])
             xml_root_suite = xml.find('./suite')
             setting = pattern_match(robot_discovery_settings,

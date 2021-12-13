@@ -85,7 +85,7 @@ def parse_robot(info):
                     else:
                         d_decomp = d
                     json_suite[k] = d_decomp
-        if 'xml' in json_suite:
+        if json_suite.get('xml') != None:
             # TODO: his should not be done for HTML 
             # Leave the XML data binary here, because ElementTree has its own decoding
             # mechaism, see https://stackoverflow.com/a/12349894/14845044
