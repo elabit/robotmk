@@ -122,6 +122,8 @@ Robotmk works with any Checkmk 1.6x and 2.x version and edition (CEE and CRE).
 
 ## Installation
 
+### Installing the Robotmk server component
+
 You can choose between two ways of installing Robotmk: 
 
 * Installing as [MKP](https://checkmk.com/cms_mkps.html) is the preferred way. 
@@ -141,6 +143,15 @@ robotmk     tcp    (no man page present)
 ```
 
 In a distributed monitoring environment, make sure to check the option `Replicate extensions` in the remote site's connection options. 
+
+### Preparing the Robotmk agent 
+
+By using Checkmk Enterprise (highly recommended), the bakery automatically deploys the Robotmk Python plugin scripts as well as `robotmk.yml` automatically.
+The only thing to install on the agent beforehand are the following **Python modules** (beside of them the Robot Framework tests need, of course): 
+
+    pip3 install robotframework pyyaml mergedeep python-dateutil
+
+If you are in doubt if CEE is the right choice for you but want to start with the Raw Edition (CRE): the best way to learn what and how to deploy files by hand is to use the ["free" edition of CEE](https://checkmk.com/download?edition=cfe&version=stable) (free up to 25 hosts). You will see then how `robotmk.yml` gets built and where it installs the plugins. 
 
 ## Documentation
 
