@@ -1030,6 +1030,7 @@ class RMKrunner(RMKState, RMKPlugin):
         # output files without attempt suffix
         suite.update_output_filenames()
         outputfiles = self.glob_suite_outputfiles(suite)
+        outputfiles.sort()
         self.logdebug("Merging the results of the following result files into %s: " % suite.output)
         filenames = [Path(f).name for f in outputfiles]
         for f in filenames: 
