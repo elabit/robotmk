@@ -693,7 +693,7 @@ class RobotItem(object):
                     float("%.2f" % self.elapsed_time), 
                     levels=(
                         float("%.2f" % runtime_threshold[0]), 
-                        float("%.2f" % runtime_threshold[0]),
+                        float("%.2f" % runtime_threshold[1]),
                     ), 
                 )
             else:
