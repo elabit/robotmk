@@ -36,7 +36,7 @@ iam = "robotmk"
 inventory_robotmk_rules = []
 ROBOTMK_VERSION = 'v1.2.8'
 DEFAULT_SVC_PREFIX = 'Robot Framework E2E $SUITEID$SPACE-$SPACE'
-HTML_LOG_DIR = "%s/%s" % (os.environ['OMD_ROOT'], 'local/share/addons/robotmk')
+HTML_LOG_DIR = "%s/%s" % (os.environ['OMD_ROOT'], 'var/robotmk')
 
 STATES = {
     0: 'OK',
