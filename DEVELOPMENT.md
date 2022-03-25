@@ -43,7 +43,9 @@ Robotmk's [CHANGELOG.md](CHANGELOG.md) is based on [](https://keepachangelog.com
 
 Both flavours of Robotmk (CMK1 and 2) can be developed with Visual Studio Code and the [devcontainer setup](https://code.visualstudio.com/docs/remote/containers). 
 
-Before firing up the devcontainer, you have to select the CMK major version you want to develop in: 
+Before firing up the devcontainer, you have to select the CMK major version you want to develop in. 
+- Run Cmd-Shift-P and select `Select Task...` and chose e.g. "Set devcontainer to CMKv2".
+- Run Cmd-Shift-P and select `Run Task...` to run the task. This reconfigures some important files:
 
 ```
 # Setting the environment for Checkmk major version 1: 
@@ -52,11 +54,23 @@ Before firing up the devcontainer, you have to select the CMK major version you 
 + Setting Python version for VS Code...
 Preparation for Checkmk version 1 finished. You can now start the devcontainer in VS Code with 'Remote-Containers: Rebuild Container'.
 ```
-Ctrl-Shift-P in VSC brings up the command palette to start the devcontainer. 
+
+- Run Cmd-Shift-P and select `Remote-Containers: Rebuild Container` to start the devcontainer. 
 
 In the VS Code terminal you see the CMK site starting. This takes some minutes (at least on my aged Mac). During this step, all relevant files for Robotmk get [lsynced](https://axkibe.github.io/lsyncd/) (V1)/symlinked (V1) into the version specific folder of the CMK Docker container. **Don't try to install the Robotmk MKP into this container!** 
 
+If lsyncd is not running, do this by hand: `lsyncd .lsyncd`
+
 The devcontainer is ready now.
+
+### Select Python Interpreter 
+
+After the devcontainer has started, you probably have to set the python interpreter explicitly. This is sometimes a little bit unreliable and must be done manually: 
+- ensure that settings.json do not contain a `python.pythonPath` setting anymore
+- Open Cmd-Shift-P and run "Select Python Interpreter" for the "robotmk" workspace
+
+
+
 
 ### VS Code Build Task
 
@@ -78,9 +92,10 @@ docker cp $CONTAINER:/cmk-mkp .
 
 Agent output (e.g. from a CMK crash dump) can be injected into the container by placing the output as a file in the folder `agent_output`.
 
-Then create a rule `Individual program call instead of agent access` which uses this command to source the output file instead of using an agent: 
+Then create a rule `Individual program call instead of agent access` which uses one of the following commands to source the output file instead of using an agent: 
 
     	cat ~/var/check_mk/agent_output/$HOSTNAME$
+     cat ~/var/check_mk/agent_output/agent_output
 
 ### ipdb 
 
