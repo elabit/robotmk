@@ -35,9 +35,9 @@ from collections import namedtuple
 from cmk.base.plugins.agent_based.agent_based_api.v1 import *
 from cmk.utils.exceptions import MKGeneralException
 
-ROBOTMK_VERSION = 'v1.2.8'
+ROBOTMK_VERSION = 'v1.2.9'
 DEFAULT_SVC_PREFIX = 'Robot Framework E2E $SUITEID$SPACE-$SPACE'
-HTML_LOG_DIR = "%s/%s" % (os.environ['OMD_ROOT'], 'local/share/addons/robotmk')
+HTML_LOG_DIR = "%s/%s" % (os.environ['OMD_ROOT'], 'var/robotmk')
 
 STATES = {
     0: 'OK',
