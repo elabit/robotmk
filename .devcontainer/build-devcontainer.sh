@@ -15,11 +15,12 @@
 # robotmk-cmk-python3                                                2.0.0p5        1d96bebf47a6   27 seconds ago   2.18GB
 # robotmk-cmk-python3                                                1.6.0p25       599e8beeb9c7   10 minutes ago   1.93GB
 
+ROOTDIR=$(dirname "$0")
 
 # Name of the resulting images
 IMAGE=robotmk-cmk-python3
 # load Checkmk versions
-. build-devcontainer.env
+. $ROOTDIR/build-devcontainer.env
 
 for VERSION in $CMKVERSIONS; do
     docker images | egrep "checkmk/check-mk-enterprise.*$VERSION" 2>&1 > /dev/null
@@ -47,8 +48,9 @@ for VERSION in $CMKVERSIONS; do
         fi    
     fi
     echo "----"
-    echo "Docker image checkmk/check-mk-enterprise.*$VERSION is ready to use"
-    echo "----"
+    echo "Docker image checkmk/check-mk-enterprise.*$VERSION has been downloaded."
     echo "Building now the image robotmk-cmk-python3:$VERSION from Dockerfile_cmk_python ..."
-    docker build -t robotmk-cmk-python3:$VERSION -f Dockerfile_cmk_python --build-arg VARIANT=$VERSION .
+    echo "Calling: docker build -t robotmk-cmk-python3:$VERSION -f $ROOTDIR/Dockerfile_cmk_python --build-arg VARIANT=$VERSION ."
+    docker build -t robotmk-cmk-python3:$VERSION -f $ROOTDIR/Dockerfile_cmk_python --build-arg VARIANT=$VERSION .
+    echo "✅  Docker image robotmk-cmk-python3:$VERSION has been built."
 done

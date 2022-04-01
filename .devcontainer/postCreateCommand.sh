@@ -1,6 +1,8 @@
 #!/bin/bash
 
+echo "WORKSPACE: $WORKSPACE"
 # This step ties the workspace files with the Devcontainer. lsyncd is used to synchronize files. 
+echo "Connecting the project files into the container..."
 /workspaces/robotmk/.devcontainer/linkfiles.sh
 
 echo "Extracting automation user info ... "

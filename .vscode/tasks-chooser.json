@@ -12,12 +12,24 @@
             }
         },
         {
-            "displayName": "▶︎ Set devcontainer to CMK v1.6",
-            "command": "bash .devcontainer/set_devcontainer_version.sh 1"
+            "displayName": "💿 Build all devcontainer images",
+            "command": "bash .devcontainer/build-devcontainer.sh"
         },
         {
-            "displayName": "▶︎ Set devcontainer to CMK v2",
-            "command": "bash .devcontainer/set_devcontainer_version.sh 2"
+            "displayName": "▶︎ Set devcontainer to CMK 1.6.0p25",
+            "command": "bash .devcontainer/set_devcontainer_version.sh 1.6.0p25"
+        },
+        {
+            "displayName": "▶︎ Set devcontainer to CMK 2.0.0p5",
+            "command": "bash .devcontainer/set_devcontainer_version.sh 2.0.0p5"
+        },
+        {
+            "displayName": "▶︎ Set devcontainer to CMK 2.0.0p22",
+            "command": "bash .devcontainer/set_devcontainer_version.sh 2.0.0p22"
+        },
+        {
+            "displayName": "▶︎ Set devcontainer to CMK 2.1.0b4",
+            "command": "bash .devcontainer/set_devcontainer_version.sh 2.1.0b4"
         },
         {
             "displayName": "▶︎ Create dummyhost",
