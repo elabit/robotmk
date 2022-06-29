@@ -18,6 +18,8 @@
    * [State of development](#state-of-development)
    * [Requirements](#requirements)
    * [Installation](#installation)
+      * [Installing the Robotmk server component](#installing-the-robotmk-server-component)
+      * [Preparing the Robotmk agent](#preparing-the-robotmk-agent)
    * [Documentation](#documentation)
    * [Learning Resources](#learning-resources)
    * [Professional Support](#professional-support)
@@ -28,7 +30,8 @@
       * [Supporters](#supporters)
    * [Contributors <g-emoji class="g-emoji" alias="sparkles" fallback-src="https://github.githubassets.com/images/icons/emoji/unicode/2728.png">✨</g-emoji>](#contributors-)
 
-<!-- Added by: runner, at: Mon Sep 27 05:07:09 UTC 2021 -->
+<!-- Created by https://github.com/ekalinin/github-markdown-toc -->
+<!-- Added by: runner, at: Wed Jun 29 16:06:05 UTC 2022 -->
 
 <!--te-->
 
