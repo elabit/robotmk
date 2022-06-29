@@ -1,109 +1,112 @@
 # Development
 
+This page explains step by step how to set up your development environment to debug and develop Robotmk.  
+Feel encouraged to contribute code!
 ## Preconditions
 
-### Development preconditions
+### Docker 
 
-#### VS Code
+A very basic requirement is [Docker](https://www.docker.com) to run the containers.  
+On a Mac M1, you probably have to disable the `buildkit` feature: 
 
-### Release preconditions
+![](.img/../img/docker_disable_buildkit.png)
 
-In addition to the above requirements, the following are needed to make new releases of Robotmk: 
+(Also possible for single build tasks with `export DOCKER_BUILDKIT=0`).
 
-#### Chag
+### Visual Studio Code
 
-(only for maintainer)
+When you open the Robotmk project for the first time in [Visual Studio Code](https://code.visualstudio.com), you will be prompted to install some extensions - which is highly recommended:
+
+![](.img/../img/extensions.png)
+
+### Chag
+
 Robotmk uses [chag](https://raw.githubusercontent.com/mtdowling/chag/master/install.sh) to keep annotated tags and the CHANGELOG in sync. 
 
-All unreleased work is documented under the `H2` "Unreleased": 
+Examples: 
 
-    ## Unreleased
-
-    This will be the release title 
-
-    
-  * Show entries of a special release: `chag contents --tag v1.0.2`
-  * Create a Changelog entry for the `Unreleased` section: `chag update 1.0.4`
-  * Create an annotated tag from the 
-
-#### Github CLI tool 
+* Show entries of a special release: `chag contents --tag v1.0.2`
+* Create a Changelog entry for the `Unreleased` section: `chag update 1.0.4`
+  
+### Github CLI tool 
 
 Authentication to GitHub is required if you want to release/unrelease.
 
-### Others
+Install the CLI tools from https://github.com/cli/cli.
 
-#### Changelog
+---
 
-Robotmk's [CHANGELOG.md](CHANGELOG.md) is based on [](https://keepachangelog.com/).
-
-
-## Environment setup 
+## Development environment setup 
 
 Both flavours of Robotmk (CMK1 and 2) can be developed with Visual Studio Code and the [devcontainer setup](https://code.visualstudio.com/docs/remote/containers). 
+### Build Devcontainer images
 
+Open `.devcontainer/build-devcontainer.env` and add all versions of Checkmk you want to develop on to the `CMKVERSIONS` variable. (= All versions are a long quoted string, separated by newlines.)
 
+Example: 
 
-### Build Devcontainer 
-
-Open `.devcontainer/build-devcontainer.env` and add all CMKVERSIONS to your needs. It should only contain CMK versions you want to test/develop on.
-(All versions are a long quoted string, separated by newlines.)
-
-     CMKVERSIONS="1.6.0p25
-     2.0.0p5
+     CMKVERSIONS="1.6.0p29
      2.0.0p22
-     2.1.0b4"
+     2.1.0p4"
 
-- Run Cmd-Shift-P and select `Select Task...` > "Build all devcontainer images".
-- Run Cmd-Shift-P and select `Run Task...` to built the containers. 
+- Run *Cmd-Shift-P* and select `Select Task...` > "Build all devcontainer images".
+- Run *Cmd-Shift-P* and select `Run Task...` to built the containers. 
 
-What does the task do? 
+![](./img/select-task.png)
 
-- Check if the CMK Docker images are already available locally. If not, it asks for credentials to download the image from the CMK download page. 
-- It creates a new Docker image from `Dockerfile_cmk_python`. This uses the CMK docker image as base and 
-  - installs Python 3.9 
-  - Python modules `robotframework pyyaml mergedeep python-dateutil ipdb`
-  - and some additional tools: `jq tree htop vim git telnet file lsyncd`
+What does the task "***Build all devcontainer images***" (`.devcontainer/build-devcontainer.sh`) do? 
 
-The resulting image is saved as `robotmk-cmk-python3:2.1.0b4` (example) and is the base image for `Dockerfile` (which is referenced in `devcontainer.json`)
+- First it checks if the CMK Docker images are already available locally. If not, it connects to the [Checkmk Docker Registry](registry.checkmk.com) and downloads the images from there.
+- It then creates a new Docker image based on the CMK docker image (downloaded in step 1) and installs some more things (see `.devcontainer/Dockerfile_cmk_python`):
+  - Python 3.9 and modules `robotframework pyyaml mergedeep python-dateutil ipdb`
+  - some additional tools: `jq tree htop vim git telnet file lsyncd`
+
+The resulting Docker image is then saved as `robotmk-cmk-python3:2.1.0p4` (example):
 
      16:04 $ docker images | grep robotmk-cmk
-     robotmk-cmk-python3                            2.1.0b4        d1c5971438c3   About a minute ago   2.39GB
+     robotmk-cmk-python3                            2.1.0p4        d1c5971438c3   About a minute ago   2.39GB
      robotmk-cmk-python3                            2.0.0p22       a9c63d994a74   9 minutes ago        2.19GB
      robotmk-cmk-python3                            2.0.0p5        1d96bebf47a6   7 months ago         2.18GB
      robotmk-cmk-python3                            1.6.0p25       599e8beeb9c7   7 months ago         1.93GB
      robotmk-cmk-python3                            2.0.0p4        71bdfccd584b   7 months ago         2.19GB
 
-### Configure task chooser
+
+The Robotmk devcontainers are started on these images. See `.devcontainer/Dockerfile` (which is referenced in `devcontainer.json`):
+
+```
+ARG VARIANT
+# Build the dev images with .devcontainer/build-devcontainer.sh !
+FROM robotmk-cmk-python3:${VARIANT}
+...
+
+```
+
+### Set Checkmk versions for task chooser
 
 (Make sure that the extension "tasks-chooser" is installed.)
 Now that you have the Docker image versions, you need to add new entries for each specific CMK version in `.vscode/tasks-chooser.json`:
 
 ```
 {
-    "displayName": "▶︎ Set devcontainer to CMK 2.1.0b4",
-    "command": "bash .devcontainer/set_devcontainer_version.sh 2.1.0b4"
+    "displayName": "▶︎ Set devcontainer to CMK 2.1.0p4",
+    "command": "bash .devcontainer/set_devcontainer_version.sh 2.1.0p4"
 },
 ```
 
-### Choose and Start the VS Code devcontainer
+### Choose and Start the Checkmk devcontainer
 
-Now it's time to run the container: 
+Now it's time to run the container.  
+First, set the Checkmk version:
 
-- Run Cmd-Shift-P and select `Select Task...` and chose e.g. "Set devcontainer to CMKv2".
-- Run Cmd-Shift-P and select `Run Task...` to run the task. This reconfigures some important files:
+- Run *Cmd-Shift-P* and select `Select Task...` and chose e.g. "*Set devcontainer to CMK 2.1.0p4*" (defined in the previous step)
+- Run *Cmd-Shift-P* and select `Run Task...` to run the task. 
 
-```
-> Executing task: bash .devcontainer/set_devcontainer_version.sh 2.1.0b4 <
+This reconfigures some important files:
 
-+ Generating devcontainer file for CMK 2.1.0b4...
-+ Configuring Python for CMK 2... 
-+ Setting debug configuration for CMK 2 
+- `.devcontainer/devcontainer.json` gets *generated* using `envsubst` and the template file in `.devcontainer/v2/devcontainer.json`
+- `.vscode/settings.json` and `.vscode/launch.json` get *copied* from the template files in `.vscode/v2/` (controls the python version being used for running and debugging the code)
 
->>> Preparation for Checkmk version 2.1.0b4 finished.
-You can now start the devcontainer in VS Code with 'Remote-Containers: Rebuild Container'.
-```
-
-- Run Cmd-Shift-P and select `Remote-Containers: Rebuild Container` to start the devcontainer. 
+- Run *Cmd-Shift-P* and select `Remote-Containers: Rebuild Container` to start the devcontainer. 
 
 In the VS Code terminal you see the CMK site starting. 
 This takes some minutes (at least on my aged Mac). 
@@ -113,7 +116,7 @@ During this step, all relevant files for Robotmk get [lsynced](https://axkibe.gi
 
 If lsyncd is not running, do this by hand: `lsyncd .lsyncd`
 
-The devcontainer is ready now.
+The devcontainer is ready now. Open the Checmk login page on http://127.0.0.1:5000
 
 ### Select Python Interpreter 
 
@@ -121,7 +124,7 @@ After the devcontainer has started, you probably have to set the python interpre
 This is sometimes a little bit unreliable and must be done manually: 
 
 - ensure that `settings.json` do not contain a `python.pythonPath` setting anymore
-- Open Cmd-Shift-P and run "Select Python Interpreter" for the "robotmk" workspace
+- Open *Cmd-Shift-P* and run "Select Python Interpreter" for the "robotmk" workspace
 
 ### VS Code Build Task
 
@@ -149,8 +152,35 @@ ERROR: The devcontainer does not start; the VS Code `remoteContainers-YYYY-MM-DD
      => => transferring context: 2B                                            0.0s
      => ERROR [internal] load metadata for docker.io/library/robotmk-cmk-pyth  2.2s
 
-## Debugging
+---
 
+## How to develop
+
+### Write a changelog
+
+Robotmk's [CHANGELOG.md](CHANGELOG.md) is based on [](https://keepachangelog.com/).
+
+All unreleased work must be documented in `CHANGELOG.md` under the `H2` "Unreleased".  
+The second line will be the release title.  
+All H3's below shoudl group the changes:
+
+     ## Unreleased
+
+     This will be the release title 
+
+     ### Added
+     * this 
+     * that 
+     ### Changed
+     * and this (#66)
+     ### Fixed
+     * and that (fixes #45)
+     ### Removed
+     * foo
+     ### Deprecated    
+     * bar
+    
+  
 ### Simulating agent output 
 
 Agent output (e.g. from a CMK crash dump) can be injected into the container by placing the output as a file in the folder `agent_output`.
@@ -203,11 +233,13 @@ OMD[v1test]:~$ python -m ipdb bin/cmk -Avf win10simdows
 ipdb> b /omd/sites/v1test/lib/python/cmk_base/cee/agent_bakery.py:85     
 ```
 
-# How to release
+---
+
+## How to release
 
 `release.sh` is a helper tool which eases (un)releasing a lot. Sometimes a alpha/beta release should to be withdrawn. With the help of this script and the github CLI tool (authentication required),
 
-## Release
+### Release 
 
 The release workflow of Robotmk is divided into the following steps: 
 
@@ -220,7 +252,9 @@ The release workflow of Robotmk is divided into the following steps:
   * executes `chag tag --addv` => adds an annotated tag from the Changelog
   * pushes to `master`
 
-## Unrelease
+### Unrelease
+
+(Unrelease... right. Remove a release from Github - Not at all useless.)
 
 * Execute `./release.sh unrelease 1.2.0`, which 
 * the release gets deleted from github 
