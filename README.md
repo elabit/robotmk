@@ -22,6 +22,7 @@
       * [Preparing the Robotmk agent](#preparing-the-robotmk-agent)
    * [Documentation](#documentation)
    * [Learning Resources](#learning-resources)
+   * [Talks](#talks)
    * [Professional Support](#professional-support)
    * [Next developments](#next-developments)
    * [Contributing](#contributing)
@@ -31,7 +32,7 @@
    * [Contributors <g-emoji class="g-emoji" alias="sparkles" fallback-src="https://github.githubassets.com/images/icons/emoji/unicode/2728.png">✨</g-emoji>](#contributors-)
 
 <!-- Created by https://github.com/ekalinin/github-markdown-toc -->
-<!-- Added by: runner, at: Wed Jun 29 16:06:05 UTC 2022 -->
+<!-- Added by: runner, at: Wed Jun 29 16:48:04 UTC 2022 -->
 
 <!--te-->
 
