@@ -190,7 +190,7 @@ class RMK():
             return Plugin(
                 base_os=opsys,
                 source=Path('robotmk-runner.py'),
-                # TODO: interval=interval,
+                timeout=self.execution_interval - 5,
                 interval=self.execution_interval,
             )
         else:

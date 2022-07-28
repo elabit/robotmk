@@ -61,11 +61,12 @@ def bake_robotmk(opsys, conf, conf_dir, plugins_dir):
         if opsys == "windows":
             # async mode in Windows: write configfile in INI-style, will be converted
             # during installation to YML
+            timeout = int(config.global_dict['cache_time']) - 5
             with Path(conf_dir, "check_mk.ini.plugins.robotmk-runner.py").open("w") as out:
                 out.write(u"    execution robotmk-runner.py = async\r\n")
                 out.write(u"    cache_age robotmk-runner.py = %d\r\n" % config.global_dict['execution_interval'])
                 # Kill the plugin before the next async execution will start
-                out.write(u"    timeout robotmk-runner.py = %d\r\n" % config.global_dict['cache_time'])
+                out.write(u"    timeout robotmk-runner.py = %d\r\n" % timeout)
                 out.write(u"\r\n")
                 plugins_dir_async = plugins_dir
         elif opsys == "linux":

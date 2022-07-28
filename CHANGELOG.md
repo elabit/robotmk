@@ -5,6 +5,14 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## Unreleased
+
+### Fixed 
+
+* Bakery (V2): Added missing `timeout` to async robotmk execution. `timeout` is now  
+set to 5 sec less than the execution interval so that the agent can kill the runner  
+before the next execution. (#203)
+
 ## 1.2.9 - 2022-03-25
 
 ### Fixed
