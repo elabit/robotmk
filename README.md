@@ -11,25 +11,26 @@
 ![desc](img/robotmk_banner.png)
 
 <!--ts-->
-* [Robotmk](#robotmk)
-   * [Description](#description)
-   * [Key features/components](#key-featurescomponents)
-   * [Usage scenarios](#usage-scenarios)
-   * [State of development](#state-of-development)
-   * [Requirements](#requirements)
-   * [Installation](#installation)
-      * [Installing the Robotmk server component](#installing-the-robotmk-server-component)
-      * [Preparing the Robotmk agent](#preparing-the-robotmk-agent)
-   * [Documentation](#documentation)
-   * [Learning Resources](#learning-resources)
-   * [Talks](#talks)
-   * [Professional Support](#professional-support)
-   * [Next developments](#next-developments)
-   * [Contributing](#contributing)
-   * [License](#license)
-   * [Credits/Thanks](#creditsthanks)
-      * [Supporters](#supporters)
-   * [Contributors <g-emoji class="g-emoji" alias="sparkles" fallback-src="https://github.githubassets.com/images/icons/emoji/unicode/2728.png">✨</g-emoji>](#contributors-)
+- [Robotmk](#robotmk)
+  - [Description](#description)
+  - [Key features/components](#key-featurescomponents)
+  - [Usage scenarios](#usage-scenarios)
+  - [State of development](#state-of-development)
+  - [Requirements](#requirements)
+  - [Installation](#installation)
+    - [Installing the Robotmk server component](#installing-the-robotmk-server-component)
+    - [Preparing the Robotmk agent](#preparing-the-robotmk-agent)
+  - [Documentation](#documentation)
+  - [FAQ](#faq)
+  - [Learning Resources](#learning-resources)
+  - [Talks](#talks)
+  - [Professional Support](#professional-support)
+  - [Next developments](#next-developments)
+  - [Contributing](#contributing)
+  - [License](#license)
+  - [Credits/Thanks](#creditsthanks)
+    - [Supporters](#supporters)
+  - [Contributors ✨](#contributors-)
 
 <!-- Created by https://github.com/ekalinin/github-markdown-toc -->
 <!-- Added by: runner, at: Wed Jun 29 16:48:04 UTC 2022 -->
@@ -166,6 +167,11 @@ All Robotmk rules come with a very **detailled and comprehensive context help**.
 The context help can be shown by clicking on the **book icon** in the top right corner of every Robotmk rule:  
 
 ![How to show the context help](img/show_context_help.gif)
+
+## FAQ
+
+The [Frequently asked questions](./FAQ.md) cover a whole range of questions that have arisen time and again in the context of Robotmk.  
+They give an insight into why Robotmk differs (or: has to differ) from a regular agent plugin in certain respects.
 
 ## Learning Resources
 
