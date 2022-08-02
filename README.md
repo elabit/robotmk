@@ -85,6 +85,8 @@ The Robotmk project consists of different components working together:
     * (new) log integration: The check extracts the Robot HTML logs and integrates 
       them into the Checkmk web UI: 
 
+The locations of the individual files in CMK V1 and V2 are described in [DEVELOPMENT.md](./DEVELOPMENT.md#file-locations).
+
 ![desc](img/robotmk_html_logs_animated.gif)
 
 *The integration of Robot HTML logs into Checkmk makes it easy to understand why an E2E test failed*
@@ -107,8 +109,6 @@ Read the [feature page](https://robotmk.org) of Robotmk to learn about its histo
 * **Monitoring business relevant services** to save time, cost and revenue. 
 
 ## State of development
-
-**Is Robotmk stable? Can it be used in production?**
 
 Robotmk has been used successfully and productively by companies in a wide range of industries since 2020. 
 

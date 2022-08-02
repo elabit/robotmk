@@ -156,6 +156,43 @@ ERROR: The devcontainer does not start; the VS Code `remoteContainers-YYYY-MM-DD
 
 ## How to develop
 
+### Develop on the right files
+
+VS code displays by default only the files of the workspace (`/workspaces/robotmk`). They are symlinked to the OMD site, but if you want to debug, you have to add `$OMD_ROOT` as another folder to the workspace: 
+
+![](./img/vs_code_add_folder.png)
+
+You can now add breakpoints to the scripts in this folder to debug them.  
+Also, only then the code completion (classes, functions, ...) works properly, because it works in the same Python context as Checkmk. 
+
+### Test a new Linux agent in the container
+
+The Debian packages that the Bakery generates can be installed and tested directly in the container: 
+
+```bash
+$> docker exec -it e055ddab3af8 bash
+# enter the docker container
+root@e055ddab3af8:/omd/sites/cmk/var/check_mk/agents/linux_deb# ls -la
+total 20
+drwxr-x--- 1 cmk cmk 4096 Aug  1 15:20 .
+drwxr-xr-x 1 cmk cmk 4096 Aug  1 15:20 ..
+lrwxrwxrwx 1 cmk cmk   26 Aug  1 15:20 _GENERIC -> _PACKAGES/c981dd0495f3f69e
+drwxr-x--- 1 cmk cmk 4096 Aug  1 15:20 _PACKAGES
+lrwxrwxrwx 1 cmk cmk   26 Aug  1 15:20 _VANILLA -> _PACKAGES/ba01521a73f13128
+lrwxrwxrwx 1 cmk cmk   26 Aug  1 15:20 localhost -> _PACKAGES/c981dd0495f3f69e
+root@e055ddab3af8:/omd/sites/cmk/var/check_mk/agents/linux_deb# dpkg -i localhost
+(Reading database ... 61966 files and directories currently installed.)
+Preparing to unpack localhost ...
+
+Unpacking check-mk-agent (2.1.0p4-2.c981dd0495f3f69e) over (2.1.0p4-1) ...
+Setting up check-mk-agent (2.1.0p4-2.c981dd0495f3f69e) ...
+
+systemd not found on this system
+Deployed xinetd
+systemd not found on this system
+Reloading xinetd
+```
+
 ### Write a changelog
 
 Robotmk's [CHANGELOG.md](CHANGELOG.md) is based on [](https://keepachangelog.com/).
@@ -193,9 +230,17 @@ Then create a rule `Individual program call instead of agent access` which uses 
 ### ipdb 
 
 `ipdb` is a great cmdline debugger for Python. In the following example it is shown how to execute the Robotmk check within the cmk context. 
-A breakpoint in line 120 is set with "b":  
 
-Debugging the Inventory function:
+Install ipdb in the context of the OMD site user: 
+
+```
+OMD[site]:~$ pip3 install ipdb
+Collecting ipdb
+  Downloading ipdb-0.13.9.tar.gz (16 kB)
+...
+```
+
+Example: Debugging the Inventory function with a breakpoint in line 120:  
 
 ```
 OMD[cmk]:~$ python -m ipdb bin/cmk -IIv test2Win10simdows
@@ -261,3 +306,26 @@ The release workflow of Robotmk is divided into the following steps:
 * tags are removed
 * develop branch gets checked out
 * `chag` undoes the last change to the `CHANGELOG`
+
+
+## File locations
+
+Most folders are common in CMK v1 and v2, others are specific. This table shows which folder in the Robotmk project gets mounted where. 
+
+Abbreviations: 
+
+- `local/share/check_mk` = `l/s/c`
+- `local/lib/check_mk/base` = `l/l/c/b`
+
+| Component                         | Project folder    | Checkmk common                  | V1 specific                                     | V2 specific                                     |
+| --------------------------------- | ----------------- | ------------------------------- | ---------------------------------------------- | ---------------------------------------------- |
+| **Agent plugin**                  | 📂  `agents_plugins/` | `l/s/c/agents/plugins`          |                                                |                                                |
+| custom package "robotmk-external" | 📂  `agents_plugins/` |                                 | `l/s/c/agents/custom/robotmk-external/lib/bin` | (not needed)                                   |
+| **Bakery** script                 | 📂  `bakery/vX/`      |                                 | `l/s/c/agents/bakery`                          | `local/lib/check_mk/base/cee/plugins/bakery` |
+| checkman                          | 📂  `checkman/`       | `l/s/c/checkman`                |                                                |                                                |
+| **Checks**                        | 📂  `checks/vX/`      |                                 | `l/s/c/checks`                                 | `l/l/c/b/plugins/agent_based`                  |
+| Images                            | 📂  `images/`         | `l/s/c/web/htdocs/images`       |                                                |                                                |
+| **Metrics, WATO**                 | 📂  `web_plugins/`    | `l/s/c/web/plugins`             |                                                |                                                |
+| RF tests                          | 📂  `rf_tests/`       | `/usr/lib/check_mk_agent/robot` |                                                |                                                |
+| Agent output                      | 📂  `agent_output/`   | `var/check_mk/agent_output`     |                                                |                                                |
+
