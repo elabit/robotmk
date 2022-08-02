@@ -1046,6 +1046,7 @@ def parse_suite_xml(root_xml, discovery_setting):
 #               |_|
 
 def save_htmllog(dir, logname, raw_html):
+    mkdirp(dir)
     filename = "%s/%s" % (dir, logname)
     try:
         with open(filename, 'w') as f:
