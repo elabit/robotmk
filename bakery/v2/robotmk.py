@@ -30,7 +30,7 @@ import copy
 import cmk.utils.paths
 from cmk.utils.exceptions import MKGeneralException
 
-from .bakery_api.v1 import (
+from cmk.base.cee.plugins.bakery.bakery_api.v1 import (
    OS,
    Plugin,
    PluginConfig,
