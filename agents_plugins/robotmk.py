@@ -1313,37 +1313,38 @@ class RMKCtrl(RMKState, RMKPlugin):
         return ['xml', 'htmllog']
 
     def encode(self, data, encoding):
-        data = data.encode('utf-8')
+        # Caveat: to keep the zlib stream integrity, it must be converted to a
+        # "safe" stream afterwards.
+        # Reason: if there is a byte in the zlib stream which is a newline byte
+        # by accident, Checkmk splits the byte string at this point - the
+        # byte gets lost, stream integrity bungled.
+        # Even if base64 blows up the data, this double encoding still saves space:
+        # in:      692800 bytes  100    %
+        # zlib:      4391 bytes    0,63 % -> compression 99,37%
+        # base64:    5856 bytes    0,85 % -> compression 99,15%
+
+        #    1. encode in UTF8
+        #   2. compress with zlib 
+        #  3. encode with base64
+
         if encoding == 'base64_codec':
-            data_encoded = self.to_base64(data)
+            data_bytes = data.encode('utf-8')
+            data_encoded = base64.b64encode(data_bytes)
+            data_utf8 = data_encoded.decode('utf-8')            
         elif encoding == 'zlib_codec':
-            # zlib bytestream is base64 wrapped to avoid nasty bytes wihtin the
-            # agent output. The check has first to decode the base64 "shell"
-            data_encoded = self.to_zlib(data)
+            data_bytes = data.encode('utf-8')
+            data_zlib = zlib.compress(data_bytes, 9)
+            data_encoded = base64.b64encode(data_zlib)
+            data_utf8 = data_encoded.decode('utf-8')            
         elif encoding == 'utf_8':
-            # nothing to do, already in utf8
-            data_encoded = data
+            # nothing to do, already in utf8 = string
+            data_utf8 = data
         else:
             # TODO: Catch the exception! (wrong encoding)!
             pass
-        # as we are serializing the data to JSON, let's convert the bytestring
-        # again back to UTF-8
-        return data_encoded.decode('utf-8')            
+        return data_utf8
 
-    def to_base64(self, data):
-        data_base64 = base64.b64encode(data)
-        return data_base64
 
-    # opens a file and returns the compressed content.
-    # Caveat: to keep the zlib stream integrity, it must be converted to a
-    # "safe" stream afterwards.
-    # Reason: if there is a byte in the zlib stream which is a newline byte
-    # by accident, Checkmk splits the byte string at this point - the
-    # byte gets lost, stream integrity bungled.
-    # Even if base64 blows up the data, this double encoding still saves space:
-    # in:      692800 bytes  100    %
-    # zlib:      4391 bytes    0,63 % -> compression 99,37%
-    # base64:    5856 bytes    0,85 % -> compression 99,15%
     def to_zlib(self, data):
         data_zlib = zlib.compress(data, 9)
         data_zlib_b64 = self.to_base64(data_zlib)

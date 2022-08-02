@@ -75,17 +75,19 @@ def parse_robotmk(params, string_table):
         for k in keys_to_decode:
             if k in json_suite:
                 if bool(json_suite[k]):
-                    d = json_suite[k]
+                    data_utf8 = json_suite[k]
                     if runner_data['encoding'] == 'zlib_codec':
-                        d = d.encode('utf-8')
-                        d_byte = base64.b64decode(d)
-                        d_decomp = zlib.decompress(d_byte).decode('utf-8')
+                        data_encoded = data_utf8.encode('utf-8')
+                        data_zlib = base64.b64decode(data_encoded)
+                        data_bytes = zlib.decompress(data_zlib)
+                        data = data_bytes.decode('utf8')
                     elif runner_data['encoding'] == 'base64_codec':
-                        d = d.encode('utf-8')
-                        d_decomp = base64.b64decode(d)
+                        data_encoded = data_utf8.encode('utf-8')
+                        data_bytes = base64.b64decode(data_encoded)
+                        data = data_bytes.decode('utf8')
                     else:
-                        d_decomp = d
-                    json_suite[k] = d_decomp
+                        data = data_utf8
+                    json_suite[k] = data
         if json_suite.get('xml') != None:
             xml = ET.fromstring(json_suite['xml'])
             xml_root_suite = xml.find('./suite')
