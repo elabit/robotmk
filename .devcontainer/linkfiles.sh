@@ -1,29 +1,30 @@
 #!/bin/bash
-
+set -u
 # This script gets called from postcreateCommand.sh directly after the devcontainer
 # has been started. Its job is to make the Robotmk project files available to the CMK site.
-# For CMK v1 the directories get synchronized with lsyncd (the bakery does not 
-# accept symlinks during the rpmbuild process). This concept will perhaps also 
-# be chosen for V2.  
-# lysncd gets installed within Dockerfile. 
 
-LSYNCD_CFG=$OMD_ROOT/.lsyncd
+#exit
+
+L_SHARE_CMK="local/share/check_mk"
+L_LIB_CMK_BASE="local/lib/check_mk/base"
 
 function main {
+    # Detect major version and decide what to link
     MVERSION=$(cat $OMD_ROOT/.version_meta/version | cut -d '.' -f1)
     echo -n "Site $OMD_SITE: "
     if [ $MVERSION == 1 ]; then 
         echo "Detected CMK major version 1"
-        lsync_v1files
+        sync_v1files
     elif [ $MVERSION == 2 ]; then 
         echo "Detected CMK major version 2"
-        lsync_v2files
+        sync_v2files
     else
         echo "Detected CMK major version $MVERSION is not supported by this script (only 1 and 2). Exiting."
         usage
     fi 
-    echo -e "\n###########\nStarting lsyncd to synchronize files...\n"
-    nohup lsyncd $OMD_ROOT/.lsyncd 2>&1 > /dev/null
+    sync_common
+    echo "linkfiles.sh finished."
+    echo "===================="
 }
 
 function rmpath {
@@ -42,30 +43,74 @@ function linkpath {
 }
 
 # Do not only symlink, but also generate needed directories. 
-function link {
+function create_symlink {
     echo "---"
     TARGET=$1
     if [ ${2:0:1} == "/" ]; then 
+        # absolute link
         LINKNAME=$2
     else
-        LINKNAME=/omd/sites/cmk/$2
+        # relative link in OMD_ROOT
+        LINKNAME=$OMD_ROOT/$2
     fi    
-    #rmpath $LINKNAME
+    rmpath $LINKNAME
     linkpath $TARGET $LINKNAME
+    tree $LINKNAME
 }
 
-function write_lsync_cfg {
-    SOURCE=$1
-    DEST=$2
-    cat <<EOF >> $LSYNCD_CFG
-sync {
-  default.rsync,
-  source = "$SOURCE",
-  target = "$DEST",
-  delay = 1,
+function sync_common {
+    # Agent plugins
+    create_symlink agents_plugins $L_SHARE_CMK/agents/plugins
+
+    # checkman
+    create_symlink checkman $L_SHARE_CMK/checkman
+
+    # Images & icons
+    create_symlink images $L_SHARE_CMK/web/htdocs/images
+
+    # Metrics, WATO
+    create_symlink web_plugins $L_SHARE_CMK/web/plugins   
+
+    # # RF test suites 
+    create_symlink rf_tests /usr/lib/check_mk_agent/robot    
+    # Folder where agent output can be sourced with rule
+    # "Datasource Programs > Individual program call instead of agent access"
+    # (folder gets created in postCreateCommand.sh)
+    create_symlink agent_output var/check_mk/agent_output       
 }
-EOF
+
+function sync_v1files {
+    # CUSTOM PACKAGE 'robotmk-external' (install with rule "deploy custom files"). 
+    # (the V2 bakery can handle this automatically for mode "external")
+    create_symlink agents_plugins $L_SHARE_CMK/agents/custom/robotmk-external/lib/bin
+
+    # BAKERY V1
+    create_symlink bakery/v1 $L_SHARE_CMK/agents/bakery
+
+    # CHECK PLUGIN V1
+    create_symlink checks/v1 $L_SHARE_CMK/checks
 }
+
+function sync_v2files {
+
+    # Custom package "robotmk-external"
+    # - not needed in V2 - 
+    # Bakery script dir
+    
+    # BAKERY V2
+    create_symlink bakery/v2 $L_SHARE_CMK/agents/bakery
+    rm -rf $L_SHARE_CMK/agents/bakery/__pycache__
+
+    # CHECK PLUGIN V2
+    create_symlink checks/v2 $L_LIB_CMK_BASE/plugins/agent_based
+    rm -rf $L_LIB_CMK_BASE/plugins/agent_based/__pycache__ 
+}
+
+main
+
+
+# -----------------------------------------------------------------------------
+
 
 # Synchronize a certain folder with lsyncd: 
 # - do an initial rsync from the workspace into the dest dir
@@ -92,6 +137,19 @@ function lsync_this {
     #ls -la $DEST 
 }
 
+function write_lsync_cfg {
+    SOURCE=$1
+    DEST=$2
+    cat <<EOF >> $LSYNCD_CFG
+sync {
+  default.rsync,
+  source = "$SOURCE",
+  target = "$DEST",
+  delay = 1,
+}
+EOF
+} 
+
 # Global lsyncd settings
 function write_lsyncd_header {
     cat > $OMD_ROOT/.lsyncd << "EOF"
@@ -102,54 +160,3 @@ settings {
 
 EOF
 }
-
-function lsync_v1files {
-    # write global lsyncd config
-    write_lsyncd_header
-    # Sync checkman
-    lsync_this checkman local/share/check_mk/checkman
-    # Sync Metrics, WATO
-    lsync_this web_plugins local/share/check_mk/web/plugins
-    # Sync agent_plugins
-    lsync_this agents_plugins local/share/check_mk/agents/plugins
-    # Sync agent plugins also as custom package 'robotmk-external' (which can be 
-    # deployed with rule "deploy custom files". 
-    # (the V2 bakery can handle this automatically for mode "external")
-    lsync_this agents_plugins local/share/check_mk/agents/custom/robotmk-external/lib/bin
-    # Sync check plugin dir
-    lsync_this checks/v1 local/share/check_mk/checks
-    # Sync Bakery script dir
-    lsync_this bakery/v1 local/share/check_mk/agents/bakery
-    # Images & icons
-    lsync_this images local/share/check_mk/web/htdocs/images    
-    # Sync RF test suites 
-    lsync_this rf_tests /usr/lib/check_mk_agent/robot
-    # Folder where agent output can be sourced with rule
-    # "Datasource Programs > Individual program call instead of agent access"
-    # (folder gets created in postCreateCommand.sh)
-    lsync_this agent_output var/check_mk/agent_output
-}
-
-function lsync_v2files {
-    # write global lsyncd config
-    write_lsyncd_header    
-    # checkman
-    lsync_this checkman local/share/check_mk/checkman
-    # Metrics, WATO, agent_plugins
-    lsync_this web_plugins local/share/check_mk/web/plugins
-    lsync_this agents_plugins local/share/check_mk/agents/plugins
-    # Check plugin dir
-    lsync_this checks/v2 local/lib/check_mk/base/plugins/agent_based
-    # Bakery script dir
-    lsync_this bakery/v2 local/lib/check_mk/base/cee/plugins/bakery
-    # Images & icons
-    lsync_this images local/share/check_mk/web/htdocs/images
-    # # Sync RF test suites 
-    lsync_this rf_tests /usr/lib/check_mk_agent/robot    
-    # Folder where agent output can be sourced with rule
-    # "Datasource Programs > Individual program call instead of agent access"
-    # (folder gets created in postCreateCommand.sh)
-    lsync_this agent_output var/check_mk/agent_output    
-}
-
-main
