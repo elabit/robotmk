@@ -34,7 +34,7 @@ from collections import namedtuple
 iam = "robotmk"
 # DO NOT DELETE
 inventory_robotmk_rules = []
-ROBOTMK_VERSION = 'v1.2.9'
+ROBOTMK_VERSION = 'v1.2.10'
 DEFAULT_SVC_PREFIX = 'Robot Framework E2E $SUITEID$SPACE-$SPACE'
 HTML_LOG_DIR = "%s/%s" % (os.environ['OMD_ROOT'], 'var/robotmk')
 
@@ -638,18 +638,19 @@ class RobotItem(object):
     # sets status and message for this node with exceeded runtime
     # Runtime monitoring is not related to Robot Framework and introduces the WARN
     # state. Therefore, it can happen that a s/t/k is CRIT/WARN but the RF status is PASS.
+    # Thresholds of 0 will be ignored. 
     def _eval_node_cmk_runtime(self, check_params):
         runtime_threshold = self._get_pattern_value('runtime_threshold',
                                                     check_params)
         if bool(runtime_threshold):
             # CRITICAL threshold
-            if self.elapsed_time >= runtime_threshold[1]:
+            if runtime_threshold[1] > 0 and self.elapsed_time >= runtime_threshold[1]:
                 nagios_status = 2
                 text = "%s runtime=%.2fs >= %.2fs" % (
                     STATE_BADGES[nagios_status], self.elapsed_time,
                     runtime_threshold[1])
             # WARNING threshold
-            elif self.elapsed_time >= runtime_threshold[0]:
+            elif runtime_threshold[0] > 0 and self.elapsed_time >= runtime_threshold[0]:
                 nagios_status = 1
                 text = "%s runtime=%.2fs >= %.2fs" % (
                     STATE_BADGES[nagios_status], self.elapsed_time,
@@ -678,7 +679,7 @@ class RobotItem(object):
                                                   check_params)
         # Only generate perfdata for RF PASS state. 
         if perfdata_wanted and self.elapsed_time != None and self.status == 'PASS':
-            perflabel = get_perflabel("%s_%s" % (self.id, self.name))
+            perflabel = perfdata_label("%s_%s" % (self.id, self.name))
             if runtime_threshold:
                 cmk_perfdata = (
                     perflabel,
@@ -1033,6 +1034,7 @@ def parse_suite_xml(root_xml, discovery_setting):
 #               |_|
 
 def save_htmllog(dir, logname, raw_html):
+    mkdirp(dir)
     filename = "%s/%s" % (dir, logname)
     try:
         with open(filename, 'w') as f:
@@ -1087,12 +1089,16 @@ def lns(src, dest):
     if not os.path.islink(dest):
         os.symlink(src, dest)
 
-# create a valid perfdata label which does contain only numbers, letters,
-# dash and underscore. Everything else becomes a underscore.
-def get_perflabel(instr):
-    outstr = re.sub('[^A-Za-z0-9]', '_', instr)
-    return re.sub('_+', '_', outstr)
-
+def perfdata_label(name):
+    """Removes unwanted characters from the instring. 
+    Replaces separators by underscores. """
+    unwanted_chars = '<>:"/\?*'
+    separators = '-_| '
+    for c in unwanted_chars:
+        name = name.replace(c, '')
+    for c in separators:
+        name = name.replace(c, '_')
+    return name
 
 # Return an empty string for the string cast of None
 def xstr(s):

@@ -12,43 +12,83 @@
 # 4) In the last step, the script will build an image based on the CMK version, including
 #    Python3 and robotframework. (approx. 10 minutes)  
 # $ docker images | grep mk
-# robotmk-cmk-python3                                                2.0.0p5        1d96bebf47a6   27 seconds ago   2.18GB
-# robotmk-cmk-python3                                                1.6.0p25       599e8beeb9c7   10 minutes ago   1.93GB
+# $CMK_ROBOT_IMAGE                                                2.0.0p5        1d96bebf47a6   27 seconds ago   2.18GB
+# $CMK_ROBOT_IMAGE                                                1.6.0p25       599e8beeb9c7   10 minutes ago   1.93GB
 
 
-# Name of the resulting images
-IMAGE=robotmk-cmk-python3
+
+
+
+REGISTRY="registry.checkmk.com"
+ROOTDIR=$(dirname "$0")
+
+# Name of the final image
+CMK_ROBOT_IMAGE=robotmk-cmk-python3
+# Dockerfile for the final image
+DOCKERFILE_CMK_ROBOT=Dockerfile_cmk_python
+
 # load Checkmk versions
-. build-devcontainer.env
+. $ROOTDIR/build-devcontainer.env
 
-for VERSION in $CMKVERSIONS; do
-    docker images | egrep "checkmk/check-mk-enterprise.*$VERSION" 2>&1 > /dev/null
+function main() {
+    cmk_registry_login
+    build_images
+}
+
+
+function cmk_registry_login() {
+    echo "Please provide your credentials to use the Checkmk Docker registry:"
+    read -p "Username: " user
+    read -p "Password: " password
+    docker login $REGISTRY --username $user --password $password
     if [ $? -gt 0 ]; then 
-        echo "Docker image checkmk/check-mk-enterprise.*$VERSION is not available locally."
-        read -p "Download this image? " -n 1 -r
-        echo 
-        if [[ $REPLY =~ ^[Yy]$ ]]; then 
-
-            read -p "Username: " user
-            DOWNLOAD_FOLDER=$(mktemp -d)
-            URL=https://download.checkmk.com/checkmk/$VERSION
-            TGZ=check-mk-enterprise-docker-$VERSION.tar.gz
-            TGZ_FILE=${DOWNLOAD_FOLDER}/${TGZ}
-            echo "+ Downloading docker image $VERSION to $DOWNLOAD_FOLDER ..."
-            wget -P $DOWNLOAD_FOLDER --user $user ${URL}/${TGZ} --ask-password
-            if [ -f $TGZ_FILE ]; then 
-                echo "+ Importing image $TGZ_FILE ..."
-                docker load -i $TGZ_FILE
-            else 
-                echo "ERROR: $TGZ_FILE not found!"
-            fi
-        else
-            continue
-        fi    
+        echo "⛔️  ERROR: Login failed. Exiting."
+        exit 1
+    else
+        echo "🔐 Logged in to $REGISTRY."
     fi
-    echo "----"
-    echo "Docker image checkmk/check-mk-enterprise.*$VERSION is ready to use"
-    echo "----"
-    echo "Building now the image robotmk-cmk-python3:$VERSION from Dockerfile_cmk_python ..."
-    docker build -t robotmk-cmk-python3:$VERSION -f Dockerfile_cmk_python --build-arg VARIANT=$VERSION .
-done
+}
+
+function image_exists() {
+    docker images | egrep -q "$1" 
+}
+
+function build_images() {
+    # See https://github.com/docker/compose/issues/8449#issuecomment-914174592
+    export DOCKER_BUILDKIT=0
+    for VERSION in $CMKVERSIONS; do
+        IMAGE_NAME="$REGISTRY/enterprise/check-mk-enterprise:$VERSION"
+        IMAGE_PATTERN="$REGISTRY/enterprise/check-mk-enterprise.*$VERSION"
+        if image_exists $IMAGE_PATTERN; then
+            echo "Docker image $IMAGE_NAME is already available locally."
+        else
+            echo "Docker image $IMAGE_NAME is not yet available locally."
+            read -p "Download this image? (y/n)" -n 1 -r
+            echo 
+            if [[ $REPLY =~ ^[Yy]$ ]]; then 
+                # FIXME: v1 download with wget?
+                docker pull $IMAGE_NAME
+                if [ $? -gt 0 ]; then 
+                    echo "⛔️  ERROR: Download failed. Exiting."
+                    exit 1
+                else
+                    echo "✔️ Downloaded $IMAGE_NAME."
+                fi
+            else
+                echo "❌  Skipping image build for Checkmk version $VERSION."
+                continue
+            fi    
+        fi
+        echo "Building now the local image $CMK_ROBOT_IMAGE:$VERSION from $DOCKERFILE_CMK_ROBOT ..."
+        echo "Calling: docker build -t $CMK_ROBOT_IMAGE:$VERSION -f $ROOTDIR/$DOCKERFILE_CMK_ROBOT --build-arg VARIANT=$VERSION ."
+        docker build -t $CMK_ROBOT_IMAGE:$VERSION -f $ROOTDIR/$DOCKERFILE_CMK_ROBOT --build-arg VARIANT=$VERSION .
+        if [ $? -eq 0 ]; then 
+            echo "✅  Docker image $CMK_ROBOT_IMAGE:$VERSION has been built."
+        else 
+            echo "⛔️  ERROR: Docker image $CMK_ROBOT_IMAGE:$VERSION could not be built."
+        fi
+        echo "----"
+    done
+}
+
+main $@

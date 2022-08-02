@@ -1,8 +1,0 @@
-{
-    "displayName": "▶︎ Set devcontainer to CMK v2",
-    "command": "bash .devcontainer/set_devcontainer_version.sh 2",
-    "version": "2.0.0",
-    "type": "shell",
-    "problemMatcher": [],
-    "chooserIndex": 2
-}

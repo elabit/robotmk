@@ -49,7 +49,7 @@ import socket
 
 local_tz = datetime.utcnow().astimezone().tzinfo
 
-ROBOTMK_VERSION = 'v1.2.9'
+ROBOTMK_VERSION = 'v1.2.10'
 
 class RMKConfig():
     _PRESERVED_WORDS = [
@@ -510,6 +510,27 @@ class RMKSuite(RMKState):
                 return default
 
     @property
+    def is_disabled_by_flagfile(self):
+        # if disabled flag file exists, return True
+        return self.path.joinpath('DISABLED').exists()  
+
+    @property
+    def get_disabled_reason(self):
+        # If disabled flag file exists, return the content.
+        # Otherwise return default message.
+        if self.is_disabled_by_flagfile:
+            try:
+                with open(self.path.joinpath('DISABLED'), 'r') as f:
+                    reason = f.read()
+                    if len(reason) > 0:
+                        return "Reason: " + reason
+                    else:
+                        return ""
+                    
+            except:
+                return ""
+
+    @property
     def path(self):
         '''The absolute path to the Robot test (directory or .robot file),
         built from the robotdir and the relative path given in WATO'''
@@ -948,7 +969,9 @@ class RMKrunner(RMKState, RMKPlugin):
         - external mode (a scheduled task starts the runner with suite args)'''
         runtime_total = (
             self._state['end_time'] - self._state['start_time']).total_seconds()
-        runtime_suites = sum([suite.runtime for suite in self.suites])
+        # only count runtimes of suites which ran indeeed. Suites which were skipped 
+        # with a DISABLED file are ignored.
+        runtime_suites = sum([suite.runtime for suite in self.suites if suite.is_disabled_by_flagfile == False])
         runtime_robotmk = runtime_total - runtime_suites
     
         self.set_statevars([
@@ -1006,10 +1029,17 @@ class RMKrunner(RMKState, RMKPlugin):
                     suite.error = error
                     # continue
                 self.logdebug(f'Strategy: ' + str(suite._env_strategy) )
+
+                # search for a DEBUG file in the suite directory and skip the suite if found
+                if suite.is_disabled_by_flagfile:
+                    reason = suite.get_disabled_reason.strip()
+                    self.logwarn(f"Suite '{id}' is skipped because of the 'DISABLED' flagfile in its suite folder. {reason}")
+                    self.logwarn("(Be aware that the services in Checkmk will become stale soon.)")
+                    continue
                 
+                # Robot Framework, the stage is yours!
                 rc = self.run_suite(suite)
                 
-
                 if rc > 250:
                     self.logerror(
                         'RC > 250 = Robot exited with fatal error. There are no logs written.')
@@ -1313,37 +1343,38 @@ class RMKCtrl(RMKState, RMKPlugin):
         return ['xml', 'htmllog']
 
     def encode(self, data, encoding):
-        data = data.encode('utf-8')
+        # Caveat: to keep the zlib stream integrity, it must be converted to a
+        # "safe" stream afterwards.
+        # Reason: if there is a byte in the zlib stream which is a newline byte
+        # by accident, Checkmk splits the byte string at this point - the
+        # byte gets lost, stream integrity bungled.
+        # Even if base64 blows up the data, this double encoding still saves space:
+        # in:      692800 bytes  100    %
+        # zlib:      4391 bytes    0,63 % -> compression 99,37%
+        # base64:    5856 bytes    0,85 % -> compression 99,15%
+
+        #    1. encode in UTF8
+        #   2. compress with zlib 
+        #  3. encode with base64
+
         if encoding == 'base64_codec':
-            data_encoded = self.to_base64(data)
+            data_bytes = data.encode('utf-8')
+            data_encoded = base64.b64encode(data_bytes)
+            data_utf8 = data_encoded.decode('utf-8')            
         elif encoding == 'zlib_codec':
-            # zlib bytestream is base64 wrapped to avoid nasty bytes wihtin the
-            # agent output. The check has first to decode the base64 "shell"
-            data_encoded = self.to_zlib(data)
+            data_bytes = data.encode('utf-8')
+            data_zlib = zlib.compress(data_bytes, 9)
+            data_encoded = base64.b64encode(data_zlib)
+            data_utf8 = data_encoded.decode('utf-8')            
         elif encoding == 'utf_8':
-            # nothing to do, already in utf8
-            data_encoded = data
+            # nothing to do, already in utf8 = string
+            data_utf8 = data
         else:
             # TODO: Catch the exception! (wrong encoding)!
             pass
-        # as we are serializing the data to JSON, let's convert the bytestring
-        # again back to UTF-8
-        return data_encoded.decode('utf-8')            
+        return data_utf8
 
-    def to_base64(self, data):
-        data_base64 = base64.b64encode(data)
-        return data_base64
 
-    # opens a file and returns the compressed content.
-    # Caveat: to keep the zlib stream integrity, it must be converted to a
-    # "safe" stream afterwards.
-    # Reason: if there is a byte in the zlib stream which is a newline byte
-    # by accident, Checkmk splits the byte string at this point - the
-    # byte gets lost, stream integrity bungled.
-    # Even if base64 blows up the data, this double encoding still saves space:
-    # in:      692800 bytes  100    %
-    # zlib:      4391 bytes    0,63 % -> compression 99,37%
-    # base64:    5856 bytes    0,85 % -> compression 99,15%
     def to_zlib(self, data):
         data_zlib = zlib.compress(data, 9)
         data_zlib_b64 = self.to_base64(data_zlib)

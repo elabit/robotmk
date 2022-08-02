@@ -27,6 +27,7 @@ mkpackage.pyc
 nohup.out
 .devcontainer/devcontainer.json
 .vscode/launch.json
+.vscode/tasks.json
 .vscode/settings.json
 agent_output/*
 !agent_output/.gitkeep

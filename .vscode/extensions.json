@@ -6,6 +6,7 @@
         "davidanson.vscode-markdownlint",
         "ms-python.python",
         "jeremyfa.tasks-chooser",
-        "yzhang.markdown-all-in-one"
+        "yzhang.markdown-all-in-one",
+        "GitHub.copilot"
 	]
 }

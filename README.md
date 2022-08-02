@@ -11,24 +11,29 @@
 ![desc](img/robotmk_banner.png)
 
 <!--ts-->
-* [Robotmk](#robotmk)
-   * [Description](#description)
-   * [Key features/components](#key-featurescomponents)
-   * [Usage scenarios](#usage-scenarios)
-   * [State of development](#state-of-development)
-   * [Requirements](#requirements)
-   * [Installation](#installation)
-   * [Documentation](#documentation)
-   * [Learning Resources](#learning-resources)
-   * [Professional Support](#professional-support)
-   * [Next developments](#next-developments)
-   * [Contributing](#contributing)
-   * [License](#license)
-   * [Credits/Thanks](#creditsthanks)
-      * [Supporters](#supporters)
-   * [Contributors <g-emoji class="g-emoji" alias="sparkles" fallback-src="https://github.githubassets.com/images/icons/emoji/unicode/2728.png">✨</g-emoji>](#contributors-)
+- [Robotmk](#robotmk)
+  - [Description](#description)
+  - [Key features/components](#key-featurescomponents)
+  - [Usage scenarios](#usage-scenarios)
+  - [State of development](#state-of-development)
+  - [Requirements](#requirements)
+  - [Installation](#installation)
+    - [Installing the Robotmk server component](#installing-the-robotmk-server-component)
+    - [Preparing the Robotmk agent](#preparing-the-robotmk-agent)
+  - [Documentation](#documentation)
+  - [FAQ](#faq)
+  - [Learning Resources](#learning-resources)
+  - [Talks](#talks)
+  - [Professional Support](#professional-support)
+  - [Next developments](#next-developments)
+  - [Contributing](#contributing)
+  - [License](#license)
+  - [Credits/Thanks](#creditsthanks)
+    - [Supporters](#supporters)
+  - [Contributors ✨](#contributors-)
 
-<!-- Added by: runner, at: Mon Sep 27 05:07:09 UTC 2021 -->
+<!-- Created by https://github.com/ekalinin/github-markdown-toc -->
+<!-- Added by: runner, at: Wed Jun 29 16:48:04 UTC 2022 -->
 
 <!--te-->
 
@@ -80,6 +85,8 @@ The Robotmk project consists of different components working together:
     * (new) log integration: The check extracts the Robot HTML logs and integrates 
       them into the Checkmk web UI: 
 
+The locations of the individual files in CMK V1 and V2 are described in [DEVELOPMENT.md](./DEVELOPMENT.md#file-locations).
+
 ![desc](img/robotmk_html_logs_animated.gif)
 
 *The integration of Robot HTML logs into Checkmk makes it easy to understand why an E2E test failed*
@@ -103,15 +110,15 @@ Read the [feature page](https://robotmk.org) of Robotmk to learn about its histo
 
 ## State of development
 
-**Is Robotmk stable? Can it be used in production?**
+Robotmk has been used successfully and productively by companies in a wide range of industries since 2020. 
 
 Fortunately, the development of Robotmk is driven by customers who believe in the project and use it already in their daily business. This is where worthful feedback and feature requests come from. 
 
-As bugs are getting solved and new features are coming in, there is no guarantee that after installing a new version of Robotmk settings, output formats etc. will be the same or at least compatible with the previous version. We try to communicate this in the [CHANGELOG](./CHANGELOG.md) as detailled as possible. 
+However, as bugs are getting solved and new features are coming in, there is no guarantee that after installing a new version of Robotmk settings, output formats etc. will be the same or at least compatible with the previous version. We try to communicate this in the [CHANGELOG](./CHANGELOG.md) as detailled as possible. 
 
 Incompatibilities will always be reflected in a major version change. As soon as the major version number is not changing, chances are good that all existing CMK rules for Robotmk will work.  
 
-Remark to the current version 1.2: although this version will break existing WATO rules for a very last time (see #164) this is not a major release.
+
 
 ## Requirements
 
@@ -161,6 +168,11 @@ The context help can be shown by clicking on the **book icon** in the top right 
 
 ![How to show the context help](img/show_context_help.gif)
 
+## FAQ
+
+The [Frequently asked questions](./FAQ.md) cover a whole range of questions that have arisen time and again in the context of Robotmk.  
+They give an insight into why Robotmk differs (or: has to differ) from a regular agent plugin in certain respects.
+
 ## Learning Resources
 
 You can find comprehensive learning material to teach you the best practices in End2End monitoring with Checkmk and Robotmk on [the Robotmk Academy](https://www.robotmk.org).
@@ -174,6 +186,18 @@ Further learning course material is in preparation for
 * fully automated Python environment rollouts with RCC
 * Using Robocorp with Robotmk 
 * and much more. 
+
+## Talks
+
+* 2020 
+  * ROBOCON 2020: [Robot Framework meets Checkmk](https://www.youtube.com/watch?v=7Ks8XSM2Uoc) - *how it all began*
+* 2021
+  * ROBOCON 2021: [ROBOTMK: TESTING MEETS MONITORING](https://www.youtube.com/watch?v=Asjh7E1xoFI) 
+  * FOSDEM 2021: [Extend Checkmk with Robot Framework E2E tests (Why infrastructure monitoring is not enough)](https://archive.fosdem.org/2021/schedule/event/nemorobotmk/)
+  * Checkmk Conference #7 2021: [Tech Session - E2E Monitoring](https://www.youtube.com/watch?v=i4W81m-A75U) - *Robotmk's architecture, concept and use cases. Includes an interview with Jens Dunkelberg, Monitoring Team Lead at ABRAXAS Informatik AG (CH), who uses Robotmk for E2E testing of a variety of Swiss government applications.*
+  * OSMC 2021 Nuremberg: [Robotmk: You don’t run IT – you deliver services!](https://www.youtube.com/watch?v=3FzFomiQUd8)
+* 2022 
+  * Checkmk Conference #8 2022: [Robotmk - The future of Synthetic Monitoring with Checkmk](https://www.youtube.com/watch?v=p9G75YCqkOc) - *Robotmk and Checkmk join hands! Presenting the roadmap for the planned integration*
 
 ## Professional Support
 
@@ -191,16 +215,24 @@ No matter at which stage you are with Robot Framework and Robotmk: there are [ex
 
 See the [Github Issues](https://github.com/simonmeggle/robotmk/issues) page for a complete list of feature requests, known bugs etc.
 
-Next development steps will be: 
+As announced at the Checkmk Conference #8 in 2022, Robotmk will become an integral part of Checkmk. The roadmap was presented in detail in this talk ([Robotmk - The future of Synthetic Monitoring with Checkmk](https://www.youtube.com/watch?v=p9G75YCqkOc)) and we are already developing the first features. 
 
-* Development of a Robotmk Docker container
-* Implementation of a Robotmk special agent for Kubernetes/Docker Swarm environments  
-* Implementation of a Robotmk special agent for Robocorp Cloud
-* Integrate RCC from the [Robocorp toolchain](https://robocorp.com/docs/rcc/overview) to make Python environments portable. 
+* automatic no-code Robot genration which will extend Checkmk's montoring capabilities 
+* low-code suite development (Automation Studio)
+* parallel suite execution
+* automated test deployment (integration of Robocorp's great [RCC](https://github.com/robocorp/rcc/))
+* detailled reporting and result aggregation
+* Synthetic monitoring dashboards
+* orchestrated Robot execution in:
+  * [Robocorp](https://robocorp.com) 
+  * Dedicated Kubernetes infrastructure 
+  * Docker Swarm
+
 
 ## Contributing
 
-If you want to help Robotmk to get better, you're warmly welcomed!
+If you want to help Robotmk to get better, you're warmly welcomed!  
+See [DEVELOPMENT.md](./DEVELOPMENT.md) for instructions about the environment preconditions. 
 
 * Fork this project
 * Create a feature branch with a name containing the issue number (or submit a new issue first), from the current `develop` branch. 

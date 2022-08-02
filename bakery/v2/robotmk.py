@@ -18,7 +18,7 @@
 # to the Free Software Foundation, Inc., 51 Franklin St,  Fifth Floor,
 # Boston, MA 02110-1301 USA.
 
-ROBOTMK_VERSION = 'v1.2.9'
+ROBOTMK_VERSION = 'v1.2.10'
 
 from typing import Iterable, TypedDict, List
 from pathlib import Path
@@ -30,7 +30,7 @@ import copy
 import cmk.utils.paths
 from cmk.utils.exceptions import MKGeneralException
 
-from .bakery_api.v1 import (
+from cmk.base.cee.plugins.bakery.bakery_api.v1 import (
    OS,
    Plugin,
    PluginConfig,
@@ -190,7 +190,7 @@ class RMK():
             return Plugin(
                 base_os=opsys,
                 source=Path('robotmk-runner.py'),
-                # TODO: interval=interval,
+                timeout=self.execution_interval - 5,
                 interval=self.execution_interval,
             )
         else:

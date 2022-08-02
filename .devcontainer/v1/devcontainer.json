@@ -3,7 +3,7 @@
 	"build": {
 		"dockerfile": "Dockerfile",
 		"args": {
-			"VARIANT": "1.6.0p25",
+			"VARIANT": "$VERSION",
 			"PIP": "pip"
 		},
 	},
@@ -33,6 +33,6 @@
 		"OMD_ROOT": "/omd/sites/cmk",
 		"OMD_SITE": "cmk",
 		"CMK_SITE_ID": "cmk",
-		"WORKSPACE": "${containerWorkspaceFolder}"
+		"WORKSPACE": "###{containerWorkspaceFolder}"
 	}
 }

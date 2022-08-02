@@ -2,7 +2,8 @@
 
 ARG VARIANT
 # Build the dev images with .devcontainer/build-devcontainer.sh !
-FROM robotmk-cmk-python3:${VARIANT}
+# See https://stackoverflow.com/a/69798220 to run the image on Apple M1
+FROM --platform=linux/amd64 robotmk-cmk-python3:${VARIANT}
 ARG PIP
 
 ENV CMK_PASSWORD="cmk"

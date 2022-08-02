@@ -35,7 +35,7 @@ from collections import namedtuple
 from cmk.base.plugins.agent_based.agent_based_api.v1 import *
 from cmk.utils.exceptions import MKGeneralException
 
-ROBOTMK_VERSION = 'v1.2.9'
+ROBOTMK_VERSION = 'v1.2.10'
 DEFAULT_SVC_PREFIX = 'Robot Framework E2E $SUITEID$SPACE-$SPACE'
 HTML_LOG_DIR = "%s/%s" % (os.environ['OMD_ROOT'], 'var/robotmk')
 
@@ -75,17 +75,19 @@ def parse_robotmk(params, string_table):
         for k in keys_to_decode:
             if k in json_suite:
                 if bool(json_suite[k]):
-                    d = json_suite[k]
+                    data_utf8 = json_suite[k]
                     if runner_data['encoding'] == 'zlib_codec':
-                        d = d.encode('utf-8')
-                        d_byte = base64.b64decode(d)
-                        d_decomp = zlib.decompress(d_byte).decode('utf-8')
+                        data_encoded = data_utf8.encode('utf-8')
+                        data_zlib = base64.b64decode(data_encoded)
+                        data_bytes = zlib.decompress(data_zlib)
+                        data = data_bytes.decode('utf8')
                     elif runner_data['encoding'] == 'base64_codec':
-                        d = d.encode('utf-8')
-                        d_decomp = base64.b64decode(d)
+                        data_encoded = data_utf8.encode('utf-8')
+                        data_bytes = base64.b64decode(data_encoded)
+                        data = data_bytes.decode('utf8')
                     else:
-                        d_decomp = d
-                    json_suite[k] = d_decomp
+                        data = data_utf8
+                    json_suite[k] = data
         if json_suite.get('xml') != None:
             xml = ET.fromstring(json_suite['xml'])
             xml_root_suite = xml.find('./suite')
@@ -645,18 +647,19 @@ class RobotItem(object):
     # sets status and message for this node with exceeded runtime
     # Runtime monitoring is not related to Robot Framework and introduces the WARN
     # state. Therefore, it can happen that a s/t/k is CRIT/WARN but the RF status is PASS.
+    # Thresholds of 0 will be ignored. 
     def _eval_node_cmk_runtime(self, check_params):
         runtime_threshold = self._get_pattern_value('runtime_threshold',
                                                     check_params)
         if bool(runtime_threshold):
             # CRITICAL threshold
-            if self.elapsed_time >= runtime_threshold[1]:
+            if runtime_threshold[1] > 0 and self.elapsed_time >= runtime_threshold[1]:
                 nagios_status = 2
                 text = "%s runtime=%.2fs >= %.2fs" % (
                     STATE_BADGES[nagios_status], self.elapsed_time,
                     runtime_threshold[1])
             # WARNING threshold
-            elif self.elapsed_time >= runtime_threshold[0]:
+            elif runtime_threshold[0] > 0 and self.elapsed_time >= runtime_threshold[0]:
                 nagios_status = 1
                 text = "%s runtime=%.2fs >= %.2fs" % (
                     STATE_BADGES[nagios_status], self.elapsed_time,
@@ -686,7 +689,7 @@ class RobotItem(object):
                                                   check_params)
         # Only generate perfdata for RF PASS state. 
         if perfdata_wanted and self.elapsed_time != None and self.status == 'PASS':
-            perflabel = get_perflabel("%s_%s" % (self.id, self.name))
+            perflabel = perfdata_label("%s_%s" % (self.id, self.name))
             if runtime_threshold:
                 cmk_perfdata = Metric(
                     perflabel, 
@@ -1046,6 +1049,7 @@ def parse_suite_xml(root_xml, discovery_setting):
 #               |_|
 
 def save_htmllog(dir, logname, raw_html):
+    mkdirp(dir)
     filename = "%s/%s" % (dir, logname)
     try:
         with open(filename, 'w') as f:
@@ -1100,12 +1104,16 @@ def lns(src, dest):
     if not os.path.islink(dest):
         os.symlink(src, dest)
 
-# create a valid perfdata label which does contain only numbers, letters,
-# dash and underscore. Everything else becomes a underscore.
-def get_perflabel(instr):
-    outstr = re.sub('[^A-Za-z0-9]', '_', instr)
-    return re.sub('_+', '_', outstr)
-
+def perfdata_label(name):
+    """Removes unwanted characters from the instring. 
+    Replaces separators by underscores. """
+    unwanted_chars = '<>:"/\?*'
+    separators = '-_| '
+    for c in unwanted_chars:
+        name = name.replace(c, '')
+    for c in separators:
+        name = name.replace(c, '_')
+    return name
 
 # Return an empty string for the string cast of None
 def xstr(s):

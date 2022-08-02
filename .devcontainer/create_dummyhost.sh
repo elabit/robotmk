@@ -17,6 +17,6 @@ echo "Creating a dummy host via webapi.py ... "
 # localhost
 curl -k "http://$HOST/$SITE/check_mk/webapi.py?action=add_host&_username=automation&_secret=$SECRET&request_format=python&output_format=python" -d "request={'hostname': 'localhost', 'folder': '', 'attributes': {'ipaddress': '127.0.0.1'}, 'create_folders': '1'}"
 echo "Discovering ... "
-cmk -IIv
+cmk -IIv 2>&1 > /dev/null
 echo "Reloading CMK config ... "
 cmk -R
