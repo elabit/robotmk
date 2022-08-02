@@ -510,6 +510,27 @@ class RMKSuite(RMKState):
                 return default
 
     @property
+    def is_disabled_by_flagfile(self):
+        # if disabled flag file exists, return True
+        return self.path.joinpath('DISABLED').exists()  
+
+    @property
+    def get_disabled_reason(self):
+        # If disabled flag file exists, return the content.
+        # Otherwise return default message.
+        if self.is_disabled_by_flagfile:
+            try:
+                with open(self.path.joinpath('DISABLED'), 'r') as f:
+                    reason = f.read()
+                    if len(reason) > 0:
+                        return "Reason: " + reason
+                    else:
+                        return ""
+                    
+            except:
+                return ""
+
+    @property
     def path(self):
         '''The absolute path to the Robot test (directory or .robot file),
         built from the robotdir and the relative path given in WATO'''
@@ -948,7 +969,9 @@ class RMKrunner(RMKState, RMKPlugin):
         - external mode (a scheduled task starts the runner with suite args)'''
         runtime_total = (
             self._state['end_time'] - self._state['start_time']).total_seconds()
-        runtime_suites = sum([suite.runtime for suite in self.suites])
+        # only count runtimes of suites which ran indeeed. Suites which were skipped 
+        # with a DISABLED file are ignored.
+        runtime_suites = sum([suite.runtime for suite in self.suites if suite.is_disabled_by_flagfile == False])
         runtime_robotmk = runtime_total - runtime_suites
     
         self.set_statevars([
@@ -1006,10 +1029,17 @@ class RMKrunner(RMKState, RMKPlugin):
                     suite.error = error
                     # continue
                 self.logdebug(f'Strategy: ' + str(suite._env_strategy) )
+
+                # search for a DEBUG file in the suite directory and skip the suite if found
+                if suite.is_disabled_by_flagfile:
+                    reason = suite.get_disabled_reason.strip()
+                    self.logwarn(f"Suite '{id}' is skipped because of the 'DISABLED' flagfile in its suite folder. {reason}")
+                    self.logwarn("(Be aware that the services in Checkmk will become stale soon.)")
+                    continue
                 
+                # Robot Framework, the stage is yours!
                 rc = self.run_suite(suite)
                 
-
                 if rc > 250:
                     self.logerror(
                         'RC > 250 = Robot exited with fatal error. There are no logs written.')
