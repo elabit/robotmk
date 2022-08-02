@@ -34,7 +34,7 @@ from collections import namedtuple
 iam = "robotmk"
 # DO NOT DELETE
 inventory_robotmk_rules = []
-ROBOTMK_VERSION = 'v1.2.9'
+ROBOTMK_VERSION = 'v1.2.10'
 DEFAULT_SVC_PREFIX = 'Robot Framework E2E $SUITEID$SPACE-$SPACE'
 HTML_LOG_DIR = "%s/%s" % (os.environ['OMD_ROOT'], 'var/robotmk')
 
