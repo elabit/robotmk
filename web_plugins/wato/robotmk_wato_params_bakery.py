@@ -348,6 +348,7 @@ agent_config_testsuites_path = TextUnicode(
     help=
     _("Name of the <tt>.robot</tt> file or directory containing <tt>.robot</tt> files, relative to the <i>robot suites directory</i><br>"
       "It is highly recommended to organize Robot suites in <i>directories</i> and to specify the directories here without leading/trailing (back)slashes.<br>"
+      "💡 If a suite needs to be <b>skipped temporarily</b>, place a file <tt>DISABLED</tt> in the <i>robot suites directory</i>. Robotmk will silently omit the execution, detected services will be displayed as outdated/stale, but will not be alerted."
       ),
     allow_empty=False,
     size=50,

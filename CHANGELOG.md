@@ -7,9 +7,26 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## Unreleased
 
+### Added
+
+* Documentation: Added [FAQs](./FAQ.md) with design decicions
+* Check: Added the possibility to temporarily skip the execution of suites by placing a `DISABLED` (case sensitive) file in the suite's root folder. (#192)  
+Robotmk will silently ignore this suite as long the DISABLED file is there.  
+(Thanks Marcus for this suggestion - this is the perfect alternative to commenting out the suite in `robotmk.yml` manually).  
+You can also optionally write a reason ("*Need a short break.*") into the file; it will get logged in Robotmk's log: 
+
+```
+2022-08-02 22:25:28,449  RMKrunner [48887]    INFO: ####################
+2022-08-02 22:25:28,575  RMKrunner [48887]    INFO:  => Suites to start: sleep
+2022-08-02 22:25:28,583  RMKrunner [48887]    INFO: ~~~~ Suite ID: sleep ~~~~
+2022-08-02 22:25:28,591  RMKrunner [48887] WARNING: Suite 'sleep' is skipped because of the 'DISABLED' flagfile in its suite folder. Reason: Need a short break.
+2022-08-02 22:25:28,591  RMKrunner [48887] WARNING: (Be aware that the services in Checkmk will become stale soon.)
+2022-08-02 22:25:28,595  RMKrunner [48887]    INFO: ... Quitting Runner, bye. ---
+```
+
 ### Changed
 
-* Bakery rule: Lowered the log retention threshold (#172)
+* Bakery rule: Lowered the log retention threshold (#172) 
 * Check: Fixed a bug which lead to metric names without specials chars like umlauts => metric names can slightly change, sorry. (#197)
 
 ### Fixed 
@@ -19,6 +36,11 @@ set to 5 sec less than the execution interval so that the agent can kill the run
 before the next execution. (#203)
 * Check: Creates host dir for HTML logs; updated inline help for HTML log icons (#201)
 * Check: Allow only 1 runtime threshold by setting the other one to 0 (#198)
+
+### Removed
+
+### Deprecated
+
 
 ## 1.2.9 - 2022-03-25
 
