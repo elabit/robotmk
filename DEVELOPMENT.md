@@ -34,6 +34,12 @@ Authentication to GitHub is required if you want to release/unrelease.
 
 Install the CLI tools from https://github.com/cli/cli.
 
+After installation, authenticate to github. It will ask you about your authentication method, protocol, and present an authentication code which you should open in the opened Github web page. 
+
+    gh auth login 
+
+After that you are fully authenticated in the CLI to GitHub.
+
 ---
 
 ## Development environment setup 
