@@ -629,7 +629,7 @@ dropdown_robotmk_log_rotation = CascadingDropdown(
         (90, _('90')),
         (365, _('365')),
     ],
-    default_value=14,
+    default_value=7,
     sorted=False)
 
 dropdown_robotmk_logging = DropdownChoice(

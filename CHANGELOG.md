@@ -7,6 +7,10 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## Unreleased
 
+### Changed
+
+* Bakery rule: Lowered the log retention threshold (#172)
+
 ### Fixed 
 
 * Bakery (V2): Added missing `timeout` to async robotmk execution. `timeout` is now  
