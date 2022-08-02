@@ -165,7 +165,7 @@ VS code displays by default only the files of the workspace (`/workspaces/robotm
 You can now add breakpoints to the scripts in this folder to debug them.  
 Also, only then the code completion (classes, functions, ...) works properly, because it works in the same Python context as Checkmk. 
 
-### Test a new Linux agent in the container
+### Install a new Linux agent in the container
 
 The Debian packages that the Bakery generates can be installed and tested directly in the container: 
 
@@ -192,6 +192,17 @@ Deployed xinetd
 systemd not found on this system
 Reloading xinetd
 ```
+
+### Debugging Robotmk agent plugins
+
+Debugging `robotmk.py` and `robotmk-runner.py` from the devcontainer is not straightforward, because from the context of the `cmk` user, you are not able to access the Robotmk YML and log files. But it is possible (and very useful), if just do the following steps: 
+
+- Jump into the decontainer: `docker ps` => `docker exec -it <containerid> bash`
+- Change permissions on 
+  - the logs: `chmod -R o+w /var/log/robotmk`
+  - the Robotmk YML file: `chmod o+r /etc/check_mk/robotmk.yml`
+
+After that, set a breakpoint in VS Code in `agents_plugins/robotmk-runner.py`. Also select the debugging configuration to "devc V2.x robotmk-runner" and press F5 to start debugging.  
 
 ### Write a changelog
 
