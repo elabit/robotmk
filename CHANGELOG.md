@@ -16,6 +16,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 * Bakery (V2): Added missing `timeout` to async robotmk execution. `timeout` is now  
 set to 5 sec less than the execution interval so that the agent can kill the runner  
 before the next execution. (#203)
+* Check: Creates host dir for HTML logs; updated inline help for HTML log icons (#201)
+* Check: Allow only 1 runtime threshold by setting the other one to 0 (#198)
 
 ## 1.2.9 - 2022-03-25
 
