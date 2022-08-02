@@ -687,7 +687,7 @@ class RobotItem(object):
                                                   check_params)
         # Only generate perfdata for RF PASS state. 
         if perfdata_wanted and self.elapsed_time != None and self.status == 'PASS':
-            perflabel = get_perflabel("%s_%s" % (self.id, self.name))
+            perflabel = perfdata_label("%s_%s" % (self.id, self.name))
             if runtime_threshold:
                 cmk_perfdata = Metric(
                     perflabel, 
@@ -1102,12 +1102,16 @@ def lns(src, dest):
     if not os.path.islink(dest):
         os.symlink(src, dest)
 
-# create a valid perfdata label which does contain only numbers, letters,
-# dash and underscore. Everything else becomes a underscore.
-def get_perflabel(instr):
-    outstr = re.sub('[^A-Za-z0-9]', '_', instr)
-    return re.sub('_+', '_', outstr)
-
+def perfdata_label(name):
+    """Removes unwanted characters from the instring. 
+    Replaces separators by underscores. """
+    unwanted_chars = '<>:"/\?*'
+    separators = '-_| '
+    for c in unwanted_chars:
+        name = name.replace(c, '')
+    for c in separators:
+        name = name.replace(c, '_')
+    return name
 
 # Return an empty string for the string cast of None
 def xstr(s):

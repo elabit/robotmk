@@ -10,6 +10,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ### Changed
 
 * Bakery rule: Lowered the log retention threshold (#172)
+* Check: Fixed a bug which lead to metric names without specials chars like umlauts => metric names can slightly change, sorry. (#197)
 
 ### Fixed 
 
