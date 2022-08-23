@@ -18,7 +18,7 @@
 # to the Free Software Foundation, Inc., 51 Franklin St,  Fifth Floor,
 # Boston, MA 02110-1301 USA.
 
-ROBOTMK_VERSION = 'v1.2.10-beta'
+ROBOTMK_VERSION = 'v1.2.10-beta-1'
 
 import cmk.utils.paths
 import os
