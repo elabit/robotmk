@@ -210,6 +210,16 @@ Debugging `robotmk.py` and `robotmk-runner.py` from the devcontainer is not stra
 
 After that, set a breakpoint in VS Code in `agents_plugins/robotmk-runner.py`. Also select the debugging configuration to "devc V2.x robotmk-runner" and press F5 to start debugging.  
 
+### Building a MKP inside of the Container
+
+To test how the Github workflow will build MKPs for Robotmk, you can run the build script within the container locally. 
+
+In VS Code,
+- run command "Tasks chooser: Select Task" => "Build Robotmk MKP"
+- run command "Tasks: run task" to execute the build script
+
+- 
+
 ### Write a changelog
 
 Robotmk's [CHANGELOG.md](CHANGELOG.md) is based on [](https://keepachangelog.com/).

@@ -9,7 +9,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Added
 
-* Documentation: Added [FAQs](./FAQ.md) with design decicions
+* Documentation: Added [FAQs](./FAQ.md) with design decisions
 * Check: Added the possibility to temporarily skip the execution of suites by placing a `DISABLED` (case sensitive) file in the suite's root folder. (#192)  
 Robotmk will silently ignore this suite as long the DISABLED file is there.  
 (Thanks Marcus for this suggestion - this is the perfect alternative to commenting out the suite in `robotmk.yml` manually).  
