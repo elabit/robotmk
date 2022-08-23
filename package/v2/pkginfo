@@ -2,9 +2,6 @@
     "version.min_required": "2.0.0",
     "files": {
         "agent_based": ["robotmk.py"],
-        "agents": ["plugins/robotmk-runner.py", "plugins/robotmk.py"],
-        "lib": [
-            "check_mk/base/cee/plugins/bakery/robotmk.py"
-        ]
+        "agents": ["plugins/robotmk-runner.py", "plugins/robotmk.py", "bakery/robotmk.py"]
     }
 }
