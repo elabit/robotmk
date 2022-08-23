@@ -1,0 +1,19 @@
+{
+	"folders": [
+		{
+			"path": "../.."
+		},
+		{
+			"path": "../../../../opt/omd/sites/cmk"
+		},
+		{
+			"path": "../../../../usr/bin"
+		},
+		{
+			"path": "../../../../usr/lib/check_mk_agent/plugins"
+		}
+	],
+	"settings": {
+		"python.languageServer": "Pylance"
+	}
+}
