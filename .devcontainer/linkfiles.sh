@@ -1,4 +1,8 @@
 #!/bin/bash
+# SPDX-FileCopyrightText: © 2022 ELABIT GmbH <mail@elabit.de>
+# SPDX-License-Identifier: GPL-3.0-or-later
+# This file is part of the Robotmk project (https://www.robotmk.org)
+
 set -u
 # This script gets called from postcreateCommand.sh directly after the devcontainer
 # has been started. Its job is to make the Robotmk project files available to the CMK site.

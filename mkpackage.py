@@ -1,4 +1,8 @@
 #!/usr/bin/python
+# SPDX-FileCopyrightText: © 2022 ELABIT GmbH <mail@elabit.de>
+# SPDX-License-Identifier: GPL-3.0-or-later
+# This file is part of the Robotmk project (https://www.robotmk.org)
+
 # This script reads the current version tag and creates a versioned robotmk MKP
 
 from mkp import dist

@@ -1,4 +1,8 @@
 #!/bin/bash
+# SPDX-FileCopyrightText: © 2022 ELABIT GmbH <mail@elabit.de>
+# SPDX-License-Identifier: GPL-3.0-or-later
+# This file is part of the Robotmk project (https://www.robotmk.org)
+
 
 echo "▹ WORKSPACE: $WORKSPACE"
 # This step ties the workspace files with the Devcontainer. lsyncd is used to synchronize files. 

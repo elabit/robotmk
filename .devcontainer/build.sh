@@ -1,5 +1,8 @@
 #!/bin/bash
 set -e
+# SPDX-FileCopyrightText: © 2022 ELABIT GmbH <mail@elabit.de>
+# SPDX-License-Identifier: GPL-3.0-or-later
+# This file is part of the Robotmk project (https://www.robotmk.org)
 
 # This file creates a CMK MKP file for the determined CMK version (1/2).
 # It leverages the "mkp" command from CMK, which reads a package description file

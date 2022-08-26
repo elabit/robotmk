@@ -1,4 +1,8 @@
 #!/bin/bash
+# SPDX-FileCopyrightText: © 2022 ELABIT GmbH <mail@elabit.de>
+# SPDX-License-Identifier: GPL-3.0-or-later
+# This file is part of the Robotmk project (https://www.robotmk.org)
+
 # This script gets executed as a hook after the Docker entrypoint script has 
 # created the OMD site.  
 # Note: the agent installed here has no relation to the CMK version in this container. 
