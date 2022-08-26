@@ -47,4 +47,7 @@ omd restart
 echo "▹ Creating localhost via Web API..."
 /workspaces/robotmk/.devcontainer/create_dummyhost.sh
 
+echo "▹ Starting xinetd..."
+nohup xinetd
+
 echo "✅ postCreateCommand.sh finished."

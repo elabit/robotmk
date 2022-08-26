@@ -65,7 +65,7 @@ What does the task "***Build all devcontainer images***" (`.devcontainer/build-d
 - First it checks if the CMK Docker images are already available locally. If not, it connects to the [Checkmk Docker Registry](registry.checkmk.com) and downloads the images from there.
 - It then creates a new Docker image based on the CMK docker image (downloaded in step 1) and installs some more things (see `.devcontainer/Dockerfile_cmk_python`):
   - Python 3.9 and modules `robotframework pyyaml mergedeep python-dateutil ipdb`
-  - some additional tools: `jq tree htop vim git telnet file lsyncd`
+  - some additional tools: `jq tree htop vim git telnet file`
 
 The resulting Docker image is then saved as `robotmk-cmk-python3:2.1.0p4` (example):
 
@@ -116,13 +116,12 @@ This reconfigures some important files:
 
 In the VS Code terminal you see the CMK site starting. 
 This takes some minutes (at least on my aged Mac). 
-During this step, all relevant files for Robotmk get [lsynced](https://axkibe.github.io/lsyncd/) (V1)/symlinked (V1) into the version specific folder of the CMK Docker container. 
+During this step, all relevant files for Robotmk get symlinked into the version specific folder of the CMK Docker container. 
 
 **Don't try to install the Robotmk MKP into this container! All files are already there!** 
 
-If lsyncd is not running, do this by hand: `lsyncd .lsyncd`
+The devcontainer is ready now. Open the Checmk login page on http://127.0.0.1:5000. 
 
-The devcontainer is ready now. Open the Checmk login page on http://127.0.0.1:5000
 ### Bash conveniences
 
 user | alias source | from | linked by
@@ -210,9 +209,7 @@ Reloading xinetd
 Debugging `robotmk.py` and `robotmk-runner.py` from the devcontainer is not straightforward, because from the context of the `cmk` user, you are not able to access the Robotmk YML and log files. But it is possible (and very useful), if just do the following steps: 
 
 - Jump into the decontainer: `docker ps` => `docker exec -it <containerid> bash`
-- Change permissions on 
-  - the logs: `chmod -R o+w /var/log/robotmk`
-  - the Robotmk YML file: `chmod o+r /etc/check_mk/robotmk.yml`
+- Execute as root: `/workspace/robotmk/scripts/docker_fix_agent_permissions.sh`
 
 After that, set a breakpoint in VS Code in `agents_plugins/robotmk-runner.py`. Also select the debugging configuration to "devc V2.x robotmk-runner" and press F5 to start debugging.  
 
