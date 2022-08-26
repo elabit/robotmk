@@ -237,7 +237,7 @@ See [DEVELOPMENT.md](./DEVELOPMENT.md) for instructions about the environment pr
 * Fork this project
 * Create a feature branch with a name containing the issue number (or submit a new issue first), from the current `develop` branch. 
 * Always and often rebase your feature branch from `develop` 
-* Pull requests are welcome if they can be merged and solve a problem
+* Pull requests are welcome if they can be merged and solve a problem. See the [CONTRIBUTING](./CONTRIBUTING.md) guide for information about the workflow.
 
 ## License
 
