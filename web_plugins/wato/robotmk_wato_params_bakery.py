@@ -433,7 +433,7 @@ agent_config_testsuites_robotframework_params_dict = Dictionary(
     title=_("Robot Framework parameters"),
     help=_(
         "The options here allow to specify the most common <b>commandline parameters</b> for Robot Framework.<br>"
-        "In order to use other parameters (see <a href=\"https://robotframework.org/robotframework/latest/RobotFrameworkUserGuide.html#all-command-line-options\">All command line options</a>), you can use the option 'Load arguments from file'.<br> (Feel free to <a href=\"https://github.com/simonmeggle/robotmk/issues\">file an issue</a> if you think that a special parameter should be added here)"
+        "In order to use other parameters (see <a href=\"https://robotframework.org/robotframework/latest/RobotFrameworkUserGuide.html#all-command-line-options\">All command line options</a>), you can use the option 'Load arguments from file'.<br> (Feel free to <a href=\"https://github.com/elabit/robotmk/issues\">file an issue</a> if you think that a special parameter should be added here)"
       ),
     elements=[
         ("name",

@@ -5,9 +5,9 @@
 
 *A complete solution to integrate **Robot Framework** End2End tests into **Checkmk***
 
-<!-- [![Build Status](https://travis-ci.com/simonmeggle/robotmk.svg?branch=develop)](https://travis-ci.com/simonmeggle/robotmk) ![.github/workflows/github-markdown-toc.yml](https://github.com/simonmeggle/robotmk/workflows/.github/workflows/github-markdown-toc.yml/badge.svg) -->
+<!-- [![Build Status](https://travis-ci.com/simonmeggle/robotmk.svg?branch=develop)](https://travis-ci.com/simonmeggle/robotmk) ![.github/workflows/github-markdown-toc.yml](https://github.com/elabit/robotmk/workflows/.github/workflows/github-markdown-toc.yml/badge.svg) -->
 
-[![MD TOC](https://github.com/simonmeggle/robotmk/actions/workflows/markdown-toc.yml/badge.svg)](https://github.com/simonmeggle/robotmk/actions/workflows/markdown-toc.yml) [![MKP-Release](https://github.com/simonmeggle/robotmk/actions/workflows/mkp-release.yml/badge.svg)](https://github.com/simonmeggle/robotmk/actions/workflows/mkp-release.yml)
+[![MD TOC](https://github.com/elabit/robotmk/actions/workflows/markdown-toc.yml/badge.svg)](https://github.com/elabit/robotmk/actions/workflows/markdown-toc.yml) [![MKP-Release](https://github.com/elabit/robotmk/actions/workflows/mkp-release.yml/badge.svg)](https://github.com/elabit/robotmk/actions/workflows/mkp-release.yml)
 ![desc](img/robotmk_banner.png)
 
 <!--ts-->
@@ -134,7 +134,7 @@ Robotmk works with any Checkmk 1.6x and 2.x version and edition (CEE and CRE).
 You can choose between two ways of installing Robotmk: 
 
 * Installing as [MKP](https://checkmk.com/cms_mkps.html) is the preferred way. 
-  * The most recent release can be downloaded here on the [Releases](https://github.com/simonmeggle/robotmk/releases) page
+  * The most recent release can be downloaded here on the [Releases](https://github.com/elabit/robotmk/releases) page
   * The latest MKP *reviewed by tribe29* (the Checkmk guys) can be fetched from [CMK Exchange](https://exchange.checkmk.com/) (not always up to date)
 * Installation by hand is only recommended for advanced users who love to get dirty hands. 
 
@@ -213,7 +213,7 @@ No matter at which stage you are with Robot Framework and Robotmk: there are [ex
 
 ## Next developments
 
-See the [Github Issues](https://github.com/simonmeggle/robotmk/issues) page for a complete list of feature requests, known bugs etc.
+See the [Github Issues](https://github.com/elabit/robotmk/issues) page for a complete list of feature requests, known bugs etc.
 
 As announced at the Checkmk Conference #8 in 2022, Robotmk will become an integral part of Checkmk. The roadmap was presented in detail in this talk ([Robotmk - The future of Synthetic Monitoring with Checkmk](https://www.youtube.com/watch?v=p9G75YCqkOc)) and we are already developing the first features. 
 
@@ -262,10 +262,10 @@ Thanks goes to these wonderful people ([emoji key](https://allcontributors.org/d
 <!-- markdownlint-disable -->
 <table>
   <tr>
-    <td align="center"><a href="http://kleinski.de"><img src="https://avatars.githubusercontent.com/u/3239736?v=4?s=100" width="100px;" alt=""/><br /><sub><b>Marcus Klein</b></sub></a><br /><a href="https://github.com/simonmeggle/robotmk/issues?q=author%3Akleinski" title="Bug reports">🐛</a></td>
+    <td align="center"><a href="http://kleinski.de"><img src="https://avatars.githubusercontent.com/u/3239736?v=4?s=100" width="100px;" alt=""/><br /><sub><b>Marcus Klein</b></sub></a><br /><a href="https://github.com/elabit/robotmk/issues?q=author%3Akleinski" title="Bug reports">🐛</a></td>
     <td align="center"><a href="https://burntfen.com"><img src="https://avatars.githubusercontent.com/u/910753?v=4?s=100" width="100px;" alt=""/><br /><sub><b>Richard Littauer</b></sub></a><br /><a href="#mentoring-RichardLitt" title="Mentoring">🧑‍🏫</a></td>
-    <td align="center"><a href="https://github.com/a-lohmann"><img src="https://avatars.githubusercontent.com/u/9255272?v=4?s=100" width="100px;" alt=""/><br /><sub><b>A. Lohmann</b></sub></a><br /><a href="https://github.com/simonmeggle/robotmk/issues?q=author%3Aa-lohmann" title="Bug reports">🐛</a></td>
-    <td align="center"><a href="https://github.com/NimVek"><img src="https://avatars.githubusercontent.com/u/6333118?v=4?s=100" width="100px;" alt=""/><br /><sub><b>NimVek</b></sub></a><br /><a href="https://github.com/simonmeggle/robotmk/issues?q=author%3ANimVek" title="Bug reports">🐛</a></td>
+    <td align="center"><a href="https://github.com/a-lohmann"><img src="https://avatars.githubusercontent.com/u/9255272?v=4?s=100" width="100px;" alt=""/><br /><sub><b>A. Lohmann</b></sub></a><br /><a href="https://github.com/elabit/robotmk/issues?q=author%3Aa-lohmann" title="Bug reports">🐛</a></td>
+    <td align="center"><a href="https://github.com/NimVek"><img src="https://avatars.githubusercontent.com/u/6333118?v=4?s=100" width="100px;" alt=""/><br /><sub><b>NimVek</b></sub></a><br /><a href="https://github.com/elabit/robotmk/issues?q=author%3ANimVek" title="Bug reports">🐛</a></td>
   </tr>
 </table>
 

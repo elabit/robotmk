@@ -55,7 +55,7 @@ function release() {
 
     header "Committing: 'Version bump $VTAG'"
     git add . && git commit -m "Version bump: $VTAG"
-    echo "Workflow result and artifacts are on https://github.com/simonmeggle/robotmk/actions/workflows/mkp-artifact.yml!"
+    echo "Workflow result and artifacts are on https://github.com/elabit/robotmk/actions/workflows/mkp-artifact.yml!"
 
     header "Merging develop into master..."
     git checkout master

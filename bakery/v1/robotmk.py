@@ -93,7 +93,7 @@ def get_yml_lines(config):
         "# framework test results into Checkmk.\n" +\
         "#\n" +\
         "# https://robotmk.org\n" +\
-        "# https://github.com/simonmeggle/robotmk\n" +\
+        "# https://github.com/elabit/robotmk\n" +\
         "# https://robotframework.org/\n" +\
         "# ROBOTMK VERSION: %s\n" % ROBOTMK_VERSION
     headerlist = header.split('\n')

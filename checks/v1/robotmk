@@ -718,7 +718,7 @@ class RobotItem(object):
             kw_test_state = None
         self.result['result_kw_test_state'] = kw_test_state
 
-    # WIP: see https://github.com/simonmeggle/robotmk/issues/60
+    # WIP: see https://github.com/elabit/robotmk/issues/60
     def _eval_node_cmk_metric(self, check_params):
         #metric = self._get_pattern_value('metric', check_params)
         # TODO THIS WILL BE IMPLEMENTED
