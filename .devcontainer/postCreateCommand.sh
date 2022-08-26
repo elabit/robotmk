@@ -9,6 +9,10 @@ echo "▹ WORKSPACE: $WORKSPACE"
 echo "▹ Linking the project files into the container (linkfiles.sh)..."
 /workspaces/robotmk/.devcontainer/linkfiles.sh
 
+# Tell bash to load aliases and functions
+echo "▹ Loading aliases and functions..."
+echo ". $HOME/.bash_aliases" >> $HOME/.bashrc
+
 # Create the folder to source agent output for easy debugging.
 # Sync is done by lsyncd in linkfiles.sh.
 mkdir -p $OMD_ROOT/var/check_mk/agent_output

@@ -15,5 +15,7 @@ RUN /docker-entrypoint.sh /bin/true
 # make the agent dir writeable from the CMK site (to link RF example tests) 
 RUN chgrp -R cmk /usr/lib/check_mk_agent && chmod g+w /usr/lib/check_mk_agent
 
+COPY scripts/.root_bash_aliases /root/.bash_aliases
+RUN echo ". /root/.bash_aliases" >> /root/.bashrc
 
 ENTRYPOINT ["/bin/bash"]

@@ -63,6 +63,9 @@ function create_symlink {
 }
 
 function sync_common {
+    # Bash aliases
+    create_symlink scripts/.bash_aliases $OMD_ROOT/.bash_aliases
+    
     # Agent plugins
     create_symlink agents_plugins $L_SHARE_CMK/agents/plugins
 

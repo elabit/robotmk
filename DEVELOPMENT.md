@@ -123,8 +123,14 @@ During this step, all relevant files for Robotmk get [lsynced](https://axkibe.gi
 If lsyncd is not running, do this by hand: `lsyncd .lsyncd`
 
 The devcontainer is ready now. Open the Checmk login page on http://127.0.0.1:5000
+### Bash conveniences
 
-### Select Python Interpreter 
+user | alias source | from | linked by
+|---|---|---|---
+cmk | `$OMD_ROOT/.bash_aliases` | `scripts/.site_bash_aliases` | `.devcontainer/linkfiles.sh`
+root | `/root/.bash_aliases` | `scripts/.root_bash_aliases` | `.devcontainer/Dockerfile`
+
+### Select Python Interpreter in VS Code
 
 After the devcontainer has started, you probably have to set the python interpreter in VS Code explicitly. 
 This is sometimes a little bit unreliable and must be done manually: 

@@ -1,0 +1,1 @@
+alias install_agent='dpkg -i /omd/sites/cmk/var/check_mk/agents/linux_deb/localhost'
