@@ -1,7 +1,6 @@
 {
     "selectDescription": "Select build setting",
     "items": [
-
         {
             "displayName": "▶︎ Build Robotmk MKP",
             "description": "Build Robotmk for Checkmk",
@@ -30,6 +29,22 @@
         {
             "displayName": "▶︎ Create dummyhost",
             "command": "bash /workspaces/robotmk/.devcontainer/create_dummyhost.sh"
+        },
+        {
+            "displayName": "♲ CMK: Reload Apache",
+            "command": "cmk reload apache"
+        },
+        {
+            "displayName": "👓 CMK: Inventory and reload",
+            "command": "cmk -IIv localhost && cmk -R"
+        },
+        {
+            "displayName": "♼ CMK: Reload CMK Core",
+            "command": "cmk -O"
+        },
+        {
+            "displayName": "♽ CMK: Restart CMK Core",
+            "command": "cmk -R"
         }
     ],
     "baseItem": {

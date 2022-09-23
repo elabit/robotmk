@@ -2,12 +2,13 @@
 
 This page explains step by step how to set up your development environment to debug and develop Robotmk.  
 Feel encouraged to contribute code!
+
 ## Preconditions
 
-### Docker 
+### Docker
 
 A very basic requirement is [Docker](https://www.docker.com) to run the containers.  
-On a Mac M1, you probably have to disable the `buildkit` feature: 
+On a Mac M1, you probably have to disable the `buildkit` feature:
 
 ![](.img/../img/docker_disable_buildkit.png)
 
@@ -21,20 +22,20 @@ When you open the Robotmk project for the first time in [Visual Studio Code](htt
 
 ### Chag
 
-Robotmk uses [chag](https://raw.githubusercontent.com/mtdowling/chag/master/install.sh) to keep annotated tags and the CHANGELOG in sync. 
+Robotmk uses [chag](https://raw.githubusercontent.com/mtdowling/chag/master/install.sh) to keep annotated tags and the CHANGELOG in sync.
 
-Examples: 
+Examples:
 
 * Show entries of a special release: `chag contents --tag v1.0.2`
 * Create a Changelog entry for the `Unreleased` section: `chag update 1.0.4`
   
-### Github CLI tool 
+### Github CLI tool
 
 Authentication to GitHub is required if you want to release/unrelease.
 
-Install the CLI tools from https://github.com/cli/cli.
+Install the CLI tools from <https://github.com/cli/cli>.
 
-After installation, authenticate to github. It will ask you about your authentication method, protocol, and present an authentication code which you should open in the opened Github web page. 
+After installation, authenticate to github. It will ask you about your authentication method, protocol, and present an authentication code which you should open in the opened Github web page.
 
     gh auth login 
 
@@ -42,30 +43,31 @@ After that you are fully authenticated in the CLI to GitHub.
 
 ---
 
-## Development environment setup 
+## Development environment setup
 
-Both flavours of Robotmk (CMK1 and 2) can be developed with Visual Studio Code and the [devcontainer setup](https://code.visualstudio.com/docs/remote/containers). 
+Both flavours of Robotmk (CMK1 and 2) can be developed with Visual Studio Code and the [devcontainer setup](https://code.visualstudio.com/docs/remote/containers).
+
 ### Build Devcontainer images
 
 Open `.devcontainer/build-devcontainer.env` and add all versions of Checkmk you want to develop on to the `CMKVERSIONS` variable. (= All versions are a long quoted string, separated by newlines.)
 
-Example: 
+Example:
 
      CMKVERSIONS="1.6.0p29
      2.0.0p22
      2.1.0p4"
 
-- Run *Cmd-Shift-P* and select `Select Task...` > "Build all devcontainer images".
-- Run *Cmd-Shift-P* and select `Run Task...` to built the containers. 
+* Run *Cmd-Shift-P* and select `Select Task...` > "Build all devcontainer images".
+* Run *Cmd-Shift-P* and select `Run Task...` to built the containers.
 
 ![](./img/select-task.png)
 
-What does the task "***Build all devcontainer images***" (`.devcontainer/build-devcontainer.sh`) do? 
+What does the task "***Build all devcontainer images***" (`.devcontainer/build-devcontainer.sh`) do?
 
-- First it checks if the CMK Docker images are already available locally. If not, it connects to the [Checkmk Docker Registry](registry.checkmk.com) and downloads the images from there.
-- It then creates a new Docker image based on the CMK docker image (downloaded in step 1) and installs some more things (see `.devcontainer/Dockerfile_cmk_python`):
-  - Python 3.9 and modules `robotframework pyyaml mergedeep python-dateutil ipdb`
-  - some additional tools: `jq tree htop vim git telnet file`
+* First it checks if the CMK Docker images are already available locally. If not, it connects to the [Checkmk Docker Registry](registry.checkmk.com) and downloads the images from there. (The script will ask you for the registry credentials).
+* It then creates a new Docker image based on the CMK docker image (downloaded in step 1) and installs some more things (see `.devcontainer/Dockerfile_cmk_python`):
+  * Python 3.9 and modules `robotframework pyyaml mergedeep python-dateutil ipdb`
+  * some additional tools: `jq tree htop vim git telnet file`
 
 The resulting Docker image is then saved as `robotmk-cmk-python3:2.1.0p4` (example):
 
@@ -75,7 +77,6 @@ The resulting Docker image is then saved as `robotmk-cmk-python3:2.1.0p4` (examp
      robotmk-cmk-python3                            2.0.0p5        1d96bebf47a6   7 months ago         2.18GB
      robotmk-cmk-python3                            1.6.0p25       599e8beeb9c7   7 months ago         1.93GB
      robotmk-cmk-python3                            2.0.0p4        71bdfccd584b   7 months ago         2.19GB
-
 
 The Robotmk devcontainers are started on these images. See `.devcontainer/Dockerfile` (which is referenced in `devcontainer.json`):
 
@@ -104,81 +105,36 @@ Now that you have the Docker image versions, you need to add new entries for eac
 Now it's time to run the container.  
 First, set the Checkmk version:
 
-- Run *Cmd-Shift-P* and select `Select Task...` and chose e.g. "*Set devcontainer to CMK 2.1.0p4*" (defined in the previous step)
-- Run *Cmd-Shift-P* and select `Run Task...` to run the task. 
+* Run *Cmd-Shift-P* and select `Select Task...` and chose e.g. "*Set devcontainer to CMK 2.1.0p4*" (defined in the previous step)
+* Run *Cmd-Shift-P* and select `Run Task...` to run the task.
 
 This reconfigures some important files:
 
-- `.devcontainer/devcontainer.json` gets *generated* using `envsubst` and the template file in `.devcontainer/v2/devcontainer.json`
-- `.vscode/settings.json` and `.vscode/launch.json` get *copied* from the template files in `.vscode/v2/` (controls the python version being used for running and debugging the code)
+* `.devcontainer/devcontainer.json` gets *generated* using `envsubst` and the template file in `.devcontainer/v2/devcontainer.json`
+* `.vscode/settings.json` and `.vscode/launch.json` get *copied* from the template files in `.vscode/v2/` (controls the python version being used for running and debugging the code)
 
-- Run *Cmd-Shift-P* and select `Remote-Containers: Rebuild Container` to start the devcontainer. 
+* Run *Cmd-Shift-P* and select `Remote-Containers: Rebuild Container` to start the devcontainer.
 
-In the VS Code terminal you see the CMK site starting. 
-This takes some minutes (at least on my aged Mac). 
-During this step, all relevant files for Robotmk get symlinked into the version specific folder of the CMK Docker container. 
+In the VS Code terminal you see the CMK site starting.
+This takes some minutes (at least on my aged Mac).
+During this step, all relevant files for Robotmk get symlinked into the version specific folder of the CMK Docker container.
 
-**Don't try to install the Robotmk MKP into this container! All files are already there!** 
+**Don't try to install the Robotmk MKP into this container! All files are already there!**
 
-The devcontainer is ready now. Open the Checmk login page on http://127.0.0.1:5000. 
-
-### Bash conveniences
-
-user | alias source | from | linked by
-|---|---|---|---
-cmk | `$OMD_ROOT/.bash_aliases` | `scripts/.site_bash_aliases` | `.devcontainer/linkfiles.sh`
-root | `/root/.bash_aliases` | `scripts/.root_bash_aliases` | `.devcontainer/Dockerfile`
+The devcontainer is ready now. Open the Checmk login page on <http://127.0.0.1:5000>.
 
 ### Select Python Interpreter in VS Code
 
-After the devcontainer has started, you probably have to set the python interpreter in VS Code explicitly. 
-This is sometimes a little bit unreliable and must be done manually: 
+After the devcontainer has started, you probably have to set the python interpreter in VS Code explicitly.
+This is sometimes a little bit unreliable and must be done manually:
 
-- ensure that `settings.json` do not contain a `python.pythonPath` setting anymore
-- Open *Cmd-Shift-P* and run "Select Python Interpreter" for the "robotmk" workspace
+* ensure that `settings.json` do not contain a `python.pythonPath` setting anymore
+* Open *Cmd-Shift-P* and run "Select Python Interpreter" for the "robotmk" workspace
 
-### VS Code Build Task
-
-`Ctrl+Shift+B` is bound to `build.sh` which builds the CMK version specific MKP file. 
-
-The resulting MKP can be copied to the host system as follows: 
-
-```
-CONTAINER=a596f322c2e8
-cd ~/Downloads
-docker exec $CONTAINER bash -c "mkdir -p /cmk-mkp; cp /workspaces/robotmk/*.mkp /cmk-mkp"
-docker cp $CONTAINER:/cmk-mkp .
-```
-
-### Troubleshooting 
-
-#### Devcontainer does not start 
-
-ERROR: The devcontainer does not start; the VS Code `remoteContainers-YYYY-MM-DD` shows: 
-
-     [2022-04-01T13:24:30.960Z] [+] Building 2.5s (3/3) FINISHED                                                
-     => [internal] load build definition from Dockerfile                       0.1s
-     => => transferring dockerfile: 37B                                        0.0s
-     => [internal] load .dockerignore                                          0.0s
-     => => transferring context: 2B                                            0.0s
-     => ERROR [internal] load metadata for docker.io/library/robotmk-cmk-pyth  2.2s
-
----
-
-## How to develop
-
-### Develop on the right files
-
-VS code displays by default only the files of the workspace (`/workspaces/robotmk`). They are symlinked to the OMD site, but if you want to debug, you have to add `$OMD_ROOT` as another folder to the workspace: 
-
-![](./img/vs_code_add_folder.png)
-
-You can now add breakpoints to the scripts in this folder to debug them.  
-Also, only then the code completion (classes, functions, ...) works properly, because it works in the same Python context as Checkmk. 
 
 ### Install a new Linux agent in the container
 
-The Debian packages that the Bakery generates can be installed and tested directly in the container: 
+The Debian packages that the Bakery generates can be installed and tested directly in the container:
 
 ```bash
 $> docker exec -it e055ddab3af8 bash
@@ -203,25 +159,47 @@ Deployed xinetd
 systemd not found on this system
 Reloading xinetd
 ```
+### Inventorize localhost
+
+Now that the agent is running, you should be able to discover services on the `localhost` Docker container: 
+
+    
+
+
+---
+
+## How to develop
+
+### Develop on the right files
+
+VS code displays by default only the files of the workspace (`/workspaces/robotmk`). They are symlinked to the OMD site, but if you want to debug, you have to add `$OMD_ROOT` as another folder to the workspace:
+
+![](./img/vs_code_add_folder.png)
+
+You can now add breakpoints to the scripts in this folder to debug them.  
+Also, only then the code completion (classes, functions, ...) works properly, because it works in the same Python context as Checkmk.
 
 ### Debugging Robotmk agent plugins
 
-Debugging `robotmk.py` and `robotmk-runner.py` from the devcontainer is not straightforward, because from the context of the `cmk` user, you are not able to access the Robotmk YML and log files. But it is possible (and very useful), if just do the following steps: 
+Debugging `robotmk.py` and `robotmk-runner.py` from the devcontainer is not straightforward, because from the context of the `cmk` user, you are not able to access the Robotmk YML and log files. But it is possible (and very useful), if just do the following steps:
 
-- Jump into the decontainer: `docker ps` => `docker exec -it <containerid> bash`
-- Execute as root: `/workspace/robotmk/scripts/docker_fix_agent_permissions.sh`
+* Open a bash in the container
+* Execute as root: `/workspace/robotmk/scripts/docker_fix_agent_permissions.sh`. This script fixes the missing permissions to `/var/log/robotmk` and `/etc/check_mk/robotmk.yml`.
 
 After that, set a breakpoint in VS Code in `agents_plugins/robotmk-runner.py`. Also select the debugging configuration to "devc V2.x robotmk-runner" and press F5 to start debugging.  
 
+(This step only makes sense if you have already [installed the agent into the container](#install-a-new-linux-agent-in-the-container)).
+
 ### Building a MKP inside of the Container
 
-To test how the Github workflow will build MKPs for Robotmk, you can run the build script within the container locally. 
+To test how the Github workflow will build MKPs for Robotmk, you can run the build script within the container locally.
 
 In VS Code,
-- run command "Tasks chooser: Select Task" => "Build Robotmk MKP"
-- run command "Tasks: run task" to execute the build script
 
-- 
+* run command "Tasks chooser: Select Task" => "Build Robotmk MKP"
+* run command "Tasks: run task" to execute the build script
+
+*
 
 ### Write a changelog
 
@@ -246,22 +224,21 @@ All H3's below shoudl group the changes:
      * foo
      ### Deprecated    
      * bar
-    
-  
-### Simulating agent output 
+
+### Simulating agent output
 
 Agent output (e.g. from a CMK crash dump) can be injected into the container by placing the output as a file in the folder `agent_output`.
 
-Then create a rule `Individual program call instead of agent access` which uses one of the following commands to source the output file instead of using an agent: 
+Then create a rule `Individual program call instead of agent access` which uses one of the following commands to source the output file instead of using an agent:
 
-    	cat ~/var/check_mk/agent_output/$HOSTNAME$
+     cat ~/var/check_mk/agent_output/$HOSTNAME$
      cat ~/var/check_mk/agent_output/agent_output
 
-### ipdb 
+### ipdb
 
-`ipdb` is a great cmdline debugger for Python. In the following example it is shown how to execute the Robotmk check within the cmk context. 
+`ipdb` is a great cmdline debugger for Python. In the following example it is shown how to execute the Robotmk check within the cmk context.
 
-Install ipdb in the context of the OMD site user: 
+Install ipdb in the context of the OMD site user:
 
 ```
 OMD[site]:~$ pip3 install ipdb
@@ -297,7 +274,7 @@ ps.perf does not support discovery. Skipping it.
     121     for robot_item in robot_items:
 ```
 
-Debugging the bakery: 
+Debugging the bakery:
 
 ```
 OMD[v1test]:~$ python -m ipdb bin/cmk -Avf win10simdows
@@ -308,21 +285,35 @@ OMD[v1test]:~$ python -m ipdb bin/cmk -Avf win10simdows
 ipdb> b /omd/sites/v1test/lib/python/cmk_base/cee/agent_bakery.py:85     
 ```
 
+### VS Code Build Task
+
+`Ctrl+Shift+B` is bound to `build.sh` which builds the CMK version specific MKP file.
+
+The resulting MKP can be copied to the host system as follows:
+
+```
+CONTAINER=a596f322c2e8
+cd ~/Downloads
+docker exec $CONTAINER bash -c "mkdir -p /cmk-mkp; cp /workspaces/robotmk/*.mkp /cmk-mkp"
+docker cp $CONTAINER:/cmk-mkp .
+```
+
+
 ---
 
 ## How to release
 
 `release.sh` is a helper tool which eases (un)releasing a lot. Sometimes a alpha/beta release should to be withdrawn. With the help of this script and the github CLI tool (authentication required),
 
-### Release 
+### Release
 
-The release workflow of Robotmk is divided into the following steps: 
+The release workflow of Robotmk is divided into the following steps:
 
 * Make sure that the `develop` branch is clean (=everything is stashed/committed)
-* Execute `./release.sh release 1.2.0`, which 
+* Execute `./release.sh release 1.2.0`, which
   * executes `chag update` => converting unreleased entries in `CHANGELOG` to the new version
   * replaces version number variables in Robotmk script files
-  * commits this change as version bump 
+  * commits this change as version bump
   * merges `develop` into `master`
   * executes `chag tag --addv` => adds an annotated tag from the Changelog
   * pushes to `master`
@@ -331,21 +322,20 @@ The release workflow of Robotmk is divided into the following steps:
 
 (Unrelease... right. Remove a release from Github - Not at all useless.)
 
-* Execute `./release.sh unrelease 1.2.0`, which 
-* the release gets deleted from github 
+* Execute `./release.sh unrelease 1.2.0`, which
+* the release gets deleted from github
 * tags are removed
 * develop branch gets checked out
 * `chag` undoes the last change to the `CHANGELOG`
 
-
 ## File locations
 
-Most folders are common in CMK v1 and v2, others are specific. This table shows which folder in the Robotmk project gets mounted where. 
+Most folders are common in CMK v1 and v2, others are specific. This table shows which folder in the Robotmk project gets mounted where.
 
-Abbreviations: 
+Abbreviations:
 
-- `local/share/check_mk` = `l/s/c`
-- `local/lib/check_mk/base` = `l/l/c/b`
+* `local/share/check_mk` = `l/s/c`
+* `local/lib/check_mk/base` = `l/l/c/b`
 
 | Component                         | Project folder    | Checkmk common                  | V1 specific                                     | V2 specific                                     |
 | --------------------------------- | ----------------- | ------------------------------- | ---------------------------------------------- | ---------------------------------------------- |
@@ -359,3 +349,49 @@ Abbreviations:
 | RF tests                          | 📂  `rf_tests/`       | `/usr/lib/check_mk_agent/robot` |                                                |                                                |
 | Agent output                      | 📂  `agent_output/`   | `var/check_mk/agent_output`     |                                                |                                                |
 
+## Others
+
+### Bash'ing into the container
+
+VS Code already presents you a bash terminal as user `cmk`.
+In Order to open another bash as `root`, just execute `docker exec -it rmk-dev bash`
+
+Inside of the `root` bash, you can also open a preconfigured `tmux` terminal which allows to work with multiple panes.
+Shortcuts ("Ca" = Ctrl + a):
+
+* Split horizontaly: `Ca + -`
+* Split vertically: `Ca + |`
+* Change focus to other pane: `Ca + [arrow]` ([arrow] = Cursor keys)
+* Toggle full screen: `Ca + z`
+* Toggle Scroll: `Ca + [` => Page up/down => Ctrl+c to quit scrollmode
+
+
+
+### Bash conveniences
+
+user | alias source | from | linked by
+|---|---|---|---
+cmk | `$OMD_ROOT/.bash_aliases` | `scripts/.site_bash_aliases` | `.devcontainer/linkfiles.sh`
+root | `/root/.bash_aliases` | `scripts/.root_bash_aliases` | `.devcontainer/Dockerfile`
+
+### VS Code Conveniences 
+
+There are several CMK OMD administration tasks predefined in Tasks Chooeser (extension must be installed). 
+
+- reload apache
+- inventory and reload core
+- restart core
+
+
+### Troubleshooting
+
+#### Devcontainer does not start
+
+ERROR: The devcontainer does not start; the VS Code `remoteContainers-YYYY-MM-DD` shows:
+
+     [2022-04-01T13:24:30.960Z] [+] Building 2.5s (3/3) FINISHED                                                
+     => [internal] load build definition from Dockerfile                       0.1s
+     => => transferring dockerfile: 37B                                        0.0s
+     => [internal] load .dockerignore                                          0.0s
+     => => transferring context: 2B                                            0.0s
+     => ERROR [internal] load metadata for docker.io/library/robotmk-cmk-pyth  2.2s

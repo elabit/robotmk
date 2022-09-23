@@ -37,7 +37,7 @@ DOCKERFILE_CMK_ROBOT=Dockerfile_cmk_python
 . $ROOTDIR/build-devcontainer.env
 
 function main() {
-    cmk_registry_login
+    
     build_images
 }
 
@@ -73,6 +73,7 @@ function build_images() {
             echo 
             if [[ $REPLY =~ ^[Yy]$ ]]; then 
                 # FIXME: v1 download with wget?
+                cmk_registry_login
                 docker pull $IMAGE_NAME
                 if [ $? -gt 0 ]; then 
                     echo "⛔️  ERROR: Download failed. Exiting."
