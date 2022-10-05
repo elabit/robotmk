@@ -186,6 +186,8 @@ Debugging `robotmk.py` and `robotmk-runner.py` from the devcontainer is not stra
 * Open a bash in the container
 * Execute as root: `/workspace/robotmk/scripts/docker_fix_agent_permissions.sh`. This script fixes the missing permissions to `/var/log/robotmk` and `/etc/check_mk/robotmk.yml`.
 
+(The required modules for robotmk were installed during `postCreateCommand.sh`)
+
 After that, set a breakpoint in VS Code in `agents_plugins/robotmk-runner.py`. Also select the debugging configuration to "devc V2.x robotmk-runner" and press F5 to start debugging.  
 
 (This step only makes sense if you have already [installed the agent into the container](#install-a-new-linux-agent-in-the-container)).
@@ -284,6 +286,8 @@ OMD[v1test]:~$ python -m ipdb bin/cmk -Avf win10simdows
      35 import sys
 ipdb> b /omd/sites/v1test/lib/python/cmk_base/cee/agent_bakery.py:85     
 ```
+
+lib/python3/cmk/base/cee/bakery/agent_bakery.py
 
 ### VS Code Build Task
 

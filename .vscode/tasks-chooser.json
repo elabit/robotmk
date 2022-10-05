@@ -31,12 +31,12 @@
             "command": "bash /workspaces/robotmk/.devcontainer/create_dummyhost.sh"
         },
         {
-            "displayName": "♲ CMK: Reload Apache",
-            "command": "cmk reload apache"
+            "displayName": "♼ CMK: Reload Apache",
+            "command": "omd reload apache"
         },
         {
-            "displayName": "👓 CMK: Inventory and reload",
-            "command": "cmk -IIv localhost && cmk -R"
+            "displayName": "♽ CMK: Restart Apache",
+            "command": "omd restart apache"
         },
         {
             "displayName": "♼ CMK: Reload CMK Core",
@@ -45,6 +45,10 @@
         {
             "displayName": "♽ CMK: Restart CMK Core",
             "command": "cmk -R"
+        },
+        {
+            "displayName": "👓 CMK: Inventory and reload",
+            "command": "cmk -IIv localhost && cmk -R"
         }
     ],
     "baseItem": {

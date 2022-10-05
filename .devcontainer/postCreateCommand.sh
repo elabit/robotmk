@@ -41,6 +41,9 @@ echo "▹ Enabling the Web API..."
 sed -i '/disable_web_api/d' $OMD_ROOT/etc/check_mk/multisite.d/wato/global.mk
 echo "disable_web_api = False" >> $OMD_ROOT/etc/check_mk/multisite.d/wato/global.mk
 
+echo "▹ Installing Python modules for Robotmk... "
+pip3 install -r /workspaces/robotmk/requirements.txt
+
 echo "▹ Starting OMD... "
 omd restart
 
