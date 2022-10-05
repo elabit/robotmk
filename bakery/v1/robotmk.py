@@ -4,7 +4,7 @@
 # SPDX-License-Identifier: GPL-3.0-or-later
 # This file is part of the Robotmk project (https://www.robotmk.org)
 
-ROBOTMK_VERSION = 'v1.2.10-beta-1'
+ROBOTMK_VERSION = 'v1.3.0'
 
 import cmk.utils.paths
 import os

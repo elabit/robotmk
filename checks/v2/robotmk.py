@@ -22,7 +22,7 @@ from collections import namedtuple
 from cmk.base.plugins.agent_based.agent_based_api.v1 import *
 from cmk.utils.exceptions import MKGeneralException
 
-ROBOTMK_VERSION = 'v1.2.10-beta-1'
+ROBOTMK_VERSION = 'v1.3.0'
 DEFAULT_SVC_PREFIX = 'Robot Framework E2E $SUITEID$SPACE-$SPACE'
 HTML_LOG_DIR = "%s/%s" % (os.environ['OMD_ROOT'], 'var/robotmk')
 
