@@ -1241,7 +1241,7 @@ def html_to_text(html):
     """
     # Remove Prefix
     html = re.sub('\*HTML\* ', '', html)
-    html = re.sub('<span class="merge">Test has been re-executed and results merged.</span>', 'Test has been re-executed and the results were merged: ', html)
+    html = re.sub('<span class="merge">Test has been re-executed and results merged.</span>', 'Test result after re-execution: ', html)
 
     html = re.sub('<script.*?>|</script>|<style.*?>|<style>|<span.*?>|</span>|<a.*?>|</a>|<hr>', '', html)
     html = re.sub('<br>|<p>', '\\n', html)

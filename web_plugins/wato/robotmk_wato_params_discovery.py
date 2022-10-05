@@ -6,7 +6,7 @@
 
 from cmk.gui.i18n import _
 from cmk.gui.valuespec import (DropdownChoice, Dictionary, ListOf, TextAscii,
-                               Tuple, TextUnicode)
+                               Tuple, TextUnicode, Transform)
 
 from cmk.gui.plugins.wato import (
     CheckParameterRulespecWithItem,
