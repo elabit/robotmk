@@ -1,4 +1,8 @@
 #!/bin/bash
+# SPDX-FileCopyrightText: © 2022 ELABIT GmbH <mail@elabit.de>
+# SPDX-License-Identifier: GPL-3.0-or-later
+# This file is part of the Robotmk project (https://www.robotmk.org)
+
 set -u
 # This script gets called from postcreateCommand.sh directly after the devcontainer
 # has been started. Its job is to make the Robotmk project files available to the CMK site.
@@ -59,6 +63,9 @@ function create_symlink {
 }
 
 function sync_common {
+    # Bash aliases
+    create_symlink scripts/.site_bash_aliases $OMD_ROOT/.bash_aliases
+    
     # Agent plugins
     create_symlink agents_plugins $L_SHARE_CMK/agents/plugins
 

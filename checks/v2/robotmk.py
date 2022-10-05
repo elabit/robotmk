@@ -1,22 +1,9 @@
 #!/usr/bin/python
 # -*- encoding: utf-8; py-indent-offset: 4 -*-
 
-# (c) 2021 Simon Meggle <simon.meggle@elabit.de>
-
-# This file is part of Robotmk
-# https://robotmk.org
-# https://github.com/simonmeggle/robotmk
-
-# Robotmk is free software;  you can redistribute it and/or modify it
-# under the  terms of the  GNU General Public License  as published by
-# the Free Software Foundation in version 3.  This file is distributed
-# in the hope that it will be useful, but WITHOUT ANY WARRANTY;  with-
-# out even the implied warranty of  MERCHANTABILITY  or  FITNESS FOR A
-# PARTICULAR PURPOSE. See the  GNU General Public License for more de-
-# ails.  You should have  received  a copy of the  GNU  General Public
-# License along with GNU Make; see the file  COPYING.  If  not,  write
-# to the Free Software Foundation, Inc., 51 Franklin St,  Fifth Floor,
-# Boston, MA 02110-1301 USA.
+# SPDX-FileCopyrightText: © 2022 ELABIT GmbH <mail@elabit.de>
+# SPDX-License-Identifier: GPL-3.0-or-later
+# This file is part of the Robotmk project (https://www.robotmk.org)
 
 import os
 import json, base64, zlib
@@ -35,7 +22,7 @@ from collections import namedtuple
 from cmk.base.plugins.agent_based.agent_based_api.v1 import *
 from cmk.utils.exceptions import MKGeneralException
 
-ROBOTMK_VERSION = 'v1.2.10-beta-1'
+ROBOTMK_VERSION = 'v1.3.0'
 DEFAULT_SVC_PREFIX = 'Robot Framework E2E $SUITEID$SPACE-$SPACE'
 HTML_LOG_DIR = "%s/%s" % (os.environ['OMD_ROOT'], 'var/robotmk')
 
@@ -746,7 +733,7 @@ class RobotItem(object):
             kw_test_state = None
         self.result['result_kw_test_state'] = kw_test_state
 
-    # WIP: see https://github.com/simonmeggle/robotmk/issues/60
+    # WIP: see https://github.com/elabit/robotmk/issues/60
     def _eval_node_cmk_metric(self, check_params):
         #metric = self._get_pattern_value('metric', check_params)
         # TODO THIS WILL BE IMPLEMENTED
@@ -1254,7 +1241,7 @@ def html_to_text(html):
     """
     # Remove Prefix
     html = re.sub('\*HTML\* ', '', html)
-    html = re.sub('<span class="merge">Test has been re-executed and results merged.</span>', 'Test has been re-executed and the results were merged: ', html)
+    html = re.sub('<span class="merge">Test has been re-executed and results merged.</span>', 'Test result after re-execution: ', html)
 
     html = re.sub('<script.*?>|</script>|<style.*?>|<style>|<span.*?>|</span>|<a.*?>|</a>|<hr>', '', html)
     html = re.sub('<br>|<p>', '\\n', html)

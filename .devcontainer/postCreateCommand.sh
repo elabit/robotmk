@@ -1,9 +1,17 @@
 #!/bin/bash
+# SPDX-FileCopyrightText: © 2022 ELABIT GmbH <mail@elabit.de>
+# SPDX-License-Identifier: GPL-3.0-or-later
+# This file is part of the Robotmk project (https://www.robotmk.org)
+
 
 echo "▹ WORKSPACE: $WORKSPACE"
 # This step ties the workspace files with the Devcontainer. lsyncd is used to synchronize files. 
 echo "▹ Linking the project files into the container (linkfiles.sh)..."
 /workspaces/robotmk/.devcontainer/linkfiles.sh
+
+# Tell bash to load aliases and functions
+echo "▹ Loading aliases and functions..."
+echo ". $HOME/.bash_aliases" >> $HOME/.bashrc
 
 # Create the folder to source agent output for easy debugging.
 # Sync is done by lsyncd in linkfiles.sh.
@@ -32,6 +40,9 @@ echo "liveproxyd_enabled = False" >> $OMD_ROOT/etc/check_mk/multisite.d/mkeventd
 echo "▹ Enabling the Web API..."
 sed -i '/disable_web_api/d' $OMD_ROOT/etc/check_mk/multisite.d/wato/global.mk
 echo "disable_web_api = False" >> $OMD_ROOT/etc/check_mk/multisite.d/wato/global.mk
+
+echo "▹ Installing Python modules for Robotmk... "
+pip3 install -r /workspaces/robotmk/requirements.txt
 
 echo "▹ Starting OMD... "
 omd restart

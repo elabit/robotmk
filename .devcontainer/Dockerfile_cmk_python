@@ -1,11 +1,13 @@
 ARG VARIANT
-FROM checkmk/check-mk-enterprise:$VARIANT
+FROM registry.checkmk.com/enterprise/check-mk-enterprise:$VARIANT
 
 # install python3 on the container
-RUN apt-get update && export DEBIAN_FRONTEND=noninteractive \ 
-    && apt-get -y install wget build-essential libreadline-gplv2-dev libncursesw5-dev \
-    libssl-dev libsqlite3-dev tk-dev libgdbm-dev libc6-dev libbz2-dev libffi-dev zlib1g-dev \
-    && cd /tmp && wget https://www.python.org/ftp/python/3.9.4/Python-3.9.4.tgz \
+RUN apt-get update
+RUN apt-get install -y wget
+RUN export DEBIAN_FRONTEND=noninteractive \ 
+    && apt-get -y install build-essential libreadline-gplv2-dev libncursesw5-dev \
+    libssl-dev libsqlite3-dev tk-dev libgdbm-dev libc6-dev libbz2-dev libffi-dev zlib1g-dev
+RUN cd /tmp && wget https://www.python.org/ftp/python/3.9.4/Python-3.9.4.tgz \
     && tar xzf Python-3.9.4.tgz  \
     && cd Python-3.9.4 \
     && ./configure \
@@ -16,4 +18,4 @@ RUN apt-get update && export DEBIAN_FRONTEND=noninteractive \
 RUN pip3 install robotframework pyyaml mergedeep python-dateutil ipdb 
 
 RUN export DEBIAN_FRONTEND=noninteractive \
-    && apt-get -y install --no-install-recommends jq tree htop vim git telnet file less
+    && apt-get -y install --no-install-recommends jq tree htop vim git telnet file less tmux

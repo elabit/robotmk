@@ -1,4 +1,8 @@
 #!/bin/bash
+# SPDX-FileCopyrightText: © 2022 ELABIT GmbH <mail@elabit.de>
+# SPDX-License-Identifier: GPL-3.0-or-later
+# This file is part of the Robotmk project (https://www.robotmk.org)
+
 # This script gets executed as a hook after the Docker entrypoint script has 
 # created the OMD site.  
 # Note: the agent installed here has no relation to the CMK version in this container. 
@@ -18,5 +22,6 @@ ln -sf /usr/lib/check_mk_agent/robot /cmk_robotdir
 ln -sf /etc/check_mk/robotmk.yml /rmk_yml
 
 echo "▹ Starting the Checkmk agent..."
-# nohup xinetd 2>&1 > /dev/null
+
+# TODO: Why does xinetd not start reliably? (#207)
 nohup xinetd 2>&1

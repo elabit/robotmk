@@ -5,15 +5,23 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+
+## 1.3.0 - 2022-10-05
+
+### Added
+
+* Bakery/Check Plugin: Introduced `complete` as new re-execution mode for suites (#206). This is useful for suites that must always run completely because the tests depend on each other. Thus, a suite OK result is returned not when each test was OK in an arbitrary iteration, but rather in a common iteration. 
+
+### Changed
+
+* Bakery: Introduced "incremental" as a name for the previous re-execution mode. ⚠️ Your existing rules are compatible with that new naming scheme - but they are only saved in the new format after they have been opened and saved (even if there are no changes).
+
 ## 1.2.10-beta-1 - 2022-08-23
 
 ### Added
 
 * Documentation: Added [FAQs](./FAQ.md) with design decisions
-* Check: Added the possibility to temporarily skip the execution of suites by placing a `DISABLED` (case sensitive) file in the suite's root folder. (#192)  
-Robotmk will silently ignore this suite as long the DISABLED file is there.  
-(Thanks Marcus for this suggestion - this is the perfect alternative to commenting out the suite in `robotmk.yml` manually).  
-You can also optionally write a reason ("*Need a short break.*") into the file; it will get logged in Robotmk's log: 
+* Check: Added the possibility to temporarily skip the execution of suites by placing a `DISABLED` (case sensitive) file in the suite's root folder. (#192) Robotmk will silently ignore this suite as long the DISABLED file is there. This is the perfect alternative to commenting out the suite in `robotmk.yml` manually). You can also optionally write a reason ("*Need a short break.*") into the file; it will get logged in Robotmk's log: 
 
 ```
 2022-08-02 22:25:28,449  RMKrunner [48887]    INFO: ####################

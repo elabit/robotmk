@@ -23,15 +23,21 @@ REGISTRY="registry.checkmk.com"
 ROOTDIR=$(dirname "$0")
 
 # Name of the final image
+# SPDX-FileCopyrightText: © 2022 ELABIT GmbH <mail@elabit.de>
+# SPDX-License-Identifier: GPL-3.0-or-later
+# This file is part of the Robotmk project (https://www.robotmk.org)
+
 CMK_ROBOT_IMAGE=robotmk-cmk-python3
 # Dockerfile for the final image
+
+
 DOCKERFILE_CMK_ROBOT=Dockerfile_cmk_python
 
 # load Checkmk versions
 . $ROOTDIR/build-devcontainer.env
 
 function main() {
-    cmk_registry_login
+    
     build_images
 }
 
@@ -67,6 +73,7 @@ function build_images() {
             echo 
             if [[ $REPLY =~ ^[Yy]$ ]]; then 
                 # FIXME: v1 download with wget?
+                cmk_registry_login
                 docker pull $IMAGE_NAME
                 if [ $? -gt 0 ]; then 
                     echo "⛔️  ERROR: Download failed. Exiting."

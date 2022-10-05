@@ -1,5 +1,8 @@
 #!/bin/bash
 set -e
+# SPDX-FileCopyrightText: © 2022 ELABIT GmbH <mail@elabit.de>
+# SPDX-License-Identifier: GPL-3.0-or-later
+# This file is part of the Robotmk project (https://www.robotmk.org)
 
 # This file creates a CMK MKP file for the determined CMK version (1/2).
 # It leverages the "mkp" command from CMK, which reads a package description file
@@ -48,12 +51,13 @@ FILE=$(ls -rt1 *.mkp | tail -1)
 # robotmk.v1.1.0-cmk2.mkp
 NEWFILENAME=$NAME.$RMK_VERSION-cmk$MVERSION.mkp
 mv $FILE $NEWFILENAME
+PKG_PATH=$(readlink -f "$NEWFILENAME")
+echo "📦   $PKG_PATH"
 echo "---------------------------------------------"
-echo "📦  Package:"
-echo "$NEWFILENAME"
-
-
+echo ""
+echo "Checking for Github Workflow..."
 if [ -n "${GITHUB_WORKSPACE-}" ]; then
+    echo "🐙 ...Github Workflow exists."
     echo "▹ Set Outputs for GitHub Workflow steps"
     echo "::set-output name=pkgfile::$NEWFILENAME"
     # echo "::set-output name=pkgname::${NAME}"
@@ -62,7 +66,7 @@ if [ -n "${GITHUB_WORKSPACE-}" ]; then
     # echo "::set-output name=cmkmversion::$MVERSION"
     echo "::set-output name=artifactname::$NEWFILENAME"
 else 
-    echo "(No GitHub Workflow detected)"
+    echo "...no GitHub Workflow detected (local execution)."
 fi
 echo "END OF build.sh"
 echo "---------------------------------------------"

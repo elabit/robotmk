@@ -1,4 +1,7 @@
 #!/bin/bash
+# SPDX-FileCopyrightText: © 2022 ELABIT GmbH <mail@elabit.de>
+# SPDX-License-Identifier: GPL-3.0-or-later
+# This file is part of the Robotmk project (https://www.robotmk.org)
 
 function main (){
     MODE=$1
@@ -52,7 +55,7 @@ function release() {
 
     header "Committing: 'Version bump $VTAG'"
     git add . && git commit -m "Version bump: $VTAG"
-    echo "Workflow result and artifacts are on https://github.com/simonmeggle/robotmk/actions/workflows/mkp-artifact.yml!"
+    echo "Workflow result and artifacts are on https://github.com/elabit/robotmk/actions/workflows/mkp-artifact.yml!"
 
     header "=== Merging develop into master..."
     git checkout master
