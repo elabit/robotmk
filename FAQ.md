@@ -2,8 +2,7 @@
 
 This page contains a list of frequently asked questions (FAQ) as well as explanations for **architectural decisions**. 
 
-
-## General 
+## Checkmk concept accordance 
 
 ❓ **Question**: The "*Checkmk concept*" is to strictly separate the data collection from the status evaluation. How does Robotmk respect this concept?  
 **Answer**:  
@@ -15,6 +14,8 @@ This is also the reason why the result logged by Robot Framework in the HTML log
 
 ---
 
+## Log file pecularities 
+
 ❓ **Question**: Do the HTML log of Robot Framework and the Robotmk services always show the same state/result?  
 **Answer**:  
 This depends on whether Robotmk monitoring rules exist. If not, the test result corresponds 1:1 to the state displayed in Checkmk.  
@@ -22,11 +23,15 @@ But if e.g. a server-side Robotmk keyword runtime mointoring rule exists, it can
 
 ---
 
+## Synchronous and asynchronous execution
+
 ❓ **Question**: Why is asynchronous plugin execution required for Robotmk?  
 **Answer**:  
 Of the two plugin execution types, "*synchronous*" and "*asynchronous*", the former is unquestionably ruled out for Robotmk. The reason is that synchronous plugin execution happens in the normal agent interval and is therefore suitable for short-running plugins. Robot tests that operate on user interfaces like a real user tend to be long-running and are therefore unsuitable for synchronous execution. 
 
 ---
+
+## Staleness of results 
 
 ❓ **Question**: If the Robotmk plugin is executed asynchronously, why is the `<<<robotmk>>>` section missing the execution **timestamp** and **cache time**, (as known from other plugins)?  
 
@@ -108,12 +113,16 @@ The Robotmk check would never know that there are stale services, which must be 
 
 ---
 
+## Robotmk plugin types 
+
 ❓ **Question**: Why are there 2 different Robotmk plugins? Why isn't there only *one* `robotmk.py` agent plugin?  
 **Answer:**  
 `robotmk-runner.py` is the plugin which actually executes the Robot Framework tests (serially). This can take a lot of time and is not feasable by a synchronous plugin (which gets started every minute). For this reason, the runner plugin does not produce any output, but generates JSON result files after each Robot execution.  
 `robotmk.py` gets executed synchronously and is only responsible to generate agent compatible output from all the JSON result files (written by the runner plugin). 
 
 ---
+
+## Asnychronous execution and scheduling
 
 ❓ **Question**: Why doesn't Robotmk just use the **asynchronous plugin execution** for every suite? This would allow parallel execution by nature, done directly from the agent?  
 **Answer 1:**  
@@ -146,6 +155,8 @@ From the point of view of the Checkmk monitoring, the robot test therefore also 
 (Already today in Robotmk v1.x the execution interval must be chosen thoroughly, that it is always sufficiently higher than the sum of all suite runtimes (serial execution!). Otherwise the agent clears the thread and results are lost).  
 
 ---
+
+## Parallelism 
 
 ❓ **Question:**  What happens if the (asynchronous) execution of Robotmk (with all suites) takes so long that the next execution step would already be ready? What is the solution for this problem?  
 **Answer:**  
