@@ -9,6 +9,7 @@
                 "yzhang.markdown-all-in-one",
                 "GitHub.copilot",
                 "Gruntfuggly.todo-tree",
-                "rogalmic.bash-debug"
+                "rogalmic.bash-debug",
+                "almenon.arepl"
         ]
 }

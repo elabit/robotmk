@@ -4,8 +4,8 @@ Test One Fails OMG
     Log  I am failing right now...
     Fail  OMG, failed.
 
-Test Two Works 
+Test Two 
     Log  I am working properly.
 
-Test Three Works 
+Test Three 
     Log  I am also working properly.

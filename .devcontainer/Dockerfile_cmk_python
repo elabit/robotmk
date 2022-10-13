@@ -15,7 +15,7 @@ RUN cd /tmp && wget https://www.python.org/ftp/python/3.9.4/Python-3.9.4.tgz \
     && make install
 
 # install python modules to run the Robotmk plugin in this container 
-RUN pip3 install robotframework pyyaml mergedeep python-dateutil ipdb 
+RUN pip3 install robotframework pyyaml mergedeep python-dateutil ipdb
 
 RUN export DEBIAN_FRONTEND=noninteractive \
     && apt-get -y install --no-install-recommends jq tree htop vim git telnet file less tmux

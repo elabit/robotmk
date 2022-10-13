@@ -425,7 +425,7 @@ _dict_el_test_exclude = (
     ListOfStrings(
         title=_("Exclude tests by tag (<tt>--exclude</tt>)"),
         help=_(
-            'Select test cases not to run by tag. (<a href="https://robotframework.org/robotframework/latest/RobotFrameworkUserGuide.html#tagging-test-cases">About tagging test cases</a>)<br>These tests are'
+            'Select test cases not to run at all by tag. (<a href="https://robotframework.org/robotframework/latest/RobotFrameworkUserGuide.html#tagging-test-cases">About tagging test cases</a>)<br>These tests are'
             " not run even if included with <tt>--include</tt>. <br>Tags are"
             " matched using same rules as with <tt>--include</tt>.<br>"
         ),
@@ -515,8 +515,15 @@ _agent_config_testsuites_robotframework_params_dict = Dictionary(
             DropdownChoice(
                 title=_("Exit on failure (<tt>--exitonfailure</tt>)"),
                 help=_(
-                    'By default, Robot Framework tries to execute <i>every</i> test. If a test fails, the remaining keywords are skipped and the next test starts (see <a href="https://robotframework.org/robotframework/latest/RobotFrameworkUserGuide.html#stopping-when-first-test-case-fails">About failed tests</a>)<br>'
-                    "With this option set to 'yes', Robot Framework will leave the suite execution after the first test has failed."
+                    """
+                    By default, Robot Framework will execute <i>every</i> test.<br>
+                    But sometimes tests are interdependent - in the event of a failed login, for example, it is impossible to still successfully complete the subsequent tests.<br>
+                    If this option is active, Robot Framework will <b>immediately stop</b> the suite execution if a test fails. <br>
+                    The results of subsequent tests (which would have failed) will then not be passed to Checkmk; depending on the discovery settings,
+                    their results will either be <b>missing</b> (if within a suite result) or the services generated for them will <b>go stale</b>.<br> <br>  
+                    <b>Important note</b>: this is where Robotmk deviates from Robot Framework behavior. The HTML log will still contain the omitted tests and show them as <tt>FAIL</tt> (even though they were not executed).<br>
+                    See also "<a href=\"http://robotframework.org/robotframework/latest/RobotFrameworkUserGuide.html#stopping-when-first-test-case-fails\">How to stop a suite when the first test fails</a>". 
+                    """
                 ),
                 choices=[
                     ("yes", _("yes")),

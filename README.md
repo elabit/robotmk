@@ -3,7 +3,7 @@
 [![All Contributors](https://img.shields.io/badge/all_contributors-4-orange.svg?style=flat-square)](#contributors-)
 <!-- ALL-CONTRIBUTORS-BADGE:END -->
 
-*A complete solution to integrate **Robot Framework** End2End tests into **Checkmk***
+*An enterprise-ready solution to integrate **Robot Framework** End2End tests into **Checkmk***
 
 <!-- [![Build Status](https://travis-ci.com/simonmeggle/robotmk.svg?branch=develop)](https://travis-ci.com/simonmeggle/robotmk) ![.github/workflows/github-markdown-toc.yml](https://github.com/elabit/robotmk/workflows/.github/workflows/github-markdown-toc.yml/badge.svg) -->
 
@@ -70,7 +70,8 @@ The Robotmk project consists of different components working together:
   * Use the Checkmk WATO rule editor to decide which remote hosts should be deployed with the Robotmk plugin.
   * Define which suites should be executed on the test host
   * Parametrize the Robot tests with commandline options of Robot Framework - no CLI needed. 
-  * Let Robot Framework repeat failed tests for certain number of attempts. This is a very useful and outstanding feature to get more stable results if the SUT behaves unconsistently. 
+  * Let Robot Framework repeat failed tests for certain number of attempts. This is a very useful and outstanding feature to get more stable results if the SUT behaves unconsistently. You can even control to repeat singular tests incrementally (and merge the results after n iterations) or to always repeat the test suite as a whole. 
+  * Robotmk can handle dependencies between testcases - only the root cause gets alerted.
 * Robotmk **plugins** - executes RF tests: 
   * the `robotmk-runner` is a kind of wrapper for RF tests on the client side. It gets controlled by the robotmk YML file which is created by the bakery. 
   * the `robotmk` plugin is executed as a normal plugin and reads the results written by the runner plugin.

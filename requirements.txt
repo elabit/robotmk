@@ -1,3 +1,4 @@
 mergedeep 
 robotframework
 python-dateutil
+black
