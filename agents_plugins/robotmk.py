@@ -34,7 +34,7 @@ import socket
 
 local_tz = datetime.utcnow().astimezone().tzinfo
 
-ROBOTMK_VERSION = 'v1.3.0'
+ROBOTMK_VERSION = 'v1.3.1'
 
 
 class RMKConfig:
@@ -819,7 +819,10 @@ class ReExecStrategyFactory:
         pass
 
     def create(self, suite):
-        if suite.suite_dict["failed_handling"]["strategy"]["name"] == "incremental":
+        if (
+            "failed_handling" in suite.suite_dict
+            and suite.suite_dict["failed_handling"]["strategy"]["name"] == "incremental"
+        ):
             return ReExecStrategyIncremental(suite)
         else:
             return ReExecStrategyComplete(suite)
