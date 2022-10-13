@@ -323,9 +323,15 @@ def check_robotmk(item, params, section):
                         now = datetime.datetime.now(tzlocal())
                         last_end = parser.isoparse(root_suite['end_time'])
                         age = now - last_end
-                        if age.total_seconds() < root_suite['cache_time']:
-                            for i in evaluate_robot_item(discovered_item, params_dict):
-                                yield i
+                        if age.total_seconds() < root_suite["cache_time"]:
+                            items = evaluate_robot_item(discovered_item, params_dict)
+                            if items == "robot:exit":
+                                # Ref UZYBs
+                                out = "No current results. The test was omitted by Robot Framework, probably due to a previous error."
+                                yield IgnoreResults(out)
+                            else:
+                                for i in items:
+                                    yield i
                         else:
                             ignore = ignore_robot_item(root_suite, last_end, age)
                             yield ignore
@@ -344,15 +350,19 @@ def ignore_robot_item(root_suite, last_end, age):
 
 def evaluate_robot_item(robot_item, params):
     item_result = robot_item.get_checkmk_result(robot_item, params)
-    rc = item_result['worststate']
-    result = Result(
-        state=State(rc),
-        summary=item_result['padded_lines_list'][0],
-        details='\n'.join(item_result['padded_lines_list'])
-    )
-    # Return back a list of everything which should be yielded
-    # Perfdata are generated in ref #5LSK99
-    return [result] + item_result['cmk_perfdata_list']
+    # item_result can be omitted (see Ref. #UZYBs)
+    if item_result != "robot:exit":
+        rc = item_result["worststate"]
+        result = Result(
+            state=State(rc),
+            summary=item_result["padded_lines_list"][0],
+            details="\n".join(item_result["padded_lines_list"]),
+        )
+        # Return back a list of everything which should be yielded
+        # Perfdata are generated in ref #5LSK99
+        return [result] + item_result["cmk_perfdata_list"]
+    else:
+        return "robot:exit"
 
 
 def get_svc_prefix_tplstring(itemname, root_suite, prefix):
@@ -443,6 +453,7 @@ class RobotItem(object):
             )
 
         self.name = xmlnode.attrib['name']
+        self.tag = self.xmlnode.findtext("tag", default=None)
         self._item_nagios_status = 0
         self.elapsed_time = self._get_node_elapsed_time()
         self.result = {}
@@ -905,18 +916,34 @@ class RobotItem(object):
                 # for the following kws, point to this parent test
                 node_top = self
 
+        # Ref #UZYBs
+        # Skip tests tagged by Robot Framework with "robot:exit".
+        # This tag indicates that the test was omitted, for example because
+        # --exitonfailure was set and a previous test failed.
+        # See https://robotframework.org/robotframework/latest/RobotFrameworkUserGuide.html#exit-on-failure
+        # and
+        # http://robotframework.org/robotframework/latest/RobotFrameworkUserGuide.html#stopping-test-execution-gracefully
+        if type(self) == RobotTest and self.tag == "robot:exit":
+            return self.tag
         # do the recursion
         self.subresults = []
         (descend_allowed,
          next_depth_limit) = self._descending_allowed(depth_limit_inherited,
                                                       check_params)
         if descend_allowed:
-            # Since RF4.0, the XML contains also keywords which would have come 
-            # after a FAILed keyword (NOT RUN, SKIP). However, they are useless for Robotmk. 
-            for subnode in [ i for i in self.subnodes if i.status in ROBOT_NAGIOS_STATUS.keys()]:
-                subresult = subnode.get_checkmk_result(node_top, check_params,
-                                                       next_depth_limit)
-                self.subresults.append(subresult)
+            # Since RF4.0, the XML contains also keywords which would have come
+            # after a FAILed keyword (NOT RUN, SKIP). However, they are useless for Robotmk.
+            subnodes_of_interest = [
+                i for i in self.subnodes if i.status in ROBOT_NAGIOS_STATUS.keys()
+            ]
+            for subnode in subnodes_of_interest:
+                subresult = subnode.get_checkmk_result(
+                    node_top, check_params, next_depth_limit
+                )
+                # subresults only get added if the subnode has no "robot:exit" tag,
+                # which indicates that the test was omitted. (--exitonfailure, see Ref UZYBs)
+                if subresult != "robot:exit":
+                    self.subresults.append(subresult)
 
         # THIS Node -----
         self._set_node_info()

@@ -5,6 +5,14 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## Unreleased
+
+### Changed 
+
+* The Robotmk mechanism behind the RF parameter `--exitonfailure` has been optimized and clearly documented in the inline help. If this option was set, the remaining tests that were not executed were previously marked as FAIL or CRITICAL. This is the default in Robot Framework (see [RF user guide](http://robotframework.org/robotframework/latest/RobotFrameworkUserGuide.html#stopping-when-first-test-case-fails)), but in Checkmk it lead to an alarm not only for the root cause (the failed test), but also for the subsequent errors. 
+The behavior of Robotmk has been slightly modified in that the tests omitted due to a previous failure are filtered out and not passed to Checkmk for evaluation anymore. Tests that have not been executed become "stale", and false alarms are thus avoided. (Thanks for the valuable feedback.)
+
+
 ## 1.3.1 - 2022-10-13
 
 ### Fixed
