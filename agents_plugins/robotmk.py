@@ -34,7 +34,7 @@ import socket
 
 local_tz = datetime.utcnow().astimezone().tzinfo
 
-ROBOTMK_VERSION = 'v1.4.0'
+ROBOTMK_VERSION = "v1.4.0"
 
 
 class RMKConfig:
@@ -695,7 +695,7 @@ class RMKSuite(RMKState):
     @property
     def piggybackhost(self):
         pb_host = self.suite_dict.get("piggybackhost", None)
-        return ("piggybackhost", piggybackhost) if pb_host else None
+        return ("piggybackhost", pb_host) if pb_host else None
 
     # Suite timestamp for filenames
     @property
