@@ -24,8 +24,8 @@ if [ -z $OMD_SITE ]; then
 fi 
 
 set -u 
-# CMK Major version 
-MVERSION="$(cat $OMD_ROOT/.version_meta/version | cut -d '.' -f1)"
+# CMK Major version - not needed anymore but lets keep this information as part of the package name
+MVERSION="2"
 NAME="robotmk"
 PACKAGEFILE=$OMD_ROOT/var/check_mk/packages/$NAME
 
@@ -36,19 +36,15 @@ echo "▹ Removing old packages..."
 rm -f $OMD_ROOT/var/check_mk/packages/*
 
 echo "---------------------------------------------"
-echo "▹ Merging the common package info with version $MVERSION specific..."
-jq -s '.[0] * .[1]' $WORKSPACE/package/pkginfo_common $WORKSPACE/package/v$MVERSION/pkginfo | jq '. + {version:env.RMK_VERSION}' > $PACKAGEFILE
-echo "---------------------------------------------"
 echo "$PACKAGEFILE:"
 cat $PACKAGEFILE
 echo "---------------------------------------------"
-echo "▹ Building MKP '$NAME' on $RMK_VERSION for CMK version $MVERSION..."
+echo "▹ Building MKP '$NAME' on $RMK_VERSION ..."
 # set -x
 ls -la $PACKAGEFILE
 mkp -v pack $NAME
 FILE=$(ls -rt1 *.mkp | tail -1)
 # robotmk.cmk2-v1.1.0.mkp
-# robotmk.v1.1.0-cmk2.mkp
 NEWFILENAME=$NAME.$RMK_VERSION-cmk$MVERSION.mkp
 mv $FILE $NEWFILENAME
 PKG_PATH=$(readlink -f "$NEWFILENAME")

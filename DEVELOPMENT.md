@@ -332,24 +332,23 @@ The release workflow of Robotmk is divided into the following steps:
 
 ## File locations
 
-Most folders are common in CMK v1 and v2, others are specific. This table shows which folder in the Robotmk project gets mounted where.
+This table shows which folder in the Robotmk project gets mounted where.
 
 Abbreviations:
 
 * `local/share/check_mk` = `l/s/c`
 * `local/lib/check_mk/base` = `l/l/c/b`
 
-| Component                         | Project folder    | Checkmk common                  | V1 specific                                     | V2 specific                                     |
-| --------------------------------- | ----------------- | ------------------------------- | ---------------------------------------------- | ---------------------------------------------- |
-| **Agent plugin**                  | 📂  `agents_plugins/` | `l/s/c/agents/plugins`          |                                                |                                                |
-| custom package "robotmk-external" | 📂  `agents_plugins/` |                                 | `l/s/c/agents/custom/robotmk-external/lib/bin` | (not needed)                                   |
-| **Bakery** script                 | 📂  `bakery/vX/`      |                                 | `l/s/c/agents/bakery`                          | `local/lib/check_mk/base/cee/plugins/bakery` |
-| checkman                          | 📂  `checkman/`       | `l/s/c/checkman`                |                                                |                                                |
-| **Checks**                        | 📂  `checks/vX/`      |                                 | `l/s/c/checks`                                 | `l/l/c/b/plugins/agent_based`                  |
-| Images                            | 📂  `images/`         | `l/s/c/web/htdocs/images`       |                                                |                                                |
-| **Metrics, WATO**                 | 📂  `web_plugins/`    | `l/s/c/web/plugins`             |                                                |                                                |
-| RF tests                          | 📂  `rf_tests/`       | `/usr/lib/check_mk_agent/robot` |                                                |                                                |
-| Agent output                      | 📂  `agent_output/`   | `var/check_mk/agent_output`     |                                                |                                                |
+| Component                         | Project folder    | Checkmk folder                   | 
+| --------------------------------- | ----------------- | ------------------------------- | 
+| **Agent plugin**                  | 📂  `agents_plugins/` | `l/s/c/agents/plugins`          |
+| **Bakery** script                 | 📂  `bakery/vX/`      | `local/lib/check_mk/base/cee/plugins/bakery` |
+| checkman                          | 📂  `checkman/`       | `l/s/c/checkman`                
+| **Checks**                        | 📂  `checks/vX/`      | `l/l/c/b/plugins/agent_based` |
+| Images                            | 📂  `images/`         | `l/s/c/web/htdocs/images`       |
+| **Metrics, WATO**                 | 📂  `web_plugins/`    | `l/s/c/web/plugins`             |
+| RF tests                          | 📂  `rf_tests/`       | `/usr/lib/check_mk_agent/robot` |
+| Agent output                      | 📂  `agent_output/`   | `var/check_mk/agent_output`     |
 
 ## Others
 

@@ -5,6 +5,8 @@
     "download_url": "https://github.com/elabit/robotmk/releases",
     "title": "Robotmk | Robot Framework End2End Test Integration",
     "files": {
+        "agent_based": ["robotmk.py"],
+        "agents": ["plugins/robotmk-runner.py", "plugins/robotmk.py", "bakery/robotmk.py"],
         "checkman": ["robotmk"],  
         "web": [
             "plugins/metrics/robotmk.py",
@@ -14,5 +16,6 @@
             "htdocs/images/icons/robotmk80.png",
             "htdocs/images/icons/robotmk80_dot.png"
         ]
-    }    
+    },
+    "version.min_required": "2.0.0"
 }

@@ -1,7 +1,0 @@
-{
-    "version.min_required": "2.0.0",
-    "files": {
-        "agent_based": ["robotmk.py"],
-        "agents": ["plugins/robotmk-runner.py", "plugins/robotmk.py", "bakery/robotmk.py"]
-    }
-}

@@ -34,20 +34,6 @@ function main() {
     build_images
 }
 
-
-# function cmk_registry_login() {
-#     echo "Please provide your credentials to use the Checkmk Docker registry:"
-#     read -p "Username: " user
-#     read -p "Password: " password
-#     docker login $REGISTRY --username $user --password $password
-#     if [ $? -gt 0 ]; then 
-#         echo "⛔️  ERROR: Login failed. Exiting."
-#         exit 1
-#     else
-#         echo "🔐 Logged in to $REGISTRY."
-#     fi
-# }
-
 function image_exists() {
     docker images | egrep -q "$1" 
 }
@@ -65,8 +51,6 @@ function build_images() {
             read -p "Download this image? (y/n)" -n 1 -r
             echo 
             if [[ $REPLY =~ ^[Yy]$ ]]; then 
-                # FIXME: v1 download with wget?
-                #cmk_registry_login
                 docker pull $IMAGE_NAME
                 if [ $? -gt 0 ]; then 
                     echo "⛔️  ERROR: Download failed. Exiting."

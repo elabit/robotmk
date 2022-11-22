@@ -168,7 +168,7 @@ class RMK:
         #  no target, interval!
         if self.execution_mode == "external":
             # Runner and Controller have to be deployed as bin
-            # /omd/sites/v2/lib/python3/cmk/base/cee/bakery/core_bakelets/bin_files.py
+            # $OMD_ROOT/lib/python3/cmk/base/cee/bakery/core_bakelets/bin_files.py
 
             # cmk.utils.paths.local_agents_dir ??
             pass

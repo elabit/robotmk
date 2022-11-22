@@ -19,7 +19,8 @@
 	"extensions": [
 		"ms-python.python",
 		"littlefoxteam.vscode-python-test-adapter",
-		"jeremyfa.tasks-chooser"
+		"jeremyfa.tasks-chooser",
+		"Gruntfuggly.todo-tree"
 	],
 	"forwardPorts": [
 		5000

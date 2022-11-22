@@ -86,7 +86,7 @@ The Robotmk project consists of different components working together:
     * (new) log integration: The check extracts the Robot HTML logs and integrates 
       them into the Checkmk web UI: 
 
-The locations of the individual files in CMK V1 and V2 are described in [DEVELOPMENT.md](./DEVELOPMENT.md#file-locations).
+The locations of the files in Checkmk are described in [DEVELOPMENT.md](./DEVELOPMENT.md#file-locations).
 
 ![desc](img/robotmk_html_logs_animated.gif)
 
@@ -123,10 +123,10 @@ Incompatibilities will always be reflected in a major version change. As soon as
 
 ## Requirements
 
-Robotmk works with any Checkmk 1.6x and 2.x version and edition (CEE and CRE).
+Robotmk works with any Checkmk 2.x version and edition (CEE and CRE). If you are on Checkmk 1.6, Robotmk version 1.4.1 is the latest support version. 
 
 * Enterprise edition (CEE) is recommended if you want to benefit from the agent bakery system which creates agent installation packages and the Robotmk YAML configuration files. 
-* Raw Edition (CRE) also works if you are fine to write this files by hand/generate by some other tool (Ansible etc.). (Nevertheless, consider a worthwile [switch to CEE](https://www.iteratio.com/))
+* Raw Edition (CRE) also works if you are fine to write this files by hand/generate by some other tool (Ansible etc.). Nevertheless, consider a worthwile switch to CEE.
 
 ## Installation
 
