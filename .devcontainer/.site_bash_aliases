@@ -1,0 +1,8 @@
+alias cmk_bake_localhost='cmk -Avf localhost'
+alias cmk_reload='cmk -R'
+
+function cmk_iiv_localhost(){
+	cmk -IIvv localhost
+	cmk -R
+	cmk -v localhost
+}

@@ -12,20 +12,12 @@
         },
         {
             "displayName": "💿 Build all devcontainer images",
-            "command": "bash .devcontainer/build-devcontainer.sh"
+            "command": "bash .devcontainer/devcontainer_img_build.sh"
         },
         {
-            "displayName": "▶︎ Set devcontainer to CMK 1.6.0p29",
-            "command": "bash .devcontainer/set_devcontainer_version.sh 1.6.0p29"
-        },
-        {
-            "displayName": "▶︎ Set devcontainer to CMK 2.0.0p22",
-            "command": "bash .devcontainer/set_devcontainer_version.sh 2.0.0p22"
-        },
-        {
-            "displayName": "▶︎ Set devcontainer to CMK 2.1.0p4",
-            "command": "bash .devcontainer/set_devcontainer_version.sh 2.1.0p4"
-        },
+            "displayName": "▶︎ Set devcontainer to CMK 2.1.0p16",
+            "command": "bash .devcontainer/devcontainer_gen.sh 2.1.0p16"
+        },        
         {
             "displayName": "▶︎ Create dummyhost",
             "command": "bash /workspaces/robotmk/.devcontainer/create_dummyhost.sh"
