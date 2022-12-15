@@ -8,6 +8,11 @@
 <!-- [![Build Status](https://travis-ci.com/simonmeggle/robotmk.svg?branch=develop)](https://travis-ci.com/simonmeggle/robotmk) ![.github/workflows/github-markdown-toc.yml](https://github.com/elabit/robotmk/workflows/.github/workflows/github-markdown-toc.yml/badge.svg) -->
 
 [![MD TOC](https://github.com/elabit/robotmk/actions/workflows/markdown-toc.yml/badge.svg)](https://github.com/elabit/robotmk/actions/workflows/markdown-toc.yml) [![MKP-Release](https://github.com/elabit/robotmk/actions/workflows/mkp-release.yml/badge.svg)](https://github.com/elabit/robotmk/actions/workflows/mkp-release.yml)
+
+![desc](img/robocon2023.png)
+
+=> Book your seat for the workshop [Robotmk: monitor your tests with Checkmk!](https://robocon.io/#robotmk-monitor-your-tests-with-checkmk)
+
 ![desc](img/robotmk_banner.png)
 
 <!--ts-->
