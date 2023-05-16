@@ -1,13 +1,23 @@
 {
-    "name": "robotmk",    
+    "name": "robotmk",
     "author": "Simon Meggle <simon.meggle@elabit.de>",
-    "description": "Robotmk integrates Robot Framework results into Checkmk. Robot Framework is a generic testing framework which can test web based and native applications (and much more). It is very popular, easy to learn and highly extendable by libraries. Libraries provide the functionality to use modern test web technologies (Playwright/Selenium), control user interfaces (ImageHorizon, SikuliX, AutoIT, SAP, ...), REST/SOAP APIs etc. It is based on Python and can be extended by own libraries as well. See https://robotframework.org for more information.",        
+    "description": "Robotmk integrates Robot Framework results into Checkmk. Robot Framework is a generic testing framework which can test web based and native applications (and much more). It is very popular, easy to learn and highly extendable by libraries. Libraries provide the functionality to use modern test web technologies (Playwright/Selenium), control user interfaces (ImageHorizon, SikuliX, AutoIT, SAP, ...), REST/SOAP APIs etc. It is based on Python and can be extended by own libraries as well. See https://robotframework.org for more information.",
     "download_url": "https://github.com/elabit/robotmk/releases",
     "title": "Robotmk | Robot Framework End2End Test Integration",
     "files": {
-        "agent_based": ["robotmk.py"],
-        "agents": ["plugins/robotmk-runner.py", "plugins/robotmk.py", "bakery/robotmk.py"],
-        "checkman": ["robotmk"],  
+        "agent_based": [
+            "robotmk.py"
+        ],
+        "agents": [
+            "plugins/robotmk-runner.py",
+            "plugins/robotmk.py"
+        ],
+        "checkman": [
+            "robotmk"
+        ],
+        "lib": [
+            "check_mk/base/cee/plugins/bakery/robotmk.py"
+        ],
         "web": [
             "plugins/metrics/robotmk.py",
             "plugins/wato/robotmk_wato_params_bakery.py",
