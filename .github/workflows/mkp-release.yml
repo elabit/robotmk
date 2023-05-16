@@ -45,7 +45,6 @@ jobs:
             path: ${{ steps.cmkpkg.outputs.pkgfile }}
 
   # ////////////////////////////////////////////////////////////////////////              
-  # bump
   # https://docs.github.com/en/actions/guides/storing-workflow-data-as-artifacts#downloading-or-deleting-artifacts
   release:
     name: Release Robotmk MKP
@@ -74,26 +73,28 @@ jobs:
       - name: chag
         run: bash chag contents > RELEASE_CHANGELOG.md
 
-  #     - name: Get Tag
-  #       id: tag
-  #       run: echo ::set-output name=VERSION::${GITHUB_REF##*/}
+      - name: Get Tag
+        id: tag
+        run: echo ::set-output name=VERSION::${GITHUB_REF##*/}
+      # (The Release text will be taken from the annotated tag, created with "chag")
+      - name: Create Release
+        id: create_release
+        uses: softprops/action-gh-release@v1
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          RELEASE_NAME: ${GITHUB_REF##*/}
+        with:
+          name: Release ${{ steps.tag.outputs.VERSION }}
+          body_path: RELEASE_CHANGELOG.md
+          draft: false
+          prerelease: false
+      # -m "" means: Leave the Release mesage body as it is, do not modify
+      - name: Add Release Assets
+        run: hub release edit $(find package/ -type f -name "*.mkp" -printf "-a %p ") -m "" "${GITHUB_REF#refs/*/}"
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
 
-  #     # The Release text will be taken from the annotated tag, created with "chag"
-  #     - name: Create Release
-  #       id: create_release
-  #       uses: softprops/action-gh-release@v1
-  #       env:
-  #         GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-  #         RELEASE_NAME: ${GITHUB_REF##*/}
-  #       with:
-  #         name: Release ${{ steps.tag.outputs.VERSION }}
-  #         body_path: RELEASE_CHANGELOG.md
-  #         draft: false
-  #         prerelease: false
-
-  #     # -m "" means: Leave the Release mesage body as it is, do not modify
-  #     - name: Add Release Assets
-  #       run: hub release edit $(find package/ -type f -name "*.mkp" -printf "-a %p ") -m "" "${GITHUB_REF#refs/*/}"
-  #       env:
-  #         GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+      #  Uncomment this to debug
+      - name: Setup tmate session
+        uses: mxschmitt/action-tmate@v3        
 
