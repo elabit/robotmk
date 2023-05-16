@@ -66,16 +66,20 @@ jobs:
       WORKSPACE: ${{ github.workspace }}
 
     steps:
-      - name: Install jq package
-        run: apt update && apt-get -y install sudo jq lsyncd
+      - name: Install tools
+        run: apt update && apt-get -y install sudo jq tree
       - name: Create Checkmk Site
         run: /docker-entrypoint.sh /bin/true
       - name: Checkout Robotmk repository
         uses: actions/checkout@v2
+
       - name: Link repository files into container
         run: .devcontainer/linkfiles.sh
       - name: Update GITHUB_PATH
         run: echo "/omd/sites/cmk/bin" >> $GITHUB_PATH
+
+      # - name: Setup tmate session
+      #   uses: mxschmitt/action-tmate@v3
       - name: Build MKP
         run: .devcontainer/build.sh
         id: cmkpkg
