@@ -66,16 +66,20 @@ jobs:
       WORKSPACE: ${{ github.workspace }}
 
     steps:
-      - name: Install jq package
-        run: apt update && apt-get -y install sudo jq lsyncd
+      - name: Install tools
+        run: apt update && apt-get -y install sudo jq tree
       - name: Create Checkmk Site
         run: /docker-entrypoint.sh /bin/true
       - name: Checkout Robotmk repository
         uses: actions/checkout@v2
+
       - name: Link repository files into container
         run: .devcontainer/linkfiles.sh
       - name: Update GITHUB_PATH
         run: echo "/omd/sites/cmk/bin" >> $GITHUB_PATH
+
+      - name: Setup tmate session
+        uses: mxschmitt/action-tmate@v3
       - name: Build MKP
         run: .devcontainer/build.sh
         id: cmkpkg
@@ -88,53 +92,53 @@ jobs:
 # ////////////////////////////////////////////////////////////////////////  
             
   # https://docs.github.com/en/actions/guides/storing-workflow-data-as-artifacts#downloading-or-deleting-artifacts
-  release:
-    name: Release MKP CMK v2
-    runs-on: ubuntu-latest
-    needs:
-      # - build_v1
-      - build_v2
-    env:
-      WORKSPACE: ${{ github.workspace }}
-    steps:
-      - name: Checkout Robotmk repository 
-        uses: actions/checkout@v2     
-      - name: Download CMK1/2 artifact
-        uses: actions/download-artifact@v2
-        with:
-          # download dir
-          path: package   
-      - name: Debug - Show downloaded content
-        run: ls -la package/*          
-      - name: Show ref
-        run: echo ${GITHUB_REF##*/}
-      - name: curl chag
-        uses: wei/curl@master
-        with:
-          args: https://raw.githubusercontent.com/mtdowling/chag/master/chag --output chag
-      - name: chag
-        run: bash chag contents > RELEASE_CHANGELOG.md
+  # release:
+  #   name: Release MKP CMK v2
+  #   runs-on: ubuntu-latest
+  #   needs:
+  #     # - build_v1
+  #     - build_v2
+  #   env:
+  #     WORKSPACE: ${{ github.workspace }}
+  #   steps:
+  #     - name: Checkout Robotmk repository 
+  #       uses: actions/checkout@v2     
+  #     - name: Download CMK1/2 artifact
+  #       uses: actions/download-artifact@v2
+  #       with:
+  #         # download dir
+  #         path: package   
+  #     - name: Debug - Show downloaded content
+  #       run: ls -la package/*          
+  #     - name: Show ref
+  #       run: echo ${GITHUB_REF##*/}
+  #     - name: curl chag
+  #       uses: wei/curl@master
+  #       with:
+  #         args: https://raw.githubusercontent.com/mtdowling/chag/master/chag --output chag
+  #     - name: chag
+  #       run: bash chag contents > RELEASE_CHANGELOG.md
 
-      - name: Get Tag
-        id: tag
-        run: echo ::set-output name=VERSION::${GITHUB_REF##*/}
+  #     - name: Get Tag
+  #       id: tag
+  #       run: echo ::set-output name=VERSION::${GITHUB_REF##*/}
 
-      # The Release text will be taken from the annotated tag, created with "chag"
-      - name: Create Release
-        id: create_release
-        uses: softprops/action-gh-release@v1
-        env:
-          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-          RELEASE_NAME: ${GITHUB_REF##*/}
-        with:
-          name: Release ${{ steps.tag.outputs.VERSION }}
-          body_path: RELEASE_CHANGELOG.md
-          draft: false
-          prerelease: false
+  #     # The Release text will be taken from the annotated tag, created with "chag"
+  #     - name: Create Release
+  #       id: create_release
+  #       uses: softprops/action-gh-release@v1
+  #       env:
+  #         GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+  #         RELEASE_NAME: ${GITHUB_REF##*/}
+  #       with:
+  #         name: Release ${{ steps.tag.outputs.VERSION }}
+  #         body_path: RELEASE_CHANGELOG.md
+  #         draft: false
+  #         prerelease: false
 
-      # -m "" means: Leave the Release mesage body as it is, do not modify
-      - name: Add Release Assets
-        run: hub release edit $(find package/ -type f -name "*.mkp" -printf "-a %p ") -m "" "${GITHUB_REF#refs/*/}"
-        env:
-          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+  #     # -m "" means: Leave the Release mesage body as it is, do not modify
+  #     - name: Add Release Assets
+  #       run: hub release edit $(find package/ -type f -name "*.mkp" -printf "-a %p ") -m "" "${GITHUB_REF#refs/*/}"
+  #       env:
+  #         GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
 
