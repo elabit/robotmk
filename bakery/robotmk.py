@@ -5,7 +5,7 @@
 # SPDX-License-Identifier: GPL-3.0-or-later
 # This file is part of the Robotmk project (https://www.robotmk.org)
 
-ROBOTMK_VERSION = 'v1.4.3'
+ROBOTMK_VERSION = 'v1.4.4'
 
 from typing import Iterable, TypedDict, List
 from pathlib import Path
