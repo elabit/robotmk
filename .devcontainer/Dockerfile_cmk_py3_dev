@@ -1,0 +1,21 @@
+ARG VARIANT
+FROM checkmk/check-mk-free:$VARIANT
+
+# install python3 on the container
+RUN apt update && apt upgrade -y
+
+RUN export DEBIAN_FRONTEND=noninteractive \
+    && apt -y install --no-install-recommends python3-pip jq tree htop vim git telnet file less tmux
+
+# install default python modules. 
+# Project dependencies can either be installed in postCreateCommend.sh (using the default Docker image)
+# or in the Dockerfile (resulting in a project-wise Docker image), see Ref #6TEtDq
+ADD .devcontainer/requirements.txt /tmp/requirements.txt
+RUN pip3 install -r /tmp/requirements.txt
+
+# bash aliases for root user
+COPY .devcontainer/.root_bash_aliases /root/.bash_aliases
+RUN echo ". /root/.bash_aliases" >> /root/.bashrc
+
+# tmux configuration inside container
+COPY .devcontainer/.tmux.conf /root/.tmux.conf

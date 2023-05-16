@@ -3,8 +3,8 @@
 ARG VARIANT
 # Build the dev images with .devcontainer/build-devcontainer.sh !
 # See https://stackoverflow.com/a/69798220 to run the image on Apple M1
-FROM --platform=linux/amd64 robotmk-cmk-python3:${VARIANT}
-ARG PIP
+#FROM --platform=linux/amd64 robotmk-cmk-python3:${VARIANT}
+FROM cmk-python3-dev:${VARIANT}
 
 ENV CMK_PASSWORD="cmk"
 
@@ -14,9 +14,5 @@ RUN /docker-entrypoint.sh /bin/true
 
 # make the agent dir writeable from the CMK site (to link RF example tests) 
 RUN chgrp -R cmk /usr/lib/check_mk_agent && chmod g+w /usr/lib/check_mk_agent
-
-COPY .root_bash_aliases /root/.bash_aliases
-RUN echo ". /root/.bash_aliases" >> /root/.bashrc
-COPY .tmux.conf /root/.tmux.conf
 
 ENTRYPOINT ["/bin/bash"]

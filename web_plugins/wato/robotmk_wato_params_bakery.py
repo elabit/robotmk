@@ -25,16 +25,10 @@ from cmk.gui.plugins.wato import (
 
 from cmk.gui.log import logger
 
-try:
-    # V2
-    from cmk.gui.cee.plugins.wato.agent_bakery.rulespecs.utils import (
-        RulespecGroupMonitoringAgentsAgentPlugins,
-    )
-except ImportError:
-    # V1.6
-    from cmk.gui.cee.plugins.wato.agent_bakery import (
-        RulespecGroupMonitoringAgentsAgentPlugins,
-    )
+
+from cmk.gui.cee.plugins.wato.agent_bakery.rulespecs.utils import (
+    RulespecGroupMonitoringAgentsAgentPlugins,
+)
 
 
 #   _           _

@@ -49,7 +49,7 @@ Both flavours of Robotmk (CMK1 and 2) can be developed with Visual Studio Code a
 
 ### Build Devcontainer images
 
-Open `.devcontainer/build-devcontainer.env` and add all versions of Checkmk you want to develop on to the `CMKVERSIONS` variable. (= All versions are a long quoted string, separated by newlines.)
+Open `.devcontainer/devcontainer_img_versions.env` and add all versions of Checkmk you want to develop on to the `CMKVERSIONS` variable. (= All versions are a long quoted string, separated by newlines.)
 
 Example:
 
@@ -62,56 +62,54 @@ Example:
 
 ![](./img/select-task.png)
 
-What does the task "***Build all devcontainer images***" (`.devcontainer/build-devcontainer.sh`) do?
+What does the task "***Build all devcontainer images***" (`.devcontainer/devcontainer_img_build.sh`) do?
 
-* First it checks if the CMK Docker images are already available locally. If not, it connects to the [Checkmk Docker Registry](registry.checkmk.com) and downloads the images from there. (The script will ask you for the registry credentials).
-* It then creates a new Docker image based on the CMK docker image (downloaded in step 1) and installs some more things (see `.devcontainer/Dockerfile_cmk_python`):
-  * Python 3.9 and modules `robotframework pyyaml mergedeep python-dateutil ipdb`
+* First it checks if the CMK Docker images are already available locally. If not, it connects to the [Checkmk Docker Registry](registry.checkmk.com) and downloads the images from there.
+* It then creates a new Docker image based on the CMK docker image (downloaded in step 1) and installs some more things (see `.devcontainer/Dockerfile_cmk_py3_dev`):
+  * Python modules form `.devcontainer/requirements.txt`
   * some additional tools: `jq tree htop vim git telnet file`
 
-The resulting Docker image is then saved as `robotmk-cmk-python3:2.1.0p4` (example):
-
-     16:04 $ docker images | grep robotmk-cmk
-     robotmk-cmk-python3                            2.1.0p4        d1c5971438c3   About a minute ago   2.39GB
-     robotmk-cmk-python3                            2.0.0p22       a9c63d994a74   9 minutes ago        2.19GB
-     robotmk-cmk-python3                            2.0.0p5        1d96bebf47a6   7 months ago         2.18GB
-     robotmk-cmk-python3                            1.6.0p25       599e8beeb9c7   7 months ago         1.93GB
-     robotmk-cmk-python3                            2.0.0p4        71bdfccd584b   7 months ago         2.19GB
+For each version you will get an image `cmk-python3-dev:VERSION`.
 
 The Robotmk devcontainers are started on these images. See `.devcontainer/Dockerfile` (which is referenced in `devcontainer.json`):
 
 ```
 ARG VARIANT
 # Build the dev images with .devcontainer/build-devcontainer.sh !
-FROM robotmk-cmk-python3:${VARIANT}
-...
+FROM --platform=linux/amd64 robotmk-cmk-python3:${VARIANT}
 
 ```
 
-### Set Checkmk versions for task chooser
+### Generate devcontainer.json 
 
-(Make sure that the extension "tasks-chooser" is installed.)
-Now that you have the Docker image versions, you need to add new entries for each specific CMK version in `.vscode/tasks-chooser.json`:
+Add the desired version to `.vscode/task-chooser.json`: 
+
 
 ```
-{
-    "displayName": "▶︎ Set devcontainer to CMK 2.1.0p4",
-    "command": "bash .devcontainer/set_devcontainer_version.sh 2.1.0p4"
-},
+        {
+            "displayName": "▶︎ Set devcontainer to CMK 2.1.0p16",
+            "command": "bash .devcontainer/devcontainer_gen.sh 2.1.0p16"
+        },  
 ```
-
-### Choose and Start the Checkmk devcontainer
-
-Now it's time to run the container.  
-First, set the Checkmk version:
 
 * Run *Cmd-Shift-P* and select `Select Task...` and chose e.g. "*Set devcontainer to CMK 2.1.0p4*" (defined in the previous step)
 * Run *Cmd-Shift-P* and select `Run Task...` to run the task.
 
-This reconfigures some important files:
 
-* `.devcontainer/devcontainer.json` gets *generated* using `envsubst` and the template file in `.devcontainer/v2/devcontainer.json`
-* `.vscode/settings.json` and `.vscode/launch.json` get *copied* from the template files in `.vscode/v2/` (controls the python version being used for running and debugging the code)
+```bash 
+     bash .devcontainer/devcontainer_gen 2.1.0p16
+     + Generating CMK devcontainer file ...
+     + Merging local devcontainer file for project robotmk ...
+     >>> .devcontainer/devcontainer.json for Checkmk version 2.1.0p16 created.
+     Container will start with name: 'robotmk-devc'
+```
+
+This reconfigures `.devcontainer/devcontainer.json` using `envsubst` and the template file in `.devcontainer/devcontainer_tpl.json`
+
+
+### Choose and Start the Checkmk devcontainer
+
+Now it's time to run the container.  
 
 * Run *Cmd-Shift-P* and select `Remote-Containers: Rebuild Container` to start the devcontainer.
 
@@ -334,24 +332,23 @@ The release workflow of Robotmk is divided into the following steps:
 
 ## File locations
 
-Most folders are common in CMK v1 and v2, others are specific. This table shows which folder in the Robotmk project gets mounted where.
+This table shows which folder in the Robotmk project gets mounted where.
 
 Abbreviations:
 
 * `local/share/check_mk` = `l/s/c`
 * `local/lib/check_mk/base` = `l/l/c/b`
 
-| Component                         | Project folder    | Checkmk common                  | V1 specific                                     | V2 specific                                     |
-| --------------------------------- | ----------------- | ------------------------------- | ---------------------------------------------- | ---------------------------------------------- |
-| **Agent plugin**                  | 📂  `agents_plugins/` | `l/s/c/agents/plugins`          |                                                |                                                |
-| custom package "robotmk-external" | 📂  `agents_plugins/` |                                 | `l/s/c/agents/custom/robotmk-external/lib/bin` | (not needed)                                   |
-| **Bakery** script                 | 📂  `bakery/vX/`      |                                 | `l/s/c/agents/bakery`                          | `local/lib/check_mk/base/cee/plugins/bakery` |
-| checkman                          | 📂  `checkman/`       | `l/s/c/checkman`                |                                                |                                                |
-| **Checks**                        | 📂  `checks/vX/`      |                                 | `l/s/c/checks`                                 | `l/l/c/b/plugins/agent_based`                  |
-| Images                            | 📂  `images/`         | `l/s/c/web/htdocs/images`       |                                                |                                                |
-| **Metrics, WATO**                 | 📂  `web_plugins/`    | `l/s/c/web/plugins`             |                                                |                                                |
-| RF tests                          | 📂  `rf_tests/`       | `/usr/lib/check_mk_agent/robot` |                                                |                                                |
-| Agent output                      | 📂  `agent_output/`   | `var/check_mk/agent_output`     |                                                |                                                |
+| Component                         | Project folder    | Checkmk folder                   | 
+| --------------------------------- | ----------------- | ------------------------------- | 
+| **Agent plugin**                  | 📂  `agents_plugins/` | `l/s/c/agents/plugins`          |
+| **Bakery** script                 | 📂  `bakery/vX/`      | `local/lib/check_mk/base/cee/plugins/bakery` |
+| checkman                          | 📂  `checkman/`       | `l/s/c/checkman`                
+| **Checks**                        | 📂  `checks/vX/`      | `l/l/c/b/plugins/agent_based` |
+| Images                            | 📂  `images/`         | `l/s/c/web/htdocs/images`       |
+| **Metrics, WATO**                 | 📂  `web_plugins/`    | `l/s/c/web/plugins`             |
+| RF tests                          | 📂  `rf_tests/`       | `/usr/lib/check_mk_agent/robot` |
+| Agent output                      | 📂  `agent_output/`   | `var/check_mk/agent_output`     |
 
 ## Others
 

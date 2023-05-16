@@ -17,12 +17,11 @@ from random import randint
 import shutil
 from collections import namedtuple
 
-# V2 specific
-# from .agent_based_api.v1 import *
+
 from cmk.base.plugins.agent_based.agent_based_api.v1 import *
 from cmk.utils.exceptions import MKGeneralException
 
-ROBOTMK_VERSION = 'v1.4.1'
+ROBOTMK_VERSION = 'v1.4.2'
 DEFAULT_SVC_PREFIX = 'Robot Framework E2E $SUITEID$SPACE-$SPACE'
 HTML_LOG_DIR = "%s/%s" % (os.environ['OMD_ROOT'], 'var/robotmk')
 
@@ -92,7 +91,6 @@ def parse_robotmk(params, string_table):
     return (st_dict, params.__dict__["_data"])
 
 
-# v2discovery
 def discover_robotmk(params, section):
     info_dict, params_dict = parse_robotmk(params, section)
     service_prefix = params.get("robot_service_prefix", [])
@@ -1357,11 +1355,6 @@ def html_to_text(html):
     return html
 
 
-# %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
-# V2 specific functions
-
-
-# v2register
 register.check_plugin(
     name="robotmk",
     service_name="%s",
