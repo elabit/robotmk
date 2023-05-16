@@ -25,37 +25,45 @@ function linkpath {
     TARGET=$WORKSPACE/$1
     LINKNAME=$2
     echo "linking $TARGET -> $LINKNAME"
+    # check if target exists
+    if [ ! -d $TARGET ]; then
+        echo "ERROR: $TARGET does not exist!"
+        exit 1
+    fi
     # make sure that the link's parent dir exists
     mkdir -p $(dirname $LINKNAME)
     ln -sf $TARGET $LINKNAME
     #chmod 666 $TARGET/*
 }
 
-# Do not only symlink, but also generate needed directories. 
+# Do not only symlink, but also generate needed directories.
 function create_symlink {
     echo "---"
     TARGET=$1
-    if [ ${2:0:1} == "/" ]; then 
+    if [ ${2:0:1} == "/" ]; then
         # absolute link
         LINKNAME=$2
     else
         # relative link in OMD_ROOT
         LINKNAME=$OMD_ROOT/$2
-    fi    
+    fi
     rmpath $LINKNAME
     linkpath $TARGET $LINKNAME
     tree $LINKNAME
 }
 
-
 function symlink_files {
-    # TODO: Package linked? 
+    echo "===================="
+    echo "Workspace: $WORKSPACE"
+    ls -la "$WORKSPACE"
+    echo "===================="
+    # TODO: Package linked?
     # Package File
     create_symlink pkginfo $OMD_ROOT/var/check_mk/packages/robotmk
-    
+
     # Bash aliases
     create_symlink scripts/.site_bash_aliases $OMD_ROOT/.bash_aliases
-    
+
     # Agent plugins
     create_symlink agents_plugins $L_SHARE_CMK/agents/plugins
 
@@ -66,23 +74,22 @@ function symlink_files {
     create_symlink images $L_SHARE_CMK/web/htdocs/images
 
     # Metrics, WATO
-    create_symlink web_plugins $L_SHARE_CMK/web/plugins   
+    create_symlink web_plugins $L_SHARE_CMK/web/plugins
 
-    # # RF test suites 
-    create_symlink rf_tests /usr/lib/check_mk_agent/robot    
+    # # RF test suites
+    create_symlink rf_tests /usr/lib/check_mk_agent/robot
     # Folder where agent output can be sourced with rule
     # "Datasource Programs > Individual program call instead of agent access"
     # (folder gets created in postCreateCommand.sh)
-    create_symlink agent_output var/check_mk/agent_output     
-    
+    create_symlink agent_output var/check_mk/agent_output
+
     # BAKERY
-    create_symlink bakery $L_SHARE_CMK/agents/bakery
-    rm -rf $L_SHARE_CMK/agents/bakery/__pycache__
+    create_symlink bakery ${L_LIB_CMK_BASE}/cee/plugins/bakery
+    rm -rf ${L_LIB_CMK_BASE}/cee/plugins/bakery/__pycache__
 
     # CHECK PLUGIN
-    create_symlink checks $L_LIB_CMK_BASE/plugins/agent_based
-    rm -rf $L_LIB_CMK_BASE/plugins/agent_based/__pycache__ 
+    create_symlink checks ${L_LIB_CMK_BASE}/plugins/agent_based
+    rm -rf ${L_LIB_CMK_BASE}/plugins/agent_based/__pycache__
 }
 
 main
-
