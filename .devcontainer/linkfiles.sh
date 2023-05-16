@@ -25,14 +25,21 @@ function linkpath {
     TARGET=$WORKSPACE/$1
     LINKNAME=$2
     echo "linking $TARGET -> $LINKNAME"
-    # check if target exists
-    if [ ! -d $TARGET ]; then
+    # check if target file or dir exists
+    if [ ! -e $TARGET ]; then
         echo "ERROR: $TARGET does not exist!"
         exit 1
     fi
+
     # make sure that the link's parent dir exists
     mkdir -p $(dirname $LINKNAME)
     ln -sf $TARGET $LINKNAME
+    # if target is a dir, show tree
+    if [ -d $TARGET ]; then
+        tree $TARGET
+    else
+        ls -la $TARGET
+    fi
     #chmod 666 $TARGET/*
 }
 

@@ -73,9 +73,9 @@ jobs:
       - name: Checkout Robotmk repository
         uses: actions/checkout@v2
 
-      - name: Setup tmate session
-        uses: mxschmitt/action-tmate@v3
-                
+      # - name: Setup tmate session
+      #   uses: mxschmitt/action-tmate@v3
+
       - name: Link repository files into container
         run: .devcontainer/linkfiles.sh
       - name: Update GITHUB_PATH
