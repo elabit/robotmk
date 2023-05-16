@@ -53,6 +53,10 @@ function create_symlink {
 }
 
 function symlink_files {
+    echo "===================="
+    echo "Workspace: $WORKSPACE"
+    ls -la "$WORKSPACE"
+    echo "===================="
     # TODO: Package linked?
     # Package File
     create_symlink pkginfo $OMD_ROOT/var/check_mk/packages/robotmk
