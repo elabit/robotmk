@@ -25,6 +25,11 @@ function linkpath {
     TARGET=$WORKSPACE/$1
     LINKNAME=$2
     echo "linking $TARGET -> $LINKNAME"
+    # check if target exists
+    if [ ! -d $TARGET ]; then
+        echo "ERROR: $TARGET does not exist!"
+        exit 1
+    fi
     # make sure that the link's parent dir exists
     mkdir -p $(dirname $LINKNAME)
     ln -sf $TARGET $LINKNAME
@@ -75,7 +80,7 @@ function symlink_files {
     create_symlink agent_output var/check_mk/agent_output
 
     # BAKERY
-    create_symlink bakery ${L_LIB_CMK_BASE}/cee/plugins/bakery/
+    create_symlink bakery ${L_LIB_CMK_BASE}/cee/plugins/bakery
     rm -rf ${L_LIB_CMK_BASE}/cee/plugins/bakery/__pycache__
 
     # CHECK PLUGIN
