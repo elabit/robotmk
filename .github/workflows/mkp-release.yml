@@ -8,7 +8,7 @@ on:
 jobs:
 
   build_v2:
-    name: Artifact MKP CMK v2
+    name: Build Robotmk MKP
     runs-on: ubuntu-latest
     container:
       image: checkmk/check-mk-raw:2.0.0-latest
@@ -32,6 +32,7 @@ jobs:
       - name: Update GITHUB_PATH
         run: echo "/omd/sites/cmk/bin" >> $GITHUB_PATH
 
+      #  Uncomment this to debug
       # - name: Setup tmate session
       #   uses: mxschmitt/action-tmate@v3
       - name: Build MKP
@@ -46,32 +47,32 @@ jobs:
   # ////////////////////////////////////////////////////////////////////////              
   # bump
   # https://docs.github.com/en/actions/guides/storing-workflow-data-as-artifacts#downloading-or-deleting-artifacts
-  # release:
-  #   name: Release MKP CMK v2
-  #   runs-on: ubuntu-latest
-  #   needs:
-  #     # - build_v1
-  #     - build_v2
-  #   env:
-  #     WORKSPACE: ${{ github.workspace }}
-  #   steps:
-  #     - name: Checkout Robotmk repository 
-  #       uses: actions/checkout@v2     
-  #     - name: Download CMK1/2 artifact
-  #       uses: actions/download-artifact@v2
-  #       with:
-  #         # download dir
-  #         path: package   
-  #     - name: Debug - Show downloaded content
-  #       run: ls -la package/*          
-  #     - name: Show ref
-  #       run: echo ${GITHUB_REF##*/}
-  #     - name: curl chag
-  #       uses: wei/curl@master
-  #       with:
-  #         args: https://raw.githubusercontent.com/mtdowling/chag/master/chag --output chag
-  #     - name: chag
-  #       run: bash chag contents > RELEASE_CHANGELOG.md
+  release:
+    name: Release Robotmk MKP
+    runs-on: ubuntu-latest
+    needs:
+      # - build_v1
+      - build_v2
+    env:
+      WORKSPACE: ${{ github.workspace }}
+    steps:
+      - name: Checkout Robotmk repository 
+        uses: actions/checkout@v2     
+      - name: Download CMK1/2 artifact
+        uses: actions/download-artifact@v2
+        with:
+          # download dir
+          path: package   
+      - name: Debug - Show downloaded content
+        run: ls -la package/*          
+      - name: Show ref
+        run: echo ${GITHUB_REF##*/}
+      - name: curl chag
+        uses: wei/curl@master
+        with:
+          args: https://raw.githubusercontent.com/mtdowling/chag/master/chag --output chag
+      - name: chag
+        run: bash chag contents > RELEASE_CHANGELOG.md
 
   #     - name: Get Tag
   #       id: tag
