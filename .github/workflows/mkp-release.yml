@@ -7,54 +7,8 @@ on:
 
 jobs:
 
-# ////////////////////////////////////////////////////////////////////////
-      
-  # build_v1:
-  #   name: Artifact MKP CMK v1
-  #   runs-on: ubuntu-latest
-  #   container:
-  #     image: checkmk/check-mk-raw:1.6.0-latest
-
-  #   env:
-  #     OMD_ROOT: /omd/sites/cmk
-  #     OMD_SITE: cmk
-  #     CMK_SITE_ID: cmk
-  #     WORKSPACE: ${{ github.workspace }}
-
-  #   steps:
-  #     - name: Install jq package
-  #       run: apt update && apt-get -y install jq lsyncd
-  #     - name: Create Checkmk Site
-  #       run: /docker-entrypoint.sh /bin/true
-  #     - name: add custom deb repository
-  #       uses: myci-actions/add-deb-repo@4
-  #       with:
-  #         repo: deb http://deb.debian.org/debian stretch-backports main contrib non-free
-  #         repo-name: stretch-backports
-  #         update: true
-  #     - name: Install newer git from backports
-  #       run: apt-get -y -t stretch-backports install git
-
-  #     - name: Checkout Robotmk repository 
-  #       uses: actions/checkout@v2
-  #     - name: Link repository files into container
-  #       run: .devcontainer/linkfiles.sh
-  #     - name: Update GITHUB_PATH
-  #       run: echo "/omd/sites/cmk/bin" >> $GITHUB_PATH
-  #     - name: Build MKP
-  #       run: .devcontainer/build.sh
-  #       id: cmkpkg
-  #     - name: Upload artifact
-  #       uses: actions/upload-artifact@v2
-  #       with:
-  #         name: ${{ steps.cmkpkg.outputs.artifactname }}
-  #         path: ${{ steps.cmkpkg.outputs.pkgfile }}
-  #     - uses: actions/checkout@v2
-
-# ////////////////////////////////////////////////////////////////////////  
-
   build_v2:
-    name: Artifact MKP CMK v2
+    name: Build Robotmk MKP
     runs-on: ubuntu-latest
     container:
       image: checkmk/check-mk-raw:2.0.0-latest
@@ -66,16 +20,21 @@ jobs:
       WORKSPACE: ${{ github.workspace }}
 
     steps:
-      - name: Install jq package
-        run: apt update && apt-get -y install sudo jq lsyncd
+      - name: Install tools
+        run: apt update && apt-get -y install sudo jq tree
       - name: Create Checkmk Site
         run: /docker-entrypoint.sh /bin/true
       - name: Checkout Robotmk repository
         uses: actions/checkout@v2
+
       - name: Link repository files into container
         run: .devcontainer/linkfiles.sh
       - name: Update GITHUB_PATH
         run: echo "/omd/sites/cmk/bin" >> $GITHUB_PATH
+
+      #  Uncomment this to debug
+      # - name: Setup tmate session
+      #   uses: mxschmitt/action-tmate@v3
       - name: Build MKP
         run: .devcontainer/build.sh
         id: cmkpkg
@@ -85,11 +44,10 @@ jobs:
             name: ${{ steps.cmkpkg.outputs.artifactname }}
             path: ${{ steps.cmkpkg.outputs.pkgfile }}
 
-# ////////////////////////////////////////////////////////////////////////  
-            
+  # ////////////////////////////////////////////////////////////////////////              
   # https://docs.github.com/en/actions/guides/storing-workflow-data-as-artifacts#downloading-or-deleting-artifacts
   release:
-    name: Release MKP CMK v2
+    name: Release Robotmk MKP
     runs-on: ubuntu-latest
     needs:
       # - build_v1
@@ -118,8 +76,7 @@ jobs:
       - name: Get Tag
         id: tag
         run: echo ::set-output name=VERSION::${GITHUB_REF##*/}
-
-      # The Release text will be taken from the annotated tag, created with "chag"
+      # (The Release text will be taken from the annotated tag, created with "chag")
       - name: Create Release
         id: create_release
         uses: softprops/action-gh-release@v1
@@ -131,10 +88,13 @@ jobs:
           body_path: RELEASE_CHANGELOG.md
           draft: false
           prerelease: false
-
       # -m "" means: Leave the Release mesage body as it is, do not modify
       - name: Add Release Assets
         run: hub release edit $(find package/ -type f -name "*.mkp" -printf "-a %p ") -m "" "${GITHUB_REF#refs/*/}"
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+
+      #  Uncomment this to debug
+      - name: Setup tmate session
+        uses: mxschmitt/action-tmate@v3        
 
