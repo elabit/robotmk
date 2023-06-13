@@ -5,7 +5,7 @@ By doing so, you give us the possibility to develop Robotmk and its tools tailor
 
 # What are the consequences of agreeing to the cla?
 
-By agreeing to the CLa, you are no longer the sole owner of the copyright to the code you contributed. Among other things, you give up the right to take legal action against us for allowing tribe29 to use Robotmk under a license other than GPLv3.
+By agreeing to the CLa, you are no longer the sole owner of the copyright to the code you contributed. Among other things, you give up the right to take legal action against us for allowing Checkmk to use Robotmk under a license other than GPLv3.
 This formal and bureaucratic act is unfortunately necessary - but we want to communicate this as openly as possible. In the end, everything serves the goal of making Robotmk even better.
 
 ## Ok, how can I agree to the CLA?

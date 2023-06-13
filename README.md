@@ -141,7 +141,7 @@ You can choose between two ways of installing Robotmk:
 
 * Installing as [MKP](https://checkmk.com/cms_mkps.html) is the preferred way. 
   * The most recent release can be downloaded here on the [Releases](https://github.com/elabit/robotmk/releases) page
-  * The latest MKP *reviewed by tribe29* (the Checkmk guys) can be fetched from [CMK Exchange](https://exchange.checkmk.com/) (not always up to date)
+  * The latest MKP *reviewed by Checkmk* can be fetched from [CMK Exchange](https://exchange.checkmk.com/) (not always up to date)
 * Installation by hand is only recommended for advanced users who love to get dirty hands. 
 
 ![mkp-installation](img/mkpinstall.gif)
