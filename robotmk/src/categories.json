@@ -1,0 +1,556 @@
+{
+    "status": "success",
+    "results": [
+        {
+            "text": "Star Wars fans would be familiar with the Golden Lifesized Hospitality robot. While Star Wars might be set in a Galaxy far, far away, the reality of having machines talk and respond to us in a human like manner is already a reality which keeps getting more and more realistic with every passing day. The people you ask for queries on websites, your smart assistants, even calls made over the internet. All of them have one thing in common, None of them are actually human.",
+            "labels": [
+                {
+                    "relevance": 0.5335827469825745,
+                    "label": "EventsAndAttractions>FanConventions"
+                },
+                {
+                    "relevance": 0.05573934316635132,
+                    "label": "Movies>ScienceFictionMovies"
+                },
+                {
+                    "relevance": 0.04355249181389809,
+                    "label": "BooksAndLiterature>Fiction"
+                },
+                {
+                    "relevance": 0.027718156576156616,
+                    "label": "Technology&Computing>Robotics"
+                },
+                {
+                    "relevance": 0.021982992067933083,
+                    "label": "Technology&Computing>VirtualReality"
+                },
+                {
+                    "relevance": 0.01868468150496483,
+                    "label": "Technology&Computing>ArtificialIntelligence"
+                },
+                {
+                    "relevance": 0.015583173371851444,
+                    "label": "VideoGaming"
+                },
+                {
+                    "relevance": 0.014812910929322243,
+                    "label": "Television>ScienceFictionTV"
+                },
+                {
+                    "relevance": 0.012538926675915718,
+                    "label": "Hobbies&Interests>GamesAndPuzzles>RoleplayingGames"
+                },
+                {
+                    "relevance": 0.00972871482372284,
+                    "label": "VideoGaming>VideoGameGenres"
+                }
+            ],
+            "timestamp": {
+                "start": 0,
+                "end": 28160
+            }
+        },
+        {
+            "text": "Now you must be thinking, if they are not human, how do they manage to sound and seem so human life? How do they respond to me so intelligently? And how are they so articulate? This, my friends, is the magic of natural language processing. What is NLP? Natural Language Processing, or NLP refers to the branch of artificial intelligence that gives the machines the ability to read, understand, and derive meaning from human languages.",
+            "labels": [
+                {
+                    "relevance": 0.9934931397438049,
+                    "label": "Technology&Computing>ArtificialIntelligence"
+                },
+                {
+                    "relevance": 0.0025005131028592587,
+                    "label": "Technology&Computing>Computing"
+                },
+                {
+                    "relevance": 0.0018277829512953758,
+                    "label": "Education>LanguageLearning"
+                },
+                {
+                    "relevance": 0.0016992633463814855,
+                    "label": "Automotive>AutoType>DriverlessCars"
+                },
+                {
+                    "relevance": 0.0014488229062408209,
+                    "label": "Technology&Computing>Robotics"
+                },
+                {
+                    "relevance": 0.0014021844835951924,
+                    "label": "Hobbies&Interests>ModelToys"
+                },
+                {
+                    "relevance": 0.00131264328956604,
+                    "label": "Technology&Computing>Computing>Internet>InternetOfThings"
+                },
+                {
+                    "relevance": 0.001212672796100378,
+                    "label": "Technology&Computing"
+                },
+                {
+                    "relevance": 0.001140800304710865,
+                    "label": "Science"
+                },
+                {
+                    "relevance": 0.0010219616815447807,
+                    "label": "Hobbies&Interests>GamesAndPuzzles"
+                }
+            ],
+            "timestamp": {
+                "start": 28500,
+                "end": 55190
+            }
+        },
+        {
+            "text": "In LP combines the field of linguistics and computer science to decipher language structure and guidelines, and to make models which can comprehend, breakdown, and separate significant details from text and speech. Every day, humans interact with each other through public social media, transferring vast quantities of freely available data to each other. This data is extremely useful in understanding human behavior and customer habits. Data analysts and machine learning experts utilize this data to give machines the ability to mimic human linguistic behavior.",
+            "labels": [
+                {
+                    "relevance": 0.8324226140975952,
+                    "label": "Technology&Computing>ArtificialIntelligence"
+                },
+                {
+                    "relevance": 0.40008267760276794,
+                    "label": "Education>LanguageLearning"
+                },
+                {
+                    "relevance": 0.24530543386936188,
+                    "label": "Science"
+                },
+                {
+                    "relevance": 0.011391302570700645,
+                    "label": "Technology&Computing>Computing>Internet>InternetOfThings"
+                },
+                {
+                    "relevance": 0.007730466779321432,
+                    "label": "Technology&Computing"
+                },
+                {
+                    "relevance": 0.007428544573485851,
+                    "label": "Education>EducationalAssessment"
+                },
+                {
+                    "relevance": 0.0067970906384289265,
+                    "label": "Careers>RemoteWorking"
+                },
+                {
+                    "relevance": 0.006253997795283794,
+                    "label": "Education>HomeworkAndStudy"
+                },
+                {
+                    "relevance": 0.005974768660962582,
+                    "label": "Technology&Computing>Computing>Internet>SocialNetworking"
+                },
+                {
+                    "relevance": 0.005782655440270901,
+                    "label": "EventsAndAttractions>Concerts&MusicEvents"
+                }
+            ],
+            "timestamp": {
+                "start": 55200,
+                "end": 88390
+            }
+        },
+        {
+            "text": "This helps save millions in terms of manpower and time, as you don't need to always have a person present at the other end of a phone. Nlp is also a lot more widespread than you may realize. You use it every day in seemingly normal and insignificant situations. Don't know how to correctly spell a word. Autocorrect has you cover need to see if your article or thesis will get flagged for Copyright violations. That's okay.",
+            "labels": [
+                {
+                    "relevance": 0.09352684020996094,
+                    "label": "Automotive>AutoType"
+                },
+                {
+                    "relevance": 0.06736171990633011,
+                    "label": "Technology&Computing>Computing>ComputerSoftwareAndApplications>SharewareAndFreeware"
+                },
+                {
+                    "relevance": 0.033810630440711975,
+                    "label": "Technology&Computing>Computing>Internet>SocialNetworking"
+                },
+                {
+                    "relevance": 0.03344886377453804,
+                    "label": "Technology&Computing>Computing>ComputerSoftwareAndApplications>Browsers"
+                },
+                {
+                    "relevance": 0.02037917450070381,
+                    "label": "Automotive>AutoBuyingAndSelling"
+                },
+                {
+                    "relevance": 0.02010384202003479,
+                    "label": "Automotive>AutoBodyStyles>Convertible"
+                },
+                {
+                    "relevance": 0.014814566820859909,
+                    "label": "BusinessAndFinance>Business>BusinessBanking&Finance"
+                },
+                {
+                    "relevance": 0.01474137045443058,
+                    "label": "Shopping"
+                },
+                {
+                    "relevance": 0.014026636257767677,
+                    "label": "Automotive>AutoTechnology>AutoInfotainmentTechnologies"
+                },
+                {
+                    "relevance": 0.014010350219905376,
+                    "label": "PersonalFinance>HomeUtilities>PhoneServices"
+                }
+            ],
+            "timestamp": {
+                "start": 88390,
+                "end": 113550
+            }
+        },
+        {
+            "text": "A plagiarism checker will search through the web and find any cases of published documents which may match your work line by line. While NLP seems really cool yet a cutting edge and complicated technology concept, it is actually pretty easy to learn. You start off with a document or an article. To make your algorithm understand what is going on in it, you need to process it into a form which is easily comprehensible by the machine. This is no different than making a child learn to read for the first time.",
+            "labels": [
+                {
+                    "relevance": 0.40445083379745483,
+                    "label": "Technology&Computing>Computing>ComputerSoftwareAndApplications>DesktopPublishing"
+                },
+                {
+                    "relevance": 0.17708082497119904,
+                    "label": "Technology&Computing>ConsumerElectronics>TabletsAndE-readers"
+                },
+                {
+                    "relevance": 0.03711479529738426,
+                    "label": "BusinessAndFinance>Industries>PublishingIndustry"
+                },
+                {
+                    "relevance": 0.026668766513466835,
+                    "label": "Hobbies&Interests>ArtsAndCrafts>DrawingAndSketching"
+                },
+                {
+                    "relevance": 0.013142727315425873,
+                    "label": "Hobbies&Interests>ArtsAndCrafts>Scrapbooking"
+                },
+                {
+                    "relevance": 0.008056684397161007,
+                    "label": "Technology&Computing>Computing>ComputerSoftwareAndApplications>Databases"
+                },
+                {
+                    "relevance": 0.007450093515217304,
+                    "label": "Technology&Computing>Computing>Internet>WebDevelopment"
+                },
+                {
+                    "relevance": 0.00663040392100811,
+                    "label": "Technology&Computing>Computing>ComputerSoftwareAndApplications>GraphicsSoftware"
+                },
+                {
+                    "relevance": 0.006355778314173222,
+                    "label": "Technology&Computing>Computing>Internet"
+                },
+                {
+                    "relevance": 0.006256535183638334,
+                    "label": "Technology&Computing>Computing>Internet>WebDesignAndHTML"
+                }
+            ],
+            "timestamp": {
+                "start": 113760,
+                "end": 142260
+            }
+        },
+        {
+            "text": "You start off by performing segmentation, which is to break the entire document down into its constituent sentences. You can do this by segmenting the article along its punctuations like full stops and comes for the algorithm to understand these sentences. We get the words in a sentence and to explain them individually to our algorithm, so we break down our sentence into its constituent words and store them. This is called tokenizing, where each word is called a token.",
+            "labels": [
+                {
+                    "relevance": 0.18208429217338562,
+                    "label": "Education>LanguageLearning"
+                },
+                {
+                    "relevance": 0.03268978372216225,
+                    "label": "Technology&Computing>Computing>Internet>SocialNetworking"
+                },
+                {
+                    "relevance": 0.029754338786005974,
+                    "label": "Education>HomeworkAndStudy"
+                },
+                {
+                    "relevance": 0.027448654174804688,
+                    "label": "Hobbies&Interests>ContentProduction"
+                },
+                {
+                    "relevance": 0.022595396265387535,
+                    "label": "RealEstate>IndustrialProperty"
+                },
+                {
+                    "relevance": 0.012991970404982567,
+                    "label": "Technology&Computing>ArtificialIntelligence"
+                },
+                {
+                    "relevance": 0.009576001204550266,
+                    "label": "BusinessAndFinance>Business>ConsumerIssues>Recalls"
+                },
+                {
+                    "relevance": 0.005680250935256481,
+                    "label": "Hobbies&Interests>GamesAndPuzzles"
+                },
+                {
+                    "relevance": 0.005379671696573496,
+                    "label": "Careers>JobSearch>ResumeWritingAndAdvice"
+                },
+                {
+                    "relevance": 0.004792732186615467,
+                    "label": "NewsAndPolitics>Weather"
+                }
+            ],
+            "timestamp": {
+                "start": 143040,
+                "end": 170860
+            }
+        },
+        {
+            "text": "We can make the learning process faster by getting rid of nonessential words, which do not add much meaning to our statement and are just there to make our statement sound more cohesive. These words, such as R and the are called stop words. Now that we have the basic form of our document, we need to explain it to our machine. We first start off by explaining that some words like skipping, skips, skipped are the same word with added prefixes and suffixes. This is called stemming.",
+            "labels": [
+                {
+                    "relevance": 0.9579818248748779,
+                    "label": "Education>LanguageLearning"
+                },
+                {
+                    "relevance": 0.010691981762647629,
+                    "label": "Education>HomeworkAndStudy"
+                },
+                {
+                    "relevance": 0.009564190171658993,
+                    "label": "Education>EducationalAssessment"
+                },
+                {
+                    "relevance": 0.0061633288860321045,
+                    "label": "Technology&Computing>ArtificialIntelligence"
+                },
+                {
+                    "relevance": 0.0052689132280647755,
+                    "label": "Education>OnlineEducation"
+                },
+                {
+                    "relevance": 0.0031197001226246357,
+                    "label": "BusinessAndFinance>Business>ConsumerIssues>Recalls"
+                },
+                {
+                    "relevance": 0.001993444748222828,
+                    "label": "Education>EducationalAssessment>StandardizedTesting"
+                },
+                {
+                    "relevance": 0.0015345680294558406,
+                    "label": "Hobbies&Interests>ContentProduction"
+                },
+                {
+                    "relevance": 0.0009767848532646894,
+                    "label": "BusinessAndFinance>Industries>EducationIndustry"
+                },
+                {
+                    "relevance": 0.0005768225528299809,
+                    "label": "Technology&Computing>Computing>ComputerSoftwareAndApplications>WebConferencing"
+                }
+            ],
+            "timestamp": {
+                "start": 171160,
+                "end": 200190
+            }
+        },
+        {
+            "text": "We also identify the base words for different word tens, mood, gender, etc. This is called limitation stemming from the base word Lema. Now we explain the concept of nouns, verbs, articles, and other parts of speech to the machine by adding these Tags to our words. This is called part of Speech tagging. Next, we introduce our machine to pop culture references and everyday names by flagging names of movies, important personalities or locations, etc that may occur in the document.",
+            "labels": [
+                {
+                    "relevance": 0.6724810600280762,
+                    "label": "PopCulture"
+                },
+                {
+                    "relevance": 0.19851987063884735,
+                    "label": "BusinessAndFinance>Industries>MediaIndustry"
+                },
+                {
+                    "relevance": 0.04555463045835495,
+                    "label": "Technology&Computing"
+                },
+                {
+                    "relevance": 0.03140111640095711,
+                    "label": "EventsAndAttractions>FanConventions"
+                },
+                {
+                    "relevance": 0.01263390388339758,
+                    "label": "Technology&Computing>Computing>Internet>SocialNetworking"
+                },
+                {
+                    "relevance": 0.011924361810088158,
+                    "label": "EventsAndAttractions>PoliticalEvent"
+                },
+                {
+                    "relevance": 0.011812402866780758,
+                    "label": "VideoGaming>MobileGames"
+                },
+                {
+                    "relevance": 0.011721858754754066,
+                    "label": "Automotive>AutoType>PerformanceCars"
+                },
+                {
+                    "relevance": 0.0108884172514081,
+                    "label": "FineArt>Design"
+                },
+                {
+                    "relevance": 0.009745496325194836,
+                    "label": "VideoGaming>VideoGameGenres>SimulationVideoGames"
+                }
+            ],
+            "timestamp": {
+                "start": 200560,
+                "end": 230160
+            }
+        },
+        {
+            "text": "This is called Named Entity tagging. Once we have our base words and tags, we use a machine learning algorithm like Naive Bays to teach our model human sentiment and speech. At the end of the day, most of the techniques used in NLP are simple grammar techniques that we have been taught in school. Here is a question for you Which of these NLP techniques is used to obtain words from sentences? A stemming B tokenization C limitation segmentation.",
+            "labels": [
+                {
+                    "relevance": 0.44274163246154785,
+                    "label": "Education>LanguageLearning"
+                },
+                {
+                    "relevance": 0.14212802052497864,
+                    "label": "Technology&Computing>ArtificialIntelligence"
+                },
+                {
+                    "relevance": 0.05823177099227905,
+                    "label": "Technology&Computing>Computing>Internet>SocialNetworking"
+                },
+                {
+                    "relevance": 0.05625922605395317,
+                    "label": "Technology&Computing>Computing>Internet>Search"
+                },
+                {
+                    "relevance": 0.034865252673625946,
+                    "label": "Technology&Computing>ConsumerElectronics>TabletsAndE-readers"
+                },
+                {
+                    "relevance": 0.022523758932948112,
+                    "label": "Technology&Computing>Computing>ProgrammingLanguages"
+                },
+                {
+                    "relevance": 0.020689183846116066,
+                    "label": "Technology&Computing>Computing>Internet>InternetOfThings"
+                },
+                {
+                    "relevance": 0.017109878361225128,
+                    "label": "Technology&Computing>Computing>Internet"
+                },
+                {
+                    "relevance": 0.013525860384106636,
+                    "label": "BusinessAndFinance>Business>ConsumerIssues>Recalls"
+                },
+                {
+                    "relevance": 0.013332082889974117,
+                    "label": "Technology&Computing>Computing>ComputerSoftwareAndApplications>DesktopPublishing"
+                }
+            ],
+            "timestamp": {
+                "start": 230170,
+                "end": 260960
+            }
+        },
+        {
+            "text": "Give it a thought and leave your answers in the comments section below. Three lucky winners will receive Amazon Gift Vouchers. With the increasing demand for automated language solutions, companies are looking for NLP experts to join them and are prepared to offer highly lucrative salaries as well. If you want to learn more about NLP, you can check out Simply Learns Postgraduate Program in AI and Machine Learning in collaboration with IBM.",
+            "labels": [
+                {
+                    "relevance": 0.7309771776199341,
+                    "label": "Technology&Computing>ArtificialIntelligence"
+                },
+                {
+                    "relevance": 0.4725770652294159,
+                    "label": "Education>LanguageLearning"
+                },
+                {
+                    "relevance": 0.053872108459472656,
+                    "label": "Education>OnlineEducation"
+                },
+                {
+                    "relevance": 0.015445638447999954,
+                    "label": "BusinessAndFinance>Industries>EducationIndustry"
+                },
+                {
+                    "relevance": 0.01340150274336338,
+                    "label": "Education>EducationalAssessment"
+                },
+                {
+                    "relevance": 0.011187426745891571,
+                    "label": "Technology&Computing>ConsumerElectronics>TabletsAndE-readers"
+                },
+                {
+                    "relevance": 0.004734193440526724,
+                    "label": "BusinessAndFinance>Industries>HealthcareIndustry"
+                },
+                {
+                    "relevance": 0.004572969861328602,
+                    "label": "BusinessAndFinance>Business>ConsumerIssues>Recalls"
+                },
+                {
+                    "relevance": 0.0038134234491735697,
+                    "label": "Technology&Computing>AugmentedReality"
+                },
+                {
+                    "relevance": 0.003671390702947974,
+                    "label": "BusinessAndFinance>Business"
+                }
+            ],
+            "timestamp": {
+                "start": 260970,
+                "end": 284900
+            }
+        },
+        {
+            "text": "In this program, you will learn about frameworks like Keras and TensorFlow and get hands on experience in deep learning to become a truly experienced AI engineer. That brings us to the end of this video on NLP. We hope you enjoyed this video. If you did, a thumbs up would be really appreciated. Here's your reminder to Subscribe to our channel and to click on the Bell Icon for more on the latest technologies and trends. Thank you for watching and stay tuned for more from Simply learn.",
+            "labels": [
+                {
+                    "relevance": 0.9860575795173645,
+                    "label": "Technology&Computing>ArtificialIntelligence"
+                },
+                {
+                    "relevance": 0.008821805007755756,
+                    "label": "Technology&Computing>Computing>Internet>InternetOfThings"
+                },
+                {
+                    "relevance": 0.00449809804558754,
+                    "label": "BusinessAndFinance>Industries>HealthcareIndustry"
+                },
+                {
+                    "relevance": 0.0031921067275106907,
+                    "label": "Technology&Computing>AugmentedReality"
+                },
+                {
+                    "relevance": 0.0025393168907612562,
+                    "label": "Technology&Computing>Robotics"
+                },
+                {
+                    "relevance": 0.0022828325163573027,
+                    "label": "Automotive>AutoType>DriverlessCars"
+                },
+                {
+                    "relevance": 0.0021818100940436125,
+                    "label": "Careers>RemoteWorking"
+                },
+                {
+                    "relevance": 0.0019661581609398127,
+                    "label": "Education>EducationalAssessment"
+                },
+                {
+                    "relevance": 0.0015469460049644113,
+                    "label": "Automotive>Road-SideAssistance"
+                },
+                {
+                    "relevance": 0.0014154668897390366,
+                    "label": "Technology&Computing"
+                }
+            ],
+            "timestamp": {
+                "start": 285280,
+                "end": 313450
+            }
+        }
+    ],
+    "summary": {
+        "Technology&Computing>Computing>Internet>SocialNetworking": 0.040344059467315674,
+        "Technology&Computing>ConsumerElectronics>TabletsAndE-readers": 0.0634232684969902,
+        "EventsAndAttractions>FanConventions": 0.15164771676063538,
+        "Education>LanguageLearning": 0.6604048013687134,
+        "Science": 0.06690940260887146,
+        "Automotive>AutoType": 0.027757881209254265,
+        "BusinessAndFinance>Industries>MediaIndustry": 0.05750146880745888,
+        "Technology&Computing>ArtificialIntelligence": 1.0,
+        "PopCulture": 0.18095341324806213,
+        "Technology&Computing>Computing>ComputerSoftwareAndApplications>DesktopPublishing": 0.11650160700082779
+    }
+}

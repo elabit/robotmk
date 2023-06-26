@@ -1,0 +1,18 @@
+session_name: robotmk
+windows:
+- window_name: Robotmk
+  layout: tiled
+  # shell_command_before: pipenv shell
+  focus: 'true'
+  options:
+    automatic-rename: 'off'
+  panes:
+  - shell_command: watch -d -n 1 "tree agent/log/robotmk/results"
+  - shell_command: watch -d -n 1 "ls -1t agent/log/robotmk/robotframework/*"
+  - shell_command: watch -d -n 1 "tail agent/log/robotmk/results/suite_default*"
+  - shell_command: watch -d -n 1 "ls -la agent/tmp/robotmk/*"
+  - shell_command: watch -d -n 1 "cat agent/tmp/robotmk/robotmk_agent_lastexitcode"
+  - focus: 'true'
+    shell_command:
+      - cd robotmk
+      - pipenv shell

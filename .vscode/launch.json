@@ -1,0 +1,370 @@
+{
+    // Use IntelliSense to learn about possible attributes.
+    // Hover to view descriptions of existing attributes.
+    // For more information, visit: https://go.microsoft.com/fwlink/?linkid=830387
+    "version": "0.2.0",
+    "configurations": [
+        {
+            "name": "Python: Current File",
+            "type": "python",
+            "request": "launch",
+            "program": "${file}",
+            "console": "integratedTerminal",
+            "justMyCode": false
+        },
+        {
+            "name": "Pytest Tests",
+            "type": "python",
+            "request": "test",
+            "env": {},
+            "console": "integratedTerminal",
+            "justMyCode": false
+        },
+        //            _           _
+        //           (_)         | |
+        //  __      ___ _ __   __| | _____      _____
+        //  \ \ /\ / / | '_ \ / _` |/ _ \ \ /\ / / __|
+        //   \ V  V /| | | | | (_| | (_) \ V  V /\__ \
+        //    \_/\_/ |_|_| |_|\__,_|\___/ \_/\_/ |___/
+        {
+            "name": "-------------- AGENT (Windows) -------------------",
+            "type": "python",
+            "request": "launch",
+            "program": "${file}",
+            "console": "integratedTerminal",
+            "justMyCode": false
+        },
+        {
+            "name": "w robotmk (w/o arguments)",
+            "type": "python",
+            "request": "launch",
+            "program": "robotmk/src/robotmk/cli/cli.py",
+            "console": "integratedTerminal",
+            "justMyCode": false
+        },
+        {
+            "name": "w robotmk agent",
+            "type": "python",
+            "request": "launch",
+            "program": "src/robotmk/modes/agent/cli.py",
+            "console": "integratedTerminal",
+            "justMyCode": false,
+            "args": [
+                "output"
+            ]
+        },
+        //   _ _
+        //  | (_)
+        //  | |_ _ __  _   ___  __
+        //  | | | '_ \| | | \ \/ /
+        //  | | | | | | |_| |>  <
+        //  |_|_|_| |_|\__,_/_/\_\
+        {
+            "name": "-------------- AGENT (Linux) -------------------",
+            "type": "python",
+            "request": "launch",
+            "program": "${file}",
+            "console": "integratedTerminal",
+            "justMyCode": false
+        },
+        {
+            "name": "l robotmk w/o args",
+            "type": "python",
+            "request": "launch",
+            "program": "robotmk/src/robotmk/cli/cli.py",
+            "console": "integratedTerminal",
+            "justMyCode": false
+        },
+        {
+            "name": "l robotmk agent output",
+            "type": "python",
+            "request": "launch",
+            "program": "robotmk/src/robotmk/cli/cli.py",
+            "console": "integratedTerminal",
+            "justMyCode": false,
+            "args": [
+                "agent",
+                "output"
+            ]
+        },
+        {
+            "name": "l robotmk agent scheduler",
+            "type": "python",
+            "request": "launch",
+            "program": "robotmk/src/robotmk/cli/cli.py",
+            "console": "integratedTerminal",
+            "justMyCode": false,
+            "args": [
+                "agent",
+                "scheduler"
+            ]
+        },
+        {
+            "name": "l robotmk agent scheduler --foreground",
+            "type": "python",
+            "request": "launch",
+            "program": "robotmk/src/robotmk/cli/cli.py",
+            "console": "integratedTerminal",
+            "justMyCode": false,
+            "args": [
+                "agent",
+                "scheduler",
+                "-F"
+            ]
+        },
+        {
+            "name": "l robotmk suite ymldump",
+            "type": "python",
+            "request": "launch",
+            "program": "robotmk/src/robotmk/cli/cli.py",
+            "console": "integratedTerminal",
+            "justMyCode": false,
+            "args": [
+                "suite",
+                "ymldump"
+            ],
+            "env": {
+                "ROBOTMK_common_suiteuname": "suite_default"
+                // "ROBOTMK_common_suiteuname": "suite_default"
+            }
+        },
+        {
+            "name": "l robotmk suite run",
+            "type": "python",
+            "request": "launch",
+            "program": "robotmk/src/robotmk/cli/cli.py",
+            "console": "integratedTerminal",
+            "justMyCode": false,
+            "args": [
+                "suite",
+                "run"
+            ],
+            "env": {
+                // "ROBOTMK_common_suiteuname": "suite_default_rcc"
+                "ROBOTMK_common_suiteuname": "suite_default"
+            }
+        },
+        {
+            "name": "l robotmk suite result",
+            "type": "python",
+            "request": "launch",
+            "program": "robotmk/src/robotmk/cli/cli.py",
+            "console": "integratedTerminal",
+            "justMyCode": false,
+            "args": [
+                "suite",
+                "result"
+            ],
+            "env": {
+                "ROBOTMK_common_suiteuname": "suite_default_rcc"
+                // "ROBOTMK_common_suiteuname": "suite_default"
+            }
+        },
+        {
+            "name": "l robotmk agent --yml scheduler",
+            "type": "python",
+            "request": "launch",
+            "program": "robotmk/src/robotmk/cli/cli.py",
+            "console": "integratedTerminal",
+            "justMyCode": false,
+            "args": [
+                "agent",
+                "scheduler"
+            ],
+            "env": {
+                "ROBOTMK_common_suiteuname": "suite_default_rcc"
+                // "ROBOTMK_common_suiteuname": "suite_default"
+            }
+        },
+        //---------------------------------------------
+        //---------------------------------------------
+        {
+            "type": "PowerShell",
+            "request": "launch",
+            "name": "---------- robotmk-ctrl.ps1 --------------",
+            "cwd": "${workspaceFolder}",
+            "program": "${workspaceFolder}/agent/plugins/robotmk-ctrl.sh",
+            "args": []
+        },
+        {
+            "name": "PS robotmk-ctrl.ps1",
+            "type": "PowerShell",
+            "request": "launch",
+            "script": "agent/plugins/robotmk-ctrl.ps1",
+            "cwd": "${cwd}"
+        },
+        {
+            "name": "PS robotmk-ctrl.ps1 start",
+            "type": "PowerShell",
+            "request": "launch",
+            "script": "agent/plugins/robotmk-ctrl.ps1",
+            "cwd": "${cwd}",
+            "args": [
+                "start",
+                "9999"
+            ]
+        },
+        {
+            "name": "PS CMK robotmk-ctrl.ps1",
+            "type": "PowerShell",
+            "request": "launch",
+            "script": "C:\\ProgramData\\checkmk\\agent\\plugins\\robotmk-ctrl.ps1",
+            "cwd": "${cwd}"
+        },
+        {
+            "name": "PS CMK robotmk-ctrl.ps1 -Monitor",
+            "type": "PowerShell",
+            "request": "launch",
+            "script": "C:\\ProgramData\\checkmk\\agent\\plugins\\robotmk-ctrl.ps1",
+            "cwd": "${cwd}",
+            "args": [
+                "-Monitor"
+            ]
+        },
+        {
+            "name": "PS CMK robotmk-ctrl.ps1 -Setup",
+            "type": "PowerShell",
+            "request": "launch",
+            "script": "C:\\ProgramData\\checkmk\\agent\\plugins\\robotmk-ctrl.ps1",
+            "cwd": "${cwd}",
+            "args": [
+                "-Setup"
+            ]
+        },
+        {
+            "name": "PS CMK robotmk-ctrl.ps1 -Start",
+            "type": "PowerShell",
+            "request": "launch",
+            "script": "C:\\ProgramData\\checkmk\\agent\\plugins\\robotmk-ctrl.ps1",
+            "cwd": "${cwd}",
+            "args": [
+                "-Start"
+            ]
+        },
+        {
+            "name": "PS CMK robotmk-ctrl.ps1 -Stop",
+            "type": "PowerShell",
+            "request": "launch",
+            "script": "C:\\ProgramData\\checkmk\\agent\\plugins\\robotmk-ctrl.ps1",
+            "cwd": "${cwd}",
+            "args": [
+                "-Stop"
+            ]
+        },
+        {
+            "name": "PS CMK robotmk-ctrl.ps1 -Restart",
+            "type": "PowerShell",
+            "request": "launch",
+            "script": "C:\\ProgramData\\checkmk\\agent\\plugins\\robotmk-ctrl.ps1",
+            "cwd": "${cwd}",
+            "args": [
+                "-Restart"
+            ]
+        },
+        {
+            "name": "PS CMK robotmk-ctrl.ps1 -Status",
+            "type": "PowerShell",
+            "request": "launch",
+            "script": "C:\\ProgramData\\checkmk\\agent\\plugins\\robotmk-ctrl.ps1",
+            "cwd": "${cwd}",
+            "args": [
+                "-Status"
+            ]
+        },
+        {
+            "name": "PS CMK robotmk-ctrl.ps1 -Remove",
+            "type": "PowerShell",
+            "request": "launch",
+            "script": "C:\\ProgramData\\checkmk\\agent\\plugins\\robotmk-ctrl.ps1",
+            "cwd": "${cwd}",
+            "args": [
+                "-Remove"
+            ]
+        },
+        {
+            "name": "PS CMK robotmk-ctrl.ps1 -Test",
+            "type": "PowerShell",
+            "request": "launch",
+            "script": "C:\\ProgramData\\checkmk\\agent\\plugins\\robotmk-ctrl.ps1",
+            "cwd": "${cwd}",
+            "args": [
+                "-Test"
+            ]
+        },
+        //---------------------------------------------
+        {
+            "type": "bashdb",
+            "request": "launch",
+            "name": "------- RobotmkAgent ----------",
+            "cwd": "${workspaceFolder}",
+            "program": "${workspaceFolder}/agent/plugins/robotmk-ctrl.sh",
+            "args": []
+        },
+        {
+            "name": "PS RobotmkAgent -SCMStart",
+            "type": "PowerShell",
+            "request": "launch",
+            "script": "C:\\ProgramData\\checkmk\\robotmk\\RobotmkAgent.ps1",
+            "cwd": "${cwd}",
+            "args": [
+                "-SCMStart"
+            ]
+        },
+        {
+            "name": "PS RobotmkAgent -Service",
+            "type": "PowerShell",
+            "request": "launch",
+            "script": "C:\\ProgramData\\checkmk\\robotmk\\RobotmkAgent.ps1",
+            "cwd": "${cwd}",
+            "args": [
+                "-Service"
+            ]
+        },
+        {
+            "name": "PS RobotmkAgent -Run",
+            "type": "PowerShell",
+            "request": "launch",
+            "script": "C:\\ProgramData\\checkmk\\robotmk\\RobotmkAgent.ps1",
+            "cwd": "${cwd}",
+            "args": [
+                "-Run"
+            ]
+        },
+        //---------------------------------------------
+        //---------------------------------------------
+        {
+            "type": "bashdb",
+            "request": "launch",
+            "name": "------------- OUTPUT -------------------",
+            "cwd": "${workspaceFolder}",
+            "program": "${workspaceFolder}/agent/plugins/robotmk-ctrl.sh",
+            "args": []
+        },
+        {
+            "name": "PS robotmk.ps1",
+            "type": "PowerShell",
+            "request": "launch",
+            "script": "agent/plugins/robotmk.ps1",
+            //"script": "${file}",
+            "cwd": "${cwd}"
+        },
+        {
+            "name": "PS robotmk.ps1 start",
+            "type": "PowerShell",
+            "request": "launch",
+            "script": "agent/plugins/robotmk.ps1",
+            //"script": "${file}",
+            "cwd": "${cwd}",
+            "args": [
+                "start"
+            ]
+        },
+        {
+            "name": "PSService.ps1",
+            "type": "PowerShell",
+            "request": "launch",
+            "script": "C:\\ProgramData\\robotmk\\psservice.ps1",
+            "cwd": "${cwd}"
+        }
+    ]
+}

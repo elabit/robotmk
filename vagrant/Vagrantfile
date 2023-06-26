@@ -1,0 +1,18 @@
+# -*- mode: ruby -*-
+# vi: set ft=ruby :
+
+Vagrant.configure("2") do |config|
+  config.vm.box = "StefanScherer/windows_10"
+  if Vagrant.has_plugin?("vagrant-vbguest") then
+    # https://subscription.packtpub.com/book/cloud-&-networking/9781786464910/1/ch01lvl1sec12/enabling-virtualbox-guest-additions-in-vagrant
+    config.vbguest.auto_update = false
+  end
+  config.vm.provider "virtualbox" do |v|
+    v.name = "winrmk"    # Sets the new VM's name
+    v.gui = true        # Enables the hypervisor's GUI
+    v.memory = 8192     # Sets the VM's RAM
+    v.customize ["modifyvm", :id, "--draganddrop", "hosttoguest"] # Enables drag-and-drop between host and guest
+    v.customize ["modifyvm", :id, "--clipboard", "bidirectional"] # Enables a bidirectional clipboard between host and guest
+  end
+  config.vm.provision "shell", path: "scripts/provision.ps1"
+end
