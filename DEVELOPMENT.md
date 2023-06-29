@@ -5,11 +5,11 @@
 
 ### Architecture / sequence diagram
 
-`robotmk-ctrl.ps1` is the base script for two types of executions:
-- initially called by the CMK Agent as a Plugin (or called by the user).
-- Then `RobotmkScheduler.ps1` in turn is called by the Windows Service Control Manager (SCM)
+`agent/plugins/robotmk-ctrl.ps1` is the base script for two types of executions:
+- initially called by the CMK Agent as a **Agent Plugin** (or called by the user).
+- Called **as Daemon** via Service stub (exe, see step 3) by the Windows Service Control Manager (SCM) as `RobotmkScheduler.ps1` 
 
-Its arguments (see top of the script) can be divided into two types:
+Its arguments (see top section of the script) can be divided into two types:
 - arguments which can be used on the command line like `-Install/-Remove/-Status/...` (but not needed for normal users)  and
 - arguments which are reserved for the SCM.
 
@@ -18,16 +18,18 @@ In the following, all steps of the sequence diagram below are explained (the ref
 1. The Checkmk Agent executes `robotmk-ctrl.ps1` in the normal check interval (1m). When executed without any argument, it runs in monitor mode (`-Monitor`, see ref `bbc7b0e`), which means:
    - Install, Start the Robotmk Service / keep it running
    - produce Agent output
-2. Once the controller was started, **it copies itself** to `RobotmkScheduler.ps1` outside the Agent dir into `ProgramData/checkmk/robotmk/`. `RobotmkScheduler.ps1` is the script which will be used by the Windows Service (but not directly, see below). The reason behind creating the copy is that the CMK Agent kills any long-running and hanging plugin scripts when it gets shut down so that the Agent updater (which stops the agent before the update) can overwrite them. The Scheduler script has an own mechanism (deadman switch file) to detect when the Agent was shut down.
-3. `5f8dda`: Due to the fact that a Windows service cannot start a script (ps/py) directly, the controller also creates the service stub `RobotmkScheduler.exe`. This is a small executable of a [.NET ServiceBase class ](https://learn.microsoft.com/en-us/archive/msdn-magazine/2016/may/windows-powershell-writing-windows-services-in-powershell#the-net-servicebase-class), which implements the methods the SCM needs to talk to. The C# code can be found within the ps script at ref 5f8dda.
-4. `521188`: The controller installs the Scheduler service (if not found). It defines the `RobotmkScheduler.exe` service stub as executable behind the service. The service gets started.
-5. `9833fa`: The SCM starts `RobotmkScheduler.exe` and calls its `OnStart()` entrypoint method.
-6. `825fb1`: The `Onstart()` method calls `RobotmkScheduler.ps1` with the argument `-SCMStart`; this indicates the script that it was started not manually by the user, but from the Windows Service Control Manager.
-7. `bba322`: The `SCM` execution starts another instance of itself with argument `-Service`. In this mode, the script starts the workload loop and listens at the same for control messages from the service stub (e.g. Stop).
-8. `9177b1`: Inside of the workload loop (7), the script is started with argument `-Run`. This starts the scheduler main routine.
-9. `4b4812`: The Scheduler script uses `rcc` to create the Robotmk Python environment (as defined in `conda.yaml`)
-10. `19882f`: start `rcc task run -t agent-scheduler`, as defined in `robot.yaml`. This is where the Python part begins.
-11. Inside of the activated robotmk rcc environment, `rcc` executes the robotmk command `robotmk agent scheduler`. Robotmk reads suite data from `robotmk.yml` and triggers the suites in their configured interval. Generally spoken, the scheduler natively executes Robot Framework **suites** using the OS Python (if RCC=False in config) OR it executes **RCC tasks**. In the latter one, it is important to understand, that "**tasks**" can be _arbitrary_ code in theory. Robotmk does not really know at this point what's behind a task.
+2. Once the controller was started, **it copies itself** to `RobotmkScheduler.ps1` outside the Agent dir into `ProgramData/checkmk/robotmk/`.  
+`RobotmkScheduler.ps1` is the script which will be used by the Windows Service (but not directly, see below).  
+The reason behind creating a copy is that the CMK Agent kills any long-running and hanging plugin scripts when it gets shut down so that the Agent updater (which stops the agent before the update) can overwrite them. By coping the script outside, we ensure that the Scheduler can run autonomously; it has an own mechanism (deadman switch file) to detect when the Agent was shut down.
+1. `5f8dda`: Due to the fact that a Windows service cannot start a script (ps/py) directly, the controller also creates the "service stub" `RobotmkScheduler.exe`. This is a small executable of a [.NET ServiceBase class ](https://learn.microsoft.com/en-us/archive/msdn-magazine/2016/may/windows-powershell-writing-windows-services-in-powershell#the-net-servicebase-class), which implements the methods the SCM needs to send commands to.
+2. `521188`: The controller installs the Scheduler service (if not found). It defines the `RobotmkScheduler.exe` service stub as executable behind the service. The service gets started.
+3. `9833fa`: The SCM starts `RobotmkScheduler.exe` and calls its `OnStart()` entrypoint method.
+4. `825fb1`: The `Onstart()` method calls `RobotmkScheduler.ps1` with the argument `-SCMStart`; this indicates the script that it was started not manually by the user, but from the Windows Service Control Manager.
+5. `bba322`: The `SCM` execution starts another instance of itself with argument `-Service`. In this mode, the script starts the workload loop and listens at the same for control messages from the service stub (e.g. Stop).
+6. `9177b1`: Inside of the workload loop (7), the script is started with argument `-Run`. This starts the scheduler main routine.
+7. `4b4812`: The Scheduler script uses `rcc` to create the Robotmk Python environment (as defined in `conda.yaml`)
+8.  `19882f`: start `rcc task run -t agent-scheduler`, as defined in `robot.yaml`. This is where the Python part begins.
+9.  Inside of the activated robotmk rcc environment, `rcc` executes the robotmk command `robotmk agent scheduler`. Robotmk reads suite data from `robotmk.yml` and triggers the suites in their configured interval. Generally spoken, the scheduler natively executes Robot Framework **suites** using the OS Python (if RCC=False in config) OR it executes **RCC tasks**. In the latter one, it is important to understand, that "**tasks**" can be _arbitrary_ code in theory. Robotmk does not really know at this point what's behind a task.
 The following two examples describe a task execution without and with RCC:
     - Example "suite_default" (=a suite with `rcc=False`):
       - 12. Robotmk starts itself as a python subprocess in "suite run" context for this suite
@@ -40,12 +42,12 @@ The following two examples describe a task execution without and with RCC:
       - 17. Robotmk gets started inside the task `robotmk`. It's almost the same as in step 14, but `RCC=False` prevents now that Robotmk would again call RCC inside of the RCC task.
       - 18. Now Robotmk runs the RobotFramework suite exactly as in step 13 (=without RCC).
       XML result files get stored at a defined location.
-19. `99388h`: The second big task of the controller script is to produce agent output. Called as a regular plugin, it must return as quick as possible. Therefore it simply checks if the RCC environment for Robotmk (built by the Robotmk Service in step 9) is ready.
+19.  `99388h`: The second big task of the controller script is to produce agent output. Called as a regular plugin, it must return as quick as possible. Therefore it simply checks if the RCC environment for Robotmk (built by the Robotmk Service in step 9) is ready.
 If not, it returns without any output (or anything else, TBD).
 If the environment is ready to use, it calls `rcc task run -t agent-output`.
-20. Inside of the activated robotmk rcc environment, `rcc` executes the robotmk command `robotmk agent output`.
-21. Robotmk reads from `robotmk.yml` which suites are scheduled and produces agent output.
-22. Agent output gets catched by the controller and printed on STDOUT to be read by the Checkmk Agent.
+20.  Inside of the activated robotmk rcc environment, `rcc` executes the robotmk command `robotmk agent output`.
+21.  Robotmk reads from `robotmk.yml` which suites are scheduled and produces agent output.
+22.  Agent output gets catched by the controller and printed on STDOUT to be read by the Checkmk Agent.
 
 
 ```mermaid
