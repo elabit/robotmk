@@ -19,7 +19,6 @@ mypy = "*"
 
 [requires]
 python_version = "3.11"
-python_full_version = "3.11.1"
 
 [pipenv]
 allow_prereleases = true
