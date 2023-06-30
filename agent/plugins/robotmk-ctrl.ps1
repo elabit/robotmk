@@ -48,6 +48,15 @@ Param(
   [Switch]$Version              # Get this script version
 )
 
+
+
+$currentUser = New-Object Security.Principal.WindowsPrincipal([Security.Principal.WindowsIdentity]::GetCurrent())
+if (!($currentUser.IsInRole([Security.Principal.WindowsBuiltInRole]::Administrator))) {
+  Write-Host "ERROR: Script can only run with administrative privileges."
+  Exit 1
+}
+
+
 # Determine the given mode
 $script_arg = $PSBoundParameters.Keys | Where-Object { $PSBoundParameters[$_] } | Select-Object -First 1
 if (-not $script_arg) {
