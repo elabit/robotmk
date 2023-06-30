@@ -1,7 +1,160 @@
 # Development Notes
 
+
+## Robotmk agent/specialagent (Python)
+
+The following section contains instructions for the Python debugging setup. 
+
+### Development Quickstart (Linux/Windows)
+
+#### Step 0: optional
+
+Install Pyenv to use a separate Python shim than the default one from your OS.
+
+#### Step 1: Install requirements
+
+pipenv: https://pipenv.pypa.io/en/latest/#install-pipenv-today
+
+pyenv: https://github.com/pyenv/pyenv#installation
+
+#### Step 2: Create Python environment
+
+Create a venv with the dev dependencies:
+
+```
+cd robotmk/
+# Windows
+SET PIPENV_VENV_IN_PROJECT=1
+pipenv sync --dev
+# Linux
+PIPENV_VENV_IN_PROJECT=1 pipenv sync --dev
+```
+
+Pipenv will install the required Python version (using Pyenv) and also the dependend Python packages as listed in `Pipenv.lock`.
+
+#### Step 3: install Robotmk editable
+
+After the venv has beend created inside of the project dir (`.venv`), install the Robotmk package as *editable*:
+
+```
+# activate the venv
+pipenv shell
+cd robotmk  # --> this is the "robotmk" subdir in the project folder
+# Linux
+flit install -s
+# Windows (see https://github.com/pypa/flit/issues/325)
+flit install --pth-file
+```
+
+`robotmk -h` should now be executable.
+
+#### Step 4: configure environment variables
+
+By default, Robotmk assumes the following default configuration:
+- Windows:
+  - `cfgdir`: `C:/ProgramData/checkmk/agent/config/robotmk` (=> `robotmk.yml`)
+  - `logdir`: `C:/ProgramData/checkmk/agent/log/robotmk`
+  - `robotdir`: `C:/ProgramData/checkmk/agent/robots`
+  - `tmpdir`: `C:/ProgramData/checkmk/agent/tmp/robotmk`
+- Linux: (TBD)
+  - `cfgdir`: `/etc/check_mk` (=> `robotmk.yml`)
+  - `logdir`: `/var/log/robotmk`
+  - `robotdir`: `/usr/lib/check_mk_agent/robots`,
+
+`robotmk.yml` is the central configuration file. It can be read from another location and/or certain keys can be overriden by environment variables.
+
+For **development**, the environment variable `ROBOTMK_common_path__prefix` can be set. It points to the "agent" dir and defines a common path prefix for the following dirs:
+
+- Windows:
+  -  `cfgdir` => `config/robotmk`
+  -  `logdir` => `log/robotmk`
+  -  `robotdir` => `robots`
+  -  `tmpdir` => `tmp`
+- Linux:
+  -  `cfgdir`,`logdir`,`tmpdir` and `robotdir`, 
+
+if they are set *relative*. (Absolute paths are always taken as they are).
+
+For local development you need to set this environment variable (keep the double undescores; they form a config key `path_prefix`, while single underscores separate the keys):
+
+```
+# Linux
+export ROBOTMK_common_path__prefix="/your/project/dir/agent"
+```
+
+On Windows, you can set this variable in "Advanced System Settings" > "Environmemnt variables". 
+Remember to restart all applications (terminals, VS Code etc.) in order to make this variable accessible. 
+
+See `robotmk/.cli.env` for an example.
+
+Hint: `agent` context of Robotmk requires a YML file to be loaded, where `suite` and `specialagent` can load their configuration completely from environment variables.
+
+#### Step 5: VS Code debugging
+
+`.vscode/launch.json` contains debug configurations for every execution context.
+
+With the environment variables set in step 4, the YML configuration is always loaded from `./robotmk/tests/yml/robotmk.yml`.
+
+#### Step 6: Open tmuxp session (optional)
+
+The pipenv dev dependencies also contains `tmuxp` which opens a multipane view.
+
+To start a tmuxp session, you have to execute the following command from the project's root dir:
+
+    tmuxp load contrib/tmuxp.yaml
+
+
+
+
+### Committing work
+
+[Pre-Commit](https://pre-commit.com) is used to execute hooks before commits can be done to the repo.
+
+The config file `.pre-commit-config.yaml` contains configure hooks for:
+
+- removing trailing whitespace
+- fixing EOF
+- linting YML
+- large file additions
+- black formatting
+
+
+The hooks are executed automatically before every commit, manual execution can be done with:
+
+    pre-commit run --all-files
+
+### Releasing Robotmk on PyPi
+
+`robotmk/release.sh` is used to create new versions of Robotmk on PyPi:
+
+```
+./release.sh patch "This is a small patch commit"
+./release.sh minor "This is a minor patch commit"
+./release.sh major "This is a major patch commit"
+
+```
+
+Version numbers in the following files are bumped automatically on each release:
+
+- `src/robotmk/__init__.py` => `__version__` variable (Version string in the CLI help/transmitted to CMK)
+- `../agent/robots/suiteA/conda.yaml` => Robotmk package version to install inside of RCC robots
+
+
+### Debugging helper
+
+Watch the last lines of the result JSON:
+```
+watch -n 1 -d "tail ../agent/log/robotmk/results/suite_default*"
+```
+
+
+---
+
+---
+
 ## Robotmk Controller (Windows/Powershell)
 
+This sections explains how the Robotmk scheduler gets started on Windows. 
 
 ### Architecture / sequence diagram
 
@@ -114,6 +267,9 @@ sequenceDiagram
     ctrlps->>agent: agent output
 ```
 
+
+---
+
 ### Reading the logs
 
 The controller/scheduler script are logging into different log files, but have the same format.
@@ -126,57 +282,73 @@ The controller/scheduler script are logging into different log files, but have t
 2023-06-15T12:08:11.407Z [3704]   SCMStop   INFO    RobotmkScheduler.ps1 -SCMStop: Stopping script RobotmkScheduler.ps1 -Service
 ```
 
+---
+
 ### Debugging
 
-Both scripts, `robotmk-ctrl.ps1` and `RobotmkScheduler.ps1` should be debugged with Admin privileges, because the first one creates the service and the second one is a service. (-> Open Admin Powershell / Start VS Code with admin privileges)
+Both scripts, `robotmk-ctrl.ps1` and `RobotmkScheduler.ps1` should be debugged with **Admin privileges**, because the first one _creates_ the service and the second one is _called_ by the service. (-> Open Admin Powershell / Start VS Code with admin privileges)
 
 By default the scripts will run with the default agent path of the installed CMK agent.
 For development, the env variable `ROBOTMK_common_path__prefix` can be set; it sets the paths of `/config`, `log` and `tmp` below of the `/agent` dir within this project.
 This makes development independent from a running CMK agent.
 
-#### Debug the controller
+---
+
+#### Debug the controller:
+
+- **Steps:** 2/3/4
+- **Debug Config:** `PS (CMK) robotmk-ctrl.ps1`
 
 This is how to debug step 2,3 and 4 in the sequence diagram, from the perspective of the CMK Agent:
 
 - (Stop the Checkmk Agent.)
 - Copy `robotmk-ctrl.ps1` from `%PROJECT_ROOT%/agent/plugins` to `ProgramData/checkmk/agent/plugins`.
-- Start the debugger with `PS CMK robotmk-ctrl.ps1` as Debug configuration
 - Logs to watch:
   - in `agent\log\robotmk\robotmk-ctrl.log` you should see:
     - Variable log output
     - copying controller script to Scheduler script (only if the controller script is younger)
-    - writing the .env filr for the Scheduler script with all `ROBOMK_` vars known to the controller (will be read by the Scheduler script when started by the service)
+    - writing `RobotmkScheduler.ps1.env` for the Scheduler script with all `ROBOMK_` vars known to the controller (will be read by the Scheduler script when started by the service)
     - installing c# service stub (.exe)
     - creating theWindows service
     - starting the service
 
-#### Debug the Scheduler (SCMStart)
+---
 
-WARNING: Do NOT edit the `RobotmkScheduler.ps1` script. The controller will overwrite it at each execution if there were changes.
+#### Debug the Scheduler (-SCMStart):
 
+- **Steps:** 6
+- **Debug Config:** `PS (CMK) RobotmkAgent.ps1 -SCMStart`
+
+WARNING: Do NOT edit the `RobotmkScheduler.ps1` script. The controller will overwrite it at each execution if there were changes (Step 2).  
 This is how to debug step 6 in the sequence diagram, from the perspective of the SCM:
 
-  - Start the debugger with `PS RobotmkAgent -SCMStart` as Debug configuration
   - The script will source `RobotmkScheduler.ps1.env` in order to know `ROBOTMK_` variables which were set for the controller
   - in `agent\log\robotmk\RobotmkScheduler.log` you should see:
     - Variable log output
-    - Starting itself in Service mode (step 7)
+    - Starting itself in Service mode (-> step 7)
 
-#### Debug the Scheduler (Service)
+---
 
-This is how to debug step 7 in the sequence diagram:
+#### Debug the Scheduler (-Service):
 
-  - Start the debugger with `PS RobotmkAgent -Service` as Debug configuration
-  - The script will source `RobotmkScheduler.ps1.env` in order to know `ROBOTMK_` variables which were set for the controller
-  - in `agent\log\robotmk\RobotmkScheduler.log` you should see:
-    - Variable log output
-    - Starting itself doing the workload loop in Run mode (step 8)
+- **Steps:** 7
+- **Debug Config:** `PS (CMK) RobotmkScheduler.ps1 -Service`
 
-#### Debug the Scheduler (Run)
+Debug Step 7: 
+- The script will source `RobotmkScheduler.ps1.env` in order to know `ROBOTMK_` variables which were set for the controller
+- in `agent\log\robotmk\RobotmkScheduler.log` you should see:
+  - Variable log output
+  - Starting itself doing the workload loop in Run mode (-> step 8)
 
-This is how to debug step 8 in the sequence diagram:
+---
 
-- Start the debugger with `PS RobotmkAgent -Run` as Debug configuration
+#### Debug the Scheduler (-Run):
+
+- **Steps:** 8/9/10
+- **Debug Config:** `PS (CMK) RobotmkScheduler.ps1 -Run`
+
+This is how to debug step 8-10 in the sequence diagram:
+
 - The script will source `RobotmkScheduler.ps1.env` in order to know `ROBOTMK_` variables which were set for the controller
 - in `agent\log\robotmk\RobotmkScheduler.log` you should see:
   - calculation the blueprint hash for conda.yaml
@@ -186,23 +358,65 @@ This is how to debug step 8 in the sequence diagram:
   - start of the RCC task for the Robotmk scheduler, as defined in the `robot.yaml` file:
   ```
   2023-06-15T12:09:15.289Z [9428]   Run       DEBUG   Running Robotmk task 'agent-scheduler' in Holotree space 'robotmk/scheduler'
-  2023-06-15T12:09:15.453Z [9428]   Run       DEBUG   !!  C:\Users\vagrant\Documents\01_dev\rmkv2\agent\bin\rcc.exe task run --controller robotmk --space scheduler -t agent-scheduler -r C:\Users\vagrant\Documents\01_dev\rmkv2\agent\config\robotmk\robot.yaml
+  2023-06-15T12:09:15.453Z [9428]   Run       DEBUG   !!  C:\Users\vagrant\Documents\01_dev\robotmk\agent\bin\rcc.exe task run --controller robotmk --space scheduler -t agent-scheduler -r C:\Users\vagrant\Documents\01_dev\robotmk\agent\config\robotmk\robot.yaml
   ```
   - This is the point where the differences between operating systems end - and where the (OS independent) Python part of Robotmk gets started within an RCC env.
   As a consequence, there is nothing more to debug here. To get into the execution of the RCC task, read next section.
 
-#### Debug the RCC task
+---
 
-This section
+#### Debug the RCC task "agent-scheduler":
 
-        - Copy the command which was logged to execute the RCC task "agent-scheduler"
-        - Open a Admin-CMD and execute the command here. (It should fail as well.)
-        - To get a shell inside of the RCC environment, you have to change the command from a task execution to task shell:
-        `C:\Users\vagrant\Documents\01_dev\rmkv2\agent\bin\rcc.exe task shell -r C:\Users\vagrant\Documents\01_dev\rmkv2\agent\config\robotmk\robot.yaml `
-        - Inside of that shell, the python interpreter of the Robotmk RCC environment is set. Here you can list pip packages, execute the `robotmk` CLI etc.
+- **Steps:** 11
+- **Debug Config:** (no Powershell, execute in ADMIN-cmd)
+
+Debug step 11: 
+
+- Copy the command which was logged to execute the RCC task "agent-scheduler" (see log output above, beginning with "!!")
+- Open a Admin-CMD and execute the command here. 
+- To get a shell inside of the RCC environment, you have to change the command from a task _execution_ to task _shell_:
+`C:\Users\vagrant\Documents\01_dev\robotmk\agent\bin\rcc.exe task shell -r C:\Users\vagrant\Documents\01_dev\robotmk\agent\config\robotmk\robot.yaml `
+- Inside of that shell, the python interpreter of the Robotmk RCC environment is set. Here you can list pip packages, execute the `robotmk` CLI etc.
+
+---
+
+#### Debug Robotmk suite run suite_default (no RCC)
+
+- **Steps:** 12
+- **Debug Config:** `py robotmk suite run suite_default",`
+
+Manual debugging of step 12: 
+- Open a shell inside the environment: `pipenv shell`
+- `robotmk suite run suite_default`
+
+---
+
+#### Debug Robotframework suite execution 
+
+- **Steps:** 13
+
+Manual debugging of step 12: 
+- Open a shell inside the environment: `pipenv shell`
+- `robot agent\robots\suiteA\tasks.robot` -> this is a "normal" Robot Framework execution
 
 
 
+
+---
+
+#### Debug Robotmk suite run suite_default (RCC)
+
+- **Steps:** 14
+- **Debug Config:** `py robotmk suite run suite_default",`
+
+Manual debugging of step 12: 
+- Open a shell inside the environment: `pipenv shell`
+- `robotmk suite run suite_default`
+
+
+
+
+---
 
 
 ### Debugging
@@ -220,128 +434,10 @@ PS> robotmk-ctrl.ps1 -Remove   # uninstall the service
 ---
 
 
-## Robotmk agent/specialagent (Python)
+## Robotmk Controller (Linux/Shell)
 
-### Quickstart
+This sections explains how the Robotmk scheduler gets started on Linux.
+=> TBD 
 
-#### Step 0: optional
+---
 
-Install Pyenv to use a separate Python shim than the default one from your OS.
-
-#### Step 1: Install requirements
-
-- pipenv
-
-
-#### Step 2: Create Python environment
-
-Use `pipenv sync --dev` to create a venv with the dev dependencies.
-
-#### Step 3: install Robotmk editable
-
-After the venv has beend created and entered, install the Robotmk package as *editable*:
-
-```
-cd robotmk
-# Linux
-flit install -s
-# Windows (see https://github.com/pypa/flit/issues/325)
-flit install --pth-file
-```
-
-`robotmk -h` should now be executable.
-
-#### Step 4: configure environment variables
-
-By default, Robotmk assumes the following default configuration:
-- Windows:
-  - `cfgdir`: `C:/ProgramData/checkmk/agent/config/robotmk` (=> `robotmk.yml`)
-  - `logdir`: `C:/ProgramData/checkmk/agent/log/robotmk`
-  - `robotdir`: `C:/ProgramData/checkmk/agent/robots`
-  - `tmpdir`: `C:/ProgramData/checkmk/agent/tmp/robotmk`
-- Linux: (TBD)
-  - `cfgdir`: `/etc/check_mk` (=> `robotmk.yml`)
-  - `logdir`: `/var/log/robotmk`
-  - `robotdir`: `/usr/lib/check_mk_agent/robots`,
-
-`robotmk.yml` is the central configuration file. It can be read from another location and/or certain keys can be overriden by environment variables.
-
-For development, the env variable `ROBOTMK_common_path__prefix` can be set. It defines a common path prefix for the following dirs:
-
-- Windows:
-  -  `cfgdir` => `config/robotmk`
-  -  `logdir` => `log/robotmk`
-  -  `robotdir` => `robots`
-  -  `tmpdir` => `tmp`
-- Linux:
-  -
- `cfgdir`,`logdir`,`tmpdir` and `robotdir`), if they are set *relative*. (Absolute paths are always taken as they are).
-
-For local development you need to set this environment variable:
-
-```
-# path prefix
-export ROBOTMK_common_path__prefix="/home/simonmeggle/Documents/01_dev/rmkv2/agent"
-```
-
-See `robotmk/.cli.env` for an example.
-
-Hint: `agent` context of Robotmk requires a YML file to be loaded, where `suite` and `specialagent` can load their configuration completely from environment variables.
-
-#### Step 5: VS Code debugging
-
-`.vscode/launch.json` contains debug configurations for every execution context.
-
-With the environment variables set in step 4, the YML configuration is always loaded from `./robotmk/tests/yml/robotmk.yml`.
-
-#### Step 6: Open tmuxp session
-
-The pipenv dev dependencies also contains `tmuxp` which opens a multipane view.
-
-To start a tmuxp session, you have to execute the following command from the project's root dir:
-
-    tmuxp load contrib/tmuxp.yaml
-
-
-
-
-### Committing work
-
-[Pre-Commit](https://pre-commit.com) is used to execute hooks before commits can be done to the repo.
-
-The config file `.pre-commit-config.yaml` contains configure hooks for:
-
-- removing trailing whitespace
-- fixing EOF
-- linting YML
-- large file additions
-- black formatting
-
-
-The hooks are executed automatically before every commit, manual execution can be done with:
-
-    pre-commit run --all-files
-
-### Release
-
-`robotmk/release.sh` is used to create new versions of Robotmk on PyPi:
-
-```
-./release.sh patch "This is a small patch commit"
-./release.sh minor "This is a minor patch commit"
-./release.sh major "This is a major patch commit"
-
-```
-
-The following files are updated automatically on each release:
-
-- `src/robotmk/__init__.py` => `__version__` variable
-- `../agent/robots/suiteA/conda.yaml` => Robotmk package version to install inside of RCC runs
-
-
-## Debugging helper
-
-Watch the last lines of the result JSON:
-```
-watch -n 1 -d "tail ../agent/log/robotmk/results/suite_default*"
-```

@@ -1,4 +1,5 @@
 .vagrant
+.venv
 hololib.zip
 __pycache__
 robotmk_output_*
