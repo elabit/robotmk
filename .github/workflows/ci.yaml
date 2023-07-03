@@ -5,19 +5,19 @@ on: [push, pull_request]
 jobs:
   testing:
     runs-on: ubuntu-22.04
-    # strategy:
-    #   matrix:
-    #     include:
-    #     - name: Bandit tests
-    #       target: test-bandit
-    #     - name: Python formatting
-    #       target: test-format-python
-    #     - name: Pylint tests
-    #       target: test-pylint
-    #     - name: Python unit tests
-    #       target: test-unit
-    #     - name: mypy tests
-    #       target: test-mypy-raw
+    strategy:
+      matrix:
+        include:
+        - name: Formatting
+          mode: black-check-all
+        - name: Import sorting
+          mode: isort-check-all
+        - name: Type checking
+          mode: mypy-check-all
+        - name: Linting
+          mode: pylint-check-all
+        - name: Unit tests
+          mode: pytest-check-all
     steps:
     - name: Set pip and pipenv cache variables
       run: |
@@ -54,9 +54,8 @@ jobs:
         sudo apt-get update
         sudo apt-get install librrd-dev libldap2-dev libsasl2-dev libkrb5-dev
         pip3 install pipenv
-        make .venv
-    # - name: Run ${{ matrix.name  }}
-    #   env:
-    #     TEST_TARGETS: ${{ matrix.target }}
-    #   run: |
-    #     make -C tests $TEST_TARGETS
+        ./pipenv sync
+    - name: ${{ matrix.name  }}
+      env:
+        MODE: ${{ matrix.mode }}
+      run: ./ci "${MODE}"
