@@ -29,9 +29,8 @@ jobs:
       uses: actions/checkout@v3
       with:
         submodules: true
-    - name: Parse Python version from defines.make
-      run: |
-        echo "PYTHON_VERSION=$(make --no-print-directory --file=defines.make print-PYTHON_VERSION)" >> $GITHUB_ENV
+    - name: Parse Python version from Pipfile
+      run: grep "python_full_version =" Pipfile | grep -oP "[0-9]+\.[0-9]+\.[0-9]+" >> $GITHUB_ENV
     - name: Setup Python
       uses: actions/setup-python@v4
       with:
