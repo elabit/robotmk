@@ -1,7 +1,7 @@
 {
     "_meta": {
         "hash": {
-            "sha256": "8b60b33c1af93a1cf860343a94f36ce32714c77ace3c8ce4eece8478f6874697"
+            "sha256": "e20e1c4b775fc80c13faf7ea14db1e66369fc066ba59714c4260b4c56bcd4a9e"
         },
         "pipfile-spec": 6,
         "requires": {
@@ -26,7 +26,7 @@
         },
         "agent-receiver": {
             "editable": true,
-            "path": "/home/joerg/git/robotmk/checkmk/agent-receiver"
+            "path": "./checkmk/agent-receiver"
         },
         "aiohttp": {
             "hashes": [
@@ -165,7 +165,7 @@
                 "sha256:2163e1640ddb52b7a8c80d0a67a08587e5d245cc9c553a74a847056bc2976b15",
                 "sha256:8ca1e4fcf50d07413d66d1a5e416e42cfdf5851c981d679a09851a6853383b3c"
             ],
-            "markers": "python_version <= '3.11.2'",
+            "markers": "python_full_version <= '3.11.2'",
             "version": "==4.0.2"
         },
         "attrs": {

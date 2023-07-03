@@ -100,7 +100,7 @@ protobuf = "==3.20.1"  # For development, Runtime modules are shipped by omd/pac
 semver = "==3.0.0"
 uvicorn = "==0.20.0"  # used for running agent-receiver server, UPGRADES MIGHT BREAK agent-receiver/agent_receiver/worker.py
 gunicorn= "==20.1.0" # used for running agent-receiver server
-agent-receiver = {editable = true, path = "/home/joerg/git/robotmk/checkmk/agent-receiver"}
+agent-receiver = {editable = true, path = "./checkmk/agent-receiver"}
 pysmb = "==1.2.9.1"  # used by SMB share special agent
 google-cloud-monitoring = "==2.11.1"  # used by the gcp special agent
 google-cloud-asset = "==3.14.0"  # used by the gcp special agent

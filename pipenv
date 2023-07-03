@@ -18,7 +18,8 @@ main() {
     case "${mode}" in
         'lock')
             CHECKMK_PACKAGES="$(awk '/\[packages\]/{flag=1;next}/^$/{flag=0}flag' ${CHECKMK_DIR}/Pipfile)"
-            CHECKMK_PACKAGES="$(echo "${CHECKMK_PACKAGES/path = \".\//path = \"${CHECKMK_DIR}\/}")"
+            # Don't use an absolute path here (must be relative to be system-independent)
+            CHECKMK_PACKAGES="$(echo "${CHECKMK_PACKAGES/path = \".\//path = \".\/checkmk\/}")"
             awk -v checkmk_packages="${CHECKMK_PACKAGES}" '//; /\[packages\]/{print checkmk_packages}' Pipfile_template > Pipfile
             pipenv lock --dev
             ;;
