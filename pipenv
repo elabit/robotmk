@@ -1,0 +1,45 @@
+#!/bin/bash
+
+set -e
+
+TOPDIR="$(git rev-parse --show-toplevel)"
+CHECKMK_DIR="${TOPDIR}/checkmk"
+export PIPENV_PIPFILE="${TOPDIR}/Pipfile"
+export PIPENV_VENV_IN_PROJECT=true
+export PIPENV_NOSPIN=true
+# Set in CI to enable caching
+: "${PIPENV_CACHE_DIR:="${TOPDIR}/.pipenv_cache"}"
+export PIPENV_CACHE_DIR
+
+main() {
+    mode="${1}"
+    shift
+
+    case "${mode}" in
+        'lock')
+            CHECKMK_PACKAGES="$(awk '/\[packages\]/{flag=1;next}/^$/{flag=0}flag' ${CHECKMK_DIR}/Pipfile)"
+            CHECKMK_PACKAGES="$(echo "${CHECKMK_PACKAGES/path = \".\//path = \"${CHECKMK_DIR}\/}")"
+            awk -v checkmk_packages="${CHECKMK_PACKAGES}" '//; /\[packages\]/{print checkmk_packages}' Pipfile_template > Pipfile
+            pipenv lock --dev
+            ;;
+
+        'sync')
+            pipenv sync --dev
+            ;;
+
+        'run')
+            make --silent -C "${TOPDIR}" .venv
+            pipenv run "$@"
+            ;;
+
+        *)
+            echo "Unknown mode: ${mode}" 1>&2
+            return 1
+            ;;
+    esac
+
+    return 0
+}
+
+main "$@"
+exit "$?"

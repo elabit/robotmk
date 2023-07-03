@@ -1,5 +1,4 @@
 .vagrant
-.venv
 hololib.zip
 __pycache__
 robotmk_output_*
@@ -10,3 +9,10 @@ agent/log/*
 dist
 .stignore
 .stversions
+
+# pipenv
+.pipenv_cache/
+
+# VSCode
+*.code-workspace
+.env

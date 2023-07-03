@@ -1,0 +1,73 @@
+#!/bin/bash
+
+set -e
+
+TOPDIR="$(git rev-parse --show-toplevel)"
+SELF="${TOPDIR}/ci"
+PYPROJECT_TOML_PATH="${TOPDIR}/pyproject.toml"
+ROBOTMK_DIR="${TOPDIR}/robotmk"
+CHECKMK_EXTENSIONS_DIR="${TOPDIR}/checkmk_extensions"
+CHECKMK_DIR="${TOPDIR}/checkmk"
+
+run_pipenv() {
+    "${TOPDIR}/pipenv" run "$@"
+}
+
+main() {
+    mode="${1}"
+    shift
+
+    case "${mode}" in
+        'black')
+            run_pipenv black --config "${PYPROJECT_TOML_PATH}" "$@"
+            ;;
+
+        'black-check-all')
+            "${SELF}" black --check --diff "${ROBOTMK_DIR}" "${CHECKMK_EXTENSIONS_DIR}"
+            ;;
+
+        'isort')
+            run_pipenv isort --settings-path "${PYPROJECT_TOML_PATH}" "$@"
+            ;;
+
+        'isort-check-all')
+            "${SELF}" isort --check-only --diff "${CHECKMK_EXTENSIONS_DIR}"
+            ;;
+
+        'mypy')
+            export MYPYPATH="${CHECKMK_DIR}"
+            run_pipenv mypy --config-file "${PYPROJECT_TOML_PATH}" --strict "$@"
+            ;;
+
+        'mypy-check-all')
+            "${SELF}" mypy "${CHECKMK_EXTENSIONS_DIR}"
+            ;;
+
+        'pylint')
+            export PYTHONPATH="${CHECKMK_DIR}:${PYTHONPATH}"
+            run_pipenv pylint "$@"
+            ;;
+        
+        'pylint-check-all')
+            "${SELF}" pylint --recursive true "${CHECKMK_EXTENSIONS_DIR}"
+            ;;
+
+        'pytest')
+            run_pipenv pytest --rootdir "${TOPDIR}" "$@"
+            ;;
+
+        'pytest-check-all')
+            "${SELF}" pytest "${CHECKMK_EXTENSIONS_DIR}/tests"
+            ;;
+
+        *)
+            echo "Unknown mode: ${mode}" 1>&2
+            return 1
+            ;;
+    esac
+
+    return 0
+}
+
+main "$@"
+exit "$?"
