@@ -25,7 +25,7 @@ main() {
             ;;
 
         'sync')
-            pipenv sync --dev && touch .venv
+            pipenv sync --dev
             ;;
 
         'run')
