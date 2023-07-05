@@ -3,21 +3,23 @@ name: CI
 on: [push, pull_request]
 
 jobs:
-  testing:
+  static_and_unit:
     runs-on: ubuntu-22.04
+
     strategy:
       matrix:
         include:
         - name: Formatting
-          mode: black-check-all
+          step: black-check-all
         - name: Import sorting
-          mode: isort-check-all
+          step: isort-check-all
         - name: Type checking
-          mode: mypy-check-all
+          step: mypy-check-all
         - name: Linting
-          mode: pylint-check-all
+          step: pylint-check-all
         - name: Unit tests
-          mode: pytest-check-all
+          step: pytest-check-all
+
     steps:
     - name: Set pip and pipenv cache variables
       run: |
@@ -25,26 +27,32 @@ jobs:
         # https://brandur.org/fragments/github-actions-env-vars-in-env-vars
         echo "PIP_CACHE_DIR=$HOME/.cache/pip" >> $GITHUB_ENV
         echo "PIPENV_CACHE_DIR=$HOME/.cache/pipenv" >> $GITHUB_ENV
+  
     - name: Checkout repository
       uses: actions/checkout@v3
       with:
         submodules: true
+
     - name: Parse Python version from Pipfile
       run: echo "PYTHON_VERSION=$(grep "python_full_version =" Pipfile | grep -oP "[0-9]+\.[0-9]+\.[0-9]+")" >> $GITHUB_ENV
+
     - name: Setup Python
       uses: actions/setup-python@v4
       with:
         python-version: ${{ env.PYTHON_VERSION }}
-    - name: Cache pip
+
+    - name: Cache pip cache
       uses: actions/cache@v3
       with:
         key: pip-${{ runner.os }}-${{ hashFiles('Pipfile.lock') }}
         path: ${{ env.PIP_CACHE_DIR  }}
-    - name: Cache pipenv
+
+    - name: Cache pipenv cache
       uses: actions/cache@v3
       with:
         key: pipenv-${{ runner.os }}-${{ hashFiles('Pipfile.lock') }}
         path: ${{ env.PIPENV_CACHE_DIR  }}
+
     - name: Setup Environment
       run: |
         # librrd-dev: Needed for building rrdtool python bindings.
@@ -57,5 +65,19 @@ jobs:
         ./pipenv sync
     - name: ${{ matrix.name  }}
       env:
-        MODE: ${{ matrix.mode }}
-      run: ./ci "${MODE}"
+        STEP: ${{ matrix.step }}
+      run: ./ci "${STEP}"
+
+  check_success:
+    if: always()
+
+    needs:
+    - static_and_unit
+
+    runs-on: Ubuntu-latest
+
+    steps:
+    - name: Decide whether the needed jobs succeeded or failed
+      uses: re-actors/alls-green@release/v1
+      with:
+        jobs: ${{ toJSON(needs) }}
