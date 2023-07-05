@@ -20,14 +20,7 @@ jobs:
         - name: Unit tests
           step: pytest-check-all
 
-    steps:
-    - name: Set pip and pipenv cache variables
-      run: |
-        # Using existing environment variables is not working in the jobs.*.env section
-        # https://brandur.org/fragments/github-actions-env-vars-in-env-vars
-        echo "PIP_CACHE_DIR=$HOME/.cache/pip" >> $GITHUB_ENV
-        echo "PIPENV_CACHE_DIR=$HOME/.cache/pipenv" >> $GITHUB_ENV
-  
+    steps: 
     - name: Checkout repository
       uses: actions/checkout@v3
       with:
@@ -41,18 +34,6 @@ jobs:
       with:
         python-version: ${{ env.PYTHON_VERSION }}
 
-    - name: Cache pip cache
-      uses: actions/cache@v3
-      with:
-        key: pip-${{ runner.os }}-${{ hashFiles('Pipfile.lock') }}
-        path: ${{ env.PIP_CACHE_DIR  }}
-
-    - name: Cache pipenv cache
-      uses: actions/cache@v3
-      with:
-        key: pipenv-${{ runner.os }}-${{ hashFiles('Pipfile.lock') }}
-        path: ${{ env.PIPENV_CACHE_DIR  }}
-
     - name: Setup Environment
       run: |
         # librrd-dev: Needed for building rrdtool python bindings.
@@ -62,7 +43,18 @@ jobs:
         sudo apt-get update
         sudo apt-get install librrd-dev libldap2-dev libsasl2-dev libkrb5-dev
         pip3 install pipenv
-        ./pipenv sync
+    
+    - name: Cache virtual environment
+      id: cache-venv
+      uses: actions/cache@v3
+      with:
+        key: venv-${{ runner.os }}-${{ hashFiles('Pipfile.lock') }}
+        path: .venv
+    
+    - if: ${{ steps.cache-venv.outputs.cache-hit == false }}
+      name: Build virtual environment if necessary
+      run: ./pipenv sync
+
     - name: ${{ matrix.name  }}
       env:
         STEP: ${{ matrix.step }}
