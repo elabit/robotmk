@@ -26,8 +26,8 @@ jobs:
       with:
         submodules: true
 
-    - name: Parse Python version from Pipfile
-      run: echo "PYTHON_VERSION=$(grep "python_full_version =" Pipfile | grep -oP "[0-9]+\.[0-9]+\.[0-9]+")" >> $GITHUB_ENV
+    - name: Add Python version to environment
+      run: cat python_version >> $GITHUB_ENV
 
     - name: Setup Python
       uses: actions/setup-python@v4

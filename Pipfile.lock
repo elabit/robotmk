@@ -562,11 +562,11 @@
         },
         "dnspython": {
             "hashes": [
-                "sha256:224e32b03eb46be70e12ef6d64e0be123a64e621ab4c0822ff6d450d52a540b9",
-                "sha256:89141536394f909066cabd112e3e1a37e4e654db00a25308b0f130bc3152eb46"
+                "sha256:7e4cba8cf85c83cd9c7b95ac75c39bba2aaff493e9041c23eaae9bb547c61def",
+                "sha256:d0dfc691db2e54625f0c83688306abee4ad01c7f038ba852dcffcfb19ada4c5c"
             ],
-            "markers": "python_version >= '3.7' and python_version < '4.0'",
-            "version": "==2.3.0"
+            "markers": "python_version >= '3.8' and python_version < '4.0'",
+            "version": "==2.4.0rc1"
         },
         "docstring-parser": {
             "hashes": [
@@ -3311,11 +3311,11 @@
         },
         "prompt-toolkit": {
             "hashes": [
-                "sha256:23ac5d50538a9a38c8bde05fecb47d0b403ecd0662857a86f886f798563d5b9b",
-                "sha256:45ea77a2f7c60418850331366c81cf6b5b9cf4c7fd34616f733c5427e6abbb1f"
+                "sha256:04505ade687dc26dc4284b1ad19a83be2f2afe83e7a828ace0c72f3a1df72aac",
+                "sha256:9dffbe1d8acf91e3de75f3b544e4842382fc06c6babe903ac9acb74dc6e08d88"
             ],
             "markers": "python_full_version >= '3.7.0'",
-            "version": "==3.0.38"
+            "version": "==3.0.39"
         },
         "ptyprocess": {
             "hashes": [

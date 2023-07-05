@@ -14,7 +14,9 @@ main() {
 
     case "${mode}" in
         'lock')
+            . "${TOPDIR}"/python_version
             build_pipfile_from_template_and_additional_pipfile "${TOPDIR}/Pipfile_template" "${CHECKMK_DIR}/Pipfile" ./checkmk > "${TOPDIR}/Pipfile"
+            pipfile_python_version_section "${PYTHON_VERSION}" >> "${TOPDIR}/Pipfile"
             pipenv lock --dev
             ;;
 
@@ -51,6 +53,12 @@ replace_relative_paths_in_pipfile_packages() {
 
 build_pipfile_from_template_and_additional_packages() {
     awk -v additional_packages="${2}" '//; /\[packages\]/{print additional_packages}' "${1}"
+}
+
+pipfile_python_version_section() {
+    echo "
+[requires]
+python_full_version = \""${1}"\""
 }
 
 main "$@"
