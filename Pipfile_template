@@ -19,8 +19,5 @@ tmuxp = "*"
 mypy = "*"
 pylint = "*"
 
-[requires]
-python_full_version = "3.11.2"
-
 [pipenv]
 allow_prereleases = true
