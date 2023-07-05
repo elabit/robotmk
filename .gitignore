@@ -10,9 +10,6 @@ dist
 .stignore
 .stversions
 
-# pipenv
-.pipenv_cache/
-
 # VSCode
 *.code-workspace
 .env

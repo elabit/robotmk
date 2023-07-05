@@ -7,9 +7,6 @@ CHECKMK_DIR="${TOPDIR}/checkmk"
 export PIPENV_PIPFILE="${TOPDIR}/Pipfile"
 export PIPENV_VENV_IN_PROJECT=true
 export PIPENV_NOSPIN=true
-# Set in CI to enable caching
-: "${PIPENV_CACHE_DIR:="${TOPDIR}/.pipenv_cache"}"
-export PIPENV_CACHE_DIR
 
 main() {
     mode="${1}"
