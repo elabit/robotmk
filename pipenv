@@ -14,10 +14,7 @@ main() {
 
     case "${mode}" in
         'lock')
-            CHECKMK_PACKAGES="$(awk '/\[packages\]/{flag=1;next}/^$/{flag=0}flag' ${CHECKMK_DIR}/Pipfile)"
-            # Don't use an absolute path here (must be relative to be system-independent)
-            CHECKMK_PACKAGES="$(echo "${CHECKMK_PACKAGES/path = \".\//path = \".\/checkmk\/}")"
-            awk -v checkmk_packages="${CHECKMK_PACKAGES}" '//; /\[packages\]/{print checkmk_packages}' Pipfile_template > Pipfile
+            build_pipfile_from_template_and_additional_pipfile "${TOPDIR}/Pipfile_template" "${CHECKMK_DIR}/Pipfile" ./checkmk > "${TOPDIR}/Pipfile"
             pipenv lock --dev
             ;;
 
@@ -36,6 +33,24 @@ main() {
     esac
 
     return 0
+}
+
+build_pipfile_from_template_and_additional_pipfile() {
+    ADDITONAL_PACKAGES=$(extract_packages_from_pipfile "${2}")
+    ADDITONAL_PACKAGES=$(replace_relative_paths_in_pipfile_packages "${ADDITONAL_PACKAGES}" "${3}")
+    build_pipfile_from_template_and_additional_packages "${1}" "${ADDITONAL_PACKAGES}"
+}
+
+extract_packages_from_pipfile() {
+    awk '/\[packages\]/{flag=1;next}/^$/{flag=0}flag' "${1}"
+}
+
+replace_relative_paths_in_pipfile_packages() {
+    echo "${1/path = \".\//path = \"${2}\/}"
+}
+
+build_pipfile_from_template_and_additional_packages() {
+    awk -v additional_packages="${2}" '//; /\[packages\]/{print additional_packages}' "${1}"
 }
 
 main "$@"
