@@ -58,7 +58,7 @@ build_pipfile_from_template_and_additional_packages() {
 pipfile_python_version_section() {
     echo "
 [requires]
-python_full_version = \""${1}"\""
+python_version = \""${1}"\""
 }
 
 main "$@"
