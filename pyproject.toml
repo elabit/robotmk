@@ -4,6 +4,9 @@ module = [
 ]
 ignore_errors = true
 
+[tool.mypy]
+strict = true
+
 [tool.pylint.'MESSAGES CONTROL']
 disable = "missing-docstring"
 
