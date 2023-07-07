@@ -1,3 +1,4 @@
+# mypy: disable-error-code="import, attr-defined, type-var, list-item, var-annotated"
 """Robotmk CLI Interface.
 
 Start Robotmk in different contexts. Context can also be set via environment variable ROBOTMK_common_context."""

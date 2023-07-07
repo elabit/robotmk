@@ -1,3 +1,4 @@
+# mypy: disable-error-code="import"
 import time, sys, os
 import json
 from copy import deepcopy

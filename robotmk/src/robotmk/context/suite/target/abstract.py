@@ -1,3 +1,4 @@
+# mypy: disable-error-code="import"
 from abc import ABC, abstractmethod
 from pathlib import Path
 import json

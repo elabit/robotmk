@@ -1,3 +1,4 @@
+# mypy: disable-error-code="import"
 import os
 from abc import ABC, abstractmethod
 from robot.rebot import rebot

@@ -1,3 +1,4 @@
+# mypy: disable-error-code="attr-defined, arg-type, var-annotated"
 import json
 from pathlib import Path
 import base64

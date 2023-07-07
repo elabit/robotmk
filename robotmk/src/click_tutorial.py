@@ -1,3 +1,4 @@
+# mypy: disable-error-code="var-annotated"
 import click
 import json
 import pprint

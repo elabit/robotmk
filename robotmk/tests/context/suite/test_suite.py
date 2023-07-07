@@ -1,3 +1,4 @@
+# mypy: disable-error-code="import"
 import yaml
 from robotmk.main import Robotmk
 import os

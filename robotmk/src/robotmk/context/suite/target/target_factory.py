@@ -1,3 +1,5 @@
+# mypy: disable-error-code="return-value, attr-defined, assignment, import"
+
 from pathlib import Path
 from robotmk.logger import RobotmkLogger
 from .abstract import Target

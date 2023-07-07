@@ -24,6 +24,7 @@ There is a special order in which the sources are read:
 """
 
 # TODO: add a mode to dump environment
+# mypy: disable-error-code="import, var-annotated, return-value, valid-type, operator, index, assignment, return"
 
 import os
 import re

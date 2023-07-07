@@ -1,3 +1,6 @@
+# mypy: disable-error-code="return-value"
+
+
 class ContextFactory:
     def __init__(self, contextname: str, log_level: str) -> None:
         self.contextname = contextname

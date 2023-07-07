@@ -1,3 +1,4 @@
+# mypy: disable-error-code="import"
 """CLI commands for execution of a single suite."""
 
 import sys

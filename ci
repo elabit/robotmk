@@ -40,7 +40,7 @@ main() {
             ;;
 
         'mypy-check-all')
-            "${SELF}" mypy "${CHECKMK_EXTENSIONS_DIR}"
+            "${SELF}" mypy --package "checkmk_extensions" --package "robotmk" --package "agent"
             ;;
 
         'pylint')

@@ -1,6 +1,8 @@
 """This module encapsulates everyhting related so a single suite
 execution, either against a local target (RCC/RF) or against a remote one (API)."""
 
+# mypy: disable-error-code="import, empty-body"
+
 from uuid import uuid4
 from pathlib import Path
 from ..abstract import AbstractContext

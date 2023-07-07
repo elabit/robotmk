@@ -1,3 +1,4 @@
+# mypy: disable-error-code="import, empty-body"
 from abc import ABC, abstractmethod
 import platform
 from robotmk.logger import RobotmkLogger

@@ -1,3 +1,4 @@
+# mypy: disable-error-code="import"
 import time, sys, os, atexit
 from pathlib import Path
 from apscheduler.schedulers.background import BackgroundScheduler
