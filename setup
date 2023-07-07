@@ -1,0 +1,40 @@
+#!/bin/bash
+
+set -e
+
+main() {
+    topdir="$(git rev-parse --show-toplevel)"
+
+    . "${topdir}/python_version"
+    check_python_version "${PYTHON_VERSION}"
+    check_pip_executable
+
+    # librrd-dev: Needed for building rrdtool python bindings.
+    # libldap2-dev: Needed for building python-ldap.
+    # libsasl2-dev: Needed for building python-ldap.
+    # libkrb5-dev: Needed for building pykerberos.
+    sudo apt-get install \
+        librrd-dev \
+        libldap2-dev \
+        libsasl2-dev \
+        libkrb5-dev
+
+    pip3 install pipenv
+    "${topdir}/pipenv" sync
+}
+
+check_python_version() {
+    python3 --version | grep --quiet "Python ${1}" || {
+        echo "Python ${1} not found, aborting. Installing Python is non-trivial, please do it manually."
+        exit 1
+    }
+}
+
+check_pip_executable() {
+    command -v pip > /dev/null || {
+        echo "pip3 executable not found, aborting. Installing pip is non-trivial, please do it manually."
+        exit 1
+    }
+}
+
+main
