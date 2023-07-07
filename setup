@@ -21,6 +21,8 @@ main() {
 
     pip3 install pipenv
     "${topdir}/pipenv" sync
+
+    git config core.hooksPath .githooks
 }
 
 check_python_version() {
