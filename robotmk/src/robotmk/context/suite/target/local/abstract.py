@@ -1,3 +1,4 @@
+# mypy: disable-error-code="import, var-annotated"
 from abc import ABC, abstractmethod
 from pathlib import Path
 from uuid import uuid4

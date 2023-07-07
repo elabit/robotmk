@@ -1,3 +1,4 @@
+# mypy: disable-error-code="import, attr-defined, call-arg, name-defined"
 from pathlib import Path
 from ..abstract import AbstractContext
 

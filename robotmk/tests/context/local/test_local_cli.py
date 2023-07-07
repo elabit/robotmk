@@ -1,3 +1,4 @@
+# mypy: disable-error-code="import"
 import re
 import os
 from click.testing import CliRunner

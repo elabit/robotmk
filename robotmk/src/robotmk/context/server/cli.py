@@ -1,3 +1,4 @@
+# mypy: disable-error-code="import"
 """Run the log viewer web server.
 
 Starts a local webserver to serve the execution logs of all Robot suites."""

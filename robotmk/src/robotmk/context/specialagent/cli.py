@@ -1,3 +1,4 @@
+# mypy: disable-error-code="import"
 """CLI commands for the specialagent context."""
 import sys
 import click

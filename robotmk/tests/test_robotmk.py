@@ -1,3 +1,5 @@
+# mypy: disable-error-code="import"
+
 from robotmk.main import Robotmk, DEFAULTS
 import pytest
 import os

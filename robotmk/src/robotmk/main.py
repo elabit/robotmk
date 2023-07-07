@@ -1,3 +1,5 @@
+# mypy: disable-error-code="import"
+
 """Robotmk main module
 
 The main module of the Robotmk package, where the Robotmk instance gets

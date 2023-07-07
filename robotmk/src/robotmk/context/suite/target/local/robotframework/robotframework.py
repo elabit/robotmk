@@ -1,3 +1,5 @@
+# mypy: disable-error-code="no-redef, return, attr-defined, import"
+
 from pathlib import Path
 import mergedeep
 

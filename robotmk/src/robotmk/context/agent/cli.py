@@ -1,3 +1,4 @@
+# mypy: disable-error-code="import"
 """CLI commands for the agent context.
 
 Executes the Robotmk scheduler on Windows & Linux, produces Checkmk Agent output.

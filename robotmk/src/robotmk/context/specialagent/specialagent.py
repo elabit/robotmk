@@ -1,3 +1,4 @@
+# mypy: disable-error-code="import, empty-body"
 from pathlib import Path
 
 from ..abstract import AbstractContext
