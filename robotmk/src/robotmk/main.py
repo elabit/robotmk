@@ -33,7 +33,7 @@ WIN_PROGRAMDATA_AGENT = str(
     Path(os.environ.get("PROGRAMDATA", "C:/ProgramData")).joinpath("checkmk/agent/")
 )
 
-DEFAULTS = {
+DEFAULTS: dict[str, dict[str, object]] = {
     # Default values for the "common" config section
     "common": {
         "robotmk_yml": "robotmk.yml",
@@ -90,7 +90,7 @@ class Robotmk:
     def config(self):
         return self._context.config
 
-    def _set_context(self, contextname: str, log_level: str = None) -> None:
+    def _set_context(self, contextname: str, log_level: str | None = None) -> None:
         """Sets the context of the Robotmk instance (=strategy)."""
         if contextname is None:
             contextname = os.environ.get("ROBOTMK_common_context", None)
