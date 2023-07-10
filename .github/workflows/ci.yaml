@@ -34,26 +34,15 @@ jobs:
       with:
         python-version: ${{ env.PYTHON_VERSION }}
 
-    - name: Setup Environment
-      run: |
-        # librrd-dev: Needed for building rrdtool python bindings.
-        # libldap2-dev: Needed for building python-ldap.
-        # libsasl2-dev: Needed for building python-ldap.
-        # libkrb5-dev: Needed for building pykerberos.
-        sudo apt-get update
-        sudo apt-get install librrd-dev libldap2-dev libsasl2-dev libkrb5-dev
-        pip3 install pipenv
-    
-    - name: Cache virtual environment
-      id: cache-venv
+    - name: Setup Python virtual environment cache
       uses: actions/cache@v3
       with:
         key: venv-${{ runner.os }}-${{ hashFiles('Pipfile.lock') }}
         path: .venv
-    
-    - if: ${{ steps.cache-venv.outputs.cache-hit == false }}
-      name: Build virtual environment if necessary
-      run: ./pipenv sync
+
+    - name: Setup environment
+      # this steps always builds the venv, however, this is quite fast if we got a cache hit
+      run: ./setup
 
     - name: ${{ matrix.name  }}
       env:
