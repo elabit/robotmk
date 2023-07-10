@@ -2,30 +2,26 @@
 
 set -e
 
-TOPDIR="$(git rev-parse --show-toplevel)"
-CHECKMK_DIR="${TOPDIR}/checkmk"
-export PIPENV_PIPFILE="${TOPDIR}/Pipfile"
-export PIPENV_VENV_IN_PROJECT=true
-export PIPENV_NOSPIN=true
-
 main() {
+    topdir="$(git rev-parse --show-toplevel)"
+    pipfile="${topdir}/Pipfile"
     mode="${1}"
     shift
 
     case "${mode}" in
         'lock')
-            . "${TOPDIR}"/python_version
-            build_pipfile_from_template_and_additional_pipfile "${TOPDIR}/Pipfile_template" "${CHECKMK_DIR}/Pipfile" ./checkmk > "${TOPDIR}/Pipfile"
-            pipfile_python_version_section "${PYTHON_VERSION}" >> "${TOPDIR}/Pipfile"
-            pipenv lock --dev
+            . "${topdir}/python_version"
+            build_pipfile_from_template_and_additional_pipfile "${topdir}/Pipfile_template" "${topdir}/checkmk/Pipfile" ./checkmk > "${pipfile}"
+            pipfile_python_version_section "${PYTHON_VERSION}" >> "${pipfile}"
+            execute_pipenv_command "${pipfile}" lock --dev
             ;;
 
         'sync')
-            pipenv sync --dev
+            execute_pipenv_command "${pipfile}" sync --dev
             ;;
 
         'run')
-            pipenv run "$@"
+            execute_pipenv_command "${pipfile}" run "$@"
             ;;
 
         *)
@@ -38,9 +34,9 @@ main() {
 }
 
 build_pipfile_from_template_and_additional_pipfile() {
-    ADDITONAL_PACKAGES=$(extract_packages_from_pipfile "${2}")
-    ADDITONAL_PACKAGES=$(replace_relative_paths_in_pipfile_packages "${ADDITONAL_PACKAGES}" "${3}")
-    build_pipfile_from_template_and_additional_packages "${1}" "${ADDITONAL_PACKAGES}"
+    additional_packages=$(extract_packages_from_pipfile "${2}")
+    additional_packages=$(replace_relative_paths_in_pipfile_packages "${additional_packages}" "${3}")
+    build_pipfile_from_template_and_additional_packages "${1}" "${additional_packages}"
 }
 
 extract_packages_from_pipfile() {
@@ -59,6 +55,12 @@ pipfile_python_version_section() {
     echo "
 [requires]
 python_version = \""${1}"\""
+}
+
+execute_pipenv_command() {
+    pipfile="${1}"
+    shift
+    PIPENV_PIPFILE="${pipfile}" PIPENV_VENV_IN_PROJECT=true PIPENV_NOSPIN=true pipenv "$@"
 }
 
 main "$@"
