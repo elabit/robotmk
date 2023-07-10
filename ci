@@ -2,62 +2,57 @@
 
 set -e
 
-TOPDIR="$(git rev-parse --show-toplevel)"
-SELF="${TOPDIR}/ci"
-PYPROJECT_TOML_PATH="${TOPDIR}/pyproject.toml"
-ROBOTMK_DIR="${TOPDIR}/robotmk"
-CHECKMK_EXTENSIONS_DIR="${TOPDIR}/checkmk_extensions"
-CHECKMK_DIR="${TOPDIR}/checkmk"
-
-run_pipenv() {
-    "${TOPDIR}/pipenv" run "$@"
-}
-
 main() {
+    topdir="$(git rev-parse --show-toplevel)"
+    self="${topdir}/ci"
+    pyproject_toml_path="${topdir}/pyproject.toml"
+    robotmk_dir="${topdir}/robotmk"
+    checkmk_extensions_dir="${topdir}/checkmk_extensions"
+    checkmk_dir="${topdir}/checkmk"
     mode="${1}"
     shift
 
     case "${mode}" in
         'black')
-            run_pipenv black --config "${PYPROJECT_TOML_PATH}" "$@"
+            run_pipenv "${topdir}" black --config "${pyproject_toml_path}" "$@"
             ;;
 
         'black-check-all')
-            "${SELF}" black --check --diff "${ROBOTMK_DIR}" "${CHECKMK_EXTENSIONS_DIR}"
+            "${self}" black --check --diff "${robotmk_dir}" "${checkmk_extensions_dir}"
             ;;
 
         'isort')
-            run_pipenv isort --settings-path "${PYPROJECT_TOML_PATH}" "$@"
+            run_pipenv "${topdir}" isort --settings-path "${pyproject_toml_path}" "$@"
             ;;
 
         'isort-check-all')
-            "${SELF}" isort --check-only --diff "${CHECKMK_EXTENSIONS_DIR}"
+            "${self}" isort --check-only --diff "${checkmk_extensions_dir}"
             ;;
 
         'mypy')
-            export MYPYPATH="${CHECKMK_DIR}"
-            run_pipenv mypy --config-file "${PYPROJECT_TOML_PATH}" "$@"
+            export MYPYPATH="${checkmk_dir}"
+            run_pipenv "${topdir}" mypy --config-file "${pyproject_toml_path}" "$@"
             ;;
 
         'mypy-check-all')
-            "${SELF}" mypy --package "checkmk_extensions" --package "robotmk" --package "agent"
+            "${self}" mypy --package "checkmk_extensions" --package "robotmk" --package "agent"
             ;;
 
         'pylint')
-            export PYTHONPATH="${CHECKMK_DIR}:${PYTHONPATH}"
-            run_pipenv pylint "$@"
+            export PYTHONPATH="${checkmk_dir}:${PYTHONPATH}"
+            run_pipenv "${topdir}" pylint "$@"
             ;;
         
         'pylint-check-all')
-            "${SELF}" pylint --recursive true "${CHECKMK_EXTENSIONS_DIR}"
+            "${self}" pylint --recursive true "${checkmk_extensions_dir}"
             ;;
 
         'pytest')
-            run_pipenv pytest --rootdir "${TOPDIR}" "$@"
+            run_pipenv "${topdir}" pytest --rootdir "${topdir}" "$@"
             ;;
 
         'pytest-check-all')
-            "${SELF}" pytest "${CHECKMK_EXTENSIONS_DIR}/tests"
+            "${self}" pytest "${checkmk_extensions_dir}/tests"
             ;;
 
         *)
@@ -67,6 +62,12 @@ main() {
     esac
 
     return 0
+}
+
+run_pipenv() {
+    pipenv_script="${1}/pipenv"
+    shift
+    "${pipenv_script}" run "$@"
 }
 
 main "$@"
