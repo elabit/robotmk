@@ -955,16 +955,16 @@ function IsRCCEnvReady {
   )
 
   if ((RCCCatalogContainsBlueprint $blueprint) -and (RCCHolotreeHasSpacesForBlueprint $blueprint)) {
-    if (IsFlagfilePresent $Flagfile_RCC_env_robotmk_created) {
+    if (IsFlagfilePresent $Flagfile_rcc_robotmk_env_created) {
       return $true
     }
     else {
-      TouchFile $Flagfile_RCC_env_robotmk_created	 "RCC env ready flagfile"
+      TouchFile $Flagfile_rcc_robotmk_env_created	 "RCC env ready flagfile"
       return $true
     }
   }
   else {
-    RemoveFlagfile $Flagfile_RCC_env_robotmk_created
+    RemoveFlagfile $Flagfile_rcc_robotmk_env_created
     return $false
   }
 }
@@ -1160,7 +1160,7 @@ function CreateRCCEnvironment {
     [Parameter(Mandatory = $True)]
     [string]$blueprint
   )
-  RemoveFlagfile $Flagfile_RCC_env_robotmk_created
+  RemoveFlagfile $Flagfile_rcc_robotmk_env_created
   TouchFile $Flagfile_rcc_robotmk_env_creation_in_progress "RCC creation state file"
   if (Test-Path ($hololib_zip)) {
     LogInfo "$hololib_zip found, importing it"
@@ -1177,7 +1177,7 @@ function CreateRCCEnvironment {
   # Watch the progress with `rcc ht list` and `rcc ht catalogs`. First the catalog is created, then
   # both spaces.
   if (RCCCatalogContainsBlueprint $blueprint) {
-    TouchFile $Flagfile_RCC_env_robotmk_created "RCC env ready flagfile"
+    TouchFile $Flagfile_rcc_robotmk_env_created "RCC env ready flagfile"
     RemoveFlagfile $Flagfile_rcc_robotmk_env_creation_in_progress
     LogInfo "OK: Environments for Robotmk created and ready to use."
   }
@@ -1196,7 +1196,7 @@ function RunRobotmkTask {
   $rcctask = "agent-$rmkmode"
 
   # Determine which holotree space to use (scheduler/output)
-  $space = (Get-Variable -Name "rcc_space_rmk_$rmkmode").Value
+  $space = (Get-Variable -Name "rcc_robotmk_space_$rmkmode").Value
   LogDebug "Running Robotmk task '$rcctask' in Holotree space '$rcc_robotmk_controller/$space'"
   $Arguments = "task run --controller $rcc_robotmk_controller --space $space -t $rcctask -r $robot_yml"
   LogDebug "!!  $RCCExe $Arguments"
@@ -1507,7 +1507,7 @@ function SetScriptVars {
   $Global:hololib_zip = $RMKCfgDir + "\hololib.zip"
   $Global:controller_deadman_file = $RMKTmpDir + "\robotmk_controller_deadman_file"
   # This flagfile indicates that both there is a usable holotree space for "robotmk agent/output"
-  $Global:Flagfile_rcc_robotmk_env_ready = $RMKTmpDir + "\rcc_robotmk_env_ready"
+  $Global:Flagfile_rcc_robotmk_env_created = $RMKTmpDir + "\rcc_robotmk_env_created"
   $Global:robotmk_scheduler_lastexitcode = $RMKTmpDir + "\robotmk_scheduler_lastexitcode"
   # IMPORTANT! All other Robot subprocesses must respect this file and not start if it is present!
   # (There is only ONE RCC creation allowed at a time.)
@@ -1522,7 +1522,6 @@ function SetScriptVars {
   # - space for scheduler and output
   $Global:rcc_robotmk_space_scheduler = "scheduler"
   $Global:rcc_robotmk_space_output = "output"
-
 
   # C# stub code
   # ref 5f8dda
