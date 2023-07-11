@@ -2,17 +2,20 @@
 # vi: set ft=ruby :
 
 Vagrant.configure("2") do |config|
-  config.vm.box = "StefanScherer/windows_10"
-  if Vagrant.has_plugin?("vagrant-vbguest") then
-    # https://subscription.packtpub.com/book/cloud-&-networking/9781786464910/1/ch01lvl1sec12/enabling-virtualbox-guest-additions-in-vagrant
-    config.vbguest.auto_update = false
+  config.vm.box = "gusztavvargadr/windows-11-22h2-enterprise"
+  config.vm.box_version = "2202.0.2306"
+
+  config.vm.provider "virtualbox" do |vb|
+    vb.name = "robotmk"
+    vb.cpus = 8
+    vb.memory = 8192
+    vb.gui = true
+    vb.customize ["modifyvm", :id, "--draganddrop", "hosttoguest"]  # drag-and-drop
+    vb.customize ["modifyvm", :id, "--clipboard", "bidirectional"]  # bidirectional clipboard
   end
-  config.vm.provider "virtualbox" do |v|
-    v.name = "winrmk"    # Sets the new VM's name
-    v.gui = true        # Enables the hypervisor's GUI
-    v.memory = 8192     # Sets the VM's RAM
-    v.customize ["modifyvm", :id, "--draganddrop", "hosttoguest"] # Enables drag-and-drop between host and guest
-    v.customize ["modifyvm", :id, "--clipboard", "bidirectional"] # Enables a bidirectional clipboard between host and guest
-  end
+
+  config.vm.synced_folder ".", "/vagrant", disabled: true
+  config.vm.synced_folder "../", "/robotmk"
+
   config.vm.provision "shell", path: "scripts/provision.ps1"
 end
