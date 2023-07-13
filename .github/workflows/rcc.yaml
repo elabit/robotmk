@@ -1,0 +1,43 @@
+name: RCC
+
+on:
+  push:
+    paths:
+    - rcc
+  pull_request:
+    paths:
+    - rcc
+
+jobs:
+  build_and_test:
+    runs-on: Ubuntu-latest
+
+    steps:
+    - name: Checkout repository
+      uses: actions/checkout@v3
+      with:
+        submodules: true
+
+    - name: Setup Rake
+      run: |
+        sudo apt-get install rubygems
+        sudo gem install rake
+    
+    - name: Setup Go
+      run: |
+        wget https://go.dev/dl/go1.20.6.linux-amd64.tar.gz
+        # rcc expects $HOME/go/bin to be present (hard-coded)
+        tar -C $HOME -xzf go1.20.6.linux-amd64.tar.gz
+        echo "PATH=$PATH:$HOME/go/bin" >> $GITHUB_ENV
+
+    - name: Build RCC
+      run: rake -C rcc build
+    
+    - name: Test RCC
+      run: rake -C rcc test
+
+    - name: Upload RCC binaries
+      uses: actions/upload-artifact@v3
+      with:
+        name: rcc
+        path: rcc/build
