@@ -1,3 +1,6 @@
 [submodule "checkmk"]
 	path = checkmk
 	url = https://github.com/Checkmk/checkmk.git
+[submodule "rcc"]
+	path = rcc
+	url = https://github.com/robocorp/rcc.git
