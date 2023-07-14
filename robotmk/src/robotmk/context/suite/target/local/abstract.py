@@ -11,6 +11,16 @@ from ...strategies import RunStrategyFactory
 from ..abstract import Target
 
 
+def _create_suite_path(config: Config) -> Path:
+    robotdir = config.get("common.robotdir")
+    if robotdir is None:
+        raise NotImplementedError("Implementation error.")
+    relative_suit_path = config.get("suitecfg.path")
+    if relative_suit_path is None:
+        raise NotImplementedError("Implementation error.")
+    return Path(robotdir).joinpath(relative_suit_path)
+
+
 class LocalTarget(Target):
     """A FS target is a single RF suite or a RCC task, ready to run from the local filesystem.
 
@@ -23,10 +33,10 @@ class LocalTarget(Target):
         config: Config,
         logger: RobotmkLogger,
     ):
-        super().__init__(suiteuname, config, logger)
-        self.path = Path(self.config.get("common.robotdir")).joinpath(
-            self.config.get("suitecfg.path")
-        )
+        super().__init__(suiteuname, config.get("suitecfg.piggybackhost", "localhost"))
+        self.config = config
+        self.logger = logger
+        self.path = _create_suite_path(config)
         # TODO: run strategy should not be set in init, because output() always reads results from filesystem
         self.run_strategy = RunStrategyFactory(self).create()
         # list of subprocess' results and console output

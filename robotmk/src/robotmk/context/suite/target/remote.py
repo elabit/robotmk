@@ -8,7 +8,9 @@ from .abstract import Target
 
 class RemoteTarget(Target):
     def __init__(self, suiteuname: str, config: Config, logger: RobotmkLogger):
-        super().__init__(suiteuname, config, logger)
+        super().__init__(suiteuname, config.get("suitecfg.piggybackhost", "localhost"))
+        self.config = config
+        self.logger = logger
 
     def run(self):
         print("NOT YET IMPLEMENTED")
