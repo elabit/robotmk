@@ -2,15 +2,14 @@
 """Robotmk CLI Interface.
 
 Start Robotmk in different contexts. Context can also be set via environment variable ROBOTMK_common_context."""
-import importlib
-import os.path
-import pkgutil
-import warnings
 
 import click
 
 from robotmk import __version__
-from robotmk.main import DEFAULTS, LOG_LEVELS, Robotmk
+from robotmk.context.agent.cli import agent
+from robotmk.context.specialagent.cli import specialagent
+from robotmk.context.suite.cli import suite
+from robotmk.main import DEFAULTS, LOG_LEVELS
 
 # CMD1        CMD2     OPTION                                    CMD3            # Description
 # ---------------------------------------------------------------------------------------------
@@ -40,43 +39,12 @@ from robotmk.main import DEFAULTS, LOG_LEVELS, Robotmk
 # robotmk     s.a.     --vars ~/var/robotmk/s.a.-hostfoo.env     sequencer       # run requencer with env from file
 
 
-def get_commands_from_pkg(pkg) -> dict:
-    """CLI options for the contexts are defined within the context packages within cli.py module.
-
-    Each sub-PACKAGE of pkg is considered a sub-COMMAND. This function recursively traverses the
-    package tree and returns all function objects which have the same name as the package.
-
-    This allows to maintain the CLI logic within the context packages, while still having a single
-    entry point for the CLI.
-
-    Example:
-    robotmk.context.agent.cli.py contains a function called agent(), decorated with @click.group()
-    and connected with subcomands "output()" and "scheduler()". The discovered subcommand is "agent()".
-    """
-    pkg_obj = importlib.import_module(pkg)
-    pkg_path = os.path.dirname(pkg_obj.__file__)
-    commands = {}
-    for module in pkgutil.iter_modules([pkg_path]):
-        module_obj = importlib.import_module(f"{pkg}.{module.name}")
-        if module.ispkg:
-            cmd_from_pkg = get_commands_from_pkg(f"{pkg}.{module.name}")
-            commands.update(cmd_from_pkg)
-        else:
-            if module.name == "cli":
-                cli_functions = [f for f in dir(module_obj) if f == pkg.split(".")[-1]]
-
-                for cli_function in cli_functions:
-                    commands[cli_function] = getattr(module_obj, cli_function)
-
-    return commands
-
-
 # Create the main group and assign the subcommands gathered from the context packages
 @click.group(
     context_settings={"help_option_names": ["-h", "--help"]},
     help=__doc__,
     invoke_without_command=True,
-    commands=get_commands_from_pkg("robotmk.context"),
+    commands={"agent": agent, "specialagent": specialagent, "suite": suite},
 )
 @click.option(
     "--loglevel",
@@ -114,8 +82,6 @@ def diagnose():
     # RAM
     # disk space
     # network
-
-    pass
 
 
 if __name__ == "__main__":
