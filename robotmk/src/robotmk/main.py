@@ -9,9 +9,11 @@ It also contains the DEFAULTS dict with all default values for the config. """
 
 import os
 import sys
-from loguru import logger
-from robotmk.context import ContextFactory
 from pathlib import Path
+
+from loguru import logger
+
+from robotmk.context import ContextFactory
 
 # TODOs:
 # - add logging

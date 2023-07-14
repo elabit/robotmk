@@ -1,7 +1,7 @@
 # mypy: disable-error-code="import, assignment"
 
-from schema import Schema, SchemaError, And, Or, Use, Optional, Regex
 import yaml
+from schema import And, Optional, Or, Regex, Schema, SchemaError, Use
 
 
 class RobotmkConfigSchema:

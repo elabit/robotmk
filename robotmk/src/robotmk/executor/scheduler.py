@@ -1,14 +1,19 @@
 # mypy: disable-error-code="import"
-import time, sys, os, atexit
+import atexit
+import os
+import subprocess
+import sys
+import time
 from pathlib import Path
-from apscheduler.schedulers.background import BackgroundScheduler
 
 # from apscheduler.schedulers.blocking import BlockingScheduler
 from apscheduler.executors.pool import ProcessPoolExecutor
-from .abstract import AbstractExecutor
-from robotmk.main import Robotmk
-import subprocess
+from apscheduler.schedulers.background import BackgroundScheduler
 from tabulate import tabulate
+
+from robotmk.main import Robotmk
+
+from .abstract import AbstractExecutor
 
 
 class Scheduler(AbstractExecutor):

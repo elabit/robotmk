@@ -1,9 +1,10 @@
 # mypy: disable-error-code="import"
+import glob
 import os
 from abc import ABC, abstractmethod
-from robot.rebot import rebot
 from pathlib import Path
-import glob
+
+from robot.rebot import rebot
 
 
 class RetryStrategyFactory:

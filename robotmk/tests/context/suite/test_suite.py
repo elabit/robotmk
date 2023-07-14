@@ -1,7 +1,9 @@
 # mypy: disable-error-code="import"
-import yaml
-from robotmk.main import Robotmk
 import os
+
+import yaml
+
+from robotmk.main import Robotmk
 
 cwd = os.path.dirname(__file__)
 robotmk_yml = os.path.join(cwd, "robotmk.yml")

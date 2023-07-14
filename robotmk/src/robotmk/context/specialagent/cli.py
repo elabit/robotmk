@@ -1,8 +1,10 @@
 # mypy: disable-error-code="import"
 """CLI commands for the specialagent context."""
 import sys
+
 import click
-from robotmk.main import Robotmk, DEFAULTS
+
+from robotmk.main import DEFAULTS, Robotmk
 
 
 # use module docstring as help text

@@ -5,9 +5,10 @@ Executes the Robotmk scheduler on Windows & Linux, produces Checkmk Agent output
 A valid YML config file is required. If not given on CLI, the default config
 file location is used."""
 import sys
-import click
-from robotmk.main import Robotmk, DEFAULTS
 
+import click
+
+from robotmk.main import DEFAULTS, Robotmk
 
 #                         | |
 #    __ _  __ _  ___ _ __ | |_

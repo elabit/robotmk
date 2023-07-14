@@ -1,10 +1,11 @@
 # mypy: disable-error-code="import, attr-defined, call-arg, name-defined"
 from pathlib import Path
-from ..abstract import AbstractContext
 
 from robotmk.config import Config, RobotmkConfigSchema
-from robotmk.executor.scheduler import Scheduler
 from robotmk.emitter import Emitter
+from robotmk.executor.scheduler import Scheduler
+
+from ..abstract import AbstractContext
 
 
 class AgentContext(AbstractContext):

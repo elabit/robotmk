@@ -1,11 +1,12 @@
 # mypy: disable-error-code="import"
+import json
 from abc import ABC, abstractmethod
 from pathlib import Path
-import json
-from ..strategies import RunStrategy, RunStrategyFactory
 from uuid import uuid4
 
 from robotmk.logger import RobotmkLogger
+
+from ..strategies import RunStrategy, RunStrategyFactory
 
 
 class Target(ABC):

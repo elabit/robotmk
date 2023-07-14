@@ -1,8 +1,9 @@
 # mypy: disable-error-code="import"
 from abc import ABC, abstractmethod
+from pathlib import Path
+
 from robotmk.config import Config
 from robotmk.logger import RobotmkLogger
-from pathlib import Path
 
 
 class AbstractContext(ABC):

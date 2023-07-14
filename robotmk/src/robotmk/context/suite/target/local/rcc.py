@@ -1,12 +1,12 @@
 # mypy: disable-error-code="import"
 
-import os
 import math
+import os
 
 from robotmk.logger import RobotmkLogger
-from .abstract import LocalTarget
-from ...strategies import RunStrategy
 
+from ...strategies import RunStrategy
+from .abstract import LocalTarget
 
 # TODO: make RCC binary path configurabe
 

@@ -1,11 +1,13 @@
 # mypy: disable-error-code="import"
 """CLI commands for execution of a single suite."""
 
-import sys
-import click
 import json
+import sys
+
+import click
+
 from robotmk.cli.defaultgroup import DefaultGroup
-from robotmk.main import Robotmk, DEFAULTS
+from robotmk.main import DEFAULTS, Robotmk
 
 # TODO: Refine the defaultgroup usage
 

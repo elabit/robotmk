@@ -1,12 +1,14 @@
 # mypy: disable-error-code="import"
-import time, sys, os
 import json
-from copy import deepcopy
+import os
+import sys
+import time
 from collections import defaultdict
-from robotmk.main import Robotmk
-from robotmk.context.suite.target.abstract import Target
+from copy import deepcopy
 
+from robotmk.context.suite.target.abstract import Target
 from robotmk.context.suite.target.target_factory import TargetFactory
+from robotmk.main import Robotmk
 
 # from tabulate import tabulate
 

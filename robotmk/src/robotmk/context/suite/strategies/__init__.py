@@ -1,7 +1,7 @@
 from .run import (
-    RunStrategy,
     Runner,
-    WindowsSingleDesktop,
-    WindowsMultiDesktop,
+    RunStrategy,
     RunStrategyFactory,
+    WindowsMultiDesktop,
+    WindowsSingleDesktop,
 )
