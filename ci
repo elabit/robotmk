@@ -55,6 +55,14 @@ main() {
 		"${self}" pytest "${checkmk_extensions_dir}/tests"
 		;;
 
+	'check-all')
+		"${self}" black-check-all
+		"${self}" isort-check-all
+		"${self}" mypy-check-all
+		"${self}" pylint-check-all
+		"${self}" pytest-check-all
+		;;
+
 	*)
 		echo "Unknown mode: ${mode}" 1>&2
 		return 1
