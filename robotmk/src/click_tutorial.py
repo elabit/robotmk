@@ -1,7 +1,8 @@
 # mypy: disable-error-code="var-annotated"
-import click
 import json
 import pprint
+
+import click
 
 """
 @click.group(<name>) creates a command that instantiates a group class

@@ -1,16 +1,15 @@
 # mypy: disable-error-code="no-redef, return, attr-defined, import"
 
+from datetime import datetime
 from pathlib import Path
+
 import mergedeep
 
 from robotmk.logger import RobotmkLogger
 
+from ..abstract import LocalTarget
 from .retry import RetryStrategyFactory
 from .state import RFState
-from ..abstract import LocalTarget
-
-
-from datetime import datetime
 
 local_tz = datetime.utcnow().astimezone().tzinfo
 

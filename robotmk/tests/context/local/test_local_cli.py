@@ -1,7 +1,9 @@
 # mypy: disable-error-code="import"
-import re
 import os
+import re
+
 from click.testing import CliRunner
+
 import robotmk.cli.cli as cli
 
 cwd = os.path.dirname(__file__)

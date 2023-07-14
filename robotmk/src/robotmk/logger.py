@@ -1,7 +1,7 @@
-import loguru
 from abc import ABC, abstractmethod
 from datetime import datetime
 
+import loguru
 
 # TODO: concurrent writes to the log file
 # e.g. RCC -> RF

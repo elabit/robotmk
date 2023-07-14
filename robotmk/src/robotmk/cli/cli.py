@@ -2,14 +2,15 @@
 """Robotmk CLI Interface.
 
 Start Robotmk in different contexts. Context can also be set via environment variable ROBOTMK_common_context."""
-import click
-from robotmk import __version__
-from robotmk.main import Robotmk, DEFAULTS, LOG_LEVELS
 import importlib
-import pkgutil
 import os.path
+import pkgutil
 import warnings
 
+import click
+
+from robotmk import __version__
+from robotmk.main import DEFAULTS, LOG_LEVELS, Robotmk
 
 # CMD1        CMD2     OPTION                                    CMD3            # Description
 # ---------------------------------------------------------------------------------------------

@@ -1,8 +1,9 @@
 # mypy: disable-error-code="attr-defined, arg-type, var-annotated"
-import json
-from pathlib import Path
 import base64
+import json
 import zlib
+from pathlib import Path
+
 from robotmk import __version__
 
 

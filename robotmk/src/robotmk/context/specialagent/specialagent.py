@@ -1,10 +1,10 @@
 # mypy: disable-error-code="import, empty-body"
 from pathlib import Path
 
-from ..abstract import AbstractContext
-
 from robotmk.config.yml import RobotmkConfigSchema
 from robotmk.executor.sequencer import Sequencer
+
+from ..abstract import AbstractContext
 
 
 class SpecialAgentContext(AbstractContext):

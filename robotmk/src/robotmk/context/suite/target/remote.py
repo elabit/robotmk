@@ -1,7 +1,8 @@
 # mypy: disable-error-code="import"
-from .abstract import Target
-from ..strategies import RunStrategy
 from robotmk.logger import RobotmkLogger
+
+from ..strategies import RunStrategy
+from .abstract import Target
 
 
 class RemoteTarget(Target):

@@ -1,11 +1,12 @@
 # mypy: disable-error-code="return-value, attr-defined, assignment, import"
 
 from pathlib import Path
-from robotmk.logger import RobotmkLogger
-from .abstract import Target
 
-from .local.robotframework import RobotFrameworkTarget
+from robotmk.logger import RobotmkLogger
+
+from .abstract import Target
 from .local.rcc import RCCTarget
+from .local.robotframework import RobotFrameworkTarget
 from .remote import RemoteTarget
 
 

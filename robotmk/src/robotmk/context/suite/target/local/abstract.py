@@ -1,12 +1,13 @@
 # mypy: disable-error-code="import, var-annotated"
+import json
 from abc import ABC, abstractmethod
 from pathlib import Path
 from uuid import uuid4
-import json
 
-from ..abstract import Target
-from ...strategies import RunStrategyFactory
 from robotmk.logger import RobotmkLogger
+
+from ...strategies import RunStrategyFactory
+from ..abstract import Target
 
 
 class LocalTarget(Target):

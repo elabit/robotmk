@@ -3,9 +3,10 @@
 
 Starts a local webserver to serve the execution logs of all Robot suites."""
 import sys
-import click
-from robotmk.main import Robotmk, DEFAULTS
 
+import click
+
+from robotmk.main import DEFAULTS, Robotmk
 
 # # use module docstring as help text
 # @click.command(help=__doc__)

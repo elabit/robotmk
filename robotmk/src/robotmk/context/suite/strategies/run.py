@@ -1,11 +1,12 @@
 # mypy: disable-error-code="import, empty-body"
-from abc import ABC, abstractmethod
-import platform
-from robotmk.logger import RobotmkLogger
-import subprocess
 import os
-from dataclasses import dataclass, field, asdict
+import platform
+import subprocess
+from abc import ABC, abstractmethod
+from dataclasses import asdict, dataclass, field
 from typing import List
+
+from robotmk.logger import RobotmkLogger
 
 # TODO: split this into modules
 # TODO:

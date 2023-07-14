@@ -1,7 +1,9 @@
 # mypy: disable-error-code="import"
-from click.testing import CliRunner
-import robotmk.cli.cli as cli
 import re
+
+from click.testing import CliRunner
+
+import robotmk.cli.cli as cli
 
 
 # test help message

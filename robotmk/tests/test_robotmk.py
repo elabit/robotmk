@@ -1,8 +1,10 @@
 # mypy: disable-error-code="import"
 
-from robotmk.main import Robotmk, DEFAULTS
-import pytest
 import os
+
+import pytest
+
+from robotmk.main import DEFAULTS, Robotmk
 
 
 def test_robotmk_no_context_in_env():

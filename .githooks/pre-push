@@ -1,5 +1,7 @@
 #!/bin/bash
 
+set -e
+
 VALID_BRANCH_REGEX="^(master$|dev\/.+)"
 
 if [[ ! $(git rev-parse --abbrev-ref HEAD) =~ $VALID_BRANCH_REGEX ]]
@@ -7,5 +9,8 @@ then
     echo "Branch names should follow this pattern: ${VALID_BRANCH_REGEX}."
     exit 1
 fi
+
+topdir="$(git rev-parse --show-toplevel)"
+"${topdir}"/ci check-all
 
 exit 0
