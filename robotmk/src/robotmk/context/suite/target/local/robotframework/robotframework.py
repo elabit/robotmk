@@ -178,11 +178,6 @@ class RobotFrameworkTarget(LocalTarget):
     def log_html_fullpath(self):
         return str(Path(self.outputdir).joinpath(self.log_html))
 
-    # Suite timestamp for filenames
-    @property
-    def timestamp(self):
-        return self._timestamp
-
     @timestamp.setter
     def timestamp(self, t):
         self._timestamp = t
