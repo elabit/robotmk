@@ -4,10 +4,21 @@ from abc import ABC, abstractmethod
 from pathlib import Path
 from uuid import uuid4
 
+from robotmk.config.config import Config
 from robotmk.logger import RobotmkLogger
 
 from ...strategies import RunStrategyFactory
 from ..abstract import Target
+
+
+def _create_suite_path(config: Config) -> Path:
+    robotdir = config.get("common.robotdir")
+    if robotdir is None:
+        raise NotImplementedError("Implementation error.")
+    relative_suit_path = config.get("suitecfg.path")
+    if relative_suit_path is None:
+        raise NotImplementedError("Implementation error.")
+    return Path(robotdir).joinpath(relative_suit_path)
 
 
 class LocalTarget(Target):
@@ -19,13 +30,13 @@ class LocalTarget(Target):
     def __init__(
         self,
         suiteuname: str,
-        config: dict,
+        config: Config,
         logger: RobotmkLogger,
     ):
-        super().__init__(suiteuname, config, logger)
-        self.path = Path(self.config.get("common.robotdir")).joinpath(
-            self.config.get("suitecfg.path")
-        )
+        super().__init__(suiteuname, config.get("suitecfg.piggybackhost", "localhost"))
+        self.config = config
+        self.logger = logger
+        self.path = _create_suite_path(config)
         # TODO: run strategy should not be set in init, because output() always reads results from filesystem
         self.run_strategy = RunStrategyFactory(self).create()
         # list of subprocess' results and console output

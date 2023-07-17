@@ -5,6 +5,7 @@ from pathlib import Path
 
 import mergedeep
 
+from robotmk.config.config import Config
 from robotmk.logger import RobotmkLogger
 
 from ..abstract import LocalTarget
@@ -21,7 +22,7 @@ class RobotFrameworkTarget(LocalTarget):
     def __init__(
         self,
         suiteuname: str,
-        config: dict,
+        config: Config,
         logger: RobotmkLogger,
     ):
         super().__init__(suiteuname, config, logger)
@@ -43,10 +44,10 @@ class RobotFrameworkTarget(LocalTarget):
                 "output": self.output_xml,  #'rf_suite_default_1682429039_10559086-1.xml'
             }
         )
-
-        suite_params = mergedeep.merge(
-            {}, self.config.get("suitecfg.params").asdict(), self.robot_params
-        )
+        suite_params = self.config.get("suitecfg.params")
+        if suite_params is None:
+            raise NotImplementedError("Implementation error.")
+        suite_params = mergedeep.merge({}, suite_params.asdict(), self.robot_params)
         arglist = ["robot"]
         for k, v in suite_params.items():
             arg = f"--{k}"
