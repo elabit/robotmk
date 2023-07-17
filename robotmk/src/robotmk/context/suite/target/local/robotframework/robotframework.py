@@ -5,6 +5,7 @@ from pathlib import Path
 
 import mergedeep
 
+from robotmk.config.config import Config
 from robotmk.logger import RobotmkLogger
 
 from ..abstract import LocalTarget
@@ -21,7 +22,7 @@ class RobotFrameworkTarget(LocalTarget):
     def __init__(
         self,
         suiteuname: str,
-        config: dict,
+        config: Config,
         logger: RobotmkLogger,
     ):
         super().__init__(suiteuname, config, logger)

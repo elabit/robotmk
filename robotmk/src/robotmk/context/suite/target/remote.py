@@ -1,4 +1,5 @@
 # mypy: disable-error-code="import"
+from robotmk.config.config import Config
 from robotmk.logger import RobotmkLogger
 
 from ..strategies import RunStrategy
@@ -6,7 +7,7 @@ from .abstract import Target
 
 
 class RemoteTarget(Target):
-    def __init__(self, suiteuname: str, config: dict, logger: RobotmkLogger):
+    def __init__(self, suiteuname: str, config: Config, logger: RobotmkLogger):
         super().__init__(suiteuname, config, logger)
 
     def run(self):

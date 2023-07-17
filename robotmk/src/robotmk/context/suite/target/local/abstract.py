@@ -4,6 +4,7 @@ from abc import ABC, abstractmethod
 from pathlib import Path
 from uuid import uuid4
 
+from robotmk.config.config import Config
 from robotmk.logger import RobotmkLogger
 
 from ...strategies import RunStrategyFactory
@@ -19,7 +20,7 @@ class LocalTarget(Target):
     def __init__(
         self,
         suiteuname: str,
-        config: dict,
+        config: Config,
         logger: RobotmkLogger,
     ):
         super().__init__(suiteuname, config, logger)

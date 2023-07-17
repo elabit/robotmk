@@ -3,6 +3,7 @@
 import math
 import os
 
+from robotmk.config.config import Config
 from robotmk.logger import RobotmkLogger
 
 from ...strategies import RunStrategy
@@ -15,7 +16,7 @@ class RCCTarget(LocalTarget):
     def __init__(
         self,
         suiteuname: str,
-        config: dict,
+        config: Config,
         logger: RobotmkLogger,
     ):
         super().__init__(suiteuname, config, logger)
