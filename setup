@@ -6,7 +6,13 @@ main() {
     topdir="$(git rev-parse --show-toplevel)"
 
     . "${topdir}/python_version"
-    check_python_version "${PYTHON_VERSION}"
+    setup_python_environment "${PYTHON_VERSION}"
+
+    git config core.hooksPath .githooks
+}
+
+setup_python_environment() {
+    check_python_version "${1}"
     check_pip_executable
 
     # librrd-dev: Needed for building rrdtool python bindings.
@@ -21,8 +27,6 @@ main() {
 
     pip3 install pipenv
     "${topdir}/pipenv" sync
-
-    git config core.hooksPath .githooks
 }
 
 check_python_version() {
