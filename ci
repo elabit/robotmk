@@ -1,7 +1,5 @@
 #!/bin/bash
 
-set -e
-
 main() {
 	topdir="$(git rev-parse --show-toplevel)"
 	self="${topdir}/ci"
@@ -69,7 +67,7 @@ main() {
 		;;
 	esac
 
-	return 0
+	return "$?"
 }
 
 run_pipenv() {
