@@ -8,6 +8,8 @@ main() {
     . "${topdir}/python_version"
     setup_python_environment "${PYTHON_VERSION}"
 
+    setup_powershell
+
     git config core.hooksPath .githooks
 }
 
@@ -41,6 +43,15 @@ check_pip_executable() {
         echo "pip3 executable not found, aborting. Installing pip is non-trivial, please do it manually."
         exit 1
     }
+}
+
+setup_powershell() {
+    sudo apt-get install wget apt-transport-https software-properties-common
+    wget -q "https://packages.microsoft.com/config/ubuntu/$(lsb_release -rs)/packages-microsoft-prod.deb"
+    sudo dpkg -i packages-microsoft-prod.deb
+    rm packages-microsoft-prod.deb
+    sudo apt-get update
+    sudo apt-get install powershell
 }
 
 main

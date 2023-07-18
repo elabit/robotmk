@@ -9,16 +9,18 @@ jobs:
     strategy:
       matrix:
         include:
-        - name: Formatting
+        - name: Python formatting
           step: black-check-all
-        - name: Import sorting
+        - name: Python import sorting
           step: isort-check-all
-        - name: Type checking
+        - name: Python type checking
           step: mypy-check-all
-        - name: Linting
+        - name: Python linting
           step: pylint-check-all
-        - name: Unit tests
+        - name: Python unit tests
           step: pytest-check-all
+        - name: Powershell static analysis
+          step: PSScriptAnalyzer-check-all
 
     steps: 
     - name: Checkout repository

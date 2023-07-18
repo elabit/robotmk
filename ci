@@ -53,12 +53,32 @@ main() {
 		"${self}" pytest "${checkmk_extensions_dir}/tests"
 		;;
 
+	'PSScriptAnalyzer-check-all')
+		pwsh_output=$(pwsh -Command "Invoke-ScriptAnalyzer -Settings ${topdir}/PSScriptAnalyzerSettings.psd1 -Path ${checkmk_extensions_dir} -Recurse")
+		pwsh_exitcode="$?"
+		if [ "${pwsh_exitcode}" -eq 0 ]; then {
+			if [ -z "${pwsh_output}" ]; then {
+				echo "No static Powershell issues found"
+				return 0
+			} else {
+				echo "${pwsh_output}"
+				return 1
+			}
+			fi
+		} else {
+			echo "${pwsh_output}"
+			return "${pwsh_exitcode}"
+		}
+		fi
+		;;
+
 	'check-all')
 		"${self}" black-check-all
 		"${self}" isort-check-all
 		"${self}" mypy-check-all
 		"${self}" pylint-check-all
 		"${self}" pytest-check-all
+		"${self}" PSScriptAnalyzer-check-all
 		;;
 
 	*)
