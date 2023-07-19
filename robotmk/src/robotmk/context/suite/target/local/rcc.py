@@ -107,7 +107,7 @@ class RCCTarget(LocalTarget):
         else:
             run_env = self.prepare_environment()
             (return_code, result) = self.run_strategy.run(env=run_env)
-            self.target.console_results[self.target.attempt] = asdict(result)
+            self.target.console_results[1] = asdict(result)
             self.rc = return_code
 
     @property

@@ -41,6 +41,7 @@ class LocalTarget(Target):
         self.run_strategy = create_runstrategy(self)
         # list of subprocess' results and console output
         self.console_results = {}
+        self.attempt: int | None = None
 
     @abstractmethod
     def run(self):
