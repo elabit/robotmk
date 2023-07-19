@@ -112,13 +112,10 @@ class RCCTarget(LocalTarget):
         """Returns True if the given suite folder is compatible with RCC.
         Such a suite dir must at least contain conda.yml and robot.yml.
         """
-        if (
+        return (
             self.path.joinpath("conda.yaml").exists()
             and self.path.joinpath("robot.yaml").exists()
-        ):
-            return True
-        else:
-            return False
+        )
 
     # def calculate_blueprint_hash(self):
     #     try:
