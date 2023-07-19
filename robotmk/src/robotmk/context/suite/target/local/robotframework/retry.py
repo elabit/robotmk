@@ -16,7 +16,7 @@ def create_retry_strategy(target: LocalTarget):
         return CompleteRetry(target)
     if strategy == "incremental":
         return IncrementalRetry(target)
-    raise NotImplementedError("Unknown retry strategy: %s" % strategy)
+    raise NotImplementedError(f"Unknown retry strategy: {strategy}")
 
 
 class RetryStrategy(ABC):
@@ -110,7 +110,8 @@ class RetryStrategy(ABC):
 
     def _glob_target_outputfiles(self):
         """Returns the list of XML output files of the target execution attempts 1..n"""
-        glob_pattern = "%s-*.xml" % self.target.output_filename.rsplit("-", 1)[0]
+        output_filename = self.target.output_filename.rsplit("-", 1)[0]
+        glob_pattern = f"{output_filename}-*.xml"
         outputfiles = sorted(
             glob.glob(str(Path(self.target.outputdir).joinpath(glob_pattern)))
         )
