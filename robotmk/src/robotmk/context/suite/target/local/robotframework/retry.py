@@ -6,22 +6,18 @@ from pathlib import Path
 
 from robot.rebot import rebot
 
+from robotmk.context.suite.target.local.abstract import LocalTarget
 
-class RetryStrategyFactory:
-    """Factory for execution strategies"""
 
-    def __init__(self, target):
-        self.target = target
-
-    def create(self):
-        """Create the execution strategy"""
-        strategy = self.target.config.get("suitecfg.retry_failed.strategy", "complete")
-        if strategy == "complete":
-            return CompleteRetry(self.target)
-        elif strategy == "incremental":
-            return IncrementalRetry(self.target)
-        else:
-            raise Exception("Unknown retry strategy: %s" % strategy)
+def create_retry_strategy(target: LocalTarget):
+    """Create the execution strategy"""
+    strategy = target.config.get("suitecfg.retry_failed.strategy", "complete")
+    if strategy == "complete":
+        return CompleteRetry(target)
+    elif strategy == "incremental":
+        return IncrementalRetry(target)
+    else:
+        raise Exception("Unknown retry strategy: %s" % strategy)
 
 
 class RetryStrategy(ABC):
