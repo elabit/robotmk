@@ -7,7 +7,7 @@ from uuid import uuid4
 from robotmk.config.config import Config
 from robotmk.logger import RobotmkLogger
 
-from ...strategies import RunStrategyFactory
+from ...strategies import create_runstrategy
 from ..abstract import Target
 
 
@@ -38,7 +38,7 @@ class LocalTarget(Target):
         self.logger = logger
         self.path = _create_suite_path(config)
         # TODO: run strategy should not be set in init, because output() always reads results from filesystem
-        self.run_strategy = RunStrategyFactory(self).create()
+        self.run_strategy = create_runstrategy(self)
         # list of subprocess' results and console output
         self.console_results = {}
 

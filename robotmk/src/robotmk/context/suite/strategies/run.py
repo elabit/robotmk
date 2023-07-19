@@ -152,41 +152,24 @@ class LinuxMultiDesktop(RunStrategy):
     """Executes a suite with a user interface on Linux."""
 
 
-#    __           _
-#   / _|         | |
-#  | |_ __ _  ___| |_ ___  _ __ _   _
-#  |  _/ _` |/ __| __/ _ \| '__| | | |
-#  | || (_| | (__| || (_) | |  | |_| |
-#  |_| \__,_|\___|\__\___/|_|   \__, |
-#                                __/ |
-#                               |___/
+def create_runstrategy(target) -> RunStrategy:
+    """Creates a run strategy based on the given suite/OS.
 
-
-class RunStrategyFactory:
-    """Factory for creating the proper run strategy for a given suite/OS."""
-
-    def __init__(self, target):
-        self.target = target
-
-    def create(self) -> RunStrategy:
-        """Creates a run strategy based on the given parameters.
-
-        Returns:
-            RunStrategy: The run strategy to use.
-        """
-        mode = self.target.config.get(
-            "suites.%s.run.mode" % self.target.config.get("common.suiteuname")
-        )
-        _platform = platform.system().lower()
-        if mode == "default":
-            return Runner(self.target)
-        if mode == "windows-1desktop" and _platform == "windows":
-            raise NotImplementedError("WindowsSingleDesktop")
-        if mode == "windows-ndesktop" and _platform == "windows":
-            raise NotImplementedError("WindowsMultiDesktop")
-        if mode == "linux-ndesktop" and _platform == "linux":
-            raise NotImplementedError("LinuxMultiDesktop")
-        raise ValueError(
-            "Invalid combination of platform (%s) and run mode (%s)."
-            % (_platform, mode)
-        )
+    Returns:
+        RunStrategy: The run strategy to use.
+    """
+    mode = target.config.get(
+        "suites.%s.run.mode" % target.config.get("common.suiteuname")
+    )
+    _platform = platform.system().lower()
+    if mode == "default":
+        return Runner(target)
+    if mode == "windows-1desktop" and _platform == "windows":
+        raise NotImplementedError("WindowsSingleDesktop")
+    if mode == "windows-ndesktop" and _platform == "windows":
+        raise NotImplementedError("WindowsMultiDesktop")
+    if mode == "linux-ndesktop" and _platform == "linux":
+        raise NotImplementedError("LinuxMultiDesktop")
+    raise ValueError(
+        "Invalid combination of platform (%s) and run mode (%s)." % (_platform, mode)
+    )
