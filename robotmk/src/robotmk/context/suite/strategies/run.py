@@ -63,8 +63,6 @@ class Runner:
 
         # TODO: log console output? Save it anyway because a a fatal RF error must be tracable.
         # RCC does not re.execute...
-        if getattr(self.target, "attempt", None) is None:
-            self.target.attempt = 1
         return result
 
     def exec_post(self) -> Result:
