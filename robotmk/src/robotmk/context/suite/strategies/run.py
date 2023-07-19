@@ -40,16 +40,15 @@ class Runner:
 
     def run_subprocess(self, command, environ) -> Result:
         """If command was given, run the subprocess and return the result object."""
-        if command:
-            res = subprocess.run(command, capture_output=True, env=environ)
-            return Result(
-                args=res.args,
-                returncode=res.returncode,
-                stdout=res.stdout.decode("utf-8").splitlines(),
-                stderr=res.stderr.decode("utf-8").splitlines(),
-            )
-        else:
+        if not command:
             return Result()
+        res = subprocess.run(command, capture_output=True, env=environ)
+        return Result(
+            args=res.args,
+            returncode=res.returncode,
+            stdout=res.stdout.decode("utf-8").splitlines(),
+            stderr=res.stderr.decode("utf-8").splitlines(),
+        )
 
     def exec_pre(self) -> int:
         """Prepares the given suite."""
