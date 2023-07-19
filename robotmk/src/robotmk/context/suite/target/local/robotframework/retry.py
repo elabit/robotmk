@@ -78,7 +78,6 @@ class RetryStrategy(ABC):
         """Reparametrize the suite for the next attempt.
 
         Only incremental strategy needs to do something here."""
-        pass
 
     def _finalize_results(self):
         """Merge the XML result files into a new final result"""
@@ -128,7 +127,6 @@ class CompleteRetry(RetryStrategy):
         """Reparametrize the suite for the next attempt.
 
         Only incremental strategy needs to do something here."""
-        pass
 
 
 class IncrementalRetry(RetryStrategy):
