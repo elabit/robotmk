@@ -2,6 +2,7 @@ import os
 import platform
 import subprocess
 from abc import ABC, abstractmethod
+from collections import UserDict
 from dataclasses import asdict, dataclass, field
 from typing import List
 
@@ -17,27 +18,27 @@ class Result:
 
 
 class RunStrategy(ABC):
-    def run(self, *args, **kwargs):
+    def run(self, env: UserDict):
         """Template method which bundles the linked methods to run.
 
         The concrete strategy selectivly overrides the methods to implement."""
         rc = max(
-            self.exec_pre(*args, **kwargs),
-            self.exec_main(*args, **kwargs),
-            self.exec_post(*args, **kwargs),
+            self.exec_pre(),
+            self.exec_main(env),
+            self.exec_post(),
         )
         return rc
 
     @abstractmethod
-    def exec_pre(self, *args, **kwargs) -> int:
+    def exec_pre(self) -> int:
         """Prepares the given suite."""
 
     @abstractmethod
-    def exec_main(self, *args, **kwargs) -> int:
+    def exec_main(self, env: UserDict) -> int:
         """Execute the the given suite."""
 
     @abstractmethod
-    def exec_post(self, *args, **kwargs) -> int:
+    def exec_post(self) -> int:
         """Cleans up the given suite."""
 
 
@@ -64,18 +65,16 @@ class Runner(RunStrategy):
         else:
             return Result()
 
-    def exec_pre(self, *args, **kwargs) -> int:
+    def exec_pre(self) -> int:
         result = self.run_subprocess(self.target.pre_command, os.environ)
         return result.returncode
 
-    def exec_main(self, *args, **kwargs) -> int:
+    def exec_main(self, env: UserDict) -> int:
         # DEBUG: " ".join(self.target.main_command)
 
         # DEBUG: [f"{k}={v}" for (k,v) in environment.items()  if k.startswith("RO")]
         # DEBUG: "; ".join([f"export {k}={v}" for (k,v) in kwargs.get("env").items() if k.startswith("RO")])
-        result = self.run_subprocess(
-            self.target.main_command, kwargs.get("env", os.environ)
-        )
+        result = self.run_subprocess(self.target.main_command, env)
 
         # TODO: log console output? Save it anyway because a a fatal RF error must be tracable.
         # RCC does not re.execute...
@@ -84,7 +83,7 @@ class Runner(RunStrategy):
         self.target.console_results[self.target.attempt] = asdict(result)
         return result.returncode
 
-    def exec_post(self, *args, **kwargs) -> int:
+    def exec_post(self) -> int:
         result = self.run_subprocess(self.target.post_command, os.environ)
         return result.returncode
 

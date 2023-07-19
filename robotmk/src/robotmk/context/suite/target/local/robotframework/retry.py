@@ -52,7 +52,7 @@ class RetryStrategy(ABC):
             self.target.attempt = attempt
 
             # TODO: log the cli args
-            rc = self.target.run_strategy.run()
+            rc = self.target.run_strategy.run(os.environ)
             # TODO: Logging
             # if rc > 250:
             #     self.logerror(
