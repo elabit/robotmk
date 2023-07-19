@@ -27,16 +27,15 @@ class Runner:
     def __init__(self, target) -> None:
         self.target = target
 
-    def run(self, env: UserDict):
+    def run(self, env: UserDict) -> int:
         """Template method which bundles the linked methods to run.
 
         The concrete strategy selectivly overrides the methods to implement."""
-        rc = max(
-            self.exec_pre(),
-            self.exec_main(env),
-            self.exec_post(),
-        )
-        return rc
+        pre = self.exec_pre()
+        main = self.exec_main(env)
+        post = self.exec_post()
+        return_code = max(pre.returncode, main.returncode, post.returncode)
+        return return_code
 
     def run_subprocess(self, command, environ) -> Result:
         """If command was given, run the subprocess and return the result object."""
@@ -50,12 +49,11 @@ class Runner:
             stderr=res.stderr.decode("utf-8").splitlines(),
         )
 
-    def exec_pre(self) -> int:
+    def exec_pre(self) -> Result:
         """Prepares the given suite."""
-        result = self.run_subprocess(self.target.pre_command, os.environ)
-        return result.returncode
+        return self.run_subprocess(self.target.pre_command, os.environ)
 
-    def exec_main(self, env: UserDict) -> int:
+    def exec_main(self, env: UserDict) -> Result:
         """Execute the the given suite."""
         # DEBUG: " ".join(self.target.main_command)
 
@@ -68,12 +66,11 @@ class Runner:
         if getattr(self.target, "attempt", None) is None:
             self.target.attempt = 1
         self.target.console_results[self.target.attempt] = asdict(result)
-        return result.returncode
+        return result
 
-    def exec_post(self) -> int:
+    def exec_post(self) -> Result:
         """Cleans up the given suite."""
-        result = self.run_subprocess(self.target.post_command, os.environ)
-        return result.returncode
+        return self.run_subprocess(self.target.post_command, os.environ)
 
 
 class WindowsTask(Runner):
