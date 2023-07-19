@@ -1,15 +1,9 @@
-# mypy: disable-error-code="import, empty-body"
 import os
 import platform
 import subprocess
 from abc import ABC, abstractmethod
 from dataclasses import asdict, dataclass, field
 from typing import List
-
-from robotmk.logger import RobotmkLogger
-
-# TODO: split this into modules
-# TODO:
 
 
 @dataclass
@@ -23,18 +17,6 @@ class Result:
 
 
 class RunStrategy(ABC):
-    def __init__(self, target) -> None:
-        self.target = target
-
-        # self.suiteuname = suiteuname
-        # self.config = config
-        # self._logger = logger
-        # self.debug = self._logger.debug
-        # self.info = self._logger.info
-        # self.warning = self._logger.warning
-        # self.error = self._logger.error
-        # self.critical = self._logger.critical
-
     def run(self, *args, **kwargs):
         """Template method which bundles the linked methods to run.
 
@@ -49,17 +31,14 @@ class RunStrategy(ABC):
     @abstractmethod
     def exec_pre(self, *args, **kwargs) -> int:
         """Prepares the given suite."""
-        pass
 
     @abstractmethod
     def exec_main(self, *args, **kwargs) -> int:
         """Execute the the given suite."""
-        pass
 
     @abstractmethod
     def exec_post(self, *args, **kwargs) -> int:
         """Cleans up the given suite."""
-        pass
 
 
 class Runner(RunStrategy):
@@ -70,7 +49,7 @@ class Runner(RunStrategy):
     """
 
     def __init__(self, target) -> None:
-        super().__init__(target)
+        self.target = target
 
     def run_subprocess(self, command, environ) -> Result:
         """If command was given, run the subprocess and return the result object."""
