@@ -2,7 +2,6 @@
 from robotmk.config.config import Config
 from robotmk.logger import RobotmkLogger
 
-from ..strategies import RunStrategy
 from .abstract import Target
 
 

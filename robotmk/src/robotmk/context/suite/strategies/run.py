@@ -17,7 +17,16 @@ class Result:
     stderr: List[str] = field(default_factory=list)
 
 
-class RunStrategy(ABC):
+class Runner:
+    """This Strategy is the only one which executes a 'job' in fact.
+
+    - run a Robot Framework Suite
+    - run a RCC task
+    """
+
+    def __init__(self, target) -> None:
+        self.target = target
+
     def run(self, env: UserDict):
         """Template method which bundles the linked methods to run.
 
@@ -28,29 +37,6 @@ class RunStrategy(ABC):
             self.exec_post(),
         )
         return rc
-
-    @abstractmethod
-    def exec_pre(self) -> int:
-        """Prepares the given suite."""
-
-    @abstractmethod
-    def exec_main(self, env: UserDict) -> int:
-        """Execute the the given suite."""
-
-    @abstractmethod
-    def exec_post(self) -> int:
-        """Cleans up the given suite."""
-
-
-class Runner(RunStrategy):
-    """This Strategy is the only one which executes a 'job' in fact.
-
-    - run a Robot Framework Suite
-    - run a RCC task
-    """
-
-    def __init__(self, target) -> None:
-        self.target = target
 
     def run_subprocess(self, command, environ) -> Result:
         """If command was given, run the subprocess and return the result object."""
@@ -66,10 +52,12 @@ class Runner(RunStrategy):
             return Result()
 
     def exec_pre(self) -> int:
+        """Prepares the given suite."""
         result = self.run_subprocess(self.target.pre_command, os.environ)
         return result.returncode
 
     def exec_main(self, env: UserDict) -> int:
+        """Execute the the given suite."""
         # DEBUG: " ".join(self.target.main_command)
 
         # DEBUG: [f"{k}={v}" for (k,v) in environment.items()  if k.startswith("RO")]
@@ -84,26 +72,27 @@ class Runner(RunStrategy):
         return result.returncode
 
     def exec_post(self) -> int:
+        """Cleans up the given suite."""
         result = self.run_subprocess(self.target.post_command, os.environ)
         return result.returncode
 
 
-class WindowsTask(RunStrategy):
-    """Parent class for Single and Multi desktop strategies.
+class WindowsTask(Runner):
+    """Class for Single and Multi desktop strategies.
 
     Both have in common that they need to create a scheduled task."""
 
 
-class WindowsSingleDesktop(WindowsTask):
-    """Concrete class to run a suite with UI on Windows.
+class WindowsSingleDesktop(Runner):
+    """Class to run a suite with UI on Windows.
 
     - Create the scheduled task for the given user.
     - Run the task via schtask.exe
     """
 
 
-class WindowsMultiDesktop(WindowsTask):
-    """Concrete class to run a suite in a loopback RDP session.
+class WindowsMultiDesktop(Runner):
+    """Class to run a suite in a loopback RDP session.
 
     This will require a Windows Server with RDP enabled and a proper
     MSTC license. Although there is https://github.com/stascorp/rdpwrap
@@ -126,15 +115,15 @@ class WindowsMultiDesktop(WindowsTask):
     """
 
 
-class LinuxMultiDesktop(RunStrategy):
+class LinuxMultiDesktop(Runner):
     """Executes a suite with a user interface on Linux."""
 
 
-def create_runstrategy(target) -> RunStrategy:
+def create_runstrategy(target) -> Runner:
     """Creates a run strategy based on the given suite/OS.
 
     Returns:
-        RunStrategy: The run strategy to use.
+        Runner: The run strategy to use.
     """
     suite_name = target.config.get("common.suiteuname")
     mode = target.config.get(f"suites.{suite_name}.run.mode")
