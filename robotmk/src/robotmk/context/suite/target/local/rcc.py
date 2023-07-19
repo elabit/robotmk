@@ -2,6 +2,7 @@
 
 import math
 import os
+from dataclasses import asdict
 
 from robotmk.config.config import Config
 from robotmk.logger import RobotmkLogger
@@ -105,7 +106,9 @@ class RCCTarget(LocalTarget):
             pass
         else:
             run_env = self.prepare_environment()
-            self.rc = self.run_strategy.run(env=run_env)
+            (return_code, result) = self.run_strategy.run(env=run_env)
+            self.target.console_results[self.target.attempt] = asdict(result)
+            self.rc = return_code
 
     @property
     def is_rcc_compatible(self):
