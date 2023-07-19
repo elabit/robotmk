@@ -158,9 +158,8 @@ def create_runstrategy(target) -> RunStrategy:
     Returns:
         RunStrategy: The run strategy to use.
     """
-    mode = target.config.get(
-        "suites.%s.run.mode" % target.config.get("common.suiteuname")
-    )
+    suite_name = target.config.get("common.suiteuname")
+    mode = target.config.get(f"suites.{suite_name}.run.mode")
     _platform = platform.system().lower()
     if mode == "default":
         return Runner(target)
@@ -171,5 +170,5 @@ def create_runstrategy(target) -> RunStrategy:
     if mode == "linux-ndesktop" and _platform == "linux":
         raise NotImplementedError("LinuxMultiDesktop")
     raise ValueError(
-        "Invalid combination of platform (%s) and run mode (%s)." % (_platform, mode)
+        f"Invalid combination of platform ({_platform}) and run mode ({mode})."
     )
