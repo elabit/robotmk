@@ -5,6 +5,7 @@ import os
 from dataclasses import asdict
 
 from robotmk.config.config import Config
+from robotmk.context.suite.strategies import create_runstrategy
 from robotmk.logger import RobotmkLogger
 
 from .abstract import LocalTarget
@@ -106,7 +107,7 @@ class RCCTarget(LocalTarget):
             pass
         else:
             run_env = self.prepare_environment()
-            (return_code, result) = self.run_strategy.run(env=run_env)
+            (return_code, result) = create_runstrategy(self).run(env=run_env)
             self.target.console_results[1] = asdict(result)
             self.rc = return_code
 

@@ -37,8 +37,6 @@ class LocalTarget(Target):
         self.config = config
         self.logger = logger
         self.path = _create_suite_path(config)
-        # TODO: run strategy should not be set in init, because output() always reads results from filesystem
-        self.run_strategy = create_runstrategy(self)
         # list of subprocess' results and console output
         self.console_results = {}
         self.attempt: int | None = None
