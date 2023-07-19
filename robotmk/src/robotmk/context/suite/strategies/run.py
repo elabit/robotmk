@@ -17,6 +17,13 @@ class Result:
     stderr: List[str] = field(default_factory=list)
 
 
+@dataclass(frozen=True)
+class RunnerCfg:
+    pre_command: str | list[str]
+    main_command: str | list[str]
+    post_command: str | list[str]
+
+
 class Runner:
     """This Strategy is the only one which executes a 'job' in fact.
 
@@ -24,8 +31,8 @@ class Runner:
     - run a RCC task
     """
 
-    def __init__(self, target) -> None:
-        self.target = target
+    def __init__(self, config: RunnerCfg) -> None:
+        self.config = config
 
     def run(self, env: UserDict) -> tuple[int, Result]:
         """Template method which bundles the linked methods to run.
@@ -51,23 +58,21 @@ class Runner:
 
     def exec_pre(self) -> Result:
         """Prepares the given suite."""
-        return self.run_subprocess(self.target.pre_command, os.environ)
+        return self.run_subprocess(self.config.pre_command, os.environ)
 
     def exec_main(self, env: UserDict) -> Result:
         """Execute the the given suite."""
-        # DEBUG: " ".join(self.target.main_command)
+        # DEBUG: " ".join(self.config.main_command)
 
         # DEBUG: [f"{k}={v}" for (k,v) in environment.items()  if k.startswith("RO")]
         # DEBUG: "; ".join([f"export {k}={v}" for (k,v) in kwargs.get("env").items() if k.startswith("RO")])
-        result = self.run_subprocess(self.target.main_command, env)
-
         # TODO: log console output? Save it anyway because a a fatal RF error must be tracable.
         # RCC does not re.execute...
-        return result
+        return self.run_subprocess(self.config.main_command, env)
 
     def exec_post(self) -> Result:
         """Cleans up the given suite."""
-        return self.run_subprocess(self.target.post_command, os.environ)
+        return self.run_subprocess(self.config.post_command, os.environ)
 
 
 class WindowsTask(Runner):
@@ -121,8 +126,13 @@ def create_runstrategy(target) -> Runner:
     suite_name = target.config.get("common.suiteuname")
     mode = target.config.get(f"suites.{suite_name}.run.mode")
     _platform = platform.system().lower()
+    config = RunnerCfg(
+        pre_command=target.pre_command,
+        main_command=target.main_command,
+        post_command=target.post_command,
+    )
     if mode == "default":
-        return Runner(target)
+        return Runner(config)
     if mode == "windows-1desktop" and _platform == "windows":
         raise NotImplementedError("WindowsSingleDesktop")
     if mode == "windows-ndesktop" and _platform == "windows":
