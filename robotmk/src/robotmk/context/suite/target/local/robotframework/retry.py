@@ -7,6 +7,7 @@ from pathlib import Path
 
 from robot.rebot import rebot
 
+from robotmk.context.suite.strategies import create_runstrategy
 from robotmk.context.suite.target.local.abstract import LocalTarget
 
 
@@ -47,7 +48,7 @@ class RetryStrategy(ABC):
             self.target.attempt = attempt
 
             # TODO: log the cli args
-            (return_code, result) = self.target.run_strategy.run(os.environ)
+            (return_code, result) = create_runstrategy(self.target).run(os.environ)
             self.target.console_results[self.target.attempt] = asdict(result)
             # TODO: Logging
             # if rc > 250:
