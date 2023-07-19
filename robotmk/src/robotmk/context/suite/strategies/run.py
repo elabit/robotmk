@@ -115,41 +115,13 @@ class WindowsTask(RunStrategy):
 
     Both have in common that they need to create a scheduled task."""
 
-    def __init__(self, target) -> None:
-        super().__init__(target)
-
-    @abstractmethod
-    def exec_pre(self, *args, **kwargs) -> int:
-        pass
-
-    @abstractmethod
-    def exec_main(self, *args, **kwargs) -> int:
-        pass
-
-    @abstractmethod
-    def exec_post(self, *args, **kwargs) -> int:
-        pass
-
 
 class WindowsSingleDesktop(WindowsTask):
     """Concrete class to run a suite with UI on Windows.
 
-    ....
+    - Create the scheduled task for the given user.
+    - Run the task via schtask.exe
     """
-
-    def __init__(self, target) -> None:
-        super().__init__(target)
-
-    def exec_pre(self, *args, **kwargs) -> int:
-        # create the scheduled task for the given user
-        pass
-
-    def exec_main(self, *args, **kwargs) -> int:
-        # run schtask.exe to run the task
-        pass
-
-    def exec_post(self, *args, **kwargs) -> int:
-        pass
 
 
 class WindowsMultiDesktop(WindowsTask):
@@ -158,49 +130,26 @@ class WindowsMultiDesktop(WindowsTask):
     This will require a Windows Server with RDP enabled and a proper
     MSTC license. Although there is https://github.com/stascorp/rdpwrap
     (https://www.anyviewer.com/how-to/windows-10-pro-remote-desktop-multiple-users-0427.html)
+
+    The following steps are required:
+
+    - Create a RDP file:
+      ```
+      loopback.rdp
+      username:s:{username}
+      password 51:b:{password}
+      full address:s:127.0.0.2
+      ```
+    - Launch the RDP session with a specified `command`:
+      $ mstsc /v:127.0.0.2 /f /w:800 /h:600 /u:{username} /p:{password} /v:{rdp_file} /start:{command}
+      $ mstsc /v:127.0.0.1 /f /w:800 /h:600 /u:{username} /p:{password} /admin /restrictedAdmin cmd /c "{command}
+    - Close the RDP session:
+      $ tscon /dest:console
     """
-
-    def __init__(self, target) -> None:
-        super().__init__(target)
-
-    def exec_pre(self, *args, **kwargs) -> int:
-        # create RDP file:
-        # rdp_file = "loopback.rdp"
-        # with open(rdp_file, "w") as f:
-        #     f.write(f"""\
-        # username:s:{username}
-        # password 51:b:{password}
-        # full address:s:127.0.0.2
-        # """)
-        pass
-
-    def exec_main(self, *args, **kwargs) -> int:
-        # Launch the RDP session with the specified command
-        # os.system(f"mstsc /v:127.0.0.2 /f /w:800 /h:600 /v:127.0.0.2 /u:{username} /p:{password} /v:{rdp_file} /start:{command}")
-        # os.system(f'mstsc /v:127.0.0.1 /f /w:800 /h:600 /u:{username} /p:{password} /v:127.0.0.1 /w:800 /h:600 /v:127.0.0.1 /w:800 /h:600 /admin /restrictedAdmin cmd /c "{command}"')
-
-        pass
-
-    def exec_post(self, *args, **kwargs) -> int:
-        # Close the RDP session
-        # os.system(f'tscon /dest:console')
-        pass
 
 
 class LinuxMultiDesktop(RunStrategy):
     """Executes a suite with a user interface on Linux."""
-
-    def __init__(self, target) -> None:
-        super().__init__(target)
-
-    def exec_pre(self, *args, **kwargs) -> int:
-        pass
-
-    def exec_main(self, *args, **kwargs) -> int:
-        pass
-
-    def exec_post(self, *args, **kwargs) -> int:
-        pass
 
 
 #    __           _
@@ -231,14 +180,13 @@ class RunStrategyFactory:
         _platform = platform.system().lower()
         if mode == "default":
             return Runner(self.target)
-        elif mode == "windows-1desktop" and _platform == "windows":
-            return WindowsSingleDesktop(self.target)
-        elif mode == "windows-ndesktop" and _platform == "windows":
-            return WindowsMultiDesktop(self.target)
-        elif mode == "linux-ndesktop" and _platform == "linux":
-            return LinuxMultiDesktop(self.target)
-        else:
-            raise ValueError(
-                "Invalid combination of platform (%s) and run mode (%s)."
-                % (_platform, mode)
-            )
+        if mode == "windows-1desktop" and _platform == "windows":
+            raise NotImplementedError("WindowsSingleDesktop")
+        if mode == "windows-ndesktop" and _platform == "windows":
+            raise NotImplementedError("WindowsMultiDesktop")
+        if mode == "linux-ndesktop" and _platform == "linux":
+            raise NotImplementedError("LinuxMultiDesktop")
+        raise ValueError(
+            "Invalid combination of platform (%s) and run mode (%s)."
+            % (_platform, mode)
+        )
