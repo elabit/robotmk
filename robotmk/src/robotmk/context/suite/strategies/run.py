@@ -27,7 +27,7 @@ class Runner:
     def __init__(self, target) -> None:
         self.target = target
 
-    def run(self, env: UserDict) -> int:
+    def run(self, env: UserDict) -> tuple[int, Result]:
         """Template method which bundles the linked methods to run.
 
         The concrete strategy selectivly overrides the methods to implement."""
@@ -35,7 +35,7 @@ class Runner:
         main = self.exec_main(env)
         post = self.exec_post()
         return_code = max(pre.returncode, main.returncode, post.returncode)
-        return return_code
+        return return_code, main
 
     def run_subprocess(self, command, environ) -> Result:
         """If command was given, run the subprocess and return the result object."""
@@ -65,7 +65,6 @@ class Runner:
         # RCC does not re.execute...
         if getattr(self.target, "attempt", None) is None:
             self.target.attempt = 1
-        self.target.console_results[self.target.attempt] = asdict(result)
         return result
 
     def exec_post(self) -> Result:

@@ -2,6 +2,7 @@
 import glob
 import os
 from abc import ABC, abstractmethod
+from dataclasses import asdict
 from pathlib import Path
 
 from robot.rebot import rebot
@@ -46,18 +47,21 @@ class RetryStrategy(ABC):
             self.target.attempt = attempt
 
             # TODO: log the cli args
-            rc = self.target.run_strategy.run(os.environ)
+            (return_code, result) = self.target.run_strategy.run(os.environ)
+            self.target.console_results[self.target.attempt] = asdict(result)
             # TODO: Logging
             # if rc > 250:
             #     self.logerror(
             #         "RC > 250 = Robot exited with fatal error. There are no logs written."
             #     )
-            if self.max_attempts == 1 or (self.target.attempt == 1 and rc == 0):
+            if self.max_attempts == 1 or (
+                self.target.attempt == 1 and return_code == 0
+            ):
                 # if only one attempt allowed or 1st attempt was OK, we are done
                 break
             else:
                 # more attempts allowed and 1st attempt was not OK
-                if rc == 0:
+                if return_code == 0:
                     # this retry was OK, get out here
                     self._finalize_results()
                     break
@@ -71,7 +75,7 @@ class RetryStrategy(ABC):
                         #     "   Even the last attempt was unsuccessful!"
                         # )
                         self._finalize_results()
-        return rc
+        return return_code
 
     @abstractmethod
     def _reparametrize(self):
