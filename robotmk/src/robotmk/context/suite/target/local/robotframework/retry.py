@@ -12,7 +12,6 @@ class RetryStrategyFactory:
 
     def __init__(self, target):
         self.target = target
-        self.run = self.target.run_strategy.run
 
     def create(self):
         """Create the execution strategy"""
