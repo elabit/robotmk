@@ -14,10 +14,9 @@ def create_retry_strategy(target: LocalTarget):
     strategy = target.config.get("suitecfg.retry_failed.strategy", "complete")
     if strategy == "complete":
         return CompleteRetry(target)
-    elif strategy == "incremental":
+    if strategy == "incremental":
         return IncrementalRetry(target)
-    else:
-        raise Exception("Unknown retry strategy: %s" % strategy)
+    raise NotImplementedError("Unknown retry strategy: %s" % strategy)
 
 
 class RetryStrategy(ABC):
