@@ -81,8 +81,6 @@ class RobotFrameworkTarget(LocalTarget):
         return arglist
 
     def run(self):
-        self.retry_strategy = create_retry_strategy(self)
-
         self.shortuuid = self.uuid[:8]
         # this timestamp is used to keep all result files in order; it is used
         # for all target executions
@@ -101,7 +99,7 @@ class RobotFrameworkTarget(LocalTarget):
             # RF "outputdir" = logdir + robotframework (store HTML, XML and console logs)
             self.robot_params.update({"outputdir": self.outputdir})
             self._state.timer_start()
-            self.rc = self.retry_strategy.run()
+            self.rc = create_retry_strategy(self).run()
             self._state.timer_stop()
             self._state.write()
             pass
