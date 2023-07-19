@@ -9,7 +9,7 @@ from robotmk.config.config import Config
 from robotmk.logger import RobotmkLogger
 
 from ..abstract import LocalTarget
-from .retry import RetryStrategyFactory
+from .retry import create_retry_strategy
 from .state import RFState
 
 local_tz = datetime.utcnow().astimezone().tzinfo
@@ -81,7 +81,7 @@ class RobotFrameworkTarget(LocalTarget):
         return arglist
 
     def run(self):
-        self.retry_strategy = RetryStrategyFactory(self).create()
+        self.retry_strategy = create_retry_strategy(self)
 
         self.shortuuid = self.uuid[:8]
         # this timestamp is used to keep all result files in order; it is used
