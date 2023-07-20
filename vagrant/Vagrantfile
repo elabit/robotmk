@@ -17,6 +17,11 @@ Vagrant.configure("2") do |config|
   config.vm.synced_folder ".", "/vagrant", disabled: true
   config.vm.synced_folder "../", "/robotmk"
 
+  # bridge the VM interface to the host interface (e.g. "enp0s31f6") - alternative to NAT
+  if ENV["ROBOTMK_VAGRANT_BRIDGE_IFACE"]
+    config.vm.network "public_network", bridge: ENV["ROBOTMK_VAGRANT_BRIDGE_IFACE"]  
+  end 
+
   config.vm.provision "shell", path: "scripts/provision.ps1"
   config.vm.provision "shell", path: "scripts/provision_poetry.ps1"
 end
