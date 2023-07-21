@@ -1,4 +1,5 @@
 [tool.mypy]
+mypy_path = [ "v2/src" ]
 check_untyped_defs = true
 disallow_any_generics = true
 disallow_incomplete_defs = true
@@ -37,11 +38,14 @@ module = [
 ]
 ignore_errors = true
 
+[tool.pylint.MASTER]
+init-hook = 'import sys; sys.path.append("v2/src/")'
+
 [tool.pylint.'MESSAGES CONTROL']
 disable = "missing-docstring"
 
 [tool.pytest.ini_options]
-pythonpath = "checkmk/"
+pythonpath = [ "checkmk/", "v2/src/" ]
 
 [tool.isort]
 # black compatibility

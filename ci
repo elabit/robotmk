@@ -52,6 +52,7 @@ main() {
 
 	'pytest-check-all')
 		"${self}" pytest "${checkmk_extensions_dir}/tests"
+		"${self}" pytest "${v2_dir}/tests"
 		;;
 
 	'PSScriptAnalyzer-check-all')
