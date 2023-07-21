@@ -41,7 +41,7 @@ ignore_errors = true
 disable = "missing-docstring"
 
 [tool.pytest.ini_options]
-pythonpath = "checkmk/"
+pythonpath = [ "checkmk/", "v2/src/" ]
 
 [tool.isort]
 # black compatibility

@@ -7,6 +7,7 @@ disallow_subclassing_any = true
 disallow_untyped_calls = true
 disallow_untyped_decorators = true
 disallow_untyped_defs = true
+disallow_any_expr = true
 no_implicit_optional = true
 no_implicit_reexport = true
 strict_concatenate = true
@@ -21,3 +22,6 @@ disable = "missing-docstring"
 
 [tool.isort]
 profile = "black"  # black compatibility
+
+[tool.pytest.ini_options]
+pythonpath = [ "src/" ]
