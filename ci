@@ -5,6 +5,7 @@ main() {
 	self="${topdir}/ci"
 	pyproject_toml_path="${topdir}/pyproject.toml"
 	robotmk_dir="${topdir}/robotmk"
+	v2_dir="${topdir}/v2"
 	checkmk_extensions_dir="${topdir}/checkmk_extensions"
 	checkmk_dir="${topdir}/checkmk"
 	mode="${1}"
@@ -16,7 +17,7 @@ main() {
 		;;
 
 	'black-check-all')
-		"${self}" black --check --diff "${robotmk_dir}" "${checkmk_extensions_dir}"
+		"${self}" black --check --diff "${robotmk_dir}" "${checkmk_extensions_dir}" "${v2_dir}"
 		;;
 
 	'isort')
@@ -24,7 +25,7 @@ main() {
 		;;
 
 	'isort-check-all')
-		"${self}" isort --check-only --diff "${checkmk_extensions_dir}" "${robotmk_dir}"
+		"${self}" isort --check-only --diff "${checkmk_extensions_dir}" "${robotmk_dir}" "${v2_dir}"
 		;;
 
 	'mypy')
@@ -33,7 +34,7 @@ main() {
 		;;
 
 	'mypy-check-all')
-		"${self}" mypy --package "checkmk_extensions" --package "robotmk" --package "agent"
+		"${self}" mypy --package "checkmk_extensions" --package "robotmk" --package "agent" --package "${v2_dir}"
 		;;
 
 	'pylint')
@@ -42,7 +43,7 @@ main() {
 		;;
 
 	'pylint-check-all')
-		"${self}" pylint --recursive true "${checkmk_extensions_dir}"
+		"${self}" pylint --recursive true "${checkmk_extensions_dir}" "${v2_dir}"
 		;;
 
 	'pytest')

@@ -64,7 +64,9 @@ def _create_commands(spec: _RetrySpec) -> Sequence[str]:
             python_executable=spec.python_executable,
             robot_target=spec.robot_target,
             outputdir=spec.outputdir(),
-            output=str(i),  # Ensure the `robot` command does not overwrite previous runs
+            output=str(
+                i
+            ),  # Ensure the `robot` command does not overwrite previous runs
             variablefile=variant.variablefile,
             argumentfile=variant.argumentfile,
         )
