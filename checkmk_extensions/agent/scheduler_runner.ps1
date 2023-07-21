@@ -1,68 +1,63 @@
-function GetContentFromConfigFile {
-    [CmdletBinding()]
+# Enable StrictMode 3.0
+Set-StrictMode -Version 3.0
 
-    param (
-        [Parameter(Mandatory = $true)]
-        [string]$configFilePath
-    )
+class Config {
+    [bool]$rcc
 
-    if (-not (Test-Path -Path $configFilePath -PathType Leaf)) {
-        # File doesn't exist, so we exit with message
-        Write-Error -Message "The file is not available at: $configFilePath"
-        Exit 1
-    } else {
-        # Config file is available
-        $configContent = Get-Content -Path $configFilePath
-        return $configContent
+    Config() {
+        # Default constructor
+        # By default, we will not run in RCC
+        $this.rcc = $false
     }
-}
 
-function DetermineRCCValueFromConfig {
-    [CmdletBinding()]
-    [OutputType([System.Boolean])]
+    static [string] GetConfigContent($configFilePath, [ref]$errorCollection) {
+        try {
+            if (-Not (Test-Path -Path $configFilePath -PathType Leaf)) {
+                # Add the error message to the error collection
+                $errorCollection.Value.Add("Config file not found: $configFilePath")
 
-    param (
-        [Parameter(Mandatory = $true)]
-        [string]$rccValueFromConfigFile
-    )
-
-    if ($rccValueFromConfigFile -eq "NO") {
-        # The defined value for RCC in the config file is NO
-        return $false
-    } elseif ($rccValueFromConfigFile -eq "YES") {
-        # The defined value for RCC in the config file is YES
-        return $true
-    } else {
-        # Unknown value defined
-        Write-Error "The defined value for the RCC is not valid. It must be YES or NO, but it is: $rccValueFromConfigFile" -Category InvalidArgument
-        Exit 1
-    }
-}
-function RunRCCOrNot {
-    [CmdletBinding()]
-    [OutputType([System.Boolean])]
-
-    param (
-        [Parameter(Mandatory = $true)]
-        [string]$configFilePath
-    )
-
-    $configContent = GetContentFromConfigFile $configFilePath
-    foreach ($line in $configContent) {
-        # Skip empty lines and comments (lines starting with '#')
-        if (-not [string]::IsNullOrWhiteSpace($line) -and -not $line.StartsWith("#")) {
-            $match = $line | Select-String -Pattern "RCC=(.+)$"
-
-            if (-not $match) {
-                # The RCC value is not defined, so we assume it should not run in RCC
-                $run_in_rcc = $false
-            } else {
-                # The RCC value is defined
-                $run_in_rcc = DetermineRCCValueFromConfig -rccValueFromConfigFile $match.Matches[0].Groups[1].Value
+                # If we want to throw an ERRORRECORD object or a .NET exception, we can use the something like:
+                # $errorCollection.Value.Add((New-Object System.IO.FileNotFoundException))
+                return $null
             }
+
+            $configFileContent = Get-Content -Raw -Path $configFilePath
+            return $configFileContent
+        }
+        catch {
+            # Add the error message to the error collection
+            $errorCollection.Value.Add($_.Exception.Message)
+            return $null
         }
     }
 
-    return $run_in_rcc
-}
+    # Method to parse the config file (JSON) and set the value of rcc
+    static [Config] ParseConfigFile($configFilePath) {
+        $config = [Config]::new()
+        $errors = [System.Collections.Generic.List[string]]::new()
 
+        try {
+            $configFileContent = [Config]::GetConfigContent($configFilePath, ([ref]$errors))
+            if ($null -ne $configFileContent -and $configFileContent -ne '') {
+                $configData = ConvertFrom-Json $configFileContent
+                # Check if it contains the rcc propetry and if it's equal to YES
+                if ($configData.PSobject.Properties["rcc"] -and $configData.rcc -eq "YES") {
+                    $config.rcc = $true
+                    }
+                }
+        }
+        catch {
+            Write-Host "An error occurred while parsing the config file" -ForegroundColor Red
+            # Add the error message to the error collection
+            $errors.Add($_.Exception.Message)
+        }
+
+        # Check if there are any errors and throw them
+        if ($errors.Count -gt 0) {
+            $errorMessages = $errors -join "`n"
+            throw $errorMessages
+        }
+
+        return $config
+    }
+}
