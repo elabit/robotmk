@@ -52,6 +52,7 @@ setup_powershell() {
     rm packages-microsoft-prod.deb
     sudo apt-get update
     sudo apt-get install powershell
+    pwsh -Command "Install-Module -Name PSScriptAnalyzer"
 }
 
 main
