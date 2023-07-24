@@ -12,7 +12,7 @@ readme = "README.md"
 dependencies = [
     "click",
     "psutil",
-    "apscheduler<=4",
+    "apscheduler<4",
     "pyyaml",
     "mergedeep",
     "robotframework",
