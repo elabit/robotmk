@@ -1,0 +1,10 @@
+# https://github.com/robocorp/rcc/blob/master/docs/recipes.md#what-is-in-condayaml
+
+channels:
+  - conda-forge
+
+dependencies:
+  - python=3.9.12               # Install obscure python version
+  - pip=22.1.2                  # Needed for installing rpaframework
+  - pip:
+      - rpaframework==22.5.2    # Needed for `robot` command
