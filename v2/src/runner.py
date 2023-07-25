@@ -33,7 +33,7 @@ class _Variant:
 
 
 @dataclasses.dataclass(frozen=True)
-class _RetrySpec:
+class RetrySpec:
     id_: uuid.UUID
     python_executable: pathlib.Path
     robot_target: pathlib.Path
@@ -57,7 +57,7 @@ def _create_command(spec: _RunnerSpec) -> str:
     )
 
 
-def _create_commands(spec: _RetrySpec) -> Sequence[str]:
+def create_commands(spec: RetrySpec) -> Sequence[str]:
     commands = []
     for i, variant in enumerate(spec.schedule):
         runner_cfg = _RunnerSpec(
