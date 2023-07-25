@@ -34,7 +34,7 @@ def _execute(target: _RCCRunner | _RCCBuilder) -> subprocess.CompletedProcess[st
     )
 
 
-def _create_rcc_runners(
+def create_rcc_runners(
     rcc_binary: str, robot_yaml: pathlib.Path, example: runner.RetrySpec
 ) -> list[_RCCRunner]:
     commands = runner.create_commands(example)
