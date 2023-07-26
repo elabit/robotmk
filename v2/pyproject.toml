@@ -17,6 +17,9 @@ warn_return_any = true
 warn_unused_configs = true
 warn_unused_ignores = true
 
+[tool.pylint.MASTER]
+extension-pkg-whitelist = "pydantic"
+
 [tool.pylint.'MESSAGES CONTROL']
 disable = "missing-docstring"
 

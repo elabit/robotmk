@@ -2,7 +2,7 @@
 Documentation     Test file for configuring RobotFramework
 
 
-Library  ${EXECDIR}/lib/add.py  WITH NAME  math
+Library  ${CURDIR}/lib/add.py  WITH NAME  math
 
 Suite Setup     math.setup
 Suite TearDown     math.teardown
