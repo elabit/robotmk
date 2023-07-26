@@ -4,7 +4,7 @@ import dataclasses
 import enum
 import pathlib
 import uuid
-from collections.abc import Sequence
+from collections.abc import Iterable, Sequence
 
 
 class _RetryStrategy(enum.Enum):
@@ -25,6 +25,20 @@ class _RunnerSpec:  # pylint: disable=too-many-instance-attributes
 
     def output(self) -> pathlib.Path:
         return self.outputdir / f"{self.output_name}.xml"
+
+    def command(self) -> str:
+        robot_command = f"{self.python_executable} -m robot "
+        if self.variablefile is not None:
+            robot_command += f"--variablefile={self.variablefile} "
+        if self.argumentfile is not None:
+            robot_command += f"--argumentfile={self.argumentfile} "
+        if self.retry_strategy is _RetryStrategy.INCREMENTAL and self.previous_output:
+            robot_command += f"--rerunfailed={self.previous_output} "
+        return robot_command + (
+            f"--outputdir={self.outputdir} "
+            f"--output={self.output()} "
+            f"{self.robot_target}"
+        )
 
     def _check(self) -> bool:
         paths_to_check = [
@@ -57,26 +71,18 @@ class _RetrySpec:
         return self.working_directory.joinpath(self.id_.hex)
 
 
-def _create_command(spec: _RunnerSpec) -> str:
-    robot_command = f"{spec.python_executable} -m robot "
-    if spec.variablefile is not None:
-        robot_command += f"--variablefile={spec.variablefile} "
-    if spec.argumentfile is not None:
-        robot_command += f"--argumentfile={spec.argumentfile} "
-    if spec.retry_strategy is _RetryStrategy.INCREMENTAL and spec.previous_output:
-        robot_command += f"--rerunfailed={spec.previous_output} "
-    return robot_command + (
-        f"--outputdir={spec.outputdir} "
-        f"--output={spec.output()} "
-        f"{spec.robot_target}"
-    )
+@dataclasses.dataclass(frozen=True)
+class _Attempt:
+    output: pathlib.Path
+    command: str
 
 
-def _create_commands(spec: _RetrySpec) -> Sequence[str]:
-    commands = []
+def _create_attempts(spec: _RetrySpec) -> list[_Attempt]:
+    attempts = []
     previous_output = None
+
     for i, variant in enumerate(spec.schedule):
-        runner_cfg = _RunnerSpec(
+        runner_spec = _RunnerSpec(
             python_executable=spec.python_executable,
             robot_target=spec.robot_target,
             outputdir=spec.outputdir(),
@@ -88,6 +94,24 @@ def _create_commands(spec: _RetrySpec) -> Sequence[str]:
             argumentfile=variant.argumentfile,
             retry_strategy=spec.strategy,
         )
-        commands.append(_create_command(runner_cfg))
-        previous_output = runner_cfg.output()
-    return commands
+        previous_output = runner_spec.output()
+        attempts.append(
+            _Attempt(
+                output=runner_spec.output(),
+                command=runner_spec.command(),
+            )
+        )
+
+    return attempts
+
+
+def _create_merge_command(
+    *,
+    python_executable: pathlib.Path,
+    attempt_outputs: Iterable[pathlib.Path],
+    final_output: pathlib.Path,
+) -> str:
+    return (
+        f"{python_executable} -m robot.rebot --output={final_output} --report=NONE --log=NONE "
+        + " ".join(str(variant_output) for variant_output in attempt_outputs)
+    )
