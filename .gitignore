@@ -9,6 +9,7 @@ agent/log/*
 dist
 .stignore
 .stversions
+.venv
 
 # VSCode
 *.code-workspace
