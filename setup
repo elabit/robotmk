@@ -21,6 +21,7 @@ setup_python_environment() {
     # libldap2-dev: Needed for building python-ldap.
     # libsasl2-dev: Needed for building python-ldap.
     # libkrb5-dev: Needed for building pykerberos.
+    sudo apt-get update
     sudo apt-get install \
         librrd-dev \
         libldap2-dev \
