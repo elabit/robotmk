@@ -7,7 +7,7 @@ import uuid
 from collections.abc import Iterable, Sequence
 
 
-class _RetryStrategy(enum.Enum):
+class RetryStrategy(enum.Enum):
     INCREMENTAL = "incremental"
     COMPLETE = "complete"
 
@@ -21,7 +21,7 @@ class _RunnerSpec:  # pylint: disable=too-many-instance-attributes
     previous_output: pathlib.Path | None
     variablefile: pathlib.Path | None
     argumentfile: pathlib.Path | None
-    retry_strategy: _RetryStrategy
+    retry_strategy: RetryStrategy
 
     def output(self) -> pathlib.Path:
         return self.outputdir / f"{self.output_name}.xml"
@@ -32,7 +32,7 @@ class _RunnerSpec:  # pylint: disable=too-many-instance-attributes
             robot_command += f"--variablefile={self.variablefile} "
         if self.argumentfile is not None:
             robot_command += f"--argumentfile={self.argumentfile} "
-        if self.retry_strategy is _RetryStrategy.INCREMENTAL and self.previous_output:
+        if self.retry_strategy is RetryStrategy.INCREMENTAL and self.previous_output:
             robot_command += f"--rerunfailed={self.previous_output} "
         return robot_command + (
             f"--outputdir={self.outputdir} "
@@ -53,31 +53,31 @@ class _RunnerSpec:  # pylint: disable=too-many-instance-attributes
 
 
 @dataclasses.dataclass(frozen=True)
-class _Variant:
+class Variant:
     variablefile: pathlib.Path | None
     argumentfile: pathlib.Path | None
 
 
 @dataclasses.dataclass(frozen=True)
-class _RetrySpec:
+class RetrySpec:
     id_: uuid.UUID
     python_executable: pathlib.Path
     robot_target: pathlib.Path
     working_directory: pathlib.Path
-    schedule: Sequence[_Variant]
-    strategy: _RetryStrategy
+    schedule: Sequence[Variant]
+    strategy: RetryStrategy
 
     def outputdir(self) -> pathlib.Path:
         return self.working_directory.joinpath(self.id_.hex)
 
 
 @dataclasses.dataclass(frozen=True)
-class _Attempt:
+class Attempt:
     output: pathlib.Path
     command: str
 
 
-def _create_attempts(spec: _RetrySpec) -> list[_Attempt]:
+def create_attempts(spec: RetrySpec) -> list[Attempt]:
     attempts = []
     previous_output = None
 
@@ -96,7 +96,7 @@ def _create_attempts(spec: _RetrySpec) -> list[_Attempt]:
         )
         previous_output = runner_spec.output()
         attempts.append(
-            _Attempt(
+            Attempt(
                 output=runner_spec.output(),
                 command=runner_spec.command(),
             )
@@ -105,7 +105,7 @@ def _create_attempts(spec: _RetrySpec) -> list[_Attempt]:
     return attempts
 
 
-def _create_merge_command(
+def create_merge_command(
     *,
     python_executable: pathlib.Path,
     attempt_outputs: Iterable[pathlib.Path],

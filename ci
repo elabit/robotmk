@@ -42,7 +42,7 @@ main() {
 
 	'pylint')
 		export PYTHONPATH="${checkmk_dir}:${PYTHONPATH}"
-		run_pipenv "${topdir}" pylint "$@"
+		run_pipenv "${topdir}" pylint --rcfile "${v2_dir}/pyproject.toml" "$@"
 		;;
 
 	'pylint-check-all')

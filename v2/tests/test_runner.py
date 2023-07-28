@@ -15,7 +15,7 @@ def test_create_command_complete() -> None:
         previous_output=None,
         variablefile=None,
         argumentfile=None,
-        retry_strategy=runner._RetryStrategy.COMPLETE,
+        retry_strategy=runner.RetryStrategy.COMPLETE,
     )
     expected = (
         "/usr/bin/python3 -m robot --outputdir=/tmp/outputdir --output=/tmp/outputdir/0.xml "
@@ -33,7 +33,7 @@ def test_create_command_incremental() -> None:
         previous_output=pathlib.Path("/tmp/outputdir/0.xml"),
         variablefile=None,
         argumentfile=pathlib.Path("~/suite/retry_arguments"),
-        retry_strategy=runner._RetryStrategy.INCREMENTAL,
+        retry_strategy=runner.RetryStrategy.INCREMENTAL,
     )
     expected = (
         "/usr/bin/python3 -m robot --argumentfile=~/suite/retry_arguments "
@@ -44,27 +44,27 @@ def test_create_command_incremental() -> None:
 
 
 def test_create_attempts() -> None:
-    attempts = runner._create_attempts(
-        runner._RetrySpec(
+    attempts = runner.create_attempts(
+        runner.RetrySpec(
             id_=uuid.UUID("383783f4-1d02-43b1-9d6f-205f4d492d95"),
             python_executable=pathlib.Path("/usr/bin/python3"),
             robot_target=pathlib.Path("~/suite/calculator.robot"),
             working_directory=pathlib.Path("/tmp/outputdir/"),
             schedule=[
-                runner._Variant(
+                runner.Variant(
                     variablefile=None,
                     argumentfile=None,
                 ),
-                runner._Variant(
+                runner.Variant(
                     variablefile=pathlib.Path("~/suite/retry.yaml"),
                     argumentfile=None,
                 ),
             ],
-            strategy=runner._RetryStrategy.INCREMENTAL,
+            strategy=runner.RetryStrategy.INCREMENTAL,
         )
     )
     assert attempts == [
-        runner._Attempt(
+        runner.Attempt(
             output=pathlib.Path(
                 "/tmp/outputdir/383783f41d0243b19d6f205f4d492d95/0.xml"
             ),
@@ -73,7 +73,7 @@ def test_create_attempts() -> None:
             "--output=/tmp/outputdir/383783f41d0243b19d6f205f4d492d95/0.xml "
             "~/suite/calculator.robot",
         ),
-        runner._Attempt(
+        runner.Attempt(
             output=pathlib.Path(
                 "/tmp/outputdir/383783f41d0243b19d6f205f4d492d95/1.xml"
             ),
@@ -87,7 +87,7 @@ def test_create_attempts() -> None:
 
 
 def test_create_merge_command() -> None:
-    assert runner._create_merge_command(
+    assert runner.create_merge_command(
         python_executable=pathlib.Path("/usr/bin/python3"),
         attempt_outputs=[
             pathlib.Path("/tmp/outputdir/0.xml"),
