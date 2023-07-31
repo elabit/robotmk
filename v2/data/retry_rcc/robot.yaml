@@ -1,0 +1,14 @@
+tasks:
+  execute:
+    command:
+      - python
+      - -m
+      - robot
+      - task.robot
+
+condaConfigFile: conda.yaml
+artifactsDir: /tmp/outputdir   # Leading slash is ignored, instead we get $(pwd)/tmp/outputdir/
+PATH:
+  - .
+PYTHONPATH:
+  - .
