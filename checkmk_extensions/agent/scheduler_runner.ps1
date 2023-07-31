@@ -27,3 +27,19 @@ class Config {
         return [Config]::new($use_rcc)
     }
 }
+function CreateCommand([Config]$config) {
+    if ($config.rcc) {
+        if (-Not (Test-Path -Path "./rcc.exe" -PathType Leaf)) {
+           $errorMessage = "Error: 'rcc.exe' binary not found in the current folder."
+            throw New-Object System.IO.FileNotFoundException -ArgumentList $errorMessage
+        }
+        # TODO: Add the arguments.
+        # What do I need?
+        # Simon is calculating the blueprint here
+        return ("./rcc.exe")
+    }
+    else {
+        $pythonExe = (Get-Command python).Source # Should we use python or python3 here?
+        return ($pythonExe)
+    }
+}
