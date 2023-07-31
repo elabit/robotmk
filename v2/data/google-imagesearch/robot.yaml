@@ -1,0 +1,26 @@
+tasks:
+  Image Search:
+    robotTaskName: Execute Google image search and store the first result image
+  Debug Image Search:
+    command:
+      - python
+      - -m
+      - robot
+      - --report
+      - NONE
+      - -d
+      - output
+      - -L
+      - TRACE
+      - --logtitle
+      - Task log
+      - tasks.robot
+
+condaConfigFile: conda.yaml
+artifactsDir: output
+ignoreFiles:
+  - .gitignore
+PATH:
+  - .
+PYTHONPATH:
+  - .
