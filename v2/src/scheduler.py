@@ -14,6 +14,7 @@ from apscheduler.schedulers.blocking import (  # type: ignore[import]
 from apscheduler.triggers.interval import (  # type: ignore[import]
     IntervalTrigger,
 )
+from environment import RCCEnvironment, ResultCode, RobotEnvironment
 from pydantic import BaseModel
 from runner import (
     Attempt,
@@ -25,6 +26,10 @@ from runner import (
 )
 
 
+class _RCC(BaseModel, frozen=True):
+    robot_yaml: pathlib.Path
+
+
 class _SuiteConfig(BaseModel, frozen=True):  # pylint: disable=too-few-public-methods
     execution_interval_seconds: int
     python_executable: pathlib.Path
@@ -32,6 +37,7 @@ class _SuiteConfig(BaseModel, frozen=True):  # pylint: disable=too-few-public-me
     working_directory: pathlib.Path
     variants: Sequence[Variant]
     retry_strategy: RetryStrategy
+    env: _RCC | None
 
 
 def _scheduler(suites: Mapping[str, _SuiteConfig]) -> BlockingScheduler:
@@ -46,9 +52,17 @@ def _scheduler(suites: Mapping[str, _SuiteConfig]) -> BlockingScheduler:
     return scheduler
 
 
+def _environment(config: _RCC | None) -> RCCEnvironment | RobotEnvironment:
+    if config is None:
+        return RobotEnvironment()
+    return RCCEnvironment(robot_yaml=config.robot_yaml, binary="rcc")
+
+
 class _SuiteRetryRunner:  # pylint: disable=too-few-public-methods
     def __init__(self, suite_config: _SuiteConfig) -> None:
         self._config: Final = suite_config
+        self._env: Final = _environment(suite_config.env)
+        self._final_outputs: list[pathlib.Path] = []
 
     def __call__(self) -> None:
         self._prepare_run()
@@ -65,33 +79,44 @@ class _SuiteRetryRunner:  # pylint: disable=too-few-public-methods
         outputs = self._run_attempts_until_successful(create_attempts(retry_spec))
 
         if not outputs:
-            return
+            return  # Untested
 
-        subprocess.run(
+        final_output = retry_spec.outputdir() / "merged.xml"
+        _process = subprocess.run(
             shlex.split(
                 create_merge_command(
                     python_executable=self._config.python_executable,
                     attempt_outputs=outputs,
-                    final_output=retry_spec.outputdir() / "merged.xml",
+                    final_output=final_output,
                 )
             ),
-            check=False,
+            check=True,
+            encoding="utf-8",
         )
+        self._final_outputs.append(final_output)
 
     def _prepare_run(self) -> None:
         self._config.working_directory.mkdir(parents=True, exist_ok=True)
+        if (build_command := self._env.build_command()) is not None:
+            _process = subprocess.run(shlex.split(build_command), check=True)
 
-    @staticmethod
     def _run_attempts_until_successful(
+        self,
         attempts: Iterable[Attempt],
     ) -> list[pathlib.Path]:
         outputs = []
         for attempt in attempts:
-            completed_process = subprocess.run(
-                shlex.split(attempt.command), check=False
+            command = self._env.extend(attempt.command)
+            process = subprocess.run(
+                shlex.split(command),
+                check=False,
+                encoding="utf-8",
             )
-            if completed_process.returncode <= 250:
-                outputs.append(attempt.output)
-            if completed_process.returncode == 0:
-                break
+            match self._env.create_result_code(process):
+                case ResultCode.ALL_TESTS_PASSED:
+                    outputs.append(attempt.output)
+                case ResultCode.ROBOT_COMMAND_FAILED if attempt.output.exists():
+                    outputs.append(attempt.output)
+                    continue
+            break
         return outputs
