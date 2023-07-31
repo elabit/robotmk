@@ -1,0 +1,11 @@
+tasks:
+  Count My Veggies:
+    robotTaskName: Count My Veggies
+condaConfigFile: conda.yaml
+ignoreFiles:
+- .gitignore
+artifactsDir: output
+PATH:
+- .
+PYTHONPATH:
+- .
