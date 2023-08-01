@@ -4,7 +4,9 @@ tasks:
       - python
       - -m
       - robot
-      - task.robot
+      - --variablefile
+      - retry_variables.yaml
+      - tasks.robot
 
 condaConfigFile: conda.yaml
 artifactsDir: /tmp/outputdir   # Leading slash is ignored, instead we get $(pwd)/tmp/outputdir/
