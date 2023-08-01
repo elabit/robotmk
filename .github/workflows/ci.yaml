@@ -28,13 +28,13 @@ jobs:
       with:
         submodules: true
 
-    - name: Add Python version to environment
-      run: cat python_version >> $GITHUB_ENV
-
     - name: Setup Python
       uses: actions/setup-python@v4
       with:
-        python-version: ${{ env.PYTHON_VERSION }}
+        python-version-file: "pyproject.toml"
+    
+    - name: Setup Poetry
+      run: python3 -m pip install poetry
 
     - name: Setup environment
       run: ./setup
