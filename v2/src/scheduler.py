@@ -90,7 +90,7 @@ class _SuiteRetryRunner:  # pylint: disable=too-few-public-methods
                     final_output=final_output,
                 )
             ),
-            check=True,
+            check=False,
             encoding="utf-8",
         )
         self._final_outputs.append(final_output)
