@@ -17,19 +17,8 @@ setup_python_environment() {
     check_python_version "${1}"
     check_pip_executable
 
-    # librrd-dev: Needed for building rrdtool python bindings.
-    # libldap2-dev: Needed for building python-ldap.
-    # libsasl2-dev: Needed for building python-ldap.
-    # libkrb5-dev: Needed for building pykerberos.
-    sudo apt-get update
-    sudo apt-get install \
-        librrd-dev \
-        libldap2-dev \
-        libsasl2-dev \
-        libkrb5-dev
-
-    python3 -m pip install pipenv
-    "${topdir}/pipenv" sync
+    python3 -m pip install poetry
+    poetry install --with dev
 }
 
 check_python_version() {
