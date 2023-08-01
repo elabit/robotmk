@@ -28,18 +28,24 @@ class Config {
     }
 }
 function CreateCommand([Config]$config) {
+    $parentDir = Split-Path $PSScriptRoot -Parent
+
     if ($config.rcc) {
-        if (-Not (Test-Path -Path "./rcc.exe" -PathType Leaf)) {
-           $errorMessage = "Error: 'rcc.exe' binary not found in the current folder."
-            throw New-Object System.IO.FileNotFoundException -ArgumentList $errorMessage
-        }
-        # TODO: Add the arguments.
-        # What do I need?
-        # Simon is calculating the blueprint here
-        return ("./rcc.exe")
+        $rccPath = Join-Path $PSScriptRoot "rcc.exe"
+        $robotPath = Join-Path $parentDir "config\robot.yaml"
+
+        $argumentsList = "run --robot $robotPath"
     }
     else {
-        $pythonExe = (Get-Command python).Source # Should we use python or python3 here?
-        return ($pythonExe)
+        $pythonExe = (Get-Command python).Source
+        $moduleName = "robotmk.scheduler"
+        $configPath = Join-Path $parentDir "config\robotmk.json"
+
+        $argumentsList = "-m $moduleName --config $configPath"
+    }
+
+    return [PSCustomObject]@{
+        Executable = if ($config.rcc) { $rccPath } else { $pythonExe }
+        Arguments = $argumentsList
     }
 }
