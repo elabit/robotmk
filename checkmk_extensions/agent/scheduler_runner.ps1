@@ -56,3 +56,48 @@ class Command {
         return [Command]::new($_executable, $_argumentsList)
     }
 }
+
+function StartSchedulerRunner([string]$configFilePath) {
+    $configFileContent = [Config]::ParseConfigFile($configFilePath)
+
+    $command = [Command]::CreateCommand($configFileContent)
+
+    # Create processInfo
+    $processInfo = New-Object System.Diagnostics.ProcessStartInfo
+    $processInfo.FileName = $command.Executable
+    $processInfo.Arguments = $command.ArgumentsList
+    $processInfo.RedirectStandardOutput = $true
+    $processInfo.RedirectStandardError = $true
+    $processInfo.UseShellExecute = $false
+    $processInfo.CreateNoWindow = $true
+    # $processInfo.WorkingDirectory -> Using this we can configure from where the Process will be started
+    $processInfo.WorkingDirectory = $PSScriptRoot
+
+    # Create process and assign processInfo to it
+    $process = New-Object System.Diagnostics.Process
+    $process.StartInfo = $processInfo
+
+
+    try {
+        $process.Start() | Out-Null
+
+        # Read stdout and stderr and handle them as needed
+        while ($true) {
+            $stdout = $process.StandardOutput.ReadLine()
+            if ($null -ne $stdout) {
+                # Handle stdout output here
+                # TODO: Log error message to ..\log\robotmk\scheduler_runner.log
+            }
+
+            $stderr = $process.StandardError.ReadLine()
+            if ($null -ne $stderr) {
+                # Handle stderr output here
+                # TODO: Log error message to ..\log\robotmk\scheduler_runner.log
+            }
+        }
+    }
+    catch {
+        # TODO: Handle errors
+        throw $_.Exception.Message
+    }
+}
