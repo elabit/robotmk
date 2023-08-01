@@ -8,21 +8,17 @@ from collections.abc import Iterable, Mapping, Sequence
 from typing import Final
 from uuid import uuid4
 
-from apscheduler.schedulers.blocking import (  # type: ignore[import]
-    BlockingScheduler,
-)
-from apscheduler.triggers.interval import (  # type: ignore[import]
-    IntervalTrigger,
-)
+from apscheduler.schedulers.blocking import BlockingScheduler  # type: ignore[import]
+from apscheduler.triggers.interval import IntervalTrigger  # type: ignore[import]
 from environment import RCCEnvironment, ResultCode, RobotEnvironment
 from pydantic import BaseModel
 from runner import (
     Attempt,
-    create_attempts,
-    create_merge_command,
     RetrySpec,
     RetryStrategy,
     Variant,
+    create_attempts,
+    create_merge_command,
 )
 
 
