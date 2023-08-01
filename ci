@@ -8,7 +8,6 @@ main() {
 	v2_src="${v2_dir}/src"
 	v2_tests="${v2_dir}/tests"
 	checkmk_extensions_dir="${topdir}/checkmk_extensions"
-	checkmk_dir="${topdir}/checkmk"
 	mode="${1}"
 	shift
 
@@ -18,7 +17,7 @@ main() {
 		;;
 
 	'black-check-all')
-		"${self}" black --check --diff "${checkmk_extensions_dir}" "${v2_src}" "${v2_tests}"
+		"${self}" black --check "${v2_src}" "${v2_tests}"
 		;;
 
 	'isort')
@@ -26,26 +25,23 @@ main() {
 		;;
 
 	'isort-check-all')
-		"${self}" isort --check-only --diff "${checkmk_extensions_dir}" "${v2_src}" "${v2_tests}"
+		"${self}" isort --check-only "${v2_src}" "${v2_tests}"
 		;;
 
 	'mypy')
-		export MYPYPATH="${checkmk_dir}"
 		run_pipenv "${topdir}" mypy --config-file "${pyproject_toml_path}" "$@"
 		;;
 
 	'mypy-check-all')
-		"${self}" mypy --package "checkmk_extensions" --package "agent"
 		"${self}" mypy "${v2_src}" "${v2_tests}"
 		;;
 
 	'pylint')
-		export PYTHONPATH="${checkmk_dir}:${PYTHONPATH}"
 		run_pipenv "${topdir}" pylint --rcfile "${v2_dir}/pyproject.toml" "$@"
 		;;
 
 	'pylint-check-all')
-		"${self}" pylint --recursive true "${checkmk_extensions_dir}" "${v2_src}" "${v2_tests}"
+		"${self}" pylint --recursive true "${v2_src}" "${v2_tests}"
 		;;
 
 	'pytest')
@@ -53,7 +49,6 @@ main() {
 		;;
 
 	'pytest-check-all')
-		"${self}" pytest "${checkmk_extensions_dir}/tests"
 		"${self}" pytest "${v2_tests}"
 		;;
 

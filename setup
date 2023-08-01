@@ -28,7 +28,7 @@ setup_python_environment() {
         libsasl2-dev \
         libkrb5-dev
 
-    pip3 install pipenv
+    python3 -m pip install pipenv
     "${topdir}/pipenv" sync
 }
 

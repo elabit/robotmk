@@ -10,9 +10,6 @@ main() {
 
     case "${mode}" in
         'lock')
-            . "${topdir}/python_version"
-            build_pipfile_from_template_and_additional_pipfile "${topdir}/Pipfile_template" "${topdir}/checkmk/Pipfile" ./checkmk > "${pipfile}"
-            pipfile_python_version_section "${PYTHON_VERSION}" >> "${pipfile}"
             execute_pipenv_command "${pipfile}" lock --dev
             ;;
 
@@ -31,30 +28,6 @@ main() {
     esac
 
     return 0
-}
-
-build_pipfile_from_template_and_additional_pipfile() {
-    additional_packages=$(extract_packages_from_pipfile "${2}")
-    additional_packages=$(replace_relative_paths_in_pipfile_packages "${additional_packages}" "${3}")
-    build_pipfile_from_template_and_additional_packages "${1}" "${additional_packages}"
-}
-
-extract_packages_from_pipfile() {
-    awk '/\[packages\]/{flag=1;next}/^\[.*\]/{flag=0}flag' "${1}"
-}
-
-replace_relative_paths_in_pipfile_packages() {
-    echo "${1/path = \".\//path = \"${2}\/}"
-}
-
-build_pipfile_from_template_and_additional_packages() {
-    awk -v additional_packages="${2}" '//; /\[packages\]/{print additional_packages}' "${1}"
-}
-
-pipfile_python_version_section() {
-    echo "
-[requires]
-python_version = \""${1}"\""
 }
 
 execute_pipenv_command() {
