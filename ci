@@ -5,7 +5,7 @@ main() {
 	self="${topdir}/ci"
 	pyproject_toml_path="${topdir}/pyproject.toml"
 	v2_dir="${topdir}/v2"
-	v2_src="${v2_dir}/src"
+	v2_src="${v2_dir}/robotmk"
 	v2_tests="${v2_dir}/tests"
 	checkmk_extensions_dir="${topdir}/checkmk_extensions"
 	mode="${1}"
