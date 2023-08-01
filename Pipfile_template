@@ -3,9 +3,6 @@ url = "https://pypi.org/simple"
 verify_ssl = true
 name = "pypi"
 
-[packages]
-robotmk = {editable = true, path = "./robotmk"}
-
 [dev-packages]
 bumpversion = "*"
 pre-commit = "*"
