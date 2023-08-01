@@ -56,3 +56,44 @@ class Command {
         return [Command]::new($_executable, $_argumentsList)
     }
 }
+
+function StartSchedulerRunner([string]$configFilePath) {
+    $configFileContent = [Config]::ParseConfigFile($configFilePath)
+
+    $command = [Command]::CreateCommand($configFileContent)
+
+    try {
+        $processInfo = New-Object System.Diagnostics.ProcessStartInfo
+        $processInfo.FileName = $command.Executable
+        $processInfo.Arguments = $command.Arguments
+        $processInfo.RedirectStandardOutput = $true
+        $processInfo.RedirectStandardError = $true
+        $processInfo.UseShellExecute = $false
+        $processInfo.CreateNoWindow = $true
+        # $processInfo.WorkingDirectory -> Using this we can configure from where the Process will be started
+
+
+        $process = New-Object System.Diagnostics.Process
+        $process.StartInfo = $processInfo
+
+        $process.Start() | Out-Null
+
+        # Read stdout and stderr and handle them as needed
+        while (!$process.HasExited) {
+            $stdout = $process.StandardOutput.ReadLine()
+            if ($null -ne $stdout) {
+                # Handle stdout output here
+                Write-Host "STDOUT: $stdout" # TODO: Log error message to ..\log\robotmk\scheduler_runner.log
+            }
+
+            $stderr = $process.StandardError.ReadLine()
+            if ($null -ne $stderr) {
+                # Handle stderr output here
+                Write-Error "STDERR: $stderr" # TODO: Log error message to ..\log\robotmk\scheduler_runner.log
+            }
+        }
+    }
+    catch {
+        throw $_.Exception.Message
+    }
+}
