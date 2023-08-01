@@ -3,9 +3,6 @@
 set -e
 
 main() {
-    topdir="$(git rev-parse --show-toplevel)"
-
-    . "${topdir}/python_version"
     setup_python_environment "${PYTHON_VERSION}"
 
     setup_powershell
@@ -14,23 +11,13 @@ main() {
 }
 
 setup_python_environment() {
-    check_python_version "${1}"
-    check_pip_executable
-
-    python3 -m pip install poetry
-    POETRY_VIRTUALENVS_IN_PROJECT=true poetry install --with dev
+    check_poetry_executable
+    poetry install --with dev
 }
 
-check_python_version() {
-    python3 --version | grep --quiet "Python ${1}" || {
-        echo "Python ${1} not found, aborting. Installing Python is non-trivial, please do it manually."
-        exit 1
-    }
-}
-
-check_pip_executable() {
-    command -v pip > /dev/null || {
-        echo "pip3 executable not found, aborting. Installing pip is non-trivial, please do it manually."
+check_poetry_executable() {
+    command -v poetry > /dev/null || {
+        echo "poetry executable not found, aborting. Installing poetry is non-trivial, please do it manually."
         exit 1
     }
 }
