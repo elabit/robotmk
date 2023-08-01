@@ -29,7 +29,6 @@ class _RCC(BaseModel, frozen=True):
 
 class _SuiteConfig(BaseModel, frozen=True):  # pylint: disable=too-few-public-methods
     execution_interval_seconds: int
-    python_executable: pathlib.Path
     robot_target: pathlib.Path
     working_directory: pathlib.Path
     variants: Sequence[Variant]
@@ -66,7 +65,6 @@ class _SuiteRetryRunner:  # pylint: disable=too-few-public-methods
 
         retry_spec = RetrySpec(
             id_=uuid4(),
-            python_executable=self._config.python_executable,
             robot_target=self._config.robot_target,
             working_directory=self._config.working_directory,
             schedule=self._config.variants,
@@ -79,10 +77,10 @@ class _SuiteRetryRunner:  # pylint: disable=too-few-public-methods
             return  # Untested
 
         final_output = retry_spec.outputdir() / "merged.xml"
+
         _process = subprocess.run(
             shlex.split(
                 create_merge_command(
-                    python_executable=self._config.python_executable,
                     attempt_outputs=outputs,
                     final_output=final_output,
                 )
