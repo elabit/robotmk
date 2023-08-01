@@ -37,7 +37,7 @@ main() {
 		;;
 
 	'pylint')
-		run_pipenv "${topdir}" pylint --rcfile "${v2_dir}/pyproject.toml" "$@"
+		run_pipenv "${topdir}" pylint --rcfile "${pyproject_toml_path}" "$@"
 		;;
 
 	'pylint-check-all')
