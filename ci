@@ -13,7 +13,7 @@ main() {
 
 	case "${mode}" in
 	'black')
-		run_pipenv "${topdir}" black --config "${pyproject_toml_path}" "$@"
+		poetry run black --config "${pyproject_toml_path}" "$@"
 		;;
 
 	'black-check-all')
@@ -21,7 +21,7 @@ main() {
 		;;
 
 	'isort')
-		run_pipenv "${topdir}" isort --settings-path "${pyproject_toml_path}" "$@"
+		poetry run isort --settings-path "${pyproject_toml_path}" "$@"
 		;;
 
 	'isort-check-all')
@@ -29,7 +29,7 @@ main() {
 		;;
 
 	'mypy')
-		run_pipenv "${topdir}" mypy --config-file "${pyproject_toml_path}" "$@"
+		poetry run mypy --config-file "${pyproject_toml_path}" "$@"
 		;;
 
 	'mypy-check-all')
@@ -37,7 +37,7 @@ main() {
 		;;
 
 	'pylint')
-		run_pipenv "${topdir}" pylint --rcfile "${pyproject_toml_path}" "$@"
+		poetry run pylint --rcfile "${pyproject_toml_path}" "$@"
 		;;
 
 	'pylint-check-all')
@@ -45,7 +45,7 @@ main() {
 		;;
 
 	'pytest')
-		run_pipenv "${topdir}" pytest --rootdir "${topdir}" "$@"
+		poetry run pytest --rootdir "${topdir}" "$@"
 		;;
 
 	'pytest-check-all')
@@ -87,12 +87,6 @@ main() {
 	esac
 
 	return "$?"
-}
-
-run_pipenv() {
-	pipenv_script="${1}/pipenv"
-	shift
-	"${pipenv_script}" run "$@"
 }
 
 main "$@"

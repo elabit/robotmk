@@ -23,3 +23,29 @@ pythonpath = [ "v2/src/" ]
 
 [tool.isort]
 profile = "black"
+
+[tool.poetry]
+name = "robotmk"
+version = "2.0.0-alpha"
+description = "Synthenic monitoring with Checkmk"
+authors = ["Team Yukon"]
+readme = "README.md"
+
+[tool.poetry.dependencies]
+python = "^3.11"
+pydantic = "*"
+apscheduler = "<4"
+
+[tool.poetry.group.dev]
+optional = true
+
+[tool.poetry.group.dev.dependencies]
+mypy = "*"
+black = "*"
+isort = "*"
+pylint = "*"
+pytest = "*"
+
+[build-system]
+requires = ["poetry-core"]
+build-backend = "poetry.core.masonry.api"
