@@ -4,7 +4,6 @@ main() {
 	topdir="$(git rev-parse --show-toplevel)"
 	self="${topdir}/ci"
 	pyproject_toml_path="${topdir}/pyproject.toml"
-	robotmk_dir="${topdir}/robotmk"
 	v2_dir="${topdir}/v2"
 	v2_src="${v2_dir}/src"
 	v2_tests="${v2_dir}/tests"
@@ -19,7 +18,7 @@ main() {
 		;;
 
 	'black-check-all')
-		"${self}" black --check --diff "${robotmk_dir}" "${checkmk_extensions_dir}" "${v2_src}" "${v2_tests}"
+		"${self}" black --check --diff "${checkmk_extensions_dir}" "${v2_src}" "${v2_tests}"
 		;;
 
 	'isort')
@@ -27,7 +26,7 @@ main() {
 		;;
 
 	'isort-check-all')
-		"${self}" isort --check-only --diff "${checkmk_extensions_dir}" "${robotmk_dir}" "${v2_src}" "${v2_tests}"
+		"${self}" isort --check-only --diff "${checkmk_extensions_dir}" "${v2_src}" "${v2_tests}"
 		;;
 
 	'mypy')
@@ -36,7 +35,7 @@ main() {
 		;;
 
 	'mypy-check-all')
-		"${self}" mypy --package "checkmk_extensions" --package "robotmk" --package "agent"
+		"${self}" mypy --package "checkmk_extensions" --package "agent"
 		"${self}" mypy "${v2_src}" "${v2_tests}"
 		;;
 

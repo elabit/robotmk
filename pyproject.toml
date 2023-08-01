@@ -16,7 +16,7 @@ warn_unused_configs = true
 warn_unused_ignores = true
 
 [[tool.mypy.overrides]]
-module = ["robotmk.*", "tests.*", "click_tutorial" ]
+module = ["tests.*", "click_tutorial" ]
 check_untyped_defs = false
 disallow_any_generics = false
 disallow_incomplete_defs = false
