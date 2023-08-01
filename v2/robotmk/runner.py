@@ -5,6 +5,9 @@ import enum
 import pathlib
 import uuid
 from collections.abc import Iterable, Sequence
+from typing import Final
+
+PYTHON_EXECUTABLE: Final = pathlib.Path("python")
 
 
 class RetryStrategy(enum.Enum):
@@ -13,8 +16,7 @@ class RetryStrategy(enum.Enum):
 
 
 @dataclasses.dataclass(frozen=True)
-class _RunnerSpec:  # pylint: disable=too-many-instance-attributes
-    python_executable: pathlib.Path
+class _RunnerSpec:
     robot_target: pathlib.Path
     outputdir: pathlib.Path
     output_name: str
@@ -27,7 +29,7 @@ class _RunnerSpec:  # pylint: disable=too-many-instance-attributes
         return self.outputdir / f"{self.output_name}.xml"
 
     def command(self) -> str:
-        robot_command = f"{self.python_executable} -m robot "
+        robot_command = f"{PYTHON_EXECUTABLE} -m robot "
         if self.variablefile is not None:
             robot_command += f"--variablefile={self.variablefile} "
         if self.argumentfile is not None:
@@ -42,7 +44,6 @@ class _RunnerSpec:  # pylint: disable=too-many-instance-attributes
 
     def _check(self) -> bool:
         paths_to_check = [
-            self.python_executable,
             self.robot_target,
             self.outputdir,
             self.variablefile,
@@ -61,7 +62,6 @@ class Variant:
 @dataclasses.dataclass(frozen=True)
 class RetrySpec:
     id_: uuid.UUID
-    python_executable: pathlib.Path
     robot_target: pathlib.Path
     working_directory: pathlib.Path
     schedule: Sequence[Variant]
@@ -83,7 +83,6 @@ def create_attempts(spec: RetrySpec) -> list[Attempt]:
 
     for i, variant in enumerate(spec.schedule):
         runner_spec = _RunnerSpec(
-            python_executable=spec.python_executable,
             robot_target=spec.robot_target,
             outputdir=spec.outputdir(),
             output_name=str(
@@ -107,11 +106,10 @@ def create_attempts(spec: RetrySpec) -> list[Attempt]:
 
 def create_merge_command(
     *,
-    python_executable: pathlib.Path,
     attempt_outputs: Iterable[pathlib.Path],
     final_output: pathlib.Path,
 ) -> str:
     return (
-        f"{python_executable} -m robot.rebot --output={final_output} --report=NONE --log=NONE "
+        f"{PYTHON_EXECUTABLE} -m robot.rebot --output={final_output} --report=NONE --log=NONE "
         + " ".join(str(variant_output) for variant_output in attempt_outputs)
     )
