@@ -18,7 +18,7 @@ setup_python_environment() {
     check_pip_executable
 
     python3 -m pip install poetry
-    poetry install --with dev
+    POETRY_VIRTUALENVS_IN_PROJECT=true poetry install --with dev
 }
 
 check_python_version() {

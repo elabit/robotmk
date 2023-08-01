@@ -18,15 +18,13 @@ warn_unused_ignores = true
 [tool.pylint.'MESSAGES CONTROL']
 disable = "missing-docstring"
 
-[tool.pytest.ini_options]
-pythonpath = [ "v2/src/" ]
-
 [tool.isort]
 profile = "black"
 
 [tool.poetry]
 name = "robotmk"
 version = "2.0.0-alpha"
+packages = [{include = "robotmk", from = "v2"}]
 description = "Synthenic monitoring with Checkmk"
 authors = ["Team Yukon"]
 readme = "README.md"

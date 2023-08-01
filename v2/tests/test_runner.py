@@ -1,7 +1,7 @@
 import pathlib
 import uuid
 
-import runner
+from robotmk import runner
 
 # pylint: disable=protected-access
 
