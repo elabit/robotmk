@@ -22,7 +22,7 @@ jobs:
         - name: Powershell static analysis
           step: PSScriptAnalyzer-check-all
 
-    steps: 
+    steps:
     - name: Checkout repository
       uses: actions/checkout@v3
       with:
@@ -36,14 +36,7 @@ jobs:
       with:
         python-version: ${{ env.PYTHON_VERSION }}
 
-    - name: Setup Python virtual environment cache
-      uses: actions/cache@v3
-      with:
-        key: venv-${{ runner.os }}-${{ hashFiles('Pipfile.lock') }}
-        path: .venv
-
     - name: Setup environment
-      # this steps always builds the venv, however, this is quite fast if we got a cache hit
       run: ./setup
 
     - name: ${{ matrix.name  }}
