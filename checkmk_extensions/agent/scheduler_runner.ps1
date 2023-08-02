@@ -57,7 +57,13 @@ class Command {
     }
 }
 
-function StartSchedulerRunner([string]$configFilePath) {
+function StartSchedulerRunner {
+    [CmdletBinding()]
+    param (
+        [Parameter(Mandatory=$true)]
+        [string]$configFilePath
+    )
+
     $configFileContent = [Config]::ParseConfigFile($configFilePath)
 
     $command = [Command]::CreateCommand($configFileContent)
