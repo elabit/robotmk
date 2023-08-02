@@ -64,9 +64,9 @@ function StartSchedulerRunner {
         [string]$configFilePath
     )
 
-    $configFileContent = [Config]::ParseConfigFile($configFilePath)
+    $config = [Config]::ParseConfigFile($configFilePath)
 
-    $command = [Command]::CreateCommand($configFileContent)
+    $command = [Command]::CreateCommand($config)
     $parentDir = Split-Path $PSScriptRoot -Parent
     $logPath = Join-Path $parentDir "log\robotmk\scheduler_runner.log"
 
@@ -87,10 +87,9 @@ function StartSchedulerRunner {
 
 
     try {
-        $process.Start() | Out-Null
-
         # Read stdout and stderr and handle them as needed
         while ($true) {
+            $process.Start() | Out-Null
             $stdout = $process.StandardOutput.ReadLine()
             if ($null -ne $stdout) {
                 # Handle stdout output here
