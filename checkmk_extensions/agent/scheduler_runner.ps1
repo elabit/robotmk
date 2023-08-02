@@ -67,6 +67,8 @@ function StartSchedulerRunner {
     $configFileContent = [Config]::ParseConfigFile($configFilePath)
 
     $command = [Command]::CreateCommand($configFileContent)
+    $parentDir = Split-Path $PSScriptRoot -Parent
+    $logPath = Join-Path $parentDir "log\robotmk\scheduler_runner.log"
 
     # Create processInfo
     $processInfo = New-Object System.Diagnostics.ProcessStartInfo
@@ -92,18 +94,49 @@ function StartSchedulerRunner {
             $stdout = $process.StandardOutput.ReadLine()
             if ($null -ne $stdout) {
                 # Handle stdout output here
-                # TODO: Log error message to ..\log\robotmk\scheduler_runner.log
+                WriteLog -Message $stdout -LogPath $logPath
             }
 
             $stderr = $process.StandardError.ReadLine()
             if ($null -ne $stderr) {
                 # Handle stderr output here
-                # TODO: Log error message to ..\log\robotmk\scheduler_runner.log
+                WriteLog -Message $stderr -LogPath $logPath
             }
         }
     }
     catch {
         # TODO: Handle errors
+        WriteLog -Message $_.Exception.Message -LogPath $logPath
         throw $_.Exception.Message
     }
+}
+
+function WriteLog {
+    [CmdletBinding()]
+    param (
+        [Parameter(Mandatory=$true, Position=0)]
+        [string]$Message,
+
+        [Parameter(Mandatory=$true)]
+        [string]$LogPath
+    )
+
+    # Create the log file and the parent folder if they don't exist
+    $LogFolder = Split-Path -Parent $LogPath
+    if (-not (Test-Path $LogFolder)) {
+        $null = New-Item -Path $LogFolder -ItemType Directory
+    }
+
+    if (-not (Test-Path $LogPath)) {
+        $null = New-Item -Path $LogPath -ItemType File
+    }
+
+    # Get the current timestamp
+    $TimeStamp = Get-Date -Format "yyyy-MM-dd HH:mm:ss"
+
+    # Format the log entry
+    $LogEntry = "$TimeStamp - $Message"
+
+    # Write the log entry to the log file
+    $LogEntry | Out-File -Append $LogPath
 }
