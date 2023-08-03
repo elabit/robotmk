@@ -4,7 +4,7 @@ import dataclasses
 import enum
 import pathlib
 import uuid
-from collections.abc import Iterable, Sequence
+from collections.abc import Sequence
 from typing import Final
 
 PYTHON_EXECUTABLE: Final = pathlib.Path("python")
@@ -102,14 +102,3 @@ def create_attempts(spec: RetrySpec) -> list[Attempt]:
         )
 
     return attempts
-
-
-def create_merge_command(
-    *,
-    attempt_outputs: Iterable[pathlib.Path],
-    final_output: pathlib.Path,
-) -> str:
-    return (
-        f"{PYTHON_EXECUTABLE} -m robot.rebot --output={final_output} --report=NONE --log=NONE "
-        + " ".join(str(variant_output) for variant_output in attempt_outputs)
-    )
