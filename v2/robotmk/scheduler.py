@@ -11,16 +11,10 @@ from uuid import uuid4
 from apscheduler.schedulers.blocking import BlockingScheduler  # type: ignore[import]
 from apscheduler.triggers.interval import IntervalTrigger  # type: ignore[import]
 from pydantic import BaseModel
+from robot import rebot  # type: ignore[import]
 
 from .environment import RCCEnvironment, ResultCode, RobotEnvironment
-from .runner import (
-    Attempt,
-    RetrySpec,
-    RetryStrategy,
-    Variant,
-    create_attempts,
-    create_merge_command,
-)
+from .runner import Attempt, RetrySpec, RetryStrategy, Variant, create_attempts
 
 
 class _RCC(BaseModel, frozen=True):
@@ -78,16 +72,7 @@ class _SuiteRetryRunner:  # pylint: disable=too-few-public-methods
 
         final_output = retry_spec.outputdir() / "merged.xml"
 
-        _process = subprocess.run(
-            shlex.split(
-                create_merge_command(
-                    attempt_outputs=outputs,
-                    final_output=final_output,
-                )
-            ),
-            check=False,
-            encoding="utf-8",
-        )
+        rebot(*outputs, output=final_output, report=None, log=None)
         self._final_outputs.append(final_output)
 
     def _prepare_run(self) -> None:

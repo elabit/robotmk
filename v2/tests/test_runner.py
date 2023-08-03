@@ -81,16 +81,3 @@ def test_create_attempts() -> None:
             "~/suite/calculator.robot",
         ),
     ]
-
-
-def test_create_merge_command() -> None:
-    assert runner.create_merge_command(
-        attempt_outputs=[
-            pathlib.Path("/tmp/outputdir/0.xml"),
-            pathlib.Path("/tmp/outputdir/1.xml"),
-        ],
-        final_output=pathlib.Path("/tmp/outputdir/merged.xml"),
-    ) == (
-        "python -m robot.rebot --output=/tmp/outputdir/merged.xml --report=NONE "
-        "--log=NONE /tmp/outputdir/0.xml /tmp/outputdir/1.xml"
-    )
