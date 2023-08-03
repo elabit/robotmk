@@ -518,6 +518,17 @@ files = [
 ]
 
 [[package]]
+name = "robotframework"
+version = "6.1.1"
+description = "Generic automation framework for acceptance testing and robotic process automation (RPA)"
+optional = false
+python-versions = ">=3.6"
+files = [
+    {file = "robotframework-6.1.1-py3-none-any.whl", hash = "sha256:ee0d512d557e72ed760dd075525f6226baaab309010a48f9c9bf1f416ca434f7"},
+    {file = "robotframework-6.1.1.zip", hash = "sha256:3fa18f2596a4df2418c4b59abf43248327c15ed38ad8665f6a9a9c75c95d7789"},
+]
+
+[[package]]
 name = "setuptools"
 version = "68.0.0"
 description = "Easily download, build, install, upgrade, and uninstall Python packages"
@@ -681,4 +692,4 @@ files = [
 [metadata]
 lock-version = "2.0"
 python-versions = "^3.11"
-content-hash = "7fd49e024bb5e9809d70e6888878b3e49c07ef901caaaf2253a6d74f36d4c7d1"
+content-hash = "9fab119e8a3ac9f3e0cb78536509ad0b3896e4cbe8ad4036f86815638bdd5b08"
