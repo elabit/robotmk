@@ -1,0 +1,23 @@
+{
+	"suites": {
+		"test": {
+			"execution_interval_seconds": 10,
+			"robot_target": "C:\\robotmk\\v2\\data\\retry_suite\\/tasks.robot",
+			"working_directory": "/tmp/outputdir",
+			"variants": [
+				{
+					"variablefile": null,
+					"argumentfile": null
+				},
+				{
+					"variablefile": "C:\\robotmk\\v2\\data\\retry_suite\\/retry_variables.yaml",
+					"argumentfile": null
+				}
+			],
+			"retry_strategy": "incremental",
+			"env": {
+				"robot_yaml": "C:\\robotmk\\v2\\data\\retry_rcc\\/robot.yaml"
+			}
+		}
+	}
+}
