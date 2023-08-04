@@ -1,5 +1,6 @@
 """Scheduler"""
 
+import argparse
 import datetime
 import pathlib
 import shlex
@@ -13,8 +14,8 @@ from apscheduler.triggers.interval import IntervalTrigger  # type: ignore[import
 from pydantic import BaseModel
 from robot import rebot  # type: ignore[import]
 
-from .environment import RCCEnvironment, ResultCode, RobotEnvironment
-from .runner import Attempt, RetrySpec, RetryStrategy, Variant, create_attempts
+from robotmk.environment import RCCEnvironment, ResultCode, RobotEnvironment
+from robotmk.runner import Attempt, RetrySpec, RetryStrategy, Variant, create_attempts
 
 
 class _RCC(BaseModel, frozen=True):
@@ -28,6 +29,10 @@ class _SuiteConfig(BaseModel, frozen=True):  # pylint: disable=too-few-public-me
     variants: Sequence[Variant]
     retry_strategy: RetryStrategy
     env: _RCC | None
+
+
+class _SchedulerConfig(BaseModel, frozen=True):
+    suites: Mapping[str, _SuiteConfig]
 
 
 def _scheduler(suites: Mapping[str, _SuiteConfig]) -> BlockingScheduler:
@@ -100,3 +105,22 @@ class _SuiteRetryRunner:  # pylint: disable=too-few-public-methods
                     continue
             break
         return outputs
+
+
+class Arguments(BaseModel, frozen=True):
+    config_path: pathlib.Path
+
+
+def main() -> None:
+    parser = argparse.ArgumentParser()
+    parser.add_argument("config_path", type=pathlib.Path)
+    arguments = Arguments.model_validate(vars(parser.parse_args()))
+
+    with arguments.config_path.open() as file:
+        content = file.read()
+    config = _SchedulerConfig.model_validate_json(content)
+    _scheduler(config.suites).start()
+
+
+if __name__ == "__main__":
+    main()
