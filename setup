@@ -12,6 +12,7 @@ main() {
 
 setup_python_environment() {
     check_poetry_executable
+    export POETRY_VIRTUALENVS_IN_PROJECT=true
     poetry install --with dev
 }
 
