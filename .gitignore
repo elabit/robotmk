@@ -1,12 +1,6 @@
 .vagrant
 hololib.zip
 __pycache__
-robotmk_output_*
-robotmk.egg-info
-robotmk-agent/dist/*
-agent/tmp/*
-agent/log/*
-dist
 .stignore
 .stversions
 .venv
