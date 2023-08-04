@@ -15,11 +15,26 @@ class RCCEnvironment:
     robot_yaml: pathlib.Path
     binary: str
 
-    def build_command(self) -> str:
-        return f"{self.binary} holotree variables --json -r {self.robot_yaml}"
+    def build_command(self) -> list[str]:
+        return [
+            self.binary,
+            "holotree",
+            "variables",
+            "--json",
+            "-r",
+            str(self.robot_yaml),
+        ]
 
-    def extend(self, robot_command: str) -> str:
-        return f"{self.binary} task script -r {self.robot_yaml} -- {robot_command}"
+    def extend(self, robot_command: list[str]) -> list[str]:
+        rcc_command = [
+            self.binary,
+            "task",
+            "script",
+            "-r",
+            str(self.robot_yaml),
+            "--",
+        ]
+        return rcc_command + robot_command
 
     @staticmethod
     def create_result_code(process: subprocess.CompletedProcess[str]) -> ResultCode:
@@ -35,7 +50,7 @@ class RobotEnvironment:
     def build_command(self) -> None:
         return None
 
-    def extend(self, robot_command: str) -> str:
+    def extend(self, robot_command: list[str]) -> list[str]:
         return robot_command
 
     @staticmethod

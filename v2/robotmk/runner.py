@@ -28,19 +28,19 @@ class _RunnerSpec:
     def output(self) -> pathlib.Path:
         return self.outputdir / f"{self.output_name}.xml"
 
-    def command(self) -> str:
-        robot_command = f"{PYTHON_EXECUTABLE} -m robot "
+    def command(self) -> list[str]:
+        robot_command = [str(PYTHON_EXECUTABLE), "-m", "robot"]
         if self.variablefile is not None:
-            robot_command += f"--variablefile={self.variablefile} "
+            robot_command.append(f"--variablefile={self.variablefile}")
         if self.argumentfile is not None:
-            robot_command += f"--argumentfile={self.argumentfile} "
+            robot_command.append(f"--argumentfile={self.argumentfile}")
         if self.retry_strategy is RetryStrategy.INCREMENTAL and self.previous_output:
-            robot_command += f"--rerunfailed={self.previous_output} "
-        return robot_command + (
-            f"--outputdir={self.outputdir} "
-            f"--output={self.output()} "
-            f"{self.robot_target}"
-        )
+            robot_command.append(f"--rerunfailed={self.previous_output}")
+        return robot_command + [
+            f"--outputdir={self.outputdir}",
+            f"--output={self.output()}",
+            str(self.robot_target),
+        ]
 
     def _check(self) -> bool:
         paths_to_check = [
@@ -74,7 +74,7 @@ class RetrySpec:
 @dataclasses.dataclass(frozen=True)
 class Attempt:
     output: pathlib.Path
-    command: str
+    command: list[str]
 
 
 def create_attempts(spec: RetrySpec) -> list[Attempt]:

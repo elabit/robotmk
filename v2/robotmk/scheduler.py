@@ -3,7 +3,6 @@
 import argparse
 import datetime
 import pathlib
-import shlex
 import subprocess
 from collections.abc import Iterable, Mapping, Sequence
 from typing import Final
@@ -83,7 +82,7 @@ class _SuiteRetryRunner:  # pylint: disable=too-few-public-methods
     def _prepare_run(self) -> None:
         self._config.working_directory.mkdir(parents=True, exist_ok=True)
         if (build_command := self._env.build_command()) is not None:
-            _process = subprocess.run(shlex.split(build_command), check=True)
+            _process = subprocess.run(build_command, check=True)
 
     def _run_attempts_until_successful(
         self,
@@ -92,11 +91,7 @@ class _SuiteRetryRunner:  # pylint: disable=too-few-public-methods
         outputs = []
         for attempt in attempts:
             command = self._env.extend(attempt.command)
-            process = subprocess.run(
-                shlex.split(command),
-                check=False,
-                encoding="utf-8",
-            )
+            process = subprocess.run(command, check=False, encoding="utf-8")
             match self._env.create_result_code(process):
                 case ResultCode.ALL_TESTS_PASSED:
                     outputs.append(attempt.output)
