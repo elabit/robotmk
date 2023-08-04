@@ -65,7 +65,7 @@ class _SuiteRetryRunner:  # pylint: disable=too-few-public-methods
             id_=uuid4(),
             robot_target=self._config.robot_target,
             working_directory=self._config.working_directory,
-            schedule=self._config.variants,
+            variants=self._config.variants,
             strategy=self._config.retry_strategy,
         )
 

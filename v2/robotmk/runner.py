@@ -64,7 +64,7 @@ class RetrySpec:
     id_: uuid.UUID
     robot_target: pathlib.Path
     working_directory: pathlib.Path
-    schedule: Sequence[Variant]
+    variants: Sequence[Variant]
     strategy: RetryStrategy
 
     def outputdir(self) -> pathlib.Path:
@@ -81,7 +81,7 @@ def create_attempts(spec: RetrySpec) -> list[Attempt]:
     attempts = []
     previous_output = None
 
-    for i, variant in enumerate(spec.schedule):
+    for i, variant in enumerate(spec.variants):
         runner_spec = _RunnerSpec(
             robot_target=spec.robot_target,
             outputdir=spec.outputdir(),

@@ -56,7 +56,7 @@ def test_create_attempts() -> None:
             id_=uuid.UUID("383783f4-1d02-43b1-9d6f-205f4d492d95"),
             robot_target=pathlib.Path("~/suite/calculator.robot"),
             working_directory=pathlib.Path("/tmp/outputdir/"),
-            schedule=[
+            variants=[
                 runner.Variant(
                     variablefile=None,
                     argumentfile=None,
