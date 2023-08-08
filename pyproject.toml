@@ -2,7 +2,7 @@
 name = "robotmk"
 version = "2.0.0-alpha"
 packages = [{include = "robotmk", from = "v2"}]
-description = "Synthenic monitoring with Checkmk"
+description = "Synthetic monitoring with Checkmk"
 authors = ["Team Yukon"]
 readme = "README.md"
 
@@ -21,6 +21,11 @@ black = "*"
 isort = "*"
 pylint = "*"
 pytest = "*"
+# Editor dependencies
+python-lsp-server = "*"
+pylsp-mypy = "*"
+pyls-isort = "*"
+python-lsp-black = "*"
 
 [build-system]
 requires = ["poetry-core"]
