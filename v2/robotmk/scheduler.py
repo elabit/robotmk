@@ -15,6 +15,7 @@ from robot import rebot  # type: ignore[import]
 
 from robotmk.environment import RCCEnvironment, ResultCode, RobotEnvironment
 from robotmk.runner import Attempt, RetrySpec, RetryStrategy, Variant, create_attempts
+from robotmk.session import CurrentSession
 
 
 class _RCC(BaseModel, frozen=True):
@@ -61,10 +62,17 @@ def _environment(
     )
 
 
+def _session(
+    suite_name: str,
+    suite_config: _SuiteConfig,
+) -> CurrentSession:
+    return CurrentSession(environment=_environment(suite_name, suite_config.env))
+
+
 class _SuiteRetryRunner:  # pylint: disable=too-few-public-methods
     def __init__(self, suite_name: str, suite_config: _SuiteConfig) -> None:
         self._config: Final = suite_config
-        self._env: Final = _environment(suite_name, suite_config.env)
+        self._session: Final = _session(suite_name, suite_config)
         self._final_outputs: list[pathlib.Path] = []
 
     def __call__(self) -> None:
@@ -90,7 +98,7 @@ class _SuiteRetryRunner:  # pylint: disable=too-few-public-methods
 
     def _prepare_run(self) -> None:
         self._config.working_directory.mkdir(parents=True, exist_ok=True)
-        if (build_command := self._env.build_command()) is not None:
+        if (build_command := self._session.environment.build_command()) is not None:
             _process = subprocess.run(build_command, check=True)
 
     def _run_attempts_until_successful(
@@ -99,9 +107,7 @@ class _SuiteRetryRunner:  # pylint: disable=too-few-public-methods
     ) -> list[pathlib.Path]:
         outputs = []
         for attempt in attempts:
-            command = self._env.wrap_for_execution(attempt.command)
-            process = subprocess.run(command, check=False, encoding="utf-8")
-            match self._env.create_result_code(process):
+            match self._session.run(attempt):
                 case ResultCode.ALL_TESTS_PASSED:
                     outputs.append(attempt.output)
                 case ResultCode.ROBOT_COMMAND_FAILED if attempt.output.exists():
