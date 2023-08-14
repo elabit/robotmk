@@ -3,4 +3,4 @@ choco install -y googlechrome
 choco install -y python
 choco install -y nushell
 
-(new-object net.webclient).DownloadFile("https://downloads.robocorp.com/rcc/releases/latest/windows64/rcc.exe", "C:\Users\vagrant\AppData\Local\Microsoft\WindowsApps\rcc.exe")
+(new-object net.webclient).DownloadFile("https://downloads.robocorp.com/rcc/releases/v14.6.0/windows64/rcc.exe", "C:\Users\vagrant\AppData\Local\Microsoft\WindowsApps\rcc.exe")
