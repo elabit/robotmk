@@ -1,7 +1,6 @@
 import dataclasses
 import enum
 import pathlib
-import subprocess
 from collections.abc import Sequence
 
 
@@ -45,10 +44,10 @@ class RCCEnvironment:
         ]
 
     @staticmethod
-    def create_result_code(process: subprocess.CompletedProcess[str]) -> ResultCode:
-        if process.returncode == 0:
+    def create_result_code(exit_code: int) -> ResultCode:
+        if exit_code == 0:
             return ResultCode.ALL_TESTS_PASSED
-        if process.returncode == 10:
+        if exit_code == 10:
             return ResultCode.ROBOT_COMMAND_FAILED
         return ResultCode.RCC_ERROR
 
@@ -70,7 +69,7 @@ class RobotEnvironment:
         return command
 
     @staticmethod
-    def create_result_code(process: subprocess.CompletedProcess[str]) -> ResultCode:
-        if process.returncode == 0:
+    def create_result_code(exit_code: int) -> ResultCode:
+        if exit_code == 0:
             return ResultCode.ALL_TESTS_PASSED
         return ResultCode.ROBOT_COMMAND_FAILED

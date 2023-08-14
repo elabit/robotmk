@@ -15,12 +15,16 @@ from robot import rebot  # type: ignore[import]
 
 from robotmk.environment import RCCEnvironment, ResultCode, RobotEnvironment
 from robotmk.runner import Attempt, RetrySpec, RetryStrategy, Variant, create_attempts
-from robotmk.session import CurrentSession
+from robotmk.session import CurrentSession, UserSession
 
 
 class _RCC(BaseModel, frozen=True):
     binary: pathlib.Path
     robot_yaml: pathlib.Path
+
+
+class _UserSession(BaseModel, frozen=True):
+    user_name: str
 
 
 class _SuiteConfig(BaseModel, frozen=True):  # pylint: disable=too-few-public-methods
@@ -30,6 +34,7 @@ class _SuiteConfig(BaseModel, frozen=True):  # pylint: disable=too-few-public-me
     variants: Sequence[Variant]
     retry_strategy: RetryStrategy
     env: _RCC | None
+    session: _UserSession | None
 
 
 class _SchedulerConfig(BaseModel, frozen=True):
@@ -65,8 +70,14 @@ def _environment(
 def _session(
     suite_name: str,
     suite_config: _SuiteConfig,
-) -> CurrentSession:
-    return CurrentSession(environment=_environment(suite_name, suite_config.env))
+) -> CurrentSession | UserSession:
+    environment = _environment(suite_name, suite_config.env)
+    if suite_config.session:
+        return UserSession(
+            user_name=suite_config.session.user_name,
+            environment=environment,
+        )
+    return CurrentSession(environment=environment)
 
 
 class _SuiteRetryRunner:  # pylint: disable=too-few-public-methods
@@ -76,8 +87,6 @@ class _SuiteRetryRunner:  # pylint: disable=too-few-public-methods
         self._final_outputs: list[pathlib.Path] = []
 
     def __call__(self) -> None:
-        self._prepare_run()
-
         retry_spec = RetrySpec(
             id_=uuid4(),
             robot_target=self._config.robot_target,
@@ -85,6 +94,7 @@ class _SuiteRetryRunner:  # pylint: disable=too-few-public-methods
             variants=self._config.variants,
             strategy=self._config.retry_strategy,
         )
+        self._prepare_run(retry_spec.output_directory())
 
         outputs = self._run_attempts_until_successful(create_attempts(retry_spec))
 
@@ -96,8 +106,8 @@ class _SuiteRetryRunner:  # pylint: disable=too-few-public-methods
         rebot(*outputs, output=final_output, report=None, log=None)
         self._final_outputs.append(final_output)
 
-    def _prepare_run(self) -> None:
-        self._config.working_directory.mkdir(parents=True, exist_ok=True)
+    def _prepare_run(self, output_dir: pathlib.Path) -> None:
+        output_dir.mkdir(parents=True, exist_ok=True)
         if (build_command := self._session.environment.build_command()) is not None:
             _process = subprocess.run(build_command, check=True)
 
