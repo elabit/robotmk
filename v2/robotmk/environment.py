@@ -14,11 +14,11 @@ class ResultCode(enum.Enum):
 @dataclasses.dataclass(frozen=True)
 class RCCEnvironment:
     robot_yaml: pathlib.Path
-    binary: str
+    binary: pathlib.Path
 
     def build_command(self) -> list[str]:
         return [
-            self.binary,
+            str(self.binary),
             "holotree",
             "variables",
             "--json",
@@ -28,7 +28,7 @@ class RCCEnvironment:
 
     def wrap_for_execution(self, command: Sequence[str]) -> list[str]:
         rcc_command = [
-            self.binary,
+            str(self.binary),
             "task",
             "script",
             "-r",

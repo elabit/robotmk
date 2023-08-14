@@ -16,6 +16,7 @@
 			],
 			"retry_strategy": "incremental",
 			"env": {
+				"binary": "C:\\Users\\vagrant\\AppData\\Local\\Microsoft\\WindowsApps\\rcc.exe",
 				"robot_yaml": "C:\\robotmk\\v2\\data\\retry_rcc\\/robot.yaml"
 			}
 		}

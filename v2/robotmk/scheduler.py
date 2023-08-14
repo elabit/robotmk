@@ -18,6 +18,7 @@ from robotmk.runner import Attempt, RetrySpec, RetryStrategy, Variant, create_at
 
 
 class _RCC(BaseModel, frozen=True):
+    binary: pathlib.Path
     robot_yaml: pathlib.Path
 
 
@@ -49,7 +50,7 @@ def _scheduler(suites: Mapping[str, _SuiteConfig]) -> BlockingScheduler:
 def _environment(config: _RCC | None) -> RCCEnvironment | RobotEnvironment:
     if config is None:
         return RobotEnvironment()
-    return RCCEnvironment(robot_yaml=config.robot_yaml, binary="rcc")
+    return RCCEnvironment(robot_yaml=config.robot_yaml, binary=config.binary)
 
 
 class _SuiteRetryRunner:  # pylint: disable=too-few-public-methods
