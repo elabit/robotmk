@@ -90,7 +90,7 @@ class _SuiteRetryRunner:  # pylint: disable=too-few-public-methods
     ) -> list[pathlib.Path]:
         outputs = []
         for attempt in attempts:
-            command = self._env.extend(attempt.command)
+            command = self._env.wrap_for_execution(attempt.command)
             process = subprocess.run(command, check=False, encoding="utf-8")
             match self._env.create_result_code(process):
                 case ResultCode.ALL_TESTS_PASSED:

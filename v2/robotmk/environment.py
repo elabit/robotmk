@@ -2,6 +2,7 @@ import dataclasses
 import enum
 import pathlib
 import subprocess
+from collections.abc import Sequence
 
 
 class ResultCode(enum.Enum):
@@ -25,7 +26,7 @@ class RCCEnvironment:
             str(self.robot_yaml),
         ]
 
-    def extend(self, robot_command: list[str]) -> list[str]:
+    def wrap_for_execution(self, command: Sequence[str]) -> list[str]:
         rcc_command = [
             self.binary,
             "task",
@@ -34,7 +35,10 @@ class RCCEnvironment:
             str(self.robot_yaml),
             "--",
         ]
-        return rcc_command + robot_command
+        return [
+            *rcc_command,
+            *command,
+        ]
 
     @staticmethod
     def create_result_code(process: subprocess.CompletedProcess[str]) -> ResultCode:
@@ -50,8 +54,8 @@ class RobotEnvironment:
     def build_command(self) -> None:
         return None
 
-    def extend(self, robot_command: list[str]) -> list[str]:
-        return robot_command
+    def wrap_for_execution(self, command: Sequence[str]) -> Sequence[str]:
+        return command
 
     @staticmethod
     def create_result_code(process: subprocess.CompletedProcess[str]) -> ResultCode:
