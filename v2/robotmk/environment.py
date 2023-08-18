@@ -15,12 +15,15 @@ class ResultCode(enum.Enum):
 class RCCEnvironment:
     robot_yaml: pathlib.Path
     binary: pathlib.Path
+    controller: str
+    space: str
 
     def build_command(self) -> list[str]:
         return [
             str(self.binary),
             "holotree",
             "variables",
+            *self._controller_and_space_args(),
             "--json",
             "-r",
             str(self.robot_yaml),
@@ -31,6 +34,7 @@ class RCCEnvironment:
             str(self.binary),
             "task",
             "script",
+            *self._controller_and_space_args(),
             "-r",
             str(self.robot_yaml),
             "--",
@@ -47,6 +51,14 @@ class RCCEnvironment:
         if process.returncode == 10:
             return ResultCode.ROBOT_COMMAND_FAILED
         return ResultCode.RCC_ERROR
+
+    def _controller_and_space_args(self) -> list[str]:
+        return [
+            "--controller",
+            self.controller,
+            "--space",
+            self.space,
+        ]
 
 
 @dataclasses.dataclass(frozen=True)

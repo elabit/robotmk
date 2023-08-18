@@ -39,7 +39,7 @@ def _scheduler(suites: Mapping[str, _SuiteConfig]) -> BlockingScheduler:
     scheduler = BlockingScheduler()
     for suite_name, suite_config in suites.items():
         scheduler.add_job(
-            _SuiteRetryRunner(suite_config),
+            _SuiteRetryRunner(suite_name, suite_config),
             name=suite_name,
             trigger=IntervalTrigger(seconds=suite_config.execution_interval_seconds),
             next_run_time=datetime.datetime.now(),
@@ -47,16 +47,24 @@ def _scheduler(suites: Mapping[str, _SuiteConfig]) -> BlockingScheduler:
     return scheduler
 
 
-def _environment(config: _RCC | None) -> RCCEnvironment | RobotEnvironment:
+def _environment(
+    suite_name: str,
+    config: _RCC | None,
+) -> RCCEnvironment | RobotEnvironment:
     if config is None:
         return RobotEnvironment()
-    return RCCEnvironment(robot_yaml=config.robot_yaml, binary=config.binary)
+    return RCCEnvironment(
+        robot_yaml=config.robot_yaml,
+        binary=config.binary,
+        controller="robotmk",
+        space=suite_name,
+    )
 
 
 class _SuiteRetryRunner:  # pylint: disable=too-few-public-methods
-    def __init__(self, suite_config: _SuiteConfig) -> None:
+    def __init__(self, suite_name: str, suite_config: _SuiteConfig) -> None:
         self._config: Final = suite_config
-        self._env: Final = _environment(suite_config.env)
+        self._env: Final = _environment(suite_name, suite_config.env)
         self._final_outputs: list[pathlib.Path] = []
 
     def __call__(self) -> None:
