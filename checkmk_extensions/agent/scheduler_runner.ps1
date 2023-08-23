@@ -28,17 +28,17 @@ class Config {
     }
 }
 
-class Command {
+class SchedulerExecutionCommand {
     [string]$Executable
     [System.Collections.Generic.List[string]]$ArgumentsList
 
-    Command([string]$executable, [System.Collections.Generic.List[string]]$argumentsList) {
+    SchedulerExecutionCommand([string]$executable, [System.Collections.Generic.List[string]]$argumentsList) {
         $this.Executable = $executable
         $this.ArgumentsList = $argumentsList
     }
 
     # Method to create the command depending on the rcc value
-    static [Command] CreateCommand([Config]$config) {
+    static [SchedulerExecutionCommand] FromConfig([Config]$config) {
         $parentDir = Split-Path $PSScriptRoot -Parent
 
         if ($config.rcc) {
@@ -53,7 +53,7 @@ class Command {
             $_argumentsList = @("-m", $moduleName, "--config", $configPath)
         }
 
-        return [Command]::new($_executable, $_argumentsList)
+        return [SchedulerExecutionCommand]::new($_executable, $_argumentsList)
     }
 }
 
@@ -66,7 +66,7 @@ function StartSchedulerRunner {
 
     $config = [Config]::ParseConfigFile($configFilePath)
 
-    $command = [Command]::CreateCommand($config)
+    $command = [SchedulerExecutionCommand]::FromConfig($config)
     $parentDir = Split-Path $PSScriptRoot -Parent
     $logPath = Join-Path $parentDir "log\robotmk\scheduler_runner.log"
 
