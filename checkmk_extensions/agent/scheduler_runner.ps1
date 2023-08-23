@@ -44,13 +44,21 @@ class SchedulerExecutionCommand {
         if ($config.rcc) {
             $_executable = Join-Path $PSScriptRoot "rcc.exe"
             $robotPath = Join-Path $parentDir "config\robot.yaml"
-            $_argumentsList = @("run", "--robot", $robotPath)
+            $_argumentsList = @(
+                "run",
+                "--controller",
+                "robotmk",
+                "--space",
+                "scheduler_runner",
+                "--robot",
+                $robotPath
+            )
         }
         else {
-            $_executable = (Get-Command python3).Source
+            $_executable = (Get-Command python).Source
             $moduleName = "robotmk.scheduler"
             $configPath = Join-Path $parentDir "config\robotmk.json"
-            $_argumentsList = @("-m", $moduleName, "--config", $configPath)
+            $_argumentsList = @("-m", $moduleName, $configPath)
         }
 
         return [SchedulerExecutionCommand]::new($_executable, $_argumentsList)
