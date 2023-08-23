@@ -126,3 +126,5 @@ function WriteLog {
     # Write the log entry to the log file
     $LogEntry | Out-File -Append $LogPath
 }
+
+StartSchedulerRunner $args[0]
