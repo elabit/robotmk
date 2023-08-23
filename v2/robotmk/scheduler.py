@@ -91,7 +91,7 @@ class _SuiteRetryRunner:  # pylint: disable=too-few-public-methods
         if not outputs:
             return  # Untested
 
-        final_output = retry_spec.outputdir() / "merged.xml"
+        final_output = retry_spec.output_directory() / "merged.xml"
 
         rebot(*outputs, output=final_output, report=None, log=None)
         self._final_outputs.append(final_output)
@@ -109,9 +109,9 @@ class _SuiteRetryRunner:  # pylint: disable=too-few-public-methods
         for attempt in attempts:
             match self._session.run(attempt):
                 case ResultCode.ALL_TESTS_PASSED:
-                    outputs.append(attempt.output)
-                case ResultCode.ROBOT_COMMAND_FAILED if attempt.output.exists():
-                    outputs.append(attempt.output)
+                    outputs.append(attempt.output_file())
+                case ResultCode.ROBOT_COMMAND_FAILED if attempt.output_file().exists():
+                    outputs.append(attempt.output_file())
                     continue
             break
         return outputs
