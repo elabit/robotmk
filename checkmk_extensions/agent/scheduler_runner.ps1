@@ -77,44 +77,23 @@ function StartSchedulerRunner {
     $command = [SchedulerExecutionCommand]::FromConfig($config)
     $parentDir = Split-Path $PSScriptRoot -Parent
     $logPath = Join-Path $parentDir "log\robotmk\scheduler_runner.log"
+    $schedulerStdoutLogPath = Join-Path $parentDir "log\robotmk\scheduler_stdout.log"
+    $schedulerStderrLogPath = Join-Path $parentDir "log\robotmk\scheduler_stderr.log"
 
-    # Create processInfo
-    $processInfo = New-Object System.Diagnostics.ProcessStartInfo
-    $processInfo.FileName = $command.Executable
-    $processInfo.Arguments = $command.ArgumentsList
-    $processInfo.RedirectStandardOutput = $true
-    $processInfo.RedirectStandardError = $true
-    $processInfo.UseShellExecute = $false
-    $processInfo.CreateNoWindow = $true
-    # $processInfo.WorkingDirectory -> Using this we can configure from where the Process will be started
-    $processInfo.WorkingDirectory = $PSScriptRoot
-
-    # Create process and assign processInfo to it
-    $process = New-Object System.Diagnostics.Process
-    $process.StartInfo = $processInfo
-
-
-    try {
-        # Read stdout and stderr and handle them as needed
-        while ($true) {
-            $process.Start() | Out-Null
-            $stdout = $process.StandardOutput.ReadLine()
-            if ($null -ne $stdout) {
-                # Handle stdout output here
-                WriteLog -Message $stdout -LogPath $logPath
-            }
-
-            $stderr = $process.StandardError.ReadLine()
-            if ($null -ne $stderr) {
-                # Handle stderr output here
-                WriteLog -Message $stderr -LogPath $logPath
-            }
+    while ($true) {
+        try {
+            Start-Process `
+            -FilePath $command.Executable `
+            -ArgumentList $command.ArgumentsList `
+            -Wait `
+            -NoNewWindow `
+            -RedirectStandardOutput $SchedulerStdoutLogPath `
+            -RedirectStandardError $SchedulerStderrLogPath
         }
-    }
-    catch {
-        # TODO: Handle errors
-        WriteLog -Message $_.Exception.Message -LogPath $logPath
-        throw $_.Exception.Message
+        catch {
+            # TODO: Handle errors
+            WriteLog -Message $_.Exception.Message -LogPath $logPath
+        }
     }
 }
 
