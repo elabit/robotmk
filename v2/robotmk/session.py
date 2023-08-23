@@ -12,7 +12,7 @@ class CurrentSession:
     def run(self, attempt: Attempt) -> ResultCode:
         return self.environment.create_result_code(
             subprocess.run(
-                self.environment.wrap_for_execution(attempt.command),
+                self.environment.wrap_for_execution(attempt.command()),
                 check=False,
                 encoding="utf-8",
             )
