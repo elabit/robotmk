@@ -4,9 +4,11 @@ on:
   push:
     paths:
     - rcc
+    - .github/workflows/rcc.yaml
   pull_request:
     paths:
     - rcc
+    - .github/workflows/rcc.yaml
 
 jobs:
   build_and_test:
@@ -25,9 +27,9 @@ jobs:
     
     - name: Setup Go
       run: |
-        wget https://go.dev/dl/go1.20.6.linux-amd64.tar.gz
+        wget https://go.dev/dl/go1.21.0.linux-amd64.tar.gz
         # rcc expects $HOME/go/bin to be present (hard-coded)
-        tar -C $HOME -xzf go1.20.6.linux-amd64.tar.gz
+        tar -C $HOME -xzf go1.21.0.linux-amd64.tar.gz
         echo "PATH=$PATH:$HOME/go/bin" >> $GITHUB_ENV
 
     - name: Build RCC
