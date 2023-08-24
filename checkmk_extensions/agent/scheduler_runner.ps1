@@ -1,90 +1,137 @@
-# Enable StrictMode 3.0
 Set-StrictMode -Version 3.0
+$ErrorActionPreference = "Stop"
 
-class Config {
-    [bool]$rcc
+class RCCConfig {
+    [string]$BinaryPath
+    [string]$SchedulerRobotYamlPath
 
-    # Constructor
-    # This is a way to make the rcc property mandatory
-    Config([bool]$rcc) {
-        $this.rcc = $rcc
+    RCCConfig([string]$BinaryPath, [string]$SchedulerRobotYamlPath) {
+        $this.BinaryPath = $BinaryPath
+        $this.SchedulerRobotYamlPath = $SchedulerRobotYamlPath
     }
 
-    # Method to parse the config file (JSON) and set the value of rcc
-    static [Config] ParseConfigFile($configFilePath) {
-
-        $configFileContent = Get-Content -Raw -Path $configFilePath -ErrorAction Stop
-
-        try {
-            $configData = $configFileContent | ConvertFrom-Json -ErrorAction Stop
-            # Assign the value from the config file to rcc
-            $use_rcc = $configData.rcc -as [bool]
-        }
-        catch {
-            throw $_.Exception.Message
-        }
-
-        return [Config]::new($use_rcc)
+    static [RCCConfig] ParseRawConfig([object]$RawConfig) {
+        return [RCCConfig]::new(
+            $RawConfig.binary_path -as [string],
+            $RawConfig.scheduler_robot_yaml_path -as [string]
+        )
     }
 }
 
-class SchedulerExecutionCommand {
+class Config {
+    [AllowNull()] [RCCConfig]$RCCConfig
+    [string]$ResultsDirectory
+    [string]$LogDirectory
+
+    Config(
+        [string]$ResultsDirectory,
+        [string]$LogDirectory
+    ) {
+        $this.RCCConfig = $null
+        $this.ResultsDirectory = $ResultsDirectory
+        $this.LogDirectory = $LogDirectory
+    }
+
+    Config(
+        [RCCConfig]$RCCConfig,
+        [string]$ResultsDirectory,
+        [string]$LogDirectory
+    ) {
+        $this.RCCConfig = $RCCConfig
+        $this.ResultsDirectory = $ResultsDirectory
+        $this.LogDirectory = $LogDirectory
+    }
+
+    static [Config] ParseConfigFile([string]$Path) {
+        $configFileContent = Get-Content -Raw -Path $Path
+        $configData = ConvertFrom-Json -InputObject $configFileContent
+
+        $resultsDir = $configData.results_directory -as [string]
+        $logDir = $configData.log_directory -as [string]
+
+        if($null -eq $configData.rcc) {
+            return [Config]::new(
+                $resultsDir,
+                $logDir
+                )
+        }
+        return [Config]::new(
+            [RCCConfig]::ParseRawConfig($configData.rcc),
+            $resultsDir,
+            $logDir
+        )
+    }
+}
+
+class CommandSpecification {
     [string]$Executable
-    [System.Collections.Generic.List[string]]$ArgumentsList
+    [string[]]$Arguments
 
-    SchedulerExecutionCommand([string]$executable, [System.Collections.Generic.List[string]]$argumentsList) {
-        $this.Executable = $executable
-        $this.ArgumentsList = $argumentsList
+    CommandSpecification([string]$Executable, [string[]]$Arguments) {
+        $this.Executable = $Executable
+        $this.Arguments = $Arguments
     }
+}
 
-    # Method to create the command depending on the rcc value
-    static [SchedulerExecutionCommand] FromConfig([Config]$config) {
-        $parentDir = Split-Path $PSScriptRoot -Parent
+function CreateSchedulerExecCommand {
+    [CmdletBinding()]
+    [OutputType([CommandSpecification])]
+    param (
+        [Parameter(Mandatory=$true, Position=0)]
+        [string]$ConfigPath,
 
-        if ($config.rcc) {
-            $_executable = Join-Path $PSScriptRoot "rcc.exe"
-            $robotPath = Join-Path $parentDir "config\robot.yaml"
-            $_argumentsList = @(
-                "run",
-                "--controller",
-                "robotmk",
-                "--space",
-                "scheduler_runner",
-                "--robot",
-                $robotPath
-            )
-        }
-        else {
-            $_executable = (Get-Command python).Source
-            $moduleName = "robotmk.scheduler"
-            $configPath = Join-Path $parentDir "config\robotmk.json"
-            $_argumentsList = @("-m", $moduleName, $configPath)
-        }
+        [Parameter(Mandatory=$true, Position=1)]
+        [AllowNull()]
+        [RCCConfig]$RCCConfig
+    )
+    $pythonSchedArgs = @("-m", "robotmk.scheduler", $ConfigPath)
 
-        return [SchedulerExecutionCommand]::new($_executable, $_argumentsList)
+    if ($null -eq $RCCConfig) {
+        return [CommandSpecification]::new(
+            (Get-Command python).Source,
+            $pythonSchedArgs
+        )
     }
+    return [CommandSpecification]::new(
+        $RCCConfig.BinaryPath,
+        @(
+            "task",
+            "script",
+            "--controller",
+            "robotmk",
+            "--space",
+            "scheduler",
+            "--robot",
+            $RCCConfig.SchedulerRobotYamlPath,
+            "--",
+            "python"
+        ) + $pythonSchedArgs
+    )
 }
 
 function StartSchedulerRunner {
     [CmdletBinding()]
     param (
         [Parameter(Mandatory=$true)]
-        [string]$configFilePath
+        [string]$ConfigFilePath
     )
 
-    $config = [Config]::ParseConfigFile($configFilePath)
+    $config = [Config]::ParseConfigFile($ConfigFilePath)
+    $commandSpec = CreateSchedulerExecCommand $ConfigFilePath $config.RCCConfig
 
-    $command = [SchedulerExecutionCommand]::FromConfig($config)
-    $parentDir = Split-Path $PSScriptRoot -Parent
-    $logPath = Join-Path $parentDir "log\robotmk\scheduler_runner.log"
-    $schedulerStdoutLogPath = Join-Path $parentDir "log\robotmk\scheduler_stdout.log"
-    $schedulerStderrLogPath = Join-Path $parentDir "log\robotmk\scheduler_stderr.log"
+    if (-not (Test-Path $config.LogDirectory)) {
+        New-Item -Path $config.LogDirectory -ItemType Directory
+    }
+
+    $selfLogPath = Join-Path $config.LogDirectory "scheduler_runner.log"
+    $schedulerStdoutLogPath = Join-Path $config.LogDirectory "scheduler_stdout.log"
+    $schedulerStderrLogPath = Join-Path $config.LogDirectory "scheduler_stderr.log"
 
     while ($true) {
         try {
             Start-Process `
-            -FilePath $command.Executable `
-            -ArgumentList $command.ArgumentsList `
+            -FilePath $commandSpec.Executable `
+            -ArgumentList $commandSpec.Arguments `
             -Wait `
             -NoNewWindow `
             -RedirectStandardOutput $SchedulerStdoutLogPath `
@@ -92,7 +139,7 @@ function StartSchedulerRunner {
         }
         catch {
             # TODO: Handle errors
-            WriteLog -Message $_.Exception.Message -LogPath $logPath
+            WriteLog -Message $_.Exception.Message -LogPath $selfLogPath
         }
     }
 }
@@ -103,15 +150,9 @@ function WriteLog {
         [Parameter(Mandatory=$true, Position=0)]
         [string]$Message,
 
-        [Parameter(Mandatory=$true)]
+        [Parameter(Mandatory=$true, Position=1)]
         [string]$LogPath
     )
-
-    # Create the log file and the parent folder if they don't exist
-    $LogFolder = Split-Path -Parent $LogPath
-    if (-not (Test-Path $LogFolder)) {
-        $null = New-Item -Path $LogFolder -ItemType Directory
-    }
 
     if (-not (Test-Path $LogPath)) {
         $null = New-Item -Path $LogPath -ItemType File
