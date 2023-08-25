@@ -1,0 +1,7 @@
+tasks: 
+  execute: 
+    command:       
+      - irrelevant
+
+condaConfigFile: conda.yaml
+artifactsDir: /tmp

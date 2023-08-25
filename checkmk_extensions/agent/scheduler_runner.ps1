@@ -12,7 +12,7 @@ class RCCConfig {
 
     static [RCCConfig] ParseRawConfig([object]$RawConfig) {
         return [RCCConfig]::new(
-            $RawConfig.binary_path -as [string],
+            $RawConfig.rcc_binary_path -as [string],
             $RawConfig.scheduler_robot_yaml_path -as [string]
         )
     }
@@ -49,14 +49,14 @@ class Config {
         $resultsDir = $configData.results_directory -as [string]
         $logDir = $configData.log_directory -as [string]
 
-        if($null -eq $configData.rcc) {
+        if($configData.environment -eq "system_python") {
             return [Config]::new(
                 $resultsDir,
                 $logDir
                 )
         }
         return [Config]::new(
-            [RCCConfig]::ParseRawConfig($configData.rcc),
+            [RCCConfig]::ParseRawConfig($configData.environment),
             $resultsDir,
             $logDir
         )
