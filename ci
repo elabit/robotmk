@@ -72,12 +72,13 @@ main() {
 		;;
 
 	'check-all')
-		"${self}" black-check-all
-		"${self}" isort-check-all
-		"${self}" mypy-check-all
-		"${self}" pylint-check-all
-		"${self}" pytest-check-all
-		"${self}" PSScriptAnalyzer-check-all
+		exit_code=0
+		for tool in black isort mypy pylint pytest PSScriptAnalyzer
+		do
+			"${self}" "${tool}-check-all"
+			exit_code=$(( exit_code + $? ))
+		done
+		return "${exit_code}"
 		;;
 
 	*)
