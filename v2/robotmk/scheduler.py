@@ -1,16 +1,17 @@
 """Scheduler"""
 
 import argparse
+import dataclasses
 import datetime
 import pathlib
 import subprocess
-from collections.abc import Iterable, Mapping, Sequence
-from typing import Final
+from collections.abc import Iterable, Iterator, Mapping, Sequence
+from typing import Final, Literal
 from uuid import uuid4
 
 from apscheduler.schedulers.blocking import BlockingScheduler  # type: ignore[import]
 from apscheduler.triggers.interval import IntervalTrigger  # type: ignore[import]
-from pydantic import BaseModel
+from pydantic import BaseModel, TypeAdapter
 from robot import rebot  # type: ignore[import]
 
 from robotmk.environment import RCCEnvironment, ResultCode, RobotEnvironment
@@ -18,36 +19,90 @@ from robotmk.runner import Attempt, RetrySpec, RetryStrategy, Variant, create_at
 from robotmk.session import CurrentSession, UserSession
 
 
-class _RCC(BaseModel, frozen=True):
-    binary: pathlib.Path
-    robot_yaml: pathlib.Path
+class _RCCConfig(BaseModel, frozen=True):
+    rcc_binary_path: pathlib.Path
 
 
-class _UserSession(BaseModel, frozen=True):
+class _UserSessionConfig(BaseModel, frozen=True):
     user_name: str
 
 
-class _SuiteConfig(BaseModel, frozen=True):  # pylint: disable=too-few-public-methods
+class _SuiteConfig(BaseModel, frozen=True):
     execution_interval_seconds: int
     robot_target: pathlib.Path
-    working_directory: pathlib.Path
     variants: Sequence[Variant]
     retry_strategy: RetryStrategy
-    env: _RCC | None
-    session: _UserSession | None
+    session: _UserSessionConfig | None
 
 
-class _SchedulerConfig(BaseModel, frozen=True):
-    suites: Mapping[str, _SuiteConfig]
+class _SystemPythonSuiteConfig(_SuiteConfig, frozen=True):
+    ...
 
 
-def _scheduler(suites: Mapping[str, _SuiteConfig]) -> BlockingScheduler:
+class _RCCSuiteConfig(_SuiteConfig, frozen=True):
+    robot_yaml_path: pathlib.Path
+
+
+@dataclasses.dataclass(frozen=True)
+class _RCCEnvironmentSpec:
+    binary_path: pathlib.Path
+    robot_yaml_path: pathlib.Path
+
+
+@dataclasses.dataclass(frozen=True)
+class _SuiteSpecification:
+    name: str
+    config: _SuiteConfig
+    rcc_env: _RCCEnvironmentSpec | None
+    working_directory: pathlib.Path
+
+
+class _ConfigSystemPython(BaseModel, frozen=True):
+    environment: Literal["system_python"]
+    working_directory: pathlib.Path
+    suites: Mapping[str, _SystemPythonSuiteConfig]
+
+    def suite_specifications(self) -> Iterator[_SuiteSpecification]:
+        yield from (
+            _SuiteSpecification(
+                name=suite_name,
+                config=suite_config,
+                rcc_env=None,
+                working_directory=self.working_directory,
+            )
+            for suite_name, suite_config in self.suites.items()
+        )
+
+
+class _ConfigRCC(BaseModel, frozen=True):
+    environment: _RCCConfig
+    working_directory: pathlib.Path
+    suites: Mapping[str, _RCCSuiteConfig]
+
+    def suite_specifications(self) -> Iterator[_SuiteSpecification]:
+        yield from (
+            _SuiteSpecification(
+                name=suite_name,
+                config=suite_config,
+                rcc_env=_RCCEnvironmentSpec(
+                    binary_path=self.environment.rcc_binary_path,
+                    robot_yaml_path=suite_config.robot_yaml_path,
+                ),
+                working_directory=self.working_directory,
+            )
+            for suite_name, suite_config in self.suites.items()
+        )
+
+
+def _scheduler(config: _ConfigSystemPython | _ConfigRCC) -> BlockingScheduler:
     scheduler = BlockingScheduler()
-    for suite_name, suite_config in suites.items():
+    for suite_specification in config.suite_specifications():
         scheduler.add_job(
-            _SuiteRetryRunner(suite_name, suite_config),
-            name=suite_name,
-            trigger=IntervalTrigger(seconds=suite_config.execution_interval_seconds),
+            _SuiteRetryRunner(suite_specification),
+            name=suite_specification.name,
+            trigger=IntervalTrigger(
+                seconds=suite_specification.config.execution_interval_seconds
+            ),
             next_run_time=datetime.datetime.now(),
         )
     return scheduler
@@ -55,13 +110,13 @@ def _scheduler(suites: Mapping[str, _SuiteConfig]) -> BlockingScheduler:
 
 def _environment(
     suite_name: str,
-    config: _RCC | None,
+    config: _RCCEnvironmentSpec | None,
 ) -> RCCEnvironment | RobotEnvironment:
     if config is None:
         return RobotEnvironment()
     return RCCEnvironment(
-        robot_yaml=config.robot_yaml,
-        binary=config.binary,
+        robot_yaml=config.robot_yaml_path,
+        binary=config.binary_path,
         controller="robotmk",
         space=suite_name,
     )
@@ -69,30 +124,35 @@ def _environment(
 
 def _session(
     suite_name: str,
-    suite_config: _SuiteConfig,
+    environment: _RCCEnvironmentSpec | None,
+    session: _UserSessionConfig | None,
 ) -> CurrentSession | UserSession:
-    environment = _environment(suite_name, suite_config.env)
-    if suite_config.session:
+    env = _environment(suite_name, environment)
+    if session:
         return UserSession(
-            user_name=suite_config.session.user_name,
-            environment=environment,
+            user_name=session.user_name,
+            environment=env,
         )
-    return CurrentSession(environment=environment)
+    return CurrentSession(environment=env)
 
 
 class _SuiteRetryRunner:  # pylint: disable=too-few-public-methods
-    def __init__(self, suite_name: str, suite_config: _SuiteConfig) -> None:
-        self._config: Final = suite_config
-        self._session: Final = _session(suite_name, suite_config)
+    def __init__(self, suite_specification: _SuiteSpecification) -> None:
+        self._suite_spec: Final = suite_specification
+        self._session: Final = _session(
+            suite_specification.name,
+            suite_specification.rcc_env,
+            suite_specification.config.session,
+        )
         self._final_outputs: list[pathlib.Path] = []
 
     def __call__(self) -> None:
         retry_spec = RetrySpec(
             id_=uuid4(),
-            robot_target=self._config.robot_target,
-            working_directory=self._config.working_directory,
-            variants=self._config.variants,
-            strategy=self._config.retry_strategy,
+            robot_target=self._suite_spec.config.robot_target,
+            working_directory=self._suite_spec.working_directory,
+            variants=self._suite_spec.config.variants,
+            strategy=self._suite_spec.config.retry_strategy,
         )
         self._prepare_run(retry_spec.output_directory())
 
@@ -138,8 +198,11 @@ def main() -> None:
 
     with arguments.config_path.open() as file:
         content = file.read()
-    config = _SchedulerConfig.model_validate_json(content)
-    _scheduler(config.suites).start()
+    config = TypeAdapter(_ConfigSystemPython | _ConfigRCC).validate_json(content)
+    # mypy somehow doesn't understand TypeAdapter.validate_json
+    assert isinstance(config, _ConfigSystemPython | _ConfigRCC)
+
+    _scheduler(config).start()
 
 
 if __name__ == "__main__":
