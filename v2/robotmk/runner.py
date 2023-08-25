@@ -3,11 +3,16 @@
 import dataclasses
 import enum
 import pathlib
-import uuid
 from collections.abc import Iterator, Sequence
 from typing import Final
 
 PYTHON_EXECUTABLE: Final = pathlib.Path("python")
+
+
+@dataclasses.dataclass(frozen=True)
+class Identifier:
+    name: str
+    timestamp: str
 
 
 class RetryStrategy(enum.Enum):
@@ -23,20 +28,20 @@ class Variant:
 
 @dataclasses.dataclass(frozen=True)
 class RetrySpec:
-    id_: uuid.UUID
+    identifier: Identifier
     robot_target: pathlib.Path
     working_directory: pathlib.Path
     variants: Sequence[Variant]
     strategy: RetryStrategy
 
     def output_directory(self) -> pathlib.Path:
-        return self.working_directory.joinpath(self.id_.hex)
+        return self.working_directory / self.identifier.name / self.identifier.timestamp
 
 
 @dataclasses.dataclass(frozen=True)
 class Attempt:
     output_directory: pathlib.Path
-    id_: uuid.UUID
+    identifier: Identifier
     index: int
     robot_target: pathlib.Path
     variable_file: pathlib.Path | None
@@ -68,7 +73,7 @@ def create_attempts(spec: RetrySpec) -> Iterator[Attempt]:
     yield from (
         Attempt(
             output_directory=spec.output_directory(),
-            id_=spec.id_,
+            identifier=spec.identifier,
             index=i,
             robot_target=spec.robot_target,
             variable_file=variant.variablefile,

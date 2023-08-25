@@ -7,7 +7,6 @@ import pathlib
 import subprocess
 from collections.abc import Iterable, Iterator, Mapping, Sequence
 from typing import Final, Literal
-from uuid import uuid4
 
 from apscheduler.schedulers.blocking import BlockingScheduler  # type: ignore[import]
 from apscheduler.triggers.interval import IntervalTrigger  # type: ignore[import]
@@ -15,7 +14,14 @@ from pydantic import BaseModel, TypeAdapter
 from robot import rebot  # type: ignore[import]
 
 from robotmk.environment import RCCEnvironment, ResultCode, RobotEnvironment
-from robotmk.runner import Attempt, RetrySpec, RetryStrategy, Variant, create_attempts
+from robotmk.runner import (
+    Attempt,
+    Identifier,
+    RetrySpec,
+    RetryStrategy,
+    Variant,
+    create_attempts,
+)
 from robotmk.session import CurrentSession, UserSession
 
 
@@ -148,7 +154,12 @@ class _SuiteRetryRunner:  # pylint: disable=too-few-public-methods
 
     def __call__(self) -> None:
         retry_spec = RetrySpec(
-            id_=uuid4(),
+            identifier=Identifier(
+                name=self._suite_spec.name,
+                timestamp=datetime.datetime.now(tz=datetime.timezone.utc).isoformat()
+                # be compatible with Windows and Linux folder name restrictions
+                .replace(":", "."),
+            ),
             robot_target=self._suite_spec.config.robot_target,
             working_directory=self._suite_spec.working_directory,
             variants=self._suite_spec.config.variants,

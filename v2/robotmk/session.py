@@ -39,7 +39,12 @@ class UserSession:
             ),
             encoding="utf-8",
         )
-        task_name = f"robotmk-{attempt.id_}-{attempt.index}"
+        task_name = (
+            "robotmk-"
+            f"{attempt.identifier.name}-"
+            f"{attempt.identifier.timestamp}-"
+            f"{attempt.index}"
+        )
 
         subprocess.run(
             [
