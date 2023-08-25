@@ -61,11 +61,13 @@ class _SuiteSpecification:
     config: _SuiteConfig
     rcc_env: _RCCEnvironmentSpec | None
     working_directory: pathlib.Path
+    results_directory: pathlib.Path
 
 
 class _ConfigSystemPython(BaseModel, frozen=True):
     environment: Literal["system_python"]
     working_directory: pathlib.Path
+    results_directory: pathlib.Path
     suites: Mapping[str, _SystemPythonSuiteConfig]
 
     def suite_specifications(self) -> Iterator[_SuiteSpecification]:
@@ -75,6 +77,7 @@ class _ConfigSystemPython(BaseModel, frozen=True):
                 config=suite_config,
                 rcc_env=None,
                 working_directory=self.working_directory,
+                results_directory=self.results_directory,
             )
             for suite_name, suite_config in self.suites.items()
         )
@@ -83,6 +86,7 @@ class _ConfigSystemPython(BaseModel, frozen=True):
 class _ConfigRCC(BaseModel, frozen=True):
     environment: _RCCConfig
     working_directory: pathlib.Path
+    results_directory: pathlib.Path
     suites: Mapping[str, _RCCSuiteConfig]
 
     def suite_specifications(self) -> Iterator[_SuiteSpecification]:
@@ -95,6 +99,7 @@ class _ConfigRCC(BaseModel, frozen=True):
                     robot_yaml_path=suite_config.robot_yaml_path,
                 ),
                 working_directory=self.working_directory,
+                results_directory=self.results_directory,
             )
             for suite_name, suite_config in self.suites.items()
         )
@@ -150,7 +155,6 @@ class _SuiteRetryRunner:  # pylint: disable=too-few-public-methods
             suite_specification.rcc_env,
             suite_specification.config.session,
         )
-        self._final_outputs: list[pathlib.Path] = []
 
     def __call__(self) -> None:
         retry_spec = RetrySpec(
@@ -173,9 +177,12 @@ class _SuiteRetryRunner:  # pylint: disable=too-few-public-methods
             return  # Untested
 
         final_output = retry_spec.output_directory() / "merged.xml"
-
         rebot(*outputs, output=final_output, report=None, log=None)
-        self._final_outputs.append(final_output)
+
+        self._write_result_file_atomic(
+            merged_xml_path=final_output,
+            suite_working_directory=retry_spec.output_directory(),
+        )
 
     def _prepare_run(self, output_dir: pathlib.Path) -> None:
         output_dir.mkdir(parents=True, exist_ok=True)
@@ -197,6 +204,50 @@ class _SuiteRetryRunner:  # pylint: disable=too-few-public-methods
             break
         return outputs
 
+    def _write_result_file_atomic(
+        self,
+        *,
+        merged_xml_path: pathlib.Path,
+        suite_working_directory: pathlib.Path,
+    ) -> None:
+        intermediate_result_path = suite_working_directory / "result.json"
+        intermediate_result_path.write_text(
+            _Result(xml=merged_xml_path.read_text(encoding="utf-8")).model_dump_json(),
+            encoding="utf-8",
+        )
+        intermediate_result_path.replace(
+            _suite_result_file(
+                _suite_results_directory(self._suite_spec.results_directory),
+                self._suite_spec.name,
+            )
+        )
+
+
+def _suite_results_directory(results_directory: pathlib.Path) -> pathlib.Path:
+    return results_directory / "suites"
+
+
+def _suite_result_file(
+    suite_results_directory: pathlib.Path,
+    suite_name: str,
+) -> pathlib.Path:
+    return suite_results_directory / f"{suite_name}.json"
+
+
+class _Result(BaseModel, frozen=True):
+    xml: str
+
+
+def _setup(config: _ConfigSystemPython | _ConfigRCC) -> None:
+    config.working_directory.mkdir(
+        parents=True,
+        exist_ok=True,
+    )
+    _suite_results_directory(config.results_directory).mkdir(
+        parents=True,
+        exist_ok=True,
+    )
+
 
 class Arguments(BaseModel, frozen=True):
     config_path: pathlib.Path
@@ -213,6 +264,7 @@ def main() -> None:
     # mypy somehow doesn't understand TypeAdapter.validate_json
     assert isinstance(config, _ConfigSystemPython | _ConfigRCC)
 
+    _setup(config)
     _scheduler(config).start()
 
 

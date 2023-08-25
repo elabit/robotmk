@@ -1,5 +1,6 @@
 {
 	"working_directory": "/tmp/outputdir",
+	"results_directory": "/tmp/results",
 	"environment": {
 		"rcc_binary_path": "C:\\Users\\vagrant\\AppData\\Local\\Microsoft\\WindowsApps\\rcc.exe",
 		"scheduler_robot_yaml_path": "C:\\robotmk\\v2\\data\\scheduler_rcc\\robot.yaml"
