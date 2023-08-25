@@ -1,5 +1,6 @@
 {
 	"working_directory": "/tmp/outputdir",
+	"results_directory": "/tmp/results",
 	"environment": "system_python",
 	"suites": {
 		"test": {
