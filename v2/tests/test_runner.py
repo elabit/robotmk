@@ -1,13 +1,15 @@
 import pathlib
-import uuid
 
 from robotmk import runner
 
 
 def test_create_command_complete() -> None:
     attempt = runner.Attempt(
-        output_directory=pathlib.Path("/tmp/d9e87a17-2e68-450a-8228-624604d47b26/"),
-        id_=uuid.UUID("d9e87a17-2e68-450a-8228-624604d47b26"),
+        output_directory=pathlib.Path("/tmp/my_suite/2023-08-29T12.23.44.419347+00.00"),
+        identifier=runner.Identifier(
+            name="my_suite",
+            timestamp="2023-08-29T12.23.44.419347+00.00",
+        ),
         index=0,
         robot_target=pathlib.Path("~/suite/calculator.robot"),
         variable_file=None,
@@ -18,8 +20,8 @@ def test_create_command_complete() -> None:
         "python",
         "-m",
         "robot",
-        "--outputdir=/tmp/d9e87a17-2e68-450a-8228-624604d47b26",
-        "--output=/tmp/d9e87a17-2e68-450a-8228-624604d47b26/0.xml",
+        "--outputdir=/tmp/my_suite/2023-08-29T12.23.44.419347+00.00",
+        "--output=/tmp/my_suite/2023-08-29T12.23.44.419347+00.00/0.xml",
         "~/suite/calculator.robot",
     ]
     assert attempt.command() == expected
@@ -27,8 +29,11 @@ def test_create_command_complete() -> None:
 
 def test_create_command_incremental_first() -> None:
     attempt = runner.Attempt(
-        output_directory=pathlib.Path("/tmp/d9e87a17-2e68-450a-8228-624604d47b26/"),
-        id_=uuid.UUID("d9e87a17-2e68-450a-8228-624604d47b26"),
+        output_directory=pathlib.Path("/tmp/my_suite/2023-08-29T12.23.44.419347+00.00"),
+        identifier=runner.Identifier(
+            name="my_suite",
+            timestamp="2023-08-29T12.23.44.419347+00.00",
+        ),
         index=0,
         robot_target=pathlib.Path("~/suite/calculator.robot"),
         variable_file=None,
@@ -39,8 +44,8 @@ def test_create_command_incremental_first() -> None:
         "python",
         "-m",
         "robot",
-        "--outputdir=/tmp/d9e87a17-2e68-450a-8228-624604d47b26",
-        "--output=/tmp/d9e87a17-2e68-450a-8228-624604d47b26/0.xml",
+        "--outputdir=/tmp/my_suite/2023-08-29T12.23.44.419347+00.00",
+        "--output=/tmp/my_suite/2023-08-29T12.23.44.419347+00.00/0.xml",
         "~/suite/calculator.robot",
     ]
     assert attempt.command() == expected
@@ -48,8 +53,11 @@ def test_create_command_incremental_first() -> None:
 
 def test_create_command_incremental_second() -> None:
     attempt = runner.Attempt(
-        output_directory=pathlib.Path("/tmp/d9e87a17-2e68-450a-8228-624604d47b26/"),
-        id_=uuid.UUID("d9e87a17-2e68-450a-8228-624604d47b26"),
+        output_directory=pathlib.Path("/tmp/my_suite/2023-08-29T12.23.44.419347+00.00"),
+        identifier=runner.Identifier(
+            name="my_suite",
+            timestamp="2023-08-29T12.23.44.419347+00.00",
+        ),
         index=1,
         robot_target=pathlib.Path("~/suite/calculator.robot"),
         variable_file=None,
@@ -60,9 +68,9 @@ def test_create_command_incremental_second() -> None:
         "python",
         "-m",
         "robot",
-        "--rerunfailed=/tmp/d9e87a17-2e68-450a-8228-624604d47b26/0.xml",
-        "--outputdir=/tmp/d9e87a17-2e68-450a-8228-624604d47b26",
-        "--output=/tmp/d9e87a17-2e68-450a-8228-624604d47b26/1.xml",
+        "--rerunfailed=/tmp/my_suite/2023-08-29T12.23.44.419347+00.00/0.xml",
+        "--outputdir=/tmp/my_suite/2023-08-29T12.23.44.419347+00.00",
+        "--output=/tmp/my_suite/2023-08-29T12.23.44.419347+00.00/1.xml",
         "~/suite/calculator.robot",
     ]
     assert attempt.command() == expected
@@ -72,7 +80,10 @@ def test_create_attempts() -> None:
     attempts = list(
         runner.create_attempts(
             runner.RetrySpec(
-                id_=uuid.UUID("383783f4-1d02-43b1-9d6f-205f4d492d95"),
+                identifier=runner.Identifier(
+                    name="suite_1",
+                    timestamp="2023-08-29T12.23.44.419347+00.00",
+                ),
                 robot_target=pathlib.Path("~/suite/calculator.robot"),
                 working_directory=pathlib.Path("/tmp/outputdir/"),
                 variants=[
@@ -92,9 +103,12 @@ def test_create_attempts() -> None:
     assert attempts == [
         runner.Attempt(
             output_directory=pathlib.Path(
-                "/tmp/outputdir/383783f41d0243b19d6f205f4d492d95"
+                "/tmp/outputdir/suite_1/2023-08-29T12.23.44.419347+00.00"
             ),
-            id_=uuid.UUID("383783f4-1d02-43b1-9d6f-205f4d492d95"),
+            identifier=runner.Identifier(
+                name="suite_1",
+                timestamp="2023-08-29T12.23.44.419347+00.00",
+            ),
             index=0,
             robot_target=pathlib.Path("~/suite/calculator.robot"),
             variable_file=None,
@@ -103,9 +117,12 @@ def test_create_attempts() -> None:
         ),
         runner.Attempt(
             output_directory=pathlib.Path(
-                "/tmp/outputdir/383783f41d0243b19d6f205f4d492d95"
+                "/tmp/outputdir/suite_1/2023-08-29T12.23.44.419347+00.00"
             ),
-            id_=uuid.UUID("383783f4-1d02-43b1-9d6f-205f4d492d95"),
+            identifier=runner.Identifier(
+                name="suite_1",
+                timestamp="2023-08-29T12.23.44.419347+00.00",
+            ),
             index=1,
             robot_target=pathlib.Path("~/suite/calculator.robot"),
             variable_file=pathlib.Path("~/suite/retry.yaml"),
