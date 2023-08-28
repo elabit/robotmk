@@ -190,9 +190,9 @@ class _SuiteRetryRunner:  # pylint: disable=too-few-public-methods
         for attempt in attempts:
             match self._session.run(attempt):
                 case ResultCode.ALL_TESTS_PASSED:
-                    outputs.append(attempt.output_file())
-                case ResultCode.ROBOT_COMMAND_FAILED if attempt.output_file().exists():
-                    outputs.append(attempt.output_file())
+                    outputs.append(attempt.output_xml_file())
+                case ResultCode.ROBOT_COMMAND_FAILED if attempt.output_xml_file().exists():
+                    outputs.append(attempt.output_xml_file())
                     continue
             break
         return outputs

@@ -48,8 +48,8 @@ class Attempt:
     argument_file: pathlib.Path | None
     retry_strategy: RetryStrategy
 
-    def output_file(self) -> pathlib.Path:
-        return self._output_file(self.index)
+    def output_xml_file(self) -> pathlib.Path:
+        return self.output_directory.joinpath(f"{self.index}.xml")
 
     def command(self) -> list[str]:
         robot_command = [str(PYTHON_EXECUTABLE), "-m", "robot"]
@@ -58,15 +58,16 @@ class Attempt:
         if self.argument_file is not None:
             robot_command.append(f"--argumentfile={self.argument_file}")
         if self.retry_strategy is RetryStrategy.INCREMENTAL and self.index > 0:
-            robot_command.append(f"--rerunfailed={self._output_file(self.index - 1)}")
+            robot_command.append(
+                f"--rerunfailed={self.output_directory.joinpath( f'{self.index - 1}.xml')}"
+            )
+
         return robot_command + [
             f"--outputdir={self.output_directory}",
-            f"--output={self.output_file()}",
+            f"--output={self.output_xml_file()}",
+            f"--log={self.output_directory.joinpath(f'{self.index}.html')}",
             str(self.robot_target),
         ]
-
-    def _output_file(self, index: int) -> pathlib.Path:
-        return self.output_directory.joinpath(f"{index}.xml")
 
 
 def create_attempts(spec: RetrySpec) -> Iterator[Attempt]:
