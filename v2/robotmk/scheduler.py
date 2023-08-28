@@ -243,10 +243,29 @@ def _setup(config: _ConfigSystemPython | _ConfigRCC) -> None:
         parents=True,
         exist_ok=True,
     )
-    _suite_results_directory(config.results_directory).mkdir(
+    (suite_results_dir := _suite_results_directory(config.results_directory)).mkdir(
         parents=True,
         exist_ok=True,
     )
+    _clean_up_results_directory_atomic(
+        suite_results_directory=suite_results_dir,
+        configured_suites=config.suites,
+        intermediate_path_for_move=config.working_directory / "deprecated_result",
+    )
+
+
+def _clean_up_results_directory_atomic(
+    *,
+    suite_results_directory: pathlib.Path,
+    configured_suites: Iterable[str],
+    intermediate_path_for_move: pathlib.Path,
+) -> None:
+    for unwanted_result_file in set(suite_results_directory.iterdir()) - {
+        _suite_result_file(suite_results_directory, suite_name)
+        for suite_name in configured_suites
+    }:
+        unwanted_result_file.replace(intermediate_path_for_move)
+    intermediate_path_for_move.unlink(missing_ok=True)
 
 
 class Arguments(BaseModel, frozen=True):
