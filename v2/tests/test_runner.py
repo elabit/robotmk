@@ -22,6 +22,7 @@ def test_create_command_complete() -> None:
         "robot",
         "--outputdir=/tmp/my_suite/2023-08-29T12.23.44.419347+00.00",
         "--output=/tmp/my_suite/2023-08-29T12.23.44.419347+00.00/0.xml",
+        "--log=/tmp/my_suite/2023-08-29T12.23.44.419347+00.00/0.html",
         "~/suite/calculator.robot",
     ]
     assert attempt.command() == expected
@@ -46,6 +47,7 @@ def test_create_command_incremental_first() -> None:
         "robot",
         "--outputdir=/tmp/my_suite/2023-08-29T12.23.44.419347+00.00",
         "--output=/tmp/my_suite/2023-08-29T12.23.44.419347+00.00/0.xml",
+        "--log=/tmp/my_suite/2023-08-29T12.23.44.419347+00.00/0.html",
         "~/suite/calculator.robot",
     ]
     assert attempt.command() == expected
@@ -71,6 +73,7 @@ def test_create_command_incremental_second() -> None:
         "--rerunfailed=/tmp/my_suite/2023-08-29T12.23.44.419347+00.00/0.xml",
         "--outputdir=/tmp/my_suite/2023-08-29T12.23.44.419347+00.00",
         "--output=/tmp/my_suite/2023-08-29T12.23.44.419347+00.00/1.xml",
+        "--log=/tmp/my_suite/2023-08-29T12.23.44.419347+00.00/1.html",
         "~/suite/calculator.robot",
     ]
     assert attempt.command() == expected
