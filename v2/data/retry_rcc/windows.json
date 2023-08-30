@@ -1,9 +1,14 @@
 {
+	"working_directory": "/tmp/outputdir",
+	"results_directory": "/tmp/results",
+	"environment": {
+		"rcc_binary_path": "C:\\Users\\vagrant\\AppData\\Local\\Microsoft\\WindowsApps\\rcc.exe",
+		"scheduler_robot_yaml_path": "C:\\robotmk\\v2\\data\\scheduler_rcc\\robot.yaml"
+	},
 	"suites": {
 		"test": {
 			"execution_interval_seconds": 10,
 			"robot_target": "C:\\robotmk\\v2\\data\\retry_suite\\/tasks.robot",
-			"working_directory": "/tmp/outputdir",
 			"variants": [
 				{
 					"variablefile": null,
@@ -15,9 +20,8 @@
 				}
 			],
 			"retry_strategy": "incremental",
-			"env": {
-				"robot_yaml": "C:\\robotmk\\v2\\data\\retry_rcc\\/robot.yaml"
-			}
+			"robot_yaml_path": "C:\\robotmk\\v2\\data\\retry_rcc\\/robot.yaml",
+			"session": null
 		}
 	}
 }

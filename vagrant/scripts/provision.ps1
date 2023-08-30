@@ -1,6 +1,10 @@
 iex ((new-object net.webclient).DownloadString('https://chocolatey.org/install.ps1'))
-choco install -y googlechrome
-choco install -y python
-choco install -y nushell
+choco install -y --force googlechrome
+choco install -y --force python
+choco install -y --force nushell
 
-(new-object net.webclient).DownloadFile("https://downloads.robocorp.com/rcc/releases/latest/windows64/rcc.exe", "C:\Users\vagrant\AppData\Local\Microsoft\WindowsApps\rcc.exe")
+(new-object net.webclient).DownloadFile("https://nightly.link/elabit/robotmk/actions/artifacts/878920132.zip", "C:\Users\vagrant\Downloads\rcc.zip")
+Expand-Archive "C:\Users\vagrant\Downloads\rcc.zip" -Force
+Copy-Item "C:\Users\vagrant\Downloads\rcc\windows64\rcc.exe" -Destination "C:\Users\vagrant\AppData\Local\Microsoft\WindowsApps\rcc.exe"
+
+python -m pip install -e "C:\robotmk\"

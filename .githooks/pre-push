@@ -2,13 +2,17 @@
 
 set -e
 
-VALID_BRANCH_REGEX="^(master$|dev\/.+)"
+VALID_BRANCH_REGEX="(master$|dev\/.+)"
+VALID_REF_REGEX="^refs\/heads\/${VALID_BRANCH_REGEX}"
 
-if [[ ! $(git rev-parse --abbrev-ref HEAD) =~ $VALID_BRANCH_REGEX ]]
-then
-    echo "Branch names should follow this pattern: ${VALID_BRANCH_REGEX}."
-    exit 1
-fi
+while read -r _local_ref _local_oid remote_ref _remote_oid
+do
+    if [[ ! "${remote_ref}" =~ $VALID_REF_REGEX ]]
+    then
+        echo "Branch names should follow this pattern: ${VALID_BRANCH_REGEX}."
+        exit 1
+    fi
+done
 
 topdir="$(git rev-parse --show-toplevel)"
 "${topdir}"/ci check-all

@@ -1,9 +1,11 @@
 {
+	"working_directory": "/tmp/outputdir",
+	"results_directory": "/tmp/results",
+	"environment": "system_python",
 	"suites": {
 		"test": {
 			"execution_interval_seconds": 10,
 			"robot_target": "C:\\robotmk\\v2\\data\\retry_suite\\/tasks.robot",
-			"working_directory": "/tmp/outputdir",
 			"variants": [
 				{
 					"variablefile": null,
@@ -15,7 +17,7 @@
 				}
 			],
 			"retry_strategy": "incremental",
-			"env": null
+			"session": null
 		}
 	}
 }

@@ -1,7 +1,7 @@
 import dataclasses
 import enum
 import pathlib
-import subprocess
+from collections.abc import Sequence
 
 
 class ResultCode(enum.Enum):
@@ -13,36 +13,51 @@ class ResultCode(enum.Enum):
 @dataclasses.dataclass(frozen=True)
 class RCCEnvironment:
     robot_yaml: pathlib.Path
-    binary: str
+    binary: pathlib.Path
+    controller: str
+    space: str
 
     def build_command(self) -> list[str]:
         return [
-            self.binary,
+            str(self.binary),
             "holotree",
             "variables",
+            *self._controller_and_space_args(),
             "--json",
             "-r",
             str(self.robot_yaml),
         ]
 
-    def extend(self, robot_command: list[str]) -> list[str]:
+    def wrap_for_execution(self, command: Sequence[str]) -> list[str]:
         rcc_command = [
-            self.binary,
+            str(self.binary),
             "task",
             "script",
+            *self._controller_and_space_args(),
             "-r",
             str(self.robot_yaml),
             "--",
         ]
-        return rcc_command + robot_command
+        return [
+            *rcc_command,
+            *command,
+        ]
 
     @staticmethod
-    def create_result_code(process: subprocess.CompletedProcess[str]) -> ResultCode:
-        if process.returncode == 0:
+    def create_result_code(exit_code: int) -> ResultCode:
+        if exit_code == 0:
             return ResultCode.ALL_TESTS_PASSED
-        if process.returncode == 10:
+        if exit_code == 10:
             return ResultCode.ROBOT_COMMAND_FAILED
         return ResultCode.RCC_ERROR
+
+    def _controller_and_space_args(self) -> list[str]:
+        return [
+            "--controller",
+            self.controller,
+            "--space",
+            self.space,
+        ]
 
 
 @dataclasses.dataclass(frozen=True)
@@ -50,11 +65,11 @@ class RobotEnvironment:
     def build_command(self) -> None:
         return None
 
-    def extend(self, robot_command: list[str]) -> list[str]:
-        return robot_command
+    def wrap_for_execution(self, command: Sequence[str]) -> Sequence[str]:
+        return command
 
     @staticmethod
-    def create_result_code(process: subprocess.CompletedProcess[str]) -> ResultCode:
-        if process.returncode == 0:
+    def create_result_code(exit_code: int) -> ResultCode:
+        if exit_code == 0:
             return ResultCode.ALL_TESTS_PASSED
         return ResultCode.ROBOT_COMMAND_FAILED
