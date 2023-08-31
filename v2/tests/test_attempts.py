@@ -1,12 +1,19 @@
 import pathlib
 
-from robotmk import runner
+from robotmk.attempt import (
+    Attempt,
+    Identifier,
+    RetrySpec,
+    RetryStrategy,
+    Variant,
+    create_attempts,
+)
 
 
 def test_create_command_complete() -> None:
-    attempt = runner.Attempt(
+    attempt = Attempt(
         output_directory=pathlib.Path("/tmp/my_suite/2023-08-29T12.23.44.419347+00.00"),
-        identifier=runner.Identifier(
+        identifier=Identifier(
             name="my_suite",
             timestamp="2023-08-29T12.23.44.419347+00.00",
         ),
@@ -14,7 +21,7 @@ def test_create_command_complete() -> None:
         robot_target=pathlib.Path("~/suite/calculator.robot"),
         variable_file=None,
         argument_file=None,
-        retry_strategy=runner.RetryStrategy.COMPLETE,
+        retry_strategy=RetryStrategy.COMPLETE,
     )
     expected = [
         "python",
@@ -29,9 +36,9 @@ def test_create_command_complete() -> None:
 
 
 def test_create_command_incremental_first() -> None:
-    attempt = runner.Attempt(
+    attempt = Attempt(
         output_directory=pathlib.Path("/tmp/my_suite/2023-08-29T12.23.44.419347+00.00"),
-        identifier=runner.Identifier(
+        identifier=Identifier(
             name="my_suite",
             timestamp="2023-08-29T12.23.44.419347+00.00",
         ),
@@ -39,7 +46,7 @@ def test_create_command_incremental_first() -> None:
         robot_target=pathlib.Path("~/suite/calculator.robot"),
         variable_file=None,
         argument_file=None,
-        retry_strategy=runner.RetryStrategy.INCREMENTAL,
+        retry_strategy=RetryStrategy.INCREMENTAL,
     )
     expected = [
         "python",
@@ -54,9 +61,9 @@ def test_create_command_incremental_first() -> None:
 
 
 def test_create_command_incremental_second() -> None:
-    attempt = runner.Attempt(
+    attempt = Attempt(
         output_directory=pathlib.Path("/tmp/my_suite/2023-08-29T12.23.44.419347+00.00"),
-        identifier=runner.Identifier(
+        identifier=Identifier(
             name="my_suite",
             timestamp="2023-08-29T12.23.44.419347+00.00",
         ),
@@ -64,7 +71,7 @@ def test_create_command_incremental_second() -> None:
         robot_target=pathlib.Path("~/suite/calculator.robot"),
         variable_file=None,
         argument_file=None,
-        retry_strategy=runner.RetryStrategy.INCREMENTAL,
+        retry_strategy=RetryStrategy.INCREMENTAL,
     )
     expected = [
         "python",
@@ -81,34 +88,34 @@ def test_create_command_incremental_second() -> None:
 
 def test_create_attempts() -> None:
     attempts = list(
-        runner.create_attempts(
-            runner.RetrySpec(
-                identifier=runner.Identifier(
+        create_attempts(
+            RetrySpec(
+                identifier=Identifier(
                     name="suite_1",
                     timestamp="2023-08-29T12.23.44.419347+00.00",
                 ),
                 robot_target=pathlib.Path("~/suite/calculator.robot"),
                 working_directory=pathlib.Path("/tmp/outputdir/"),
                 variants=[
-                    runner.Variant(
+                    Variant(
                         variablefile=None,
                         argumentfile=None,
                     ),
-                    runner.Variant(
+                    Variant(
                         variablefile=pathlib.Path("~/suite/retry.yaml"),
                         argumentfile=None,
                     ),
                 ],
-                strategy=runner.RetryStrategy.INCREMENTAL,
+                strategy=RetryStrategy.INCREMENTAL,
             )
         )
     )
     assert attempts == [
-        runner.Attempt(
+        Attempt(
             output_directory=pathlib.Path(
                 "/tmp/outputdir/suite_1/2023-08-29T12.23.44.419347+00.00"
             ),
-            identifier=runner.Identifier(
+            identifier=Identifier(
                 name="suite_1",
                 timestamp="2023-08-29T12.23.44.419347+00.00",
             ),
@@ -116,13 +123,13 @@ def test_create_attempts() -> None:
             robot_target=pathlib.Path("~/suite/calculator.robot"),
             variable_file=None,
             argument_file=None,
-            retry_strategy=runner.RetryStrategy.INCREMENTAL,
+            retry_strategy=RetryStrategy.INCREMENTAL,
         ),
-        runner.Attempt(
+        Attempt(
             output_directory=pathlib.Path(
                 "/tmp/outputdir/suite_1/2023-08-29T12.23.44.419347+00.00"
             ),
-            identifier=runner.Identifier(
+            identifier=Identifier(
                 name="suite_1",
                 timestamp="2023-08-29T12.23.44.419347+00.00",
             ),
@@ -130,6 +137,6 @@ def test_create_attempts() -> None:
             robot_target=pathlib.Path("~/suite/calculator.robot"),
             variable_file=pathlib.Path("~/suite/retry.yaml"),
             argument_file=None,
-            retry_strategy=runner.RetryStrategy.INCREMENTAL,
+            retry_strategy=RetryStrategy.INCREMENTAL,
         ),
     ]

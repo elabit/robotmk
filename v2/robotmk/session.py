@@ -5,8 +5,8 @@ from dataclasses import dataclass
 from datetime import datetime, timedelta
 from pathlib import Path
 
+from robotmk.attempt import Attempt
 from robotmk.environment import RCCEnvironment, ResultCode, RobotEnvironment
-from robotmk.runner import Attempt
 
 
 @dataclass(frozen=True)

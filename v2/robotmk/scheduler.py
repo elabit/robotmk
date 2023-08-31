@@ -13,8 +13,7 @@ from apscheduler.triggers.interval import IntervalTrigger  # type: ignore[import
 from pydantic import BaseModel, TypeAdapter
 from robot import rebot  # type: ignore[import]
 
-from robotmk.environment import RCCEnvironment, ResultCode, RobotEnvironment
-from robotmk.runner import (
+from robotmk.attempt import (
     Attempt,
     Identifier,
     RetrySpec,
@@ -22,6 +21,7 @@ from robotmk.runner import (
     Variant,
     create_attempts,
 )
+from robotmk.environment import RCCEnvironment, ResultCode, RobotEnvironment
 from robotmk.session import CurrentSession, UserSession
 
 
