@@ -4,3 +4,4 @@ config_vm_provider_virtualbox_memory: 4096
 config_vm_provider_virtualbox_gui: true
 # bridge the VM interface to the host interface (e.g. "enp0s31f6") - alternative to NAT
 config_vm_network: null
+deploy_checkmk_agent: true

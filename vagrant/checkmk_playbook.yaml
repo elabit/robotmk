@@ -1,0 +1,13 @@
+---
+- name: Install Checkmk Windows Agent
+  hosts: all
+  vars:
+    ansible_winrm_scheme: http
+
+  pre_tasks:
+    - name: Include configuration
+      ansible.builtin.include_vars:
+        file: playbook_variables.yaml
+
+  roles:
+    - role: checkmk.general.agent
