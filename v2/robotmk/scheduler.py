@@ -21,7 +21,7 @@ from robotmk.attempt import (
     Variant,
     create_attempts,
 )
-from robotmk.environment import RCCEnvironment, ResultCode, RobotEnvironment
+from robotmk.environment import RCCEnvironment, ResultCode, SystemEnvironment
 from robotmk.session import CurrentSession, UserSession
 
 
@@ -122,9 +122,9 @@ def _scheduler(config: _ConfigSystemPython | _ConfigRCC) -> BlockingScheduler:
 def _environment(
     suite_name: str,
     config: _RCCEnvironmentSpec | None,
-) -> RCCEnvironment | RobotEnvironment:
+) -> RCCEnvironment | SystemEnvironment:
     if config is None:
-        return RobotEnvironment()
+        return SystemEnvironment()
     return RCCEnvironment(
         robot_yaml=config.robot_yaml_path,
         binary=config.binary_path,
