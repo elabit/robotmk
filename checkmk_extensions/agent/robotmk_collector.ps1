@@ -12,9 +12,7 @@ function GetResultsDirectory {
     return $configData.results_directory -as [string]
 }
 
-$MK_CONFDIR = "C:\robotmk\v2\data\retry_rcc\"
-
-$resultsDirectory = GetResultsDirectory("${MK_CONFDIR}\windows.json")
+$resultsDirectory = GetResultsDirectory("${env:MK_CONFDIR}\robotmk.json")
 $files = Get-ChildItem -File -Recurse $resultsDirectory
 
 "<<<robotmk_v2:sep(10)>>>"
