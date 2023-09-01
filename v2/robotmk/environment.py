@@ -61,7 +61,7 @@ class RCCEnvironment:
 
 
 @dataclasses.dataclass(frozen=True)
-class RobotEnvironment:
+class SystemEnvironment:
     def build_command(self) -> None:
         return None
 

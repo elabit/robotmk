@@ -6,12 +6,12 @@ from datetime import datetime, timedelta
 from pathlib import Path
 
 from robotmk.attempt import Attempt
-from robotmk.environment import RCCEnvironment, ResultCode, RobotEnvironment
+from robotmk.environment import RCCEnvironment, ResultCode, SystemEnvironment
 
 
 @dataclass(frozen=True)
 class CurrentSession:
-    environment: RCCEnvironment | RobotEnvironment
+    environment: RCCEnvironment | SystemEnvironment
 
     def run(self, attempt: Attempt) -> ResultCode:
         return self.environment.create_result_code(
@@ -26,7 +26,7 @@ class CurrentSession:
 @dataclass(frozen=True)
 class UserSession:
     user_name: str
-    environment: RCCEnvironment | RobotEnvironment
+    environment: RCCEnvironment | SystemEnvironment
 
     def run(self, attempt: Attempt) -> ResultCode:
         # NOTE: The .bat-suffix is important! Without, schtasks doesn't know how to run this.
