@@ -58,7 +58,7 @@ class _RCCEnvironmentSpec:
 
 @dataclasses.dataclass(frozen=True)
 class _SuiteSpecification:
-    name: str
+    name: str  # ambiguous, since Robot Framework also provides names.
     config: _SuiteConfig
     rcc_env: _RCCEnvironmentSpec | None
     working_directory: pathlib.Path
@@ -180,8 +180,9 @@ class _SuiteRetryRunner:  # pylint: disable=too-few-public-methods
         final_output = retry_spec.output_directory() / "merged.xml"
         rebot(*outputs, output=final_output, report=None, log=None)
 
+        result = _create_result(retry_spec.identifier.name, final_output)
         self._write_result_file_atomic(
-            merged_xml_path=final_output,
+            result=result,
             suite_working_directory=retry_spec.output_directory(),
         )
 
@@ -208,12 +209,12 @@ class _SuiteRetryRunner:  # pylint: disable=too-few-public-methods
     def _write_result_file_atomic(
         self,
         *,
-        merged_xml_path: pathlib.Path,
+        result: Result,
         suite_working_directory: pathlib.Path,
     ) -> None:
         intermediate_result_path = suite_working_directory / "result.json"
         intermediate_result_path.write_text(
-            Result(xml=merged_xml_path.read_text(encoding="utf-8")).model_dump_json(),
+            result.model_dump_json(),
             encoding="utf-8",
         )
         intermediate_result_path.replace(
@@ -222,6 +223,13 @@ class _SuiteRetryRunner:  # pylint: disable=too-few-public-methods
                 self._suite_spec.name,
             )
         )
+
+
+def _create_result(suite_name: str, merged_xml_path: pathlib.Path) -> Result:
+    return Result(
+        suite_name=suite_name,
+        xml=merged_xml_path.read_text(encoding="utf-8"),
+    )
 
 
 def _suite_results_directory(results_directory: pathlib.Path) -> pathlib.Path:
