@@ -1,3 +1,5 @@
+from datetime import datetime
+
 from pydantic import BaseModel
 
 from robotmk import parse_xml
@@ -7,6 +9,8 @@ class Test(BaseModel, frozen=True):
     name: str
     id_: str
     status: parse_xml.Outcome
+    starttime: datetime
+    endtime: datetime
 
 
 class Result(BaseModel, frozen=True):
@@ -24,6 +28,8 @@ def create_result(suite_name: str, xml: str) -> Result:
             name=t.name,
             id_=t.id_,
             status=t.status.status,
+            starttime=t.status.starttime,
+            endtime=t.status.endtime,
         )
         for t in _obtain_tests(rebot)
     ]
