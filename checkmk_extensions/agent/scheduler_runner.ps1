@@ -43,8 +43,13 @@ class Config {
     }
 
     static [Config] ParseConfigFile([string]$Path) {
-        $configFileContent = Get-Content -Raw -Path $Path
-        $configData = ConvertFrom-Json -InputObject $configFileContent
+        try {
+            $configFileContent = Get-Content -Raw -Path $Path
+            $configData = ConvertFrom-Json -InputObject $configFileContent
+        }
+        catch {
+            throw
+        }
 
         $resultsDir = $configData.results_directory -as [string]
         $logDir = $configData.log_directory -as [string]
@@ -116,17 +121,36 @@ function StartSchedulerRunner {
         [string]$ConfigFilePath
     )
 
-    $config = [Config]::ParseConfigFile($ConfigFilePath)
-    $commandSpec = CreateSchedulerExecCommand $ConfigFilePath $config.RCCConfig
+    try {
+        $config = [Config]::ParseConfigFile($ConfigFilePath)
+    }
+    catch {
+        # What should the path of the log files be?
+        # Here we still don't have access to the defined path from the config file
+        WriteLogAndException -Message $_.Exception.Message -LogPath "" -ExceptionLogPath ""
+        throw
+    }
+
+    $selfLogPath = Join-Path $config.LogDirectory "scheduler_runner.log"
+    $exceptionLogPath = Join-Path $config.LogDirectory "scheduler_runners.log"
+    $schedulerStdoutLogPath = Join-Path $config.LogDirectory "scheduler_stdout.log"
+    $schedulerStderrLogPath = Join-Path $config.LogDirectory "scheduler_stderr.log"
 
     if (-not (Test-Path $config.LogDirectory)) {
         New-Item -Path $config.LogDirectory -ItemType Directory
     }
 
-    $selfLogPath = Join-Path $config.LogDirectory "scheduler_runner.log"
-    $schedulerStdoutLogPath = Join-Path $config.LogDirectory "scheduler_stdout.log"
-    $schedulerStderrLogPath = Join-Path $config.LogDirectory "scheduler_stderr.log"
+    WriteLogAndException -Message "Creating scheduler-runner execution command" -LogPath $selfLogPath
+    try {
+        $commandSpec = CreateSchedulerExecCommand $ConfigFilePath $config.RCCConfig
+        WriteLogAndException -Message "Successfully created scheduler-runner execution command" -LogPath $selfLogPath
+    }
+    catch [System.Management.Automation.CommandNotFoundException] {
+        WriteLogAndException -Message $_.Exception.Message -LogPath $selfLogPath -ExceptionLogPath $exceptionLogPath
+        throw
+    }
 
+    WriteLogAndException -Message "Starting the scheduler-runner process" -LogPath $selfLogPath
     while ($true) {
         try {
             Start-Process `
@@ -136,36 +160,50 @@ function StartSchedulerRunner {
             -NoNewWindow `
             -RedirectStandardOutput $SchedulerStdoutLogPath `
             -RedirectStandardError $SchedulerStderrLogPath
+
+            WriteLogAndException -Message "Successfully started the scheduler-runner process" -LogPath $selfLogPath
         }
         catch {
-            # TODO: Handle errors
-            WriteLog -Message $_.Exception.Message -LogPath $selfLogPath
+            WriteLogAndException -Message $_.Exception.Message -LogPath $selfLogPath -ExceptionLogPath $exceptionLogPath
         }
     }
 }
 
-function WriteLog {
+function WriteLogAndException {
     [CmdletBinding()]
     param (
         [Parameter(Mandatory=$true, Position=0)]
         [string]$Message,
 
         [Parameter(Mandatory=$true, Position=1)]
-        [string]$LogPath
+        [string]$LogPath,
+
+        [AllowNull()]
+        [string]$ExceptionLogPath
     )
 
     if (-not (Test-Path $LogPath)) {
-        $null = New-Item -Path $LogPath -ItemType File
+        $null = New-Item -Path $LogPath -ItemType File -Force
+    }
+
+    if ($ExceptionLogPath -and -not (Test-Path $ExceptionLogPath)) {
+        $null = New-Item -Path $ExceptionLogPath -ItemType File -Force
+        "<<<robotmk_scheduler_runner_exceptions:sep(124)>>>" | Out-File -Append $ExceptionLogPath
     }
 
     # Get the current timestamp
     $TimeStamp = Get-Date -Format "yyyy-MM-dd HH:mm:ss"
 
     # Format the log entry
-    $LogEntry = "$TimeStamp - $Message"
+    $LogEntry = "$TimeStamp | $Message"
 
     # Write the log entry to the log file
     $LogEntry | Out-File -Append $LogPath
+
+    # Write the exception to the exception section
+    if ($ExceptionLogPath) {
+        $LogEntry | Out-File -Append $ExceptionLogPath
+    }
 }
 
 StartSchedulerRunner $args[0]
