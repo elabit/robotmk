@@ -13,7 +13,7 @@ from apscheduler.triggers.interval import IntervalTrigger  # type: ignore[import
 from pydantic import BaseModel, TypeAdapter
 from robot import rebot  # type: ignore[import]
 
-from robotmk.api import Result
+from robotmk.api import Result, create_result
 from robotmk.attempt import (
     Attempt,
     Identifier,
@@ -180,7 +180,8 @@ class _SuiteRetryRunner:  # pylint: disable=too-few-public-methods
         final_output = retry_spec.output_directory() / "merged.xml"
         rebot(*outputs, output=final_output, report=None, log=None)
 
-        result = _create_result(retry_spec.identifier.name, final_output)
+        xml = final_output.read_text(encoding="utf-8")
+        result = create_result(retry_spec.identifier.name, xml)
         self._write_result_file_atomic(
             result=result,
             suite_working_directory=retry_spec.output_directory(),
@@ -223,13 +224,6 @@ class _SuiteRetryRunner:  # pylint: disable=too-few-public-methods
                 self._suite_spec.name,
             )
         )
-
-
-def _create_result(suite_name: str, merged_xml_path: pathlib.Path) -> Result:
-    return Result(
-        suite_name=suite_name,
-        xml=merged_xml_path.read_text(encoding="utf-8"),
-    )
 
 
 def _suite_results_directory(results_directory: pathlib.Path) -> pathlib.Path:

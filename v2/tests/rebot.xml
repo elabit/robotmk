@@ -1,0 +1,94 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<robot generator="Rebot 6.1.1 (Python 3.11.4 on win32)" generated="20230901 02:47:13.056" rpa="false" schemaversion="4">
+   <suite id="s1" name="Tasks &amp; Tasks">
+      <suite id="s1-s1" name="Tasks" source="C:\robotmk\v2\data\retry_suite\tasks.robot">
+         <kw name="Setup" library="math" type="SETUP">
+            <msg timestamp="20230901 02:47:09.299" level="INFO">Setting up...</msg>
+            <status status="PASS" starttime="20230901 02:47:09.299" endtime="20230901 02:47:09.299"/>
+         </kw>
+         <test id="s1-s1-t1" name="Addition 1" line="17">
+            <kw name="Add" library="math">
+               <var>${result}</var>
+               <arg>${20}</arg>
+               <arg>${15}</arg>
+               <msg timestamp="20230901 02:47:09.299" level="INFO">${result} = 35</msg>
+               <status status="PASS" starttime="20230901 02:47:09.299" endtime="20230901 02:47:09.299"/>
+            </kw>
+            <kw name="Should Be Equal As Integers" library="BuiltIn">
+               <arg>${result}</arg>
+               <arg>${35}</arg>
+               <doc>Fails if objects are unequal after converting them to integers.</doc>
+               <status status="PASS" starttime="20230901 02:47:09.299" endtime="20230901 02:47:09.299"/>
+            </kw>
+            <status status="PASS" starttime="20230901 02:47:09.299" endtime="20230901 02:47:09.299"/>
+         </test>
+         <test id="s1-s1-t2" name="Addition 2" line="21">
+            <kw name="Add" library="math">
+               <var>${result}</var>
+               <arg>${1}</arg>
+               <arg>${2}</arg>
+               <msg timestamp="20230901 02:47:09.299" level="INFO">${result} = 3</msg>
+               <status status="PASS" starttime="20230901 02:47:09.299" endtime="20230901 02:47:09.299"/>
+            </kw>
+            <kw name="Should Be Equal As Integers" library="BuiltIn">
+               <arg>${result}</arg>
+               <arg>${expected_result_2}</arg>
+               <doc>Fails if objects are unequal after converting them to integers.</doc>
+               <msg timestamp="20230901 02:47:09.299" level="INFO">Argument types are:
+&lt;class 'int'&gt;
+&lt;class 'str'&gt;</msg>
+               <msg timestamp="20230901 02:47:09.299" level="FAIL">3 != 4</msg>
+               <status status="FAIL" starttime="20230901 02:47:09.299" endtime="20230901 02:47:09.299"/>
+            </kw>
+            <status status="FAIL" starttime="20230901 02:47:09.299" endtime="20230901 02:47:09.299">3 != 4</status>
+         </test>
+         <kw name="Teardown" library="math" type="TEARDOWN">
+            <msg timestamp="20230901 02:47:09.299" level="INFO">Tearing down...</msg>
+            <status status="PASS" starttime="20230901 02:47:09.299" endtime="20230901 02:47:09.299"/>
+         </kw>
+         <doc>Test file for configuring RobotFramework</doc>
+         <status status="FAIL" starttime="20230901 02:47:09.220" endtime="20230901 02:47:09.299"/>
+      </suite>
+      <suite id="s1-s2" name="Tasks" source="C:\robotmk\v2\data\retry_suite\tasks.robot">
+         <kw name="Setup" library="math" type="SETUP">
+            <msg timestamp="20230901 02:47:12.808" level="INFO">Setting up...</msg>
+            <status status="PASS" starttime="20230901 02:47:12.807" endtime="20230901 02:47:12.808"/>
+         </kw>
+         <test id="s1-s2-t1" name="Addition 2" line="21">
+            <kw name="Add" library="math">
+               <var>${result}</var>
+               <arg>${1}</arg>
+               <arg>${2}</arg>
+               <msg timestamp="20230901 02:47:12.808" level="INFO">${result} = 3</msg>
+               <status status="PASS" starttime="20230901 02:47:12.808" endtime="20230901 02:47:12.808"/>
+            </kw>
+            <kw name="Should Be Equal As Integers" library="BuiltIn">
+               <arg>${result}</arg>
+               <arg>${expected_result_2}</arg>
+               <doc>Fails if objects are unequal after converting them to integers.</doc>
+               <status status="PASS" starttime="20230901 02:47:12.808" endtime="20230901 02:47:12.808"/>
+            </kw>
+            <status status="PASS" starttime="20230901 02:47:12.808" endtime="20230901 02:47:12.808"/>
+         </test>
+         <kw name="Teardown" library="math" type="TEARDOWN">
+            <msg timestamp="20230901 02:47:12.808" level="INFO">Tearing down...</msg>
+            <status status="PASS" starttime="20230901 02:47:12.808" endtime="20230901 02:47:12.808"/>
+         </kw>
+         <doc>Test file for configuring RobotFramework</doc>
+         <status status="PASS" starttime="20230901 02:47:12.723" endtime="20230901 02:47:12.808"/>
+      </suite>
+      <status status="FAIL" starttime="N/A" endtime="N/A" elapsedtime="164"/>
+   </suite>
+   <statistics>
+      <total>
+         <stat pass="2" fail="1" skip="0">All Tests</stat>
+      </total>
+      <tag></tag>
+      <suite>
+         <stat pass="2" fail="1" skip="0" id="s1" name="Tasks &amp; Tasks">Tasks &amp; Tasks</stat>
+         <stat pass="1" fail="1" skip="0" id="s1-s1" name="Tasks">Tasks &amp; Tasks.Tasks</stat>
+         <stat pass="1" fail="0" skip="0" id="s1-s2" name="Tasks">Tasks &amp; Tasks.Tasks</stat>
+      </suite>
+   </statistics>
+   <errors></errors>
+</robot>
