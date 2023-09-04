@@ -132,7 +132,7 @@ function StartSchedulerRunner {
     }
 
     $selfLogPath = Join-Path $config.LogDirectory "scheduler_runner.log"
-    $exceptionLogPath = Join-Path $config.LogDirectory "scheduler_runners.log"
+    $exceptionLogPath = Join-Path $config.LogDirectory "scheduler_runner"
     $schedulerStdoutLogPath = Join-Path $config.LogDirectory "scheduler_stdout.log"
     $schedulerStderrLogPath = Join-Path $config.LogDirectory "scheduler_stderr.log"
 
