@@ -6,6 +6,7 @@ from robotmk import parse_xml
 class Test(BaseModel, frozen=True):
     name: str
     id_: str
+    status: parse_xml.Outcome
 
 
 class Result(BaseModel, frozen=True):
@@ -18,10 +19,17 @@ class Result(BaseModel, frozen=True):
 # cannot be part of the API! We have to find a different location.
 def create_result(suite_name: str, xml: str) -> Result:
     rebot = parse_xml.parse_rebot(xml)
-    tests = _obtain_tests(rebot)
+    tests = [
+        Test(
+            name=t.name,
+            id_=t.id_,
+            status=t.status.status,
+        )
+        for t in _obtain_tests(rebot)
+    ]
     return Result(
         suite_name=suite_name,
-        tests=[Test(name=t.name, id_=t.id_) for t in tests],
+        tests=tests,
         xml=xml,
     )
 
