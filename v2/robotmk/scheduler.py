@@ -13,6 +13,7 @@ from apscheduler.triggers.interval import IntervalTrigger  # type: ignore[import
 from pydantic import BaseModel, TypeAdapter
 from robot import rebot  # type: ignore[import]
 
+from robotmk.api import Result
 from robotmk.attempt import (
     Attempt,
     Identifier,
@@ -212,7 +213,7 @@ class _SuiteRetryRunner:  # pylint: disable=too-few-public-methods
     ) -> None:
         intermediate_result_path = suite_working_directory / "result.json"
         intermediate_result_path.write_text(
-            _Result(xml=merged_xml_path.read_text(encoding="utf-8")).model_dump_json(),
+            Result(xml=merged_xml_path.read_text(encoding="utf-8")).model_dump_json(),
             encoding="utf-8",
         )
         intermediate_result_path.replace(
@@ -232,10 +233,6 @@ def _suite_result_file(
     suite_name: str,
 ) -> pathlib.Path:
     return suite_results_directory / f"{suite_name}.json"
-
-
-class _Result(BaseModel, frozen=True):
-    xml: str
 
 
 def _setup(config: _ConfigSystemPython | _ConfigRCC) -> None:
