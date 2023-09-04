@@ -11,6 +11,8 @@ python = "^3.11"
 pydantic = "*"
 apscheduler = "<4"
 robotframework = "^6.1.1"
+xmltodict = "^0.13.0"
+types-xmltodict = "^0.13.0.3"
 
 [tool.poetry.group.dev]
 optional = true
