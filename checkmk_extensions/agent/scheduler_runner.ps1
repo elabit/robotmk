@@ -120,8 +120,6 @@ function StartSchedulerRunner {
 
     $selfLogPath = Join-Path $config.LogDirectory "scheduler_runner.log"
     $exceptionLogPath = Join-Path $config.ResultsDirectory "scheduler_runner"
-    $schedulerStdoutLogPath = Join-Path $config.LogDirectory "scheduler_stdout.log"
-    $schedulerStderrLogPath = Join-Path $config.LogDirectory "scheduler_stderr.log"
 
     if (-not (Test-Path $config.LogDirectory)) {
         New-Item -Path $config.LogDirectory -ItemType Directory
@@ -145,8 +143,6 @@ function StartSchedulerRunner {
             -ArgumentList $commandSpec.Arguments `
             -Wait `
             -NoNewWindow `
-            -RedirectStandardOutput $SchedulerStdoutLogPath `
-            -RedirectStandardError $SchedulerStderrLogPath
 
             WriteLogAndException -Message "Successfully started the scheduler-runner process" -LogPath $selfLogPath
         }
