@@ -43,13 +43,8 @@ class Config {
     }
 
     static [Config] ParseConfigFile([string]$Path) {
-        try {
-            $configFileContent = Get-Content -Raw -Path $Path
-            $configData = ConvertFrom-Json -InputObject $configFileContent
-        }
-        catch {
-            throw
-        }
+        $configFileContent = Get-Content -Raw -Path $Path
+        $configData = ConvertFrom-Json -InputObject $configFileContent
 
         $resultsDir = $configData.results_directory -as [string]
         $logDir = $configData.log_directory -as [string]
@@ -121,18 +116,10 @@ function StartSchedulerRunner {
         [string]$ConfigFilePath
     )
 
-    try {
-        $config = [Config]::ParseConfigFile($ConfigFilePath)
-    }
-    catch {
-        # What should the path of the log files be?
-        # Here we still don't have access to the defined path from the config file
-        WriteLogAndException -Message $_.Exception.Message -LogPath "" -ExceptionLogPath ""
-        throw
-    }
+    $config = [Config]::ParseConfigFile($ConfigFilePath)
 
     $selfLogPath = Join-Path $config.LogDirectory "scheduler_runner.log"
-    $exceptionLogPath = Join-Path $config.LogDirectory "scheduler_runner"
+    $exceptionLogPath = Join-Path $config.ResultsDirectory "scheduler_runner"
     $schedulerStdoutLogPath = Join-Path $config.LogDirectory "scheduler_stdout.log"
     $schedulerStderrLogPath = Join-Path $config.LogDirectory "scheduler_stderr.log"
 
@@ -186,11 +173,6 @@ function WriteLogAndException {
         $null = New-Item -Path $LogPath -ItemType File -Force
     }
 
-    if ($ExceptionLogPath -and -not (Test-Path $ExceptionLogPath)) {
-        $null = New-Item -Path $ExceptionLogPath -ItemType File -Force
-        "<<<robotmk_scheduler_runner_exceptions:sep(124)>>>" | Out-File -Append $ExceptionLogPath
-    }
-
     # Get the current timestamp
     $TimeStamp = Get-Date -Format "yyyy-MM-dd HH:mm:ss"
 
@@ -200,8 +182,10 @@ function WriteLogAndException {
     # Write the log entry to the log file
     $LogEntry | Out-File -Append $LogPath
 
-    # Write the exception to the exception section
+    # Write the last exception to the exception section
     if ($ExceptionLogPath) {
+        $null = New-Item -Path $ExceptionLogPath -ItemType File -Force
+        "<<<robotmk_scheduler_runner_exceptions:sep(124)>>>" | Out-File -Append $ExceptionLogPath
         $LogEntry | Out-File -Append $ExceptionLogPath
     }
 }
