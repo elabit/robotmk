@@ -1,6 +1,7 @@
+from base64 import b64encode
 from datetime import datetime
 
-from pydantic import BaseModel
+from pydantic import Base64Bytes, BaseModel
 
 from robotmk import parse_xml
 
@@ -17,11 +18,12 @@ class Result(BaseModel, frozen=True):
     suite_name: str
     tests: list[Test]
     xml: str
+    html: Base64Bytes
 
 
 # TODO: This function depends on `parse_xml` and therefore   # pylint: disable=fixme
 # cannot be part of the API! We have to find a different location.
-def create_result(suite_name: str, xml: str) -> Result:
+def create_result(suite_name: str, xml: str, html: str) -> Result:
     rebot = parse_xml.parse_rebot(xml)
     tests = [
         Test(
@@ -37,6 +39,7 @@ def create_result(suite_name: str, xml: str) -> Result:
         suite_name=suite_name,
         tests=tests,
         xml=xml,
+        html=b64encode(bytes(html, "utf-8")),
     )
 
 

@@ -178,10 +178,12 @@ class _SuiteRetryRunner:  # pylint: disable=too-few-public-methods
             return  # Untested
 
         final_output = retry_spec.output_directory() / "merged.xml"
-        rebot(*outputs, output=final_output, report=None, log=None)
+        final_log = retry_spec.output_directory() / "merged.html"
+        rebot(*outputs, output=final_output, report=None, log=final_log)
 
         xml = final_output.read_text(encoding="utf-8")
-        result = create_result(retry_spec.identifier.name, xml)
+        html = final_log.read_text(encoding="utf-8")
+        result = create_result(retry_spec.identifier.name, xml, html)
         self._write_result_file_atomic(
             result=result,
             suite_working_directory=retry_spec.output_directory(),
