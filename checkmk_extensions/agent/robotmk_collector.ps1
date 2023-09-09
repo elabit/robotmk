@@ -33,7 +33,7 @@ function SerializeConfigReadingError {
         [parameter(Mandatory=$true, Position=0)]
         [System.Management.Automation.ErrorRecord]$Err
     )
-    return ConvertTo-Json -InputObject @{ config_reading_error = Out-String -InputObject $Err; }
+    return ConvertTo-Json -Compress -InputObject @{ config_reading_error = Out-String -InputObject $Err; }
 }
 
 
@@ -43,7 +43,7 @@ function SerializeConfigFileContent {
         [parameter(Mandatory=$true, Position=0)]
         [string]$ConfigFileContent
     )
-    return ConvertTo-Json -InputObject @{ config_file_content = $configFileContent; }
+    return ConvertTo-Json -Compress -InputObject @{ config_file_content = $configFileContent; }
 }
 
 function GetResultsDirectory {
