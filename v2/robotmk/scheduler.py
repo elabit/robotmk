@@ -1,112 +1,31 @@
 """Scheduler"""
 
-import dataclasses
 import datetime
 import pathlib
 import subprocess
-from collections.abc import Iterable, Iterator, Mapping, Sequence
-from typing import Final, Literal
+from collections.abc import Iterable
+from typing import Final
 
 from apscheduler.schedulers.blocking import BlockingScheduler  # type: ignore[import]
 from apscheduler.triggers.interval import IntervalTrigger  # type: ignore[import]
-from pydantic import BaseModel, TypeAdapter
 from robot import rebot  # type: ignore[import]
 
 from robotmk.api import Result, create_result
-from robotmk.attempt import (
-    Attempt,
-    Identifier,
-    RetrySpec,
-    RetryStrategy,
-    Variant,
-    create_attempts,
-)
+from robotmk.attempt import Attempt, Identifier, RetrySpec, create_attempts
 from robotmk.cli import parse_arguments
+from robotmk.config import (
+    ConfigRCC,
+    ConfigSystemPython,
+    RCCEnvironmentSpec,
+    SuiteSpecification,
+    UserSessionConfig,
+    parse_config,
+)
 from robotmk.environment import RCCEnvironment, ResultCode, SystemEnvironment
 from robotmk.session import CurrentSession, UserSession
 
 
-class _RCCConfig(BaseModel, frozen=True):
-    rcc_binary_path: pathlib.Path
-
-
-class _UserSessionConfig(BaseModel, frozen=True):
-    user_name: str
-
-
-class _SuiteConfig(BaseModel, frozen=True):
-    execution_interval_seconds: int
-    robot_target: pathlib.Path
-    variants: Sequence[Variant]
-    retry_strategy: RetryStrategy
-    session: _UserSessionConfig | None
-
-
-class _SystemPythonSuiteConfig(_SuiteConfig, frozen=True):
-    ...
-
-
-class _RCCSuiteConfig(_SuiteConfig, frozen=True):
-    robot_yaml_path: pathlib.Path
-
-
-@dataclasses.dataclass(frozen=True)
-class _RCCEnvironmentSpec:
-    binary_path: pathlib.Path
-    robot_yaml_path: pathlib.Path
-
-
-@dataclasses.dataclass(frozen=True)
-class _SuiteSpecification:
-    name: str  # ambiguous, since Robot Framework also provides names.
-    config: _SuiteConfig
-    rcc_env: _RCCEnvironmentSpec | None
-    working_directory: pathlib.Path
-    results_directory: pathlib.Path
-
-
-class _ConfigSystemPython(BaseModel, frozen=True):
-    environment: Literal["system_python"]
-    working_directory: pathlib.Path
-    results_directory: pathlib.Path
-    suites: Mapping[str, _SystemPythonSuiteConfig]
-
-    def suite_specifications(self) -> Iterator[_SuiteSpecification]:
-        yield from (
-            _SuiteSpecification(
-                name=suite_name,
-                config=suite_config,
-                rcc_env=None,
-                working_directory=self.working_directory,
-                results_directory=self.results_directory,
-            )
-            for suite_name, suite_config in self.suites.items()
-        )
-
-
-class _ConfigRCC(BaseModel, frozen=True):
-    environment: _RCCConfig
-    working_directory: pathlib.Path
-    results_directory: pathlib.Path
-    suites: Mapping[str, _RCCSuiteConfig]
-
-    def suite_specifications(self) -> Iterator[_SuiteSpecification]:
-        yield from (
-            _SuiteSpecification(
-                name=suite_name,
-                config=suite_config,
-                rcc_env=_RCCEnvironmentSpec(
-                    binary_path=self.environment.rcc_binary_path,
-                    robot_yaml_path=suite_config.robot_yaml_path,
-                ),
-                working_directory=self.working_directory,
-                results_directory=self.results_directory,
-            )
-            for suite_name, suite_config in self.suites.items()
-        )
-
-
-def _scheduler(config: _ConfigSystemPython | _ConfigRCC) -> BlockingScheduler:
+def _scheduler(config: ConfigSystemPython | ConfigRCC) -> BlockingScheduler:
     scheduler = BlockingScheduler()
     for suite_specification in config.suite_specifications():
         scheduler.add_job(
@@ -122,7 +41,7 @@ def _scheduler(config: _ConfigSystemPython | _ConfigRCC) -> BlockingScheduler:
 
 def _environment(
     suite_name: str,
-    config: _RCCEnvironmentSpec | None,
+    config: RCCEnvironmentSpec | None,
 ) -> RCCEnvironment | SystemEnvironment:
     if config is None:
         return SystemEnvironment()
@@ -136,8 +55,8 @@ def _environment(
 
 def _session(
     suite_name: str,
-    environment: _RCCEnvironmentSpec | None,
-    session: _UserSessionConfig | None,
+    environment: RCCEnvironmentSpec | None,
+    session: UserSessionConfig | None,
 ) -> CurrentSession | UserSession:
     env = _environment(suite_name, environment)
     if session:
@@ -149,7 +68,7 @@ def _session(
 
 
 class _SuiteRetryRunner:  # pylint: disable=too-few-public-methods
-    def __init__(self, suite_specification: _SuiteSpecification) -> None:
+    def __init__(self, suite_specification: SuiteSpecification) -> None:
         self._suite_spec: Final = suite_specification
         self._session: Final = _session(
             suite_specification.name,
@@ -239,7 +158,7 @@ def _suite_result_file(
     return suite_results_directory / f"{suite_name}.json"
 
 
-def _setup(config: _ConfigSystemPython | _ConfigRCC) -> None:
+def _setup(config: ConfigSystemPython | ConfigRCC) -> None:
     config.working_directory.mkdir(
         parents=True,
         exist_ok=True,
@@ -271,13 +190,7 @@ def _clean_up_results_directory_atomic(
 
 def main() -> None:
     arguments = parse_arguments()
-
-    with arguments.config_path.open() as file:
-        content = file.read()
-    config = TypeAdapter(_ConfigSystemPython | _ConfigRCC).validate_json(content)
-    # mypy somehow doesn't understand TypeAdapter.validate_json
-    assert isinstance(config, _ConfigSystemPython | _ConfigRCC)
-
+    config = parse_config(arguments.config_path)
     _setup(config)
     _scheduler(config).start()
 

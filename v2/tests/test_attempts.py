@@ -1,13 +1,7 @@
 import pathlib
 
-from robotmk.attempt import (
-    Attempt,
-    Identifier,
-    RetrySpec,
-    RetryStrategy,
-    Variant,
-    create_attempts,
-)
+from robotmk.attempt import Attempt, Identifier, RetrySpec, create_attempts
+from robotmk.config import RetryStrategy, Variant
 
 
 def test_create_command_complete() -> None:

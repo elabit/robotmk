@@ -1,10 +1,11 @@
 """RetryStrategy. """
 
 import dataclasses
-import enum
 import pathlib
 from collections.abc import Iterator, Sequence
 from typing import Final
+
+from robotmk.config import RetryStrategy, Variant
 
 PYTHON_EXECUTABLE: Final = pathlib.Path("python")
 
@@ -13,17 +14,6 @@ PYTHON_EXECUTABLE: Final = pathlib.Path("python")
 class Identifier:
     name: str
     timestamp: str
-
-
-class RetryStrategy(enum.Enum):
-    INCREMENTAL = "incremental"
-    COMPLETE = "complete"
-
-
-@dataclasses.dataclass(frozen=True)
-class Variant:
-    variablefile: pathlib.Path | None
-    argumentfile: pathlib.Path | None
 
 
 @dataclasses.dataclass(frozen=True)
