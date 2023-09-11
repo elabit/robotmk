@@ -84,7 +84,7 @@ function CreateSchedulerExecCommand {
         [AllowNull()]
         [RCCConfig]$RCCConfig
     )
-    $pythonSchedArgs = @("-m", "robotmk.scheduler", $ConfigPath)
+    $pythonSchedArgs = @("-m", "robotmk", $ConfigPath)
 
     if ($null -eq $RCCConfig) {
         return [CommandSpecification]::new(

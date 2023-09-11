@@ -6,27 +6,27 @@ import subprocess
 from collections.abc import Iterable
 from typing import Final
 
-from apscheduler.schedulers.blocking import BlockingScheduler  # type: ignore[import]
+from apscheduler.schedulers.base import BaseScheduler  # type: ignore[import]
 from apscheduler.triggers.interval import IntervalTrigger  # type: ignore[import]
 from robot import rebot  # type: ignore[import]
 
 from robotmk.api import Result, create_result
 from robotmk.attempt import Attempt, Identifier, RetrySpec, create_attempts
-from robotmk.cli import parse_arguments
 from robotmk.config import (
     ConfigRCC,
     ConfigSystemPython,
     RCCEnvironmentSpec,
     SuiteSpecification,
     UserSessionConfig,
-    parse_config,
 )
 from robotmk.environment import RCCEnvironment, ResultCode, SystemEnvironment
 from robotmk.session import CurrentSession, UserSession
 
 
-def _scheduler(config: ConfigSystemPython | ConfigRCC) -> BlockingScheduler:
-    scheduler = BlockingScheduler()
+def schedule_suites(
+    config: ConfigSystemPython | ConfigRCC,
+    scheduler: BaseScheduler,
+) -> BaseScheduler:
     for suite_specification in config.suite_specifications():
         scheduler.add_job(
             _SuiteRetryRunner(suite_specification),
@@ -140,60 +140,19 @@ class _SuiteRetryRunner:  # pylint: disable=too-few-public-methods
             encoding="utf-8",
         )
         intermediate_result_path.replace(
-            _suite_result_file(
-                _suite_results_directory(self._suite_spec.results_directory),
+            suite_result_file(
+                suite_results_directory(self._suite_spec.results_directory),
                 self._suite_spec.name,
             )
         )
 
 
-def _suite_results_directory(results_directory: pathlib.Path) -> pathlib.Path:
+def suite_results_directory(results_directory: pathlib.Path) -> pathlib.Path:
     return results_directory / "suites"
 
 
-def _suite_result_file(
-    suite_results_directory: pathlib.Path,
+def suite_result_file(
+    suite_results_dir: pathlib.Path,
     suite_name: str,
 ) -> pathlib.Path:
-    return suite_results_directory / f"{suite_name}.json"
-
-
-def _setup(config: ConfigSystemPython | ConfigRCC) -> None:
-    config.working_directory.mkdir(
-        parents=True,
-        exist_ok=True,
-    )
-    (suite_results_dir := _suite_results_directory(config.results_directory)).mkdir(
-        parents=True,
-        exist_ok=True,
-    )
-    _clean_up_results_directory_atomic(
-        suite_results_directory=suite_results_dir,
-        configured_suites=config.suites,
-        intermediate_path_for_move=config.working_directory / "deprecated_result",
-    )
-
-
-def _clean_up_results_directory_atomic(
-    *,
-    suite_results_directory: pathlib.Path,
-    configured_suites: Iterable[str],
-    intermediate_path_for_move: pathlib.Path,
-) -> None:
-    for unwanted_result_file in set(suite_results_directory.iterdir()) - {
-        _suite_result_file(suite_results_directory, suite_name)
-        for suite_name in configured_suites
-    }:
-        unwanted_result_file.replace(intermediate_path_for_move)
-    intermediate_path_for_move.unlink(missing_ok=True)
-
-
-def main() -> None:
-    arguments = parse_arguments()
-    config = parse_config(arguments.config_path)
-    _setup(config)
-    _scheduler(config).start()
-
-
-if __name__ == "__main__":
-    main()
+    return suite_results_dir / f"{suite_name}.json"
