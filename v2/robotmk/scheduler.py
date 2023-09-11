@@ -1,6 +1,5 @@
 """Scheduler"""
 
-import argparse
 import dataclasses
 import datetime
 import pathlib
@@ -22,6 +21,7 @@ from robotmk.attempt import (
     Variant,
     create_attempts,
 )
+from robotmk.cli import parse_arguments
 from robotmk.environment import RCCEnvironment, ResultCode, SystemEnvironment
 from robotmk.session import CurrentSession, UserSession
 
@@ -269,14 +269,8 @@ def _clean_up_results_directory_atomic(
     intermediate_path_for_move.unlink(missing_ok=True)
 
 
-class Arguments(BaseModel, frozen=True):
-    config_path: pathlib.Path
-
-
 def main() -> None:
-    parser = argparse.ArgumentParser()
-    parser.add_argument("config_path", type=pathlib.Path)
-    arguments = Arguments.model_validate(vars(parser.parse_args()))
+    arguments = parse_arguments()
 
     with arguments.config_path.open() as file:
         content = file.read()
