@@ -1,7 +1,7 @@
 # -*- mode: ruby -*-
 # vi: set ft=ruby :
 
-require 'yaml'
+require "yaml"
 settings_file = ENV.fetch("ROBOTMK_VAGRANT_CONFIG", "default_settings.yaml")
 settings = YAML::load_file(settings_file)
 
@@ -21,14 +21,22 @@ Vagrant.configure("2") do |config|
   config.vm.synced_folder ".", "/vagrant", disabled: true
   config.vm.synced_folder "../", "/robotmk"
 
-
   if settings["config_vm_network"]
     config.vm.network "public_network", bridge: settings["config_vm_network"]
   end
 
   config.vm.provision "shell", path: "scripts/provision.ps1"
   if settings["deploy_checkmk_agent"]
-    config.vm.provision "ansible", verbose: "v", playbook: "checkmk_playbook.yaml", compatibility_mode: "2.0"
+    config.vm.provision "ansible" do |ansible|
+      ansible.playbook = "checkmk_playbook.yaml"
+      ansible.verbose = "v"
+      ansible.compatibility_mode = "2.0"
+      ansible.extra_vars = {
+        checkmk_agent_user: settings["checkmk_agent_user"],
+        checkmk_agent_pass: settings["checkmk_agent_pass"],
+        checkmk_agent_site: settings["checkmk_agent_site"],
+      }
+    end
     config.vm.network "private_network", ip: "192.168.56.20"
   end
 end
