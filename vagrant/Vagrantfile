@@ -1,15 +1,19 @@
 # -*- mode: ruby -*-
 # vi: set ft=ruby :
 
+require 'yaml'
+settings_file = ENV.fetch("ROBOTMK_VAGRANT_CONFIG", "default_settings.yaml")
+settings = YAML::load_file(settings_file)
+
 Vagrant.configure("2") do |config|
   config.vm.box = "gusztavvargadr/windows-11-22h2-enterprise"
   config.vm.box_version = "2202.0.2306"
 
   config.vm.provider "virtualbox" do |vb|
-    vb.name = ENV.fetch("ROBOTMK_VAGRANT_NAME", "robotmk")
-    vb.cpus = ENV.fetch("ROBOTMK_VAGRANT_CPUS", 4)
-    vb.memory = ENV.fetch("ROBOTMK_VAGRANT_MEMORY", 4096)
-    vb.gui = ENV.fetch("ROBOTMK_VAGRANT_GUI", "true") == "true"
+    vb.name = settings["config_vm_provider_virtualbox_name"]
+    vb.cpus = settings["config_vm_provider_virtualbox_cpus"]
+    vb.memory = settings["config_vm_provider_virtualbox_memory"]
+    vb.gui = settings["config_vm_provider_virtualbox_gui"]
     vb.customize ["modifyvm", :id, "--draganddrop", "hosttoguest"]  # drag-and-drop
     vb.customize ["modifyvm", :id, "--clipboard", "bidirectional"]  # bidirectional clipboard
   end
@@ -17,10 +21,9 @@ Vagrant.configure("2") do |config|
   config.vm.synced_folder ".", "/vagrant", disabled: true
   config.vm.synced_folder "../", "/robotmk"
 
-  # bridge the VM interface to the host interface (e.g. "enp0s31f6") - alternative to NAT
-  if ENV["ROBOTMK_VAGRANT_BRIDGE_IFACE"]
-    config.vm.network "public_network", bridge: ENV["ROBOTMK_VAGRANT_BRIDGE_IFACE"]  
-  end 
+  if settings["config_vm_network"]
+    config.vm.network "public_network", bridge: settings["config_vm_network"]
+  end
 
   config.vm.provision "shell", path: "scripts/provision.ps1"
 end
