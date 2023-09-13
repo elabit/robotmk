@@ -1,7 +1,10 @@
-config_vm_provider_virtualbox_name: "robotmk"
+config_vm_provider_virtualbox_name: 'robotmk'
 config_vm_provider_virtualbox_cpus: 4
 config_vm_provider_virtualbox_memory: 4096
 config_vm_provider_virtualbox_gui: true
 # bridge the VM interface to the host interface (e.g. "enp0s31f6") - alternative to NAT
 config_vm_network: null
 deploy_checkmk_agent: true
+checkmk_agent_user: 'cmkadmin'
+checkmk_agent_pass: 'cmk'
+checkmk_agent_site: 'heute'

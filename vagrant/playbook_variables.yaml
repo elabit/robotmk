@@ -4,12 +4,8 @@ checkmk_agent_protocol: 'http'
 checkmk_agent_server: '192.168.56.1'
 checkmk_agent_server_validate_certs: false
 checkmk_agent_port: "{% if checkmk_agent_protocol == 'https' %}443{% else %}80{% endif %}"
-checkmk_agent_site: 'heute'
 checkmk_agent_registration_server: '{{ checkmk_agent_server }}'
 checkmk_agent_registration_site: '{{ checkmk_agent_site }}'
-checkmk_agent_user: 'cmkadmin'
-checkmk_agent_pass: 'cmk'
-checkmk_agent_secret: 'cmk'
 checkmk_agent_auto_activate: true
 checkmk_agent_force_foreign_changes: false
 checkmk_agent_discover: false
