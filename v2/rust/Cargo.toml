@@ -8,3 +8,5 @@ edition = "2021"
 [dependencies]
 anyhow = { version = "*", features = ["backtrace"] }
 clap = { version = "*", features = ["derive"] }
+flexi_logger = "*"
+log = "*"
