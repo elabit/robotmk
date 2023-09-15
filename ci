@@ -3,6 +3,7 @@
 main() {
 	topdir="$(git rev-parse --show-toplevel)"
 	self="${topdir}/ci"
+	cargo_toml_path="${topdir}/v2/rust/Cargo.toml"
 	pyproject_toml_path="${topdir}/pyproject.toml"
 	v2_dir="${topdir}/v2"
 	v2_src="${v2_dir}/robotmk"
@@ -12,6 +13,18 @@ main() {
 	shift
 
 	case "${mode}" in
+	'cargo-fmt-check')
+		cargo fmt --manifest-path "${cargo_toml_path}" -- --check
+		;;
+
+	'cargo-clippy')
+		cargo clippy --manifest-path "${cargo_toml_path}" --all-targets -- --deny warnings
+		;;
+
+	'cargo-test')
+		cargo test --manifest-path "${cargo_toml_path}" --all-targets
+		;;
+
 	'black')
 		poetry run black --config "${pyproject_toml_path}" "$@"
 		;;
@@ -73,6 +86,11 @@ main() {
 
 	'check-all')
 		exit_code=0
+		for rust_step in fmt-check clippy test
+		do
+			"${self}" "cargo-${rust_step}"
+			exit_code=$(( exit_code + $? ))
+		done
 		for tool in black isort mypy pylint pytest PSScriptAnalyzer
 		do
 			"${self}" "${tool}-check-all"
