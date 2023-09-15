@@ -102,3 +102,40 @@ pub fn create_attempts(spec: RetrySpec) -> Vec<Attempt> {
     }
     attempts
 }
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    #[test]
+    fn create_complete_command() {
+        // Assemble
+        let attempt = Attempt {
+            output_directory: "/tmp/my_suite/2023-08-29T12.23.44.419347+00.00".into(),
+            identifier: Identifier {
+                name: "my_suite".into(),
+                timestamp: "2023-08-29T12.23.44.419347+00.00".into(),
+            },
+            index: 0,
+            robot_target: "~/suite/calculator.robot".into(),
+            variable_file: None,
+            argument_file: None,
+            retry_strategy: RetryStrategy::Incremental,
+        };
+        let mut expected = Command::new(PYTHON_EXECUTABLE);
+        expected
+            .arg("-m")
+            .arg("robot")
+            .arg("--outputdir")
+            .arg("/tmp/my_suite/2023-08-29T12.23.44.419347+00.00")
+            .arg("--output")
+            .arg("/tmp/my_suite/2023-08-29T12.23.44.419347+00.00/0.xml")
+            .arg("--log")
+            .arg("/tmp/my_suite/2023-08-29T12.23.44.419347+00.00/0.html")
+            .arg("~/suite/calculator.robot");
+        // Act
+        let command = attempt.command();
+        // Assert
+        assert_eq!(format!("{:?}", command), format!("{:?}", expected))
+    }
+}
