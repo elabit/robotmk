@@ -116,9 +116,9 @@ mod tests {
             .arg("--outputdir")
             .arg("/tmp/my_suite/2023-08-29T12.23.44.419347+00.00")
             .arg("--output")
-            .arg("/tmp/my_suite/2023-08-29T12.23.44.419347+00.00/0.xml")
+            .arg(PathBuf::from("/tmp/my_suite/2023-08-29T12.23.44.419347+00.00").join("0.xml"))
             .arg("--log")
-            .arg("/tmp/my_suite/2023-08-29T12.23.44.419347+00.00/0.html")
+            .arg(PathBuf::from("/tmp/my_suite/2023-08-29T12.23.44.419347+00.00").join("0.html"))
             .arg("~/suite/calculator.robot");
         expected
     }
@@ -187,13 +187,13 @@ mod tests {
             .arg("-m")
             .arg("robot")
             .arg("--rerunfailed")
-            .arg("/tmp/my_suite/2023-08-29T12.23.44.419347+00.00/0.xml")
+            .arg(PathBuf::from("/tmp/my_suite/2023-08-29T12.23.44.419347+00.00").join("0.xml"))
             .arg("--outputdir")
             .arg("/tmp/my_suite/2023-08-29T12.23.44.419347+00.00")
             .arg("--output")
-            .arg("/tmp/my_suite/2023-08-29T12.23.44.419347+00.00/1.xml")
+            .arg(PathBuf::from("/tmp/my_suite/2023-08-29T12.23.44.419347+00.00").join("1.xml"))
             .arg("--log")
-            .arg("/tmp/my_suite/2023-08-29T12.23.44.419347+00.00/1.html")
+            .arg(PathBuf::from("/tmp/my_suite/2023-08-29T12.23.44.419347+00.00").join("1.html"))
             .arg("~/suite/calculator.robot");
         // Act
         let command = attempt.command();
