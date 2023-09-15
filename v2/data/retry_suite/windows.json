@@ -1,24 +1,21 @@
 {
 	"working_directory": "/tmp/outputdir",
 	"results_directory": "/tmp/results",
-	"log_directory": "/tmp/logs",
-	"environment": "system_python",
 	"suites": {
 		"test": {
-			"execution_interval_seconds": 10,
-			"robot_target": "C:\\robotmk\\v2\\data\\retry_suite\\/tasks.robot",
-			"variants": [
-				{
-					"variablefile": null,
-					"argumentfile": null
-				},
-				{
-					"variablefile": "C:\\robotmk\\v2\\data\\retry_suite\\/retry_variables.yaml",
-					"argumentfile": null
-				}
-			],
-			"retry_strategy": "incremental",
-			"session": null
+			"robot_framework_config": {
+				"robot_target": "C:\\robotmk\\v2\\data\\retry_suite\\tasks.robot",
+				"variable_file": "C:\\robotmk\\v2\\data\\retry_suite\\retry_variables.yaml",
+				"argument_file": null,
+				"retry_strategy": "Incremental"
+			},
+			"execution_config": {
+				"n_retries_max": 1,
+				"execution_interval_seconds": 10,
+				"timeout": 5
+			},
+			"environment_config": {"type": "System"},
+			"session_config": {"type": "Current"}
 		}
 	}
 }
