@@ -3,6 +3,8 @@
 set -e
 
 main() {
+    setup_rust
+
     setup_python_environment "${PYTHON_VERSION}"
 
     setup_powershell
@@ -31,6 +33,10 @@ setup_powershell() {
     sudo apt-get update
     sudo apt-get install powershell
     pwsh -Command "Install-Module -Name PSScriptAnalyzer"
+}
+
+setup_rust() {
+    curl --proto '=https' --tlsv1.2 -sSf https://sh.rustup.rs | sh -s - -y
 }
 
 main
