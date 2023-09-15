@@ -9,6 +9,12 @@ jobs:
     strategy:
       matrix:
         include:
+        - name: Rust formatting
+          step: cargo-fmt-check
+        - name: Rust linting
+          step: cargo-clippy
+        - name: Rust tests
+          step: cargo-test
         - name: Python formatting
           step: black-check-all
         - name: Python import sorting
