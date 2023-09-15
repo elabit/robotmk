@@ -3,7 +3,7 @@ use std::process::Command;
 
 const PYTHON_EXECUTABLE: &str = "python";
 
-#[derive(Clone, PartialEq)]
+#[derive(Clone, PartialEq, Debug)]
 enum RetryStrategy {
     Incremental,
     Complete,
@@ -15,7 +15,7 @@ struct Variant {
     argument_file: Option<PathBuf>,
 }
 
-#[derive(Clone)]
+#[derive(Clone, PartialEq, Debug)]
 pub struct Identifier {
     name: String,
     timestamp: String,
@@ -38,6 +38,7 @@ impl RetrySpec {
     }
 }
 
+#[derive(PartialEq, Debug)]
 pub struct Attempt {
     output_directory: PathBuf,
     identifier: Identifier,
@@ -107,6 +108,21 @@ pub fn create_attempts(spec: RetrySpec) -> Vec<Attempt> {
 mod tests {
     use super::*;
 
+    fn expected_first_run() -> Command {
+        let mut expected = Command::new(PYTHON_EXECUTABLE);
+        expected
+            .arg("-m")
+            .arg("robot")
+            .arg("--outputdir")
+            .arg("/tmp/my_suite/2023-08-29T12.23.44.419347+00.00")
+            .arg("--output")
+            .arg("/tmp/my_suite/2023-08-29T12.23.44.419347+00.00/0.xml")
+            .arg("--log")
+            .arg("/tmp/my_suite/2023-08-29T12.23.44.419347+00.00/0.html")
+            .arg("~/suite/calculator.robot");
+        expected
+    }
+
     #[test]
     fn create_complete_command() {
         // Assemble
@@ -120,22 +136,119 @@ mod tests {
             robot_target: "~/suite/calculator.robot".into(),
             variable_file: None,
             argument_file: None,
+            retry_strategy: RetryStrategy::Complete,
+        };
+        let expected = expected_first_run();
+        // Act
+        let command = attempt.command();
+        // Assert
+        assert_eq!(format!("{:?}", command), format!("{:?}", expected))
+    }
+
+    #[test]
+    fn create_incremental_command_first() {
+        // Assemble
+        let attempt = Attempt {
+            output_directory: "/tmp/my_suite/2023-08-29T12.23.44.419347+00.00".into(),
+            identifier: Identifier {
+                name: "my_suite".into(),
+                timestamp: "2023-08-29T12.23.44.419347+00.00".into(),
+            },
+            index: 0,
+            robot_target: "~/suite/calculator.robot".into(),
+            variable_file: None,
+            argument_file: None,
+            retry_strategy: RetryStrategy::Incremental,
+        };
+        let expected = expected_first_run();
+        // Act
+        let command = attempt.command();
+        // Assert
+        assert_eq!(format!("{:?}", command), format!("{:?}", expected))
+    }
+
+    #[test]
+    fn create_incremental_command_second() {
+        // Assemble
+        let attempt = Attempt {
+            output_directory: "/tmp/my_suite/2023-08-29T12.23.44.419347+00.00".into(),
+            identifier: Identifier {
+                name: "my_suite".into(),
+                timestamp: "2023-08-29T12.23.44.419347+00.00".into(),
+            },
+            index: 1,
+            robot_target: "~/suite/calculator.robot".into(),
+            variable_file: None,
+            argument_file: None,
             retry_strategy: RetryStrategy::Incremental,
         };
         let mut expected = Command::new(PYTHON_EXECUTABLE);
         expected
             .arg("-m")
             .arg("robot")
+            .arg("--rerunfailed")
+            .arg("/tmp/my_suite/2023-08-29T12.23.44.419347+00.00/0.xml")
             .arg("--outputdir")
             .arg("/tmp/my_suite/2023-08-29T12.23.44.419347+00.00")
             .arg("--output")
-            .arg("/tmp/my_suite/2023-08-29T12.23.44.419347+00.00/0.xml")
+            .arg("/tmp/my_suite/2023-08-29T12.23.44.419347+00.00/1.xml")
             .arg("--log")
-            .arg("/tmp/my_suite/2023-08-29T12.23.44.419347+00.00/0.html")
+            .arg("/tmp/my_suite/2023-08-29T12.23.44.419347+00.00/1.html")
             .arg("~/suite/calculator.robot");
         // Act
         let command = attempt.command();
         // Assert
         assert_eq!(format!("{:?}", command), format!("{:?}", expected))
+    }
+
+    #[test]
+    fn create_two_attempts() {
+        // Assemble
+        let spec = RetrySpec {
+            identifier: Identifier {
+                name: "suite_1".into(),
+                timestamp: "2023-08-29T12.23.44.419347+00.00".into(),
+            },
+            robot_target: "~/suite/calculator.robot".into(),
+            working_directory: "/tmp/outputdir/".into(),
+            variants: vec![
+                Variant {
+                    variable_file: None,
+                    argument_file: None,
+                },
+                Variant {
+                    variable_file: Some("~/suite/retry.yaml".into()),
+                    argument_file: None,
+                },
+            ],
+            strategy: RetryStrategy::Incremental,
+        };
+        let first_attempt = Attempt {
+            output_directory: "/tmp/outputdir/suite_1/2023-08-29T12.23.44.419347+00.00".into(),
+            identifier: Identifier {
+                name: "suite_1".into(),
+                timestamp: "2023-08-29T12.23.44.419347+00.00".into(),
+            },
+            index: 0,
+            robot_target: "~/suite/calculator.robot".into(),
+            variable_file: None,
+            argument_file: None,
+            retry_strategy: RetryStrategy::Incremental,
+        };
+        let second_attempt = Attempt {
+            output_directory: "/tmp/outputdir/suite_1/2023-08-29T12.23.44.419347+00.00".into(),
+            identifier: Identifier {
+                name: "suite_1".into(),
+                timestamp: "2023-08-29T12.23.44.419347+00.00".into(),
+            },
+            index: 1,
+            robot_target: "~/suite/calculator.robot".into(),
+            variable_file: Some("~/suite/retry.yaml".into()),
+            argument_file: None,
+            retry_strategy: RetryStrategy::Incremental,
+        };
+        // Act
+        let attempts = create_attempts(spec);
+        assert_eq!(attempts, [first_attempt, second_attempt])
     }
 }
