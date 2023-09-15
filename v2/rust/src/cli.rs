@@ -1,4 +1,5 @@
 use clap::{ArgAction, Parser};
+use flexi_logger::LogSpecification;
 use std::path::PathBuf;
 
 #[derive(Parser)]
@@ -15,5 +16,15 @@ pub struct Args {
     /// Enable verbose output. Use once (-v) for logging level INFO and twice (-vv) for logging
     /// level DEBUG.
     #[arg(short, long, action = ArgAction::Count)]
-    pub verbose: u8,
+    verbose: u8,
+}
+
+impl Args {
+    pub fn log_specification(&self) -> LogSpecification {
+        match self.verbose {
+            2.. => LogSpecification::debug(),
+            1 => LogSpecification::info(),
+            _ => LogSpecification::warn(),
+        }
+    }
 }
