@@ -12,11 +12,8 @@ mod termination;
 
 use anyhow::{Context, Result};
 use clap::Parser;
-use log::{debug, info, warn};
+use log::{debug, info};
 use logging::log_and_return_error;
-use std::process::exit;
-use std::thread::sleep;
-use std::time::Duration;
 
 fn main() -> Result<()> {
     let args = cli::Args::parse();
@@ -38,11 +35,9 @@ fn main() -> Result<()> {
         .map_err(log_and_return_error)?;
     debug!("Termination control set up");
 
-    loop {
-        if termination_flag.should_terminate() {
-            warn!("Termination signal received, shutting down");
-            exit(1);
-        }
-        sleep(Duration::from_millis(100))
-    }
+    info!("Starting environment building");
+    environment::build_environments(&conf, &termination_flag).map_err(log_and_return_error)?;
+    info!("Environment building finished");
+
+    Ok(())
 }
