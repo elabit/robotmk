@@ -7,11 +7,15 @@ mod logging;
 pub mod parse_xml;
 mod results;
 mod setup;
+mod termination;
 
 use anyhow::{Context, Result};
 use clap::Parser;
-use log::{debug, info};
+use log::{debug, info, warn};
 use logging::log_and_return_error;
+use std::process::exit;
+use std::thread::sleep;
+use std::time::Duration;
 
 fn main() -> Result<()> {
     let args = cli::Args::parse();
@@ -28,5 +32,16 @@ fn main() -> Result<()> {
         .map_err(log_and_return_error)?;
     debug!("Setup completed");
 
-    Ok(())
+    let termination_flag = termination::start_termination_control()
+        .context("Failed to set up termination control")
+        .map_err(log_and_return_error)?;
+    debug!("Termination control set up");
+
+    loop {
+        if termination_flag.should_terminate() {
+            warn!("Termination signal received, shutting down");
+            exit(1);
+        }
+        sleep(Duration::from_millis(100))
+    }
 }
