@@ -20,7 +20,7 @@
                <doc>Fails if objects are unequal after converting them to integers.</doc>
                <status status="PASS" starttime="20230901 02:47:09.299" endtime="20230901 02:47:09.299"/>
             </kw>
-            <status status="PASS" starttime="20230901 02:47:09.299" endtime="20230901 02:47:09.299"/>
+            <status status="NOT RUN" starttime="20230901 02:47:09.299" endtime="20230901 02:47:09.299"/>
          </test>
          <test id="s1-s1-t2" name="Addition 2" line="21">
             <kw name="Add" library="math">
