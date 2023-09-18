@@ -3,7 +3,8 @@ use std::process::Command;
 
 const PYTHON_EXECUTABLE: &str = "python";
 
-#[derive(Clone, PartialEq, Debug)]
+#[derive(Clone, PartialEq)]
+#[cfg_attr(test, derive(Debug))]
 enum RetryStrategy {
     Incremental,
     Complete,
@@ -15,7 +16,8 @@ struct Variant {
     argument_file: Option<PathBuf>,
 }
 
-#[derive(Clone, PartialEq, Debug)]
+#[derive(Clone)]
+#[cfg_attr(test, derive(Debug, PartialEq))]
 pub struct Identifier {
     name: String,
     timestamp: String,
@@ -38,7 +40,7 @@ impl RetrySpec {
     }
 }
 
-#[derive(PartialEq, Debug)]
+#[cfg_attr(test, derive(Debug, PartialEq))]
 pub struct Attempt {
     output_directory: PathBuf,
     identifier: Identifier,
