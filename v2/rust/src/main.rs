@@ -5,6 +5,7 @@ mod logging;
 
 use clap::Parser;
 use log::info;
+pub mod parse_xml;
 
 fn main() -> anyhow::Result<()> {
     let args = cli::Args::parse();
