@@ -70,3 +70,21 @@ struct Test {
 
 #[derive(Deserialize)]
 struct Errors {}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+    use quick_xml::de::from_str;
+    use std::fs;
+
+    #[test]
+    fn test_parse_rebot() {
+        let test_dir = format!("{}/../tests/rebot.xml", env!("CARGO_MANIFEST_DIR"));
+        let xml = fs::read_to_string(&test_dir)
+            .unwrap_or_else(|_| panic!("Missing test data! {}", test_dir));
+        let rebot: Rebot = from_str(&xml).unwrap();
+        assert_eq!(rebot.generator, "Rebot 6.1.1 (Python 3.11.4 on win32)");
+        assert!(!rebot.rpa);
+        assert_eq!(rebot.suite.suite.len(), 2);
+    }
+}
