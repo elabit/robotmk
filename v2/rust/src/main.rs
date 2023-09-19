@@ -1,5 +1,6 @@
 #![allow(dead_code)]
 pub mod attempt;
+mod child_process_supervisor;
 mod cli;
 mod config;
 mod environment;
