@@ -130,12 +130,32 @@ impl Environment {
         }
     }
 
-    fn build_instructions(&self) -> Option<BuildInstructions> {
+    pub fn wrap(&self, command: Command) -> Command {
         match self {
-            Self::System(system_environment) => system_environment.build_command(),
-            Self::Rcc(rcc_environment) => rcc_environment.build_command(),
+            Self::System(system_environment) => system_environment.wrap(command),
+            Self::Rcc(rcc_environment) => rcc_environment.wrap(command),
         }
     }
+
+    pub fn create_result_code(&self, exit_code: i32) -> ResultCode {
+        match self {
+            Self::System(_) => SystemEnvironment::create_result_code(exit_code),
+            Self::Rcc(_) => RCCEnvironment::create_result_code(exit_code),
+        }
+    }
+
+    fn build_instructions(&self) -> Option<BuildInstructions> {
+        match self {
+            Self::System(system_environment) => system_environment.build_instructions(),
+            Self::Rcc(rcc_environment) => rcc_environment.build_instructions(),
+        }
+    }
+}
+
+pub enum ResultCode {
+    AllTestsPassed,
+    RobotCommandFailed,
+    EnvironmentFailed,
 }
 
 struct BuildInstructions {
@@ -144,13 +164,47 @@ struct BuildInstructions {
 }
 
 impl SystemEnvironment {
-    fn build_command(&self) -> Option<BuildInstructions> {
+    pub fn wrap(&self, command: Command) -> Command {
+        command
+    }
+
+    fn create_result_code(exit_code: i32) -> ResultCode {
+        if exit_code == 0 {
+            return ResultCode::AllTestsPassed;
+        }
+        ResultCode::RobotCommandFailed
+    }
+
+    fn build_instructions(&self) -> Option<BuildInstructions> {
         None
     }
 }
 
 impl RCCEnvironment {
-    fn build_command(&self) -> Option<BuildInstructions> {
+    pub fn wrap(&self, command: Command) -> Command {
+        let mut wrapped_cmd = Command::new(&self.binary_path);
+        self.apply_current_settings(
+            wrapped_cmd
+                .envs(command.get_envs().filter_map(|(k, v)| v.map(|w| (k, w))))
+                .arg("task")
+                .arg("script")
+                .arg("--no-build"),
+        )
+        .arg("--")
+        .arg(command.get_program())
+        .args(command.get_args());
+        wrapped_cmd
+    }
+
+    fn create_result_code(exit_code: i32) -> ResultCode {
+        match exit_code {
+            0 => ResultCode::AllTestsPassed,
+            10 => ResultCode::RobotCommandFailed,
+            _ => ResultCode::EnvironmentFailed,
+        }
+    }
+
+    fn build_instructions(&self) -> Option<BuildInstructions> {
         let mut build_cmd = Command::new(&self.binary_path);
         self.apply_current_settings(build_cmd.arg("holotree").arg("variables").arg("--json"));
         Some(BuildInstructions {
@@ -198,6 +252,64 @@ mod tests {
         .is_some())
     }
 
+    fn command_for_wrap() -> Command {
+        let mut command = Command::new("C:\\x\\y\\z.exe");
+        command
+            .arg("arg1")
+            .arg("--flag")
+            .arg("--option")
+            .arg("option_value")
+            .env("key", "val");
+        command
+    }
+
+    #[test]
+    fn test_system_wrap() {
+        assert_eq!(
+            format!("{:?}", SystemEnvironment {}.wrap(command_for_wrap()),),
+            format!("{:?}", command_for_wrap())
+        );
+    }
+
+    #[test]
+    fn test_rcc_wrap() {
+        let mut expected = Command::new("C:\\bin\\z.exe");
+        expected
+            .arg("task")
+            .arg("script")
+            .arg("--no-build")
+            .arg("--robot")
+            .arg("C:\\my_suite\\robot.yaml")
+            .arg("--controller")
+            .arg("robotmk")
+            .arg("--space")
+            .arg("my_suite")
+            .arg("--")
+            .arg("C:\\x\\y\\z.exe")
+            .arg("arg1")
+            .arg("--flag")
+            .arg("--option")
+            .arg("option_value")
+            .env("ROBOCORP_HOME", "C:\\robocorp_home")
+            .env("key", "val");
+
+        assert_eq!(
+            format!(
+                "{:?}",
+                RCCEnvironment {
+                    binary_path: PathBuf::from("C:\\bin\\z.exe"),
+                    robocorp_home_path: PathBuf::from("C:\\robocorp_home"),
+                    robot_yaml_path: PathBuf::from("C:\\my_suite\\robot.yaml"),
+                    controller: String::from("robotmk"),
+                    space: String::from("my_suite"),
+                    build_timeout: 600,
+                }
+                .wrap(command_for_wrap()),
+            ),
+            format!("{:?}", expected)
+        );
+    }
+
     #[test]
     fn rcc_build_command() {
         let mut expected = Command::new("/bin/rcc");
@@ -224,7 +336,7 @@ mod tests {
                     space: String::from("my_suite"),
                     build_timeout: 123,
                 }
-                .build_command()
+                .build_instructions()
                 .unwrap()
                 .command,
             ),
