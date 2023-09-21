@@ -7,6 +7,7 @@ mod environment;
 mod logging;
 pub mod parse_xml;
 mod results;
+mod session;
 mod setup;
 mod termination;
 
