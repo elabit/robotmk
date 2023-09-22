@@ -11,6 +11,7 @@ async-std = "*"
 atomicwrites = "*"
 chrono = "0.4.31"
 clap = { version = "*", features = ["derive"] }
+clokwerk = "*"
 ctrlc = "*"
 flexi_logger = "*"
 futures = "*"

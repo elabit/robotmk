@@ -7,6 +7,7 @@ mod environment;
 mod logging;
 pub mod parse_xml;
 mod results;
+mod scheduling;
 mod session;
 mod setup;
 mod termination;
@@ -40,5 +41,6 @@ fn main() -> Result<()> {
     environment::build_environments(&conf, &termination_flag).map_err(log_and_return_error)?;
     info!("Environment building finished");
 
-    Ok(())
+    info!("Starting suite scheduling");
+    scheduling::run_suites(&conf, &termination_flag)
 }
