@@ -20,27 +20,27 @@ use log::{debug, info};
 use logging::log_and_return_error;
 
 fn main() -> Result<()> {
+    run().map_err(log_and_return_error)?;
+    Ok(())
+}
+
+fn run() -> Result<()> {
     let args = cli::Args::parse();
     logging::init(args.log_specification(), &args.log_path)?;
     info!("Program started and logging set up");
 
-    let conf = config::load(&args.config_path)
-        .context("Configuration loading failed")
-        .map_err(log_and_return_error)?;
+    let conf = config::load(&args.config_path).context("Configuration loading failed")?;
     debug!("Configuration loaded");
 
-    setup::setup(&conf)
-        .context("Setup failed")
-        .map_err(log_and_return_error)?;
+    setup::setup(&conf).context("Setup failed")?;
     debug!("Setup completed");
 
-    let termination_flag = termination::start_termination_control()
-        .context("Failed to set up termination control")
-        .map_err(log_and_return_error)?;
+    let termination_flag =
+        termination::start_termination_control().context("Failed to set up termination control")?;
     debug!("Termination control set up");
 
     info!("Starting environment building");
-    environment::build_environments(&conf, &termination_flag).map_err(log_and_return_error)?;
+    environment::build_environments(&conf, &termination_flag)?;
     info!("Environment building finished");
 
     info!("Starting suite scheduling");
