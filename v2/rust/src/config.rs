@@ -15,7 +15,7 @@ pub struct Config {
     suites: HashMap<String, SuiteConfig>,
 }
 
-#[derive(Deserialize)]
+#[derive(Clone, Deserialize)]
 #[cfg_attr(test, derive(Debug, PartialEq))]
 pub struct SuiteConfig {
     pub robot_framework_config: RobotFrameworkConfig,
@@ -24,7 +24,7 @@ pub struct SuiteConfig {
     pub session_config: SessionConfig,
 }
 
-#[derive(Deserialize)]
+#[derive(Clone, Deserialize)]
 #[cfg_attr(test, derive(Debug, PartialEq))]
 pub struct RobotFrameworkConfig {
     pub robot_target: PathBuf,
@@ -33,22 +33,22 @@ pub struct RobotFrameworkConfig {
     pub retry_strategy: RetryStrategy,
 }
 
-#[derive(Deserialize)]
+#[derive(Clone, Deserialize)]
 #[cfg_attr(test, derive(Debug, PartialEq))]
 pub enum RetryStrategy {
     Incremental,
     Complete,
 }
 
-#[derive(Deserialize)]
+#[derive(Clone, Deserialize)]
 #[cfg_attr(test, derive(Debug, PartialEq))]
 pub struct ExecutionConfig {
     pub n_retries_max: usize,
-    pub execution_interval_seconds: u64,
+    pub execution_interval_seconds: u32,
     pub timeout: u64,
 }
 
-#[derive(Deserialize)]
+#[derive(Clone, Deserialize)]
 #[serde(tag = "type")]
 #[cfg_attr(test, derive(Debug, PartialEq))]
 pub enum EnvironmentConfig {
@@ -56,7 +56,7 @@ pub enum EnvironmentConfig {
     Rcc(RCCEnvironmentConfig),
 }
 
-#[derive(Deserialize)]
+#[derive(Clone, Deserialize)]
 #[cfg_attr(test, derive(Debug, PartialEq))]
 pub struct RCCEnvironmentConfig {
     pub binary_path: PathBuf,
@@ -65,7 +65,7 @@ pub struct RCCEnvironmentConfig {
     pub build_timeout: u64,
 }
 
-#[derive(Deserialize)]
+#[derive(Clone, Deserialize)]
 #[serde(tag = "type")]
 #[cfg_attr(test, derive(Debug, PartialEq))]
 pub enum SessionConfig {
@@ -73,7 +73,7 @@ pub enum SessionConfig {
     SpecificUser(UserSessionConfig),
 }
 
-#[derive(Deserialize)]
+#[derive(Clone, Deserialize)]
 #[cfg_attr(test, derive(Debug, PartialEq))]
 pub struct UserSessionConfig {
     pub user_name: String,
