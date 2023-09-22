@@ -19,13 +19,6 @@ pub fn init(
 }
 
 pub fn log_and_return_error(error: Error) -> Error {
-    error!(
-        "{}",
-        error
-            .chain()
-            .map(|e| e.to_string())
-            .collect::<Vec<String>>()
-            .join("\n")
-    );
+    error!("{error:?}");
     error
 }
