@@ -9,6 +9,7 @@ edition = "2021"
 anyhow = { version = "*", features = ["backtrace"] }
 async-std = "*"
 atomicwrites = "*"
+base64 = "*"
 chrono = "0.4.31"
 clap = { version = "*", features = ["derive"] }
 clokwerk = "*"

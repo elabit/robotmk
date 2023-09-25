@@ -2,6 +2,7 @@ use super::attempt::{Attempt, Identifier, RetrySpec};
 use super::config::{Config, SuiteConfig};
 use super::environment::{Environment, ResultCode};
 use super::logging::log_and_return_error;
+use super::rebot::Rebot;
 use super::results::{
     suite_result_file, suite_results_directory, write_file_atomic, AttemptOutcome, AttemptsOutcome,
     ExecutionReport, SuiteExecutionReport,
@@ -76,9 +77,7 @@ fn run_suite_in_this_thread(suite_run_spec: &SuiteRunSpec) -> Result<()> {
         suite_run_spec,
         &SuiteExecutionReport {
             suite_name: suite_run_spec.suite_name.clone(),
-            outcome: ExecutionReport::Executed(AttemptsOutcome {
-                attempts: produce_suite_results(suite_run_spec)?,
-            }),
+            outcome: ExecutionReport::Executed(produce_suite_results(suite_run_spec)?),
         },
     )
     .context("Reporting suite results failed")?;
@@ -108,7 +107,7 @@ fn try_acquire_suite_lock(suite_run_spec: &SuiteRunSpec) -> Result<MutexGuard<us
     }
 }
 
-fn produce_suite_results(suite_run_spec: &SuiteRunSpec) -> Result<Vec<AttemptOutcome>> {
+fn produce_suite_results(suite_run_spec: &SuiteRunSpec) -> Result<AttemptsOutcome> {
     let retry_spec = RetrySpec {
         identifier: Identifier {
             name: &suite_run_spec.suite_name,
@@ -129,35 +128,56 @@ fn produce_suite_results(suite_run_spec: &SuiteRunSpec) -> Result<Vec<AttemptOut
         &suite_run_spec.suite_name,
         &suite_run_spec.suite_config.environment_config,
     );
-    Ok(run_attempts_until_succesful(
+    let (attempt_outcomes, output_paths) = run_attempts_until_succesful(
         &Session::new(
             &suite_run_spec.suite_config.session_config,
             &environment,
             &suite_run_spec.termination_flag,
         ),
         retry_spec.attempts(),
-    ))
+    );
+
+    Ok(AttemptsOutcome {
+        attempts: attempt_outcomes,
+        rebot: if output_paths.is_empty() {
+            None
+        } else {
+            Some(
+                Rebot {
+                    environment: &environment,
+                    input_paths: &output_paths,
+                    path_xml: &retry_spec.output_directory().join("rebot.xml"),
+                    path_html: &retry_spec.output_directory().join("rebot.html"),
+                }
+                .rebot(),
+            )
+        },
+    })
 }
 
 fn run_attempts_until_succesful<'a>(
     session: &Session,
     attempts: impl Iterator<Item = Attempt<'a>>,
-) -> Vec<AttemptOutcome> {
+) -> (Vec<AttemptOutcome>, Vec<PathBuf>) {
     let mut outcomes = vec![];
+    let mut output_paths: Vec<PathBuf> = vec![];
 
     for attempt in attempts {
-        let outcome = run_attempt(session, &attempt);
+        let (outcome, output_path) = run_attempt(session, &attempt);
         let success = matches!(&outcome, &AttemptOutcome::AllTestsPassed);
         outcomes.push(outcome);
+        if let Some(output_path) = output_path {
+            output_paths.push(output_path);
+        }
         if success {
             break;
         }
     }
 
-    outcomes
+    (outcomes, output_paths)
 }
 
-fn run_attempt(session: &Session, attempt: &Attempt) -> AttemptOutcome {
+fn run_attempt(session: &Session, attempt: &Attempt) -> (AttemptOutcome, Option<PathBuf>) {
     let log_message_start = format!(
         "Suite {}, attempt {}",
         attempt.identifier.name, attempt.index
@@ -167,39 +187,48 @@ fn run_attempt(session: &Session, attempt: &Attempt) -> AttemptOutcome {
         Ok(run_outcome) => match run_outcome {
             RunOutcome::TimedOut => {
                 error!("{log_message_start}: timed out",);
-                AttemptOutcome::TimedOut
+                (AttemptOutcome::TimedOut, None)
             }
             RunOutcome::Exited(result_code) => match result_code {
                 Some(result_code) => match result_code {
                     ResultCode::AllTestsPassed => {
                         debug!("{log_message_start}: all tests passed");
-                        AttemptOutcome::AllTestsPassed
+                        (
+                            AttemptOutcome::AllTestsPassed,
+                            Some(attempt.output_xml_file()),
+                        )
                     }
                     ResultCode::EnvironmentFailed => {
                         error!("{log_message_start}: environment failure");
-                        AttemptOutcome::EnvironmentFailure
+                        (AttemptOutcome::EnvironmentFailure, None)
                     }
                     ResultCode::RobotCommandFailed => {
                         if attempt.output_xml_file().exists() {
                             debug!("{log_message_start}: some tests failed");
-                            AttemptOutcome::TestFailures
+                            (
+                                AttemptOutcome::TestFailures,
+                                Some(attempt.output_xml_file()),
+                            )
                         } else {
                             error!("{log_message_start}: Robot Framework failure (no output)");
-                            AttemptOutcome::RobotFrameworkFailure
+                            (AttemptOutcome::RobotFrameworkFailure, None)
                         }
                     }
                 },
                 None => {
                     error!("{log_message_start}: failed to query exit code");
-                    AttemptOutcome::OtherError(
-                        "Failed to query exit code of Robot Framework call".into(),
+                    (
+                        AttemptOutcome::OtherError(
+                            "Failed to query exit code of Robot Framework call".into(),
+                        ),
+                        None,
                     )
                 }
             },
         },
         Err(error) => {
             error!("{log_message_start}: {error:?}");
-            AttemptOutcome::OtherError(format!("{error:?}"))
+            (AttemptOutcome::OtherError(format!("{error:?}")), None)
         }
     }
 }

@@ -6,6 +6,7 @@ mod config;
 mod environment;
 mod logging;
 pub mod parse_xml;
+mod rebot;
 mod results;
 mod scheduling;
 mod session;
