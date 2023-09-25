@@ -88,6 +88,7 @@ pub struct SuiteExecutionReport {
 #[derive(Serialize)]
 pub enum ExecutionReport {
     Executed(AttemptsOutcome),
+    AlreadyRunning,
 }
 
 #[derive(Serialize)]
