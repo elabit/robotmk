@@ -70,7 +70,18 @@ fn run_suite_in_new_thread(suite_run_spec: Arc<SuiteRunSpec>) {
 
 fn run_suite_in_this_thread(suite_run_spec: &SuiteRunSpec) -> Result<()> {
     // We hold the lock as long as `_non_parallel_guard` is in scope
-    let _non_parallel_guard = try_acquire_suite_lock(suite_run_spec)?;
+    let _non_parallel_guard = try_acquire_suite_lock(suite_run_spec).map_err(|err| {
+        persist_suite_execution_report(
+            suite_run_spec,
+            &SuiteExecutionReport {
+                suite_name: suite_run_spec.suite_name.clone(),
+                outcome: ExecutionReport::AlreadyRunning,
+            },
+        )
+        .context("Reporting failure to acquire suite lock failed")
+        .err()
+        .unwrap_or(err)
+    })?;
 
     debug!("Running suite {}", &suite_run_spec.suite_name);
     persist_suite_execution_report(
