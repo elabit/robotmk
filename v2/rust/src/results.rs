@@ -93,6 +93,7 @@ pub enum ExecutionReport {
 #[derive(Serialize)]
 pub struct AttemptsOutcome {
     pub attempts: Vec<AttemptOutcome>,
+    pub rebot: Option<RebotOutcome>,
 }
 
 #[derive(Serialize)]
@@ -103,4 +104,16 @@ pub enum AttemptOutcome {
     EnvironmentFailure,
     TimedOut,
     OtherError(String),
+}
+
+#[derive(Serialize)]
+pub enum RebotOutcome {
+    Ok(RebotResult),
+    Error(String),
+}
+
+#[derive(Serialize)]
+pub struct RebotResult {
+    pub xml: String,
+    pub html_base64: String,
 }

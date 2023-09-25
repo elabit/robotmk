@@ -2,7 +2,7 @@ use super::config::{RetryStrategy, RobotFrameworkConfig};
 use std::path::PathBuf;
 use std::process::Command;
 
-const PYTHON_EXECUTABLE: &str = "python";
+pub const PYTHON_EXECUTABLE: &str = "python";
 
 #[cfg_attr(test, derive(Debug, PartialEq))]
 pub struct Identifier<'a> {
