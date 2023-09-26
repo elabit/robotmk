@@ -78,3 +78,29 @@ pub enum EnvironmentBuildStatus {
     Pending,
     InProgress,
 }
+
+#[derive(Serialize)]
+pub struct SuiteExecutionReport {
+    pub suite_name: String,
+    pub outcome: ExecutionReport,
+}
+
+#[derive(Serialize)]
+pub enum ExecutionReport {
+    Executed(AttemptsOutcome),
+}
+
+#[derive(Serialize)]
+pub struct AttemptsOutcome {
+    pub attempts: Vec<AttemptOutcome>,
+}
+
+#[derive(Serialize)]
+pub enum AttemptOutcome {
+    AllTestsPassed,
+    TestFailures,
+    RobotFrameworkFailure,
+    EnvironmentFailure,
+    TimedOut,
+    OtherError(String),
+}

@@ -2,7 +2,10 @@ use super::attempt::{Attempt, Identifier, RetrySpec};
 use super::config::{Config, SuiteConfig};
 use super::environment::{Environment, ResultCode};
 use super::logging::log_and_return_error;
-use super::results::{suite_result_file, suite_results_directory};
+use super::results::{
+    suite_result_file, suite_results_directory, write_file_atomic, AttemptOutcome, AttemptsOutcome,
+    ExecutionReport, SuiteExecutionReport,
+};
 use super::session::{RunOutcome, Session};
 use super::termination::TerminationFlag;
 
@@ -10,6 +13,7 @@ use anyhow::{bail, Context, Result};
 use chrono::Utc;
 use clokwerk::{Scheduler, TimeUnits};
 use log::{debug, error};
+use serde_json::to_string;
 use std::fs::create_dir_all;
 use std::path::PathBuf;
 use std::sync::{Arc, Mutex, MutexGuard, TryLockError};
@@ -68,7 +72,16 @@ fn run_suite_in_this_thread(suite_run_spec: &SuiteRunSpec) -> Result<()> {
     let _non_parallel_guard = try_acquire_suite_lock(suite_run_spec)?;
 
     debug!("Running suite {}", &suite_run_spec.suite_name);
-    run_attempts_until_succesful(suite_run_spec)?;
+    persist_suite_execution_report(
+        suite_run_spec,
+        &SuiteExecutionReport {
+            suite_name: suite_run_spec.suite_name.clone(),
+            outcome: ExecutionReport::Executed(AttemptsOutcome {
+                attempts: produce_suite_results(suite_run_spec)?,
+            }),
+        },
+    )
+    .context("Reporting suite results failed")?;
     debug!("Suite {} finished", &suite_run_spec.suite_name);
 
     Ok(())
@@ -95,7 +108,7 @@ fn try_acquire_suite_lock(suite_run_spec: &SuiteRunSpec) -> Result<MutexGuard<us
     }
 }
 
-fn run_attempts_until_succesful(suite_run_spec: &SuiteRunSpec) -> Result<()> {
+fn produce_suite_results(suite_run_spec: &SuiteRunSpec) -> Result<Vec<AttemptOutcome>> {
     let retry_spec = RetrySpec {
         identifier: Identifier {
             name: &suite_run_spec.suite_name,
@@ -116,21 +129,35 @@ fn run_attempts_until_succesful(suite_run_spec: &SuiteRunSpec) -> Result<()> {
         &suite_run_spec.suite_name,
         &suite_run_spec.suite_config.environment_config,
     );
-    let session = Session::new(
-        &suite_run_spec.suite_config.session_config,
-        &environment,
-        &suite_run_spec.termination_flag,
-    );
-    for attempt in retry_spec.attempts() {
-        if run_attempt(&session, &attempt) {
+    Ok(run_attempts_until_succesful(
+        &Session::new(
+            &suite_run_spec.suite_config.session_config,
+            &environment,
+            &suite_run_spec.termination_flag,
+        ),
+        retry_spec.attempts(),
+    ))
+}
+
+fn run_attempts_until_succesful<'a>(
+    session: &Session,
+    attempts: impl Iterator<Item = Attempt<'a>>,
+) -> Vec<AttemptOutcome> {
+    let mut outcomes = vec![];
+
+    for attempt in attempts {
+        let outcome = run_attempt(session, &attempt);
+        let success = matches!(&outcome, &AttemptOutcome::AllTestsPassed);
+        outcomes.push(outcome);
+        if success {
             break;
         }
     }
 
-    Ok(())
+    outcomes
 }
 
-fn run_attempt(session: &Session, attempt: &Attempt) -> bool {
+fn run_attempt(session: &Session, attempt: &Attempt) -> AttemptOutcome {
     let log_message_start = format!(
         "Suite {}, attempt {}",
         attempt.identifier.name, attempt.index
@@ -140,36 +167,50 @@ fn run_attempt(session: &Session, attempt: &Attempt) -> bool {
         Ok(run_outcome) => match run_outcome {
             RunOutcome::TimedOut => {
                 error!("{log_message_start}: timed out",);
-                false
+                AttemptOutcome::TimedOut
             }
             RunOutcome::Exited(result_code) => match result_code {
                 Some(result_code) => match result_code {
                     ResultCode::AllTestsPassed => {
                         debug!("{log_message_start}: all tests passed");
-                        true
+                        AttemptOutcome::AllTestsPassed
                     }
                     ResultCode::EnvironmentFailed => {
                         error!("{log_message_start}: environment failure");
-                        false
+                        AttemptOutcome::EnvironmentFailure
                     }
                     ResultCode::RobotCommandFailed => {
                         if attempt.output_xml_file().exists() {
                             debug!("{log_message_start}: some tests failed");
+                            AttemptOutcome::TestFailures
                         } else {
                             error!("{log_message_start}: Robot Framework failure (no output)");
+                            AttemptOutcome::RobotFrameworkFailure
                         }
-                        false
                     }
                 },
                 None => {
                     error!("{log_message_start}: failed to query exit code");
-                    false
+                    AttemptOutcome::OtherError(
+                        "Failed to query exit code of Robot Framework call".into(),
+                    )
                 }
             },
         },
         Err(error) => {
             error!("{log_message_start}: {error:?}");
-            false
+            AttemptOutcome::OtherError(format!("{error:?}"))
         }
     }
+}
+
+fn persist_suite_execution_report(
+    suite_run_spec: &SuiteRunSpec,
+    suite_execution_report: &SuiteExecutionReport,
+) -> Result<()> {
+    write_file_atomic(
+        &to_string(suite_execution_report).context("Serializing suite execution report failed")?,
+        &suite_run_spec.working_directory,
+        &suite_run_spec.result_file,
+    )
 }
