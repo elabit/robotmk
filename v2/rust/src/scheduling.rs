@@ -11,12 +11,12 @@ use super::session::{RunOutcome, Session};
 use super::termination::TerminationFlag;
 
 use anyhow::{bail, Context, Result};
+use camino::Utf8PathBuf;
 use chrono::Utc;
 use clokwerk::{Scheduler, TimeUnits};
 use log::{debug, error};
 use serde_json::to_string;
 use std::fs::create_dir_all;
-use std::path::PathBuf;
 use std::sync::{Arc, Mutex, MutexGuard, TryLockError};
 use std::thread::{sleep, spawn};
 use std::time::Duration;
@@ -60,8 +60,8 @@ struct SuiteRunSpec {
     parallelism_protection: Mutex<usize>,
     suite_name: String,
     suite_config: SuiteConfig,
-    working_directory: PathBuf,
-    result_file: PathBuf,
+    working_directory: Utf8PathBuf,
+    result_file: Utf8PathBuf,
 }
 
 fn run_suite_in_new_thread(suite_run_spec: Arc<SuiteRunSpec>) {
@@ -132,7 +132,7 @@ fn produce_suite_results(suite_run_spec: &SuiteRunSpec) -> Result<AttemptsOutcom
 
     create_dir_all(retry_spec.output_directory()).context(format!(
         "Failed to create directory for suite run: {}",
-        retry_spec.output_directory().display()
+        retry_spec.output_directory()
     ))?;
 
     let environment = Environment::new(
@@ -169,9 +169,9 @@ fn produce_suite_results(suite_run_spec: &SuiteRunSpec) -> Result<AttemptsOutcom
 fn run_attempts_until_succesful<'a>(
     session: &Session,
     attempts: impl Iterator<Item = Attempt<'a>>,
-) -> (Vec<AttemptOutcome>, Vec<PathBuf>) {
+) -> (Vec<AttemptOutcome>, Vec<Utf8PathBuf>) {
     let mut outcomes = vec![];
-    let mut output_paths: Vec<PathBuf> = vec![];
+    let mut output_paths: Vec<Utf8PathBuf> = vec![];
 
     for attempt in attempts {
         let (outcome, output_path) = run_attempt(session, &attempt);
@@ -188,7 +188,7 @@ fn run_attempts_until_succesful<'a>(
     (outcomes, output_paths)
 }
 
-fn run_attempt(session: &Session, attempt: &Attempt) -> (AttemptOutcome, Option<PathBuf>) {
+fn run_attempt(session: &Session, attempt: &Attempt) -> (AttemptOutcome, Option<Utf8PathBuf>) {
     let log_message_start = format!(
         "Suite {}, attempt {}",
         attempt.identifier.name, attempt.index

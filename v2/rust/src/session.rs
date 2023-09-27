@@ -4,7 +4,7 @@ use super::config::SessionConfig;
 use super::environment::{Environment, ResultCode};
 use super::termination::TerminationFlag;
 use anyhow::{Context, Ok, Result};
-use std::path::PathBuf;
+use camino::Utf8PathBuf;
 use std::process::Command;
 
 pub enum Session<'a> {
@@ -68,11 +68,11 @@ impl CurrentSession<'_> {
         command
             .stdout(std::fs::File::create(&stdio_paths.stdout).context(format!(
                 "Failed to open {} for stdout capturing",
-                &stdio_paths.stdout.display()
+                stdio_paths.stdout
             ))?)
             .stderr(std::fs::File::create(&stdio_paths.stderr).context(format!(
                 "Failed to open {} for stderr capturing",
-                &stdio_paths.stderr.display()
+                stdio_paths.stderr
             ))?);
         Ok(command)
     }
@@ -90,6 +90,6 @@ fn stdio_paths_for_attempt(attempt: &Attempt) -> StdioPaths {
 }
 
 struct StdioPaths {
-    stdout: PathBuf,
-    stderr: PathBuf,
+    stdout: Utf8PathBuf,
+    stderr: Utf8PathBuf,
 }

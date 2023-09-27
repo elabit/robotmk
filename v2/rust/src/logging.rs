@@ -1,13 +1,13 @@
 use anyhow::Error;
+use camino::Utf8PathBuf;
 use flexi_logger::{
     detailed_format, FileSpec, FlexiLoggerError, LogSpecification, Logger, LoggerHandle,
 };
 use log::error;
-use std::path::PathBuf;
 
 pub fn init(
     specification: LogSpecification,
-    path: &Option<PathBuf>,
+    path: &Option<Utf8PathBuf>,
 ) -> Result<LoggerHandle, FlexiLoggerError> {
     let logger = Logger::with(specification);
     match path {

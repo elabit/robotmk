@@ -3,11 +3,11 @@ use super::config::{Config, EnvironmentConfig};
 use super::results::{EnvironmentBuildStatesAdministrator, EnvironmentBuildStatus};
 use super::termination::TerminationFlag;
 use anyhow::{Context, Result};
+use camino::{Utf8Path, Utf8PathBuf};
 use log::{debug, error, info};
-use std::path::{Path, PathBuf};
 use std::process::Command;
 
-pub fn environment_building_stdio_directory(working_directory: &Path) -> PathBuf {
+pub fn environment_building_stdio_directory(working_directory: &Utf8Path) -> Utf8PathBuf {
     working_directory.join("environment_building_stdio")
 }
 
@@ -58,21 +58,21 @@ pub fn build_environments(config: &Config, termination_flag: &TerminationFlag) -
 }
 
 fn configure_stdio_of_environment_build(
-    stdio_directory: &Path,
+    stdio_directory: &Utf8Path,
     suite_name: &str,
     build_command: &mut Command,
 ) -> Result<()> {
     let path_stdout = stdio_directory.join(format!("{}.stdout", suite_name));
     let path_stderr = stdio_directory.join(format!("{}.stderr", suite_name));
     build_command
-        .stdout(std::fs::File::create(&path_stdout).context(format!(
-            "Failed to open {} for stdout capturing",
-            &path_stdout.display()
-        ))?)
-        .stderr(std::fs::File::create(&path_stderr).context(format!(
-            "Failed to open {} for stderr capturing",
-            &path_stderr.display()
-        ))?);
+        .stdout(
+            std::fs::File::create(&path_stdout)
+                .context(format!("Failed to open {path_stdout} for stdout capturing",))?,
+        )
+        .stderr(
+            std::fs::File::create(&path_stderr)
+                .context(format!("Failed to open {path_stderr} for stderr capturing",))?,
+        );
     Ok(())
 }
 
@@ -107,9 +107,9 @@ pub enum Environment {
 pub struct SystemEnvironment {}
 
 pub struct RCCEnvironment {
-    binary_path: PathBuf,
-    robocorp_home_path: PathBuf,
-    robot_yaml_path: PathBuf,
+    binary_path: Utf8PathBuf,
+    robocorp_home_path: Utf8PathBuf,
+    robot_yaml_path: Utf8PathBuf,
     controller: String,
     space: String,
     build_timeout: u64,
@@ -241,9 +241,9 @@ mod tests {
         assert!(Environment::new(
             "my_suite",
             &EnvironmentConfig::Rcc(RCCEnvironmentConfig {
-                binary_path: PathBuf::from("/bin/rcc"),
-                robocorp_home_path: PathBuf::from("/robocorp_home"),
-                robot_yaml_path: PathBuf::from("/a/b/c/robot.yaml"),
+                binary_path: Utf8PathBuf::from("/bin/rcc"),
+                robocorp_home_path: Utf8PathBuf::from("/robocorp_home"),
+                robot_yaml_path: Utf8PathBuf::from("/a/b/c/robot.yaml"),
                 build_timeout: 60,
             })
         )
@@ -294,9 +294,9 @@ mod tests {
             format!(
                 "{:?}",
                 RCCEnvironment {
-                    binary_path: PathBuf::from("C:\\bin\\z.exe"),
-                    robocorp_home_path: PathBuf::from("C:\\robocorp_home"),
-                    robot_yaml_path: PathBuf::from("C:\\my_suite\\robot.yaml"),
+                    binary_path: Utf8PathBuf::from("C:\\bin\\z.exe"),
+                    robocorp_home_path: Utf8PathBuf::from("C:\\robocorp_home"),
+                    robot_yaml_path: Utf8PathBuf::from("C:\\my_suite\\robot.yaml"),
                     controller: String::from("robotmk"),
                     space: String::from("my_suite"),
                     build_timeout: 600,
@@ -326,9 +326,9 @@ mod tests {
             format!(
                 "{:?}",
                 RCCEnvironment {
-                    binary_path: PathBuf::from("/bin/rcc"),
-                    robocorp_home_path: PathBuf::from("/robocorp_home"),
-                    robot_yaml_path: PathBuf::from("/a/b/c/robot.yaml"),
+                    binary_path: Utf8PathBuf::from("/bin/rcc"),
+                    robocorp_home_path: Utf8PathBuf::from("/robocorp_home"),
+                    robot_yaml_path: Utf8PathBuf::from("/a/b/c/robot.yaml"),
                     controller: String::from("robotmk"),
                     space: String::from("my_suite"),
                     build_timeout: 123,

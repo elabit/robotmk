@@ -1,19 +1,23 @@
 use anyhow::{Context, Result};
 use atomicwrites::{AtomicFile, OverwriteBehavior};
+use camino::{Utf8Path, Utf8PathBuf};
 use serde::Serialize;
 use serde_json::to_string;
-use std::path::{Path, PathBuf};
 use std::{collections::HashMap, io::Write};
 
-pub fn suite_results_directory(results_directory: &Path) -> PathBuf {
+pub fn suite_results_directory(results_directory: &Utf8Path) -> Utf8PathBuf {
     results_directory.join("suites")
 }
 
-pub fn suite_result_file(suite_results_dir: &Path, suite_name: &str) -> PathBuf {
+pub fn suite_result_file(suite_results_dir: &Utf8Path, suite_name: &str) -> Utf8PathBuf {
     suite_results_dir.join(format!("{}.json", suite_name))
 }
 
-pub fn write_file_atomic(content: &str, working_directory: &Path, final_path: &Path) -> Result<()> {
+pub fn write_file_atomic(
+    content: &str,
+    working_directory: &Utf8Path,
+    final_path: &Utf8PathBuf,
+) -> Result<()> {
     AtomicFile::new_with_tmpdir(
         final_path,
         OverwriteBehavior::AllowOverwrite,
@@ -21,23 +25,21 @@ pub fn write_file_atomic(content: &str, working_directory: &Path, final_path: &P
     )
     .write(|f| f.write_all(content.as_bytes()))
     .context(format!(
-        "Atomic write failed. Working directory: {}, final path: {}.",
-        working_directory.display(),
-        final_path.display()
+        "Atomic write failed. Working directory: {working_directory}, final path: {final_path}.",
     ))
 }
 
 pub struct EnvironmentBuildStatesAdministrator<'a> {
     build_states: HashMap<&'a String, EnvironmentBuildStatus>,
-    working_directory: &'a Path,
-    results_directory: &'a Path,
+    working_directory: &'a Utf8Path,
+    results_directory: &'a Utf8Path,
 }
 
 impl<'a> EnvironmentBuildStatesAdministrator<'a> {
     pub fn new_with_pending(
         suite_names: impl Iterator<Item = &'a String>,
-        working_directory: &'a Path,
-        results_directory: &'a Path,
+        working_directory: &'a Utf8Path,
+        results_directory: &'a Utf8Path,
     ) -> EnvironmentBuildStatesAdministrator<'a> {
         Self {
             build_states: HashMap::from_iter(

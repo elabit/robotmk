@@ -1,17 +1,18 @@
+use anyhow::Result;
+use camino::{Utf8Path, Utf8PathBuf};
 use serde::Deserialize;
 use serde_json::from_str;
 use std::collections::HashMap;
 use std::fs::read_to_string;
-use std::path::{Path, PathBuf};
 
-pub fn load(path: &Path) -> anyhow::Result<Config> {
+pub fn load(path: &Utf8Path) -> Result<Config> {
     Ok(from_str(&read_to_string(path)?)?)
 }
 
 #[derive(Deserialize)]
 pub struct Config {
-    pub working_directory: PathBuf,
-    pub results_directory: PathBuf,
+    pub working_directory: Utf8PathBuf,
+    pub results_directory: Utf8PathBuf,
     suites: HashMap<String, SuiteConfig>,
 }
 
@@ -27,9 +28,9 @@ pub struct SuiteConfig {
 #[derive(Clone, Deserialize)]
 #[cfg_attr(test, derive(Debug, PartialEq))]
 pub struct RobotFrameworkConfig {
-    pub robot_target: PathBuf,
-    pub variable_file: Option<PathBuf>,
-    pub argument_file: Option<PathBuf>,
+    pub robot_target: Utf8PathBuf,
+    pub variable_file: Option<Utf8PathBuf>,
+    pub argument_file: Option<Utf8PathBuf>,
     pub retry_strategy: RetryStrategy,
 }
 
@@ -59,9 +60,9 @@ pub enum EnvironmentConfig {
 #[derive(Clone, Deserialize)]
 #[cfg_attr(test, derive(Debug, PartialEq))]
 pub struct RCCEnvironmentConfig {
-    pub binary_path: PathBuf,
-    pub robocorp_home_path: PathBuf,
-    pub robot_yaml_path: PathBuf,
+    pub binary_path: Utf8PathBuf,
+    pub robocorp_home_path: Utf8PathBuf,
+    pub robot_yaml_path: Utf8PathBuf,
     pub build_timeout: u64,
 }
 
@@ -97,7 +98,7 @@ mod tests {
     fn create_suite_config(suite_name: &str) -> SuiteConfig {
         SuiteConfig {
             robot_framework_config: RobotFrameworkConfig {
-                robot_target: PathBuf::from(format!("/suite/{}/tasks.robot", suite_name)),
+                robot_target: Utf8PathBuf::from(format!("/suite/{}/tasks.robot", suite_name)),
                 variable_file: None,
                 argument_file: None,
                 retry_strategy: RetryStrategy::Complete,
@@ -114,8 +115,8 @@ mod tests {
 
     fn create_config() -> Config {
         Config {
-            working_directory: PathBuf::from("/working"),
-            results_directory: PathBuf::from("/results"),
+            working_directory: Utf8PathBuf::from("/working"),
+            results_directory: Utf8PathBuf::from("/results"),
             suites: HashMap::from([
                 (String::from("suite_b"), create_suite_config("b")),
                 (String::from("suite_a"), create_suite_config("a")),
