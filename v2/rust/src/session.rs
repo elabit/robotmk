@@ -63,7 +63,7 @@ impl CurrentSession<'_> {
     }
 
     fn command_with_configured_stdio(&self, attempt: &Attempt) -> Result<Command> {
-        let mut command = self.environment.wrap(attempt.command());
+        let mut command = self.environment.wrap((&attempt.command_spec()).into());
         let stdio_paths = stdio_paths_for_attempt(attempt);
         command
             .stdout(std::fs::File::create(&stdio_paths.stdout).context(format!(
