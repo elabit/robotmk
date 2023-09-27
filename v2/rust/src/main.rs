@@ -2,6 +2,7 @@
 pub mod attempt;
 mod child_process_supervisor;
 mod cli;
+mod command_spec;
 mod config;
 mod environment;
 mod logging;
