@@ -1,6 +1,6 @@
+use super::command_spec::CommandSpec;
 use super::config::{RetryStrategy, RobotFrameworkConfig};
 use camino::Utf8PathBuf;
-use std::process::Command;
 
 pub const PYTHON_EXECUTABLE: &str = "python";
 
@@ -50,33 +50,40 @@ impl Attempt<'_> {
         self.output_directory.join(format!("{}.xml", self.index))
     }
 
-    pub fn command(&self) -> Command {
-        let mut robot_command = Command::new(PYTHON_EXECUTABLE);
-        robot_command.arg("-m").arg("robot");
+    pub fn command_spec(&self) -> CommandSpec {
+        let mut command_spec = CommandSpec::new(PYTHON_EXECUTABLE);
+        command_spec.add_argument("-m").add_argument("robot");
         if let Some(variable_file) = &self.robot_framework_config.variable_file {
-            robot_command.arg("--variablefile").arg(variable_file);
+            command_spec
+                .add_argument("--variablefile")
+                .add_argument(variable_file);
         }
         if let Some(argument_file) = &self.robot_framework_config.argument_file {
-            robot_command.arg("--argumentfile").arg(argument_file);
+            command_spec
+                .add_argument("--argumentfile")
+                .add_argument(argument_file);
         }
         if matches!(
             self.robot_framework_config.retry_strategy,
             RetryStrategy::Incremental
         ) && self.index > 0
         {
-            let previous_attempt = self
-                .output_directory
-                .join(format!("{}.xml", self.index - 1));
-            robot_command.arg("--rerunfailed").arg(previous_attempt);
+            command_spec.add_argument("--rerunfailed").add_argument(
+                self.output_directory
+                    .join(format!("{}.xml", self.index - 1)),
+            );
         };
-        robot_command.arg("--outputdir").arg(&self.output_directory);
-        robot_command.arg("--output").arg(self.output_xml_file());
-        robot_command
-            .arg("--log")
-            .arg(self.output_directory.join(format!("{}.html", self.index)));
-        robot_command.arg("--report").arg("NONE");
-        robot_command.arg(&self.robot_framework_config.robot_target);
-        robot_command
+        command_spec
+            .add_argument("--outputdir")
+            .add_argument(&self.output_directory)
+            .add_argument("--output")
+            .add_argument(self.output_xml_file())
+            .add_argument("--log")
+            .add_argument(self.output_directory.join(format!("{}.html", self.index)))
+            .add_argument("--report")
+            .add_argument("NONE")
+            .add_argument(&self.robot_framework_config.robot_target);
+        command_spec
     }
 }
 
@@ -84,25 +91,29 @@ impl Attempt<'_> {
 mod tests {
     use super::*;
 
-    fn expected_first_run() -> Command {
-        let mut expected = Command::new(PYTHON_EXECUTABLE);
+    fn expected_first_run() -> CommandSpec {
+        let mut expected = CommandSpec::new(PYTHON_EXECUTABLE);
         expected
-            .arg("-m")
-            .arg("robot")
-            .arg("--outputdir")
-            .arg("/tmp/my_suite/2023-08-29T12.23.44.419347+00.00")
-            .arg("--output")
-            .arg(Utf8PathBuf::from("/tmp/my_suite/2023-08-29T12.23.44.419347+00.00").join("0.xml"))
-            .arg("--log")
-            .arg(Utf8PathBuf::from("/tmp/my_suite/2023-08-29T12.23.44.419347+00.00").join("0.html"))
-            .arg("--report")
-            .arg("NONE")
-            .arg("~/suite/calculator.robot");
+            .add_argument("-m")
+            .add_argument("robot")
+            .add_argument("--outputdir")
+            .add_argument("/tmp/my_suite/2023-08-29T12.23.44.419347+00.00")
+            .add_argument("--output")
+            .add_argument(
+                Utf8PathBuf::from("/tmp/my_suite/2023-08-29T12.23.44.419347+00.00").join("0.xml"),
+            )
+            .add_argument("--log")
+            .add_argument(
+                Utf8PathBuf::from("/tmp/my_suite/2023-08-29T12.23.44.419347+00.00").join("0.html"),
+            )
+            .add_argument("--report")
+            .add_argument("NONE")
+            .add_argument("~/suite/calculator.robot");
         expected
     }
 
     #[test]
-    fn create_complete_command() {
+    fn create_complete_command_spec() {
         // Assemble
         let attempt = Attempt {
             output_directory: "/tmp/my_suite/2023-08-29T12.23.44.419347+00.00".into(),
@@ -121,9 +132,9 @@ mod tests {
         };
         let expected = expected_first_run();
         // Act
-        let command = attempt.command();
+        let command_spec = attempt.command_spec();
         // Assert
-        assert_eq!(format!("{:?}", command), format!("{:?}", expected))
+        assert_eq!(command_spec, expected);
     }
 
     #[test]
@@ -146,9 +157,9 @@ mod tests {
         };
         let expected = expected_first_run();
         // Act
-        let command = attempt.command();
+        let command_spec = attempt.command_spec();
         // Assert
-        assert_eq!(format!("{:?}", command), format!("{:?}", expected))
+        assert_eq!(command_spec, expected);
     }
 
     #[test]
@@ -169,25 +180,31 @@ mod tests {
                 retry_strategy: RetryStrategy::Incremental,
             },
         };
-        let mut expected = Command::new(PYTHON_EXECUTABLE);
+        let mut expected = CommandSpec::new(PYTHON_EXECUTABLE);
         expected
-            .arg("-m")
-            .arg("robot")
-            .arg("--rerunfailed")
-            .arg(Utf8PathBuf::from("/tmp/my_suite/2023-08-29T12.23.44.419347+00.00").join("0.xml"))
-            .arg("--outputdir")
-            .arg("/tmp/my_suite/2023-08-29T12.23.44.419347+00.00")
-            .arg("--output")
-            .arg(Utf8PathBuf::from("/tmp/my_suite/2023-08-29T12.23.44.419347+00.00").join("1.xml"))
-            .arg("--log")
-            .arg(Utf8PathBuf::from("/tmp/my_suite/2023-08-29T12.23.44.419347+00.00").join("1.html"))
-            .arg("--report")
-            .arg("NONE")
-            .arg("~/suite/calculator.robot");
+            .add_argument("-m")
+            .add_argument("robot")
+            .add_argument("--rerunfailed")
+            .add_argument(
+                Utf8PathBuf::from("/tmp/my_suite/2023-08-29T12.23.44.419347+00.00").join("0.xml"),
+            )
+            .add_argument("--outputdir")
+            .add_argument("/tmp/my_suite/2023-08-29T12.23.44.419347+00.00")
+            .add_argument("--output")
+            .add_argument(
+                Utf8PathBuf::from("/tmp/my_suite/2023-08-29T12.23.44.419347+00.00").join("1.xml"),
+            )
+            .add_argument("--log")
+            .add_argument(
+                Utf8PathBuf::from("/tmp/my_suite/2023-08-29T12.23.44.419347+00.00").join("1.html"),
+            )
+            .add_argument("--report")
+            .add_argument("NONE")
+            .add_argument("~/suite/calculator.robot");
         // Act
-        let command = attempt.command();
+        let command_spec = attempt.command_spec();
         // Assert
-        assert_eq!(format!("{:?}", command), format!("{:?}", expected))
+        assert_eq!(command_spec, expected)
     }
 
     #[test]
