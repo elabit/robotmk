@@ -3,17 +3,17 @@ use super::environment::Environment;
 use super::results::{RebotOutcome, RebotResult};
 use anyhow::{Context, Result};
 use base64::{engine::general_purpose, Engine};
+use camino::{Utf8Path, Utf8PathBuf};
 use log::debug;
 use log::error;
 use std::fs::{read, read_to_string};
-use std::path::{Path, PathBuf};
 use std::process::{Command, Output};
 
 pub struct Rebot<'a> {
     pub environment: &'a Environment,
-    pub input_paths: &'a [PathBuf],
-    pub path_xml: &'a Path,
-    pub path_html: &'a Path,
+    pub input_paths: &'a [Utf8PathBuf],
+    pub path_xml: &'a Utf8Path,
+    pub path_html: &'a Utf8Path,
 }
 
 impl Rebot<'_> {
@@ -69,7 +69,7 @@ impl Rebot<'_> {
                 Err(error) => {
                     let error_message = format!(
                         "Failed to read merged HTML file content from {}: {error:?}",
-                        self.path_html.display()
+                        self.path_html
                     );
                     error!("{error_message}");
                     RebotOutcome::Error(error_message)
@@ -78,7 +78,7 @@ impl Rebot<'_> {
             Err(error) => {
                 let error_message = format!(
                     "Failed to read merged XML file content from {}: {error:?}",
-                    self.path_xml.display()
+                    self.path_xml
                 );
                 error!("{error_message}");
                 RebotOutcome::Error(error_message)
@@ -97,11 +97,11 @@ mod tests {
         let rebot_command = Rebot {
             environment: &Environment::new("my_suite", &EnvironmentConfig::System),
             input_paths: &[
-                PathBuf::from("/working/my_suite/0.xml"),
-                PathBuf::from("/working/my_suite/1.xml"),
+                Utf8PathBuf::from("/working/my_suite/0.xml"),
+                Utf8PathBuf::from("/working/my_suite/1.xml"),
             ],
-            path_xml: &PathBuf::from("/working/my_suite/rebot.xml"),
-            path_html: &PathBuf::from("/working/my_suite/rebot.html"),
+            path_xml: &Utf8PathBuf::from("/working/my_suite/rebot.xml"),
+            path_html: &Utf8PathBuf::from("/working/my_suite/rebot.html"),
         }
         .build_rebot_command();
         let mut expected = Command::new("python");

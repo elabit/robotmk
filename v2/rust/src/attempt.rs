@@ -1,5 +1,5 @@
 use super::config::{RetryStrategy, RobotFrameworkConfig};
-use std::path::PathBuf;
+use camino::Utf8PathBuf;
 use std::process::Command;
 
 pub const PYTHON_EXECUTABLE: &str = "python";
@@ -12,14 +12,14 @@ pub struct Identifier<'a> {
 
 pub struct RetrySpec<'a> {
     pub identifier: Identifier<'a>,
-    pub working_directory: &'a PathBuf,
+    pub working_directory: &'a Utf8PathBuf,
     pub n_retries_max: usize,
     pub timeout: u64,
     pub robot_framework_config: &'a RobotFrameworkConfig,
 }
 
 impl RetrySpec<'_> {
-    pub fn output_directory(&self) -> PathBuf {
+    pub fn output_directory(&self) -> Utf8PathBuf {
         self.working_directory
             .join(self.identifier.name)
             .join(&self.identifier.timestamp)
@@ -38,7 +38,7 @@ impl RetrySpec<'_> {
 
 #[cfg_attr(test, derive(Debug, PartialEq))]
 pub struct Attempt<'a> {
-    pub output_directory: PathBuf,
+    pub output_directory: Utf8PathBuf,
     pub identifier: &'a Identifier<'a>,
     pub index: usize,
     pub timeout: u64,
@@ -46,7 +46,7 @@ pub struct Attempt<'a> {
 }
 
 impl Attempt<'_> {
-    pub fn output_xml_file(&self) -> PathBuf {
+    pub fn output_xml_file(&self) -> Utf8PathBuf {
         self.output_directory.join(format!("{}.xml", self.index))
     }
 
@@ -92,9 +92,9 @@ mod tests {
             .arg("--outputdir")
             .arg("/tmp/my_suite/2023-08-29T12.23.44.419347+00.00")
             .arg("--output")
-            .arg(PathBuf::from("/tmp/my_suite/2023-08-29T12.23.44.419347+00.00").join("0.xml"))
+            .arg(Utf8PathBuf::from("/tmp/my_suite/2023-08-29T12.23.44.419347+00.00").join("0.xml"))
             .arg("--log")
-            .arg(PathBuf::from("/tmp/my_suite/2023-08-29T12.23.44.419347+00.00").join("0.html"))
+            .arg(Utf8PathBuf::from("/tmp/my_suite/2023-08-29T12.23.44.419347+00.00").join("0.html"))
             .arg("--report")
             .arg("NONE")
             .arg("~/suite/calculator.robot");
@@ -174,13 +174,13 @@ mod tests {
             .arg("-m")
             .arg("robot")
             .arg("--rerunfailed")
-            .arg(PathBuf::from("/tmp/my_suite/2023-08-29T12.23.44.419347+00.00").join("0.xml"))
+            .arg(Utf8PathBuf::from("/tmp/my_suite/2023-08-29T12.23.44.419347+00.00").join("0.xml"))
             .arg("--outputdir")
             .arg("/tmp/my_suite/2023-08-29T12.23.44.419347+00.00")
             .arg("--output")
-            .arg(PathBuf::from("/tmp/my_suite/2023-08-29T12.23.44.419347+00.00").join("1.xml"))
+            .arg(Utf8PathBuf::from("/tmp/my_suite/2023-08-29T12.23.44.419347+00.00").join("1.xml"))
             .arg("--log")
-            .arg(PathBuf::from("/tmp/my_suite/2023-08-29T12.23.44.419347+00.00").join("1.html"))
+            .arg(Utf8PathBuf::from("/tmp/my_suite/2023-08-29T12.23.44.419347+00.00").join("1.html"))
             .arg("--report")
             .arg("NONE")
             .arg("~/suite/calculator.robot");
@@ -198,7 +198,7 @@ mod tests {
                 name: "suite_1",
                 timestamp: "2023-08-29T12.23.44.419347+00.00".into(),
             },
-            working_directory: &PathBuf::from("/tmp/outputdir/"),
+            working_directory: &Utf8PathBuf::from("/tmp/outputdir/"),
             n_retries_max: 2,
             timeout: 300,
             robot_framework_config: &RobotFrameworkConfig {
