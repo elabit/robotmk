@@ -194,52 +194,55 @@ fn run_attempt(session: &Session, attempt: &Attempt) -> (AttemptOutcome, Option<
         attempt.identifier.name, attempt.index
     );
 
-    match session.run(attempt) {
-        Ok(run_outcome) => match run_outcome {
-            RunOutcome::TimedOut => {
-                error!("{log_message_start}: timed out",);
-                (AttemptOutcome::TimedOut, None)
+    let run_outcome = match session.run(attempt) {
+        Ok(run_outcome) => run_outcome,
+        Err(error_) => {
+            error!("{log_message_start}: {error_:?}");
+            return (AttemptOutcome::OtherError(format!("{error_:?}")), None);
+        }
+    };
+    let result_code = match run_outcome {
+        RunOutcome::Exited(result_code) => result_code,
+        RunOutcome::TimedOut => {
+            error!("{log_message_start}: timed out",);
+            return (AttemptOutcome::TimedOut, None);
+        }
+    };
+    let result_code = match result_code {
+        Some(result_code) => result_code,
+        None => {
+            error!("{log_message_start}: failed to query exit code");
+            return (
+                AttemptOutcome::OtherError(
+                    "Failed to query exit code of Robot Framework call".into(),
+                ),
+                None,
+            );
+        }
+    };
+    match result_code {
+        ResultCode::AllTestsPassed => {
+            debug!("{log_message_start}: all tests passed");
+            (
+                AttemptOutcome::AllTestsPassed,
+                Some(attempt.output_xml_file()),
+            )
+        }
+        ResultCode::EnvironmentFailed => {
+            error!("{log_message_start}: environment failure");
+            (AttemptOutcome::EnvironmentFailure, None)
+        }
+        ResultCode::RobotCommandFailed => {
+            if attempt.output_xml_file().exists() {
+                debug!("{log_message_start}: some tests failed");
+                (
+                    AttemptOutcome::TestFailures,
+                    Some(attempt.output_xml_file()),
+                )
+            } else {
+                error!("{log_message_start}: Robot Framework failure (no output)");
+                (AttemptOutcome::RobotFrameworkFailure, None)
             }
-            RunOutcome::Exited(result_code) => match result_code {
-                Some(result_code) => match result_code {
-                    ResultCode::AllTestsPassed => {
-                        debug!("{log_message_start}: all tests passed");
-                        (
-                            AttemptOutcome::AllTestsPassed,
-                            Some(attempt.output_xml_file()),
-                        )
-                    }
-                    ResultCode::EnvironmentFailed => {
-                        error!("{log_message_start}: environment failure");
-                        (AttemptOutcome::EnvironmentFailure, None)
-                    }
-                    ResultCode::RobotCommandFailed => {
-                        if attempt.output_xml_file().exists() {
-                            debug!("{log_message_start}: some tests failed");
-                            (
-                                AttemptOutcome::TestFailures,
-                                Some(attempt.output_xml_file()),
-                            )
-                        } else {
-                            error!("{log_message_start}: Robot Framework failure (no output)");
-                            (AttemptOutcome::RobotFrameworkFailure, None)
-                        }
-                    }
-                },
-                None => {
-                    error!("{log_message_start}: failed to query exit code");
-                    (
-                        AttemptOutcome::OtherError(
-                            "Failed to query exit code of Robot Framework call".into(),
-                        ),
-                        None,
-                    )
-                }
-            },
-        },
-        Err(error) => {
-            error!("{log_message_start}: {error:?}");
-            (AttemptOutcome::OtherError(format!("{error:?}")), None)
         }
     }
 }
