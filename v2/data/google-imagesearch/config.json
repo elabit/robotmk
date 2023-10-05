@@ -2,22 +2,23 @@
 	"working_directory": "C:\\tmp\\output",
 	"results_directory": "C:\\tmp\\results",
 	"suites": {
-		"test": {
+		"googleimagesearch": {
 			"robot_framework_config": {
-				"robot_target": "C:\\robotmk\\v2\\data\\retry_suite\\tasks.robot",
-				"variable_file": "C:\\robotmk\\v2\\data\\retry_suite\\retry_variables.yaml",
+				"robot_target": "C:\\rmk\\v2\\data\\google-imagesearch\\tasks.robot",
+				"variable_file": null,
 				"argument_file": null,
 				"retry_strategy": "Incremental"
 			},
 			"execution_config": {
 				"n_retries_max": 1,
-				"execution_interval_seconds": 10,
-				"timeout": 5
+				"execution_interval_seconds": 120,
+				"timeout": 110
 			},
 			"environment_config": {
 				"type": "Rcc",
 				"binary_path": "C:\\Users\\vagrant\\AppData\\Local\\Microsoft\\WindowsApps\\rcc.exe",
-				"robot_yaml_path": "C:\\robotmk\\v2\\data\\retry_rcc\\robot.yaml",
+				"robocorp_home_path": "C:\\tmp\\ROBOCORP_HOME",
+				"robot_yaml_path": "C:\\rmk\\v2\\data\\google-imagesearch\\robot.yaml",
 				"build_timeout": 600
 			},
 			"session_config": {"type": "Current"}
