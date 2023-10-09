@@ -1,6 +1,8 @@
 use super::attempt::PYTHON_EXECUTABLE;
+use super::command_spec::CommandSpec;
 use super::environment::Environment;
 use super::results::{RebotOutcome, RebotResult};
+
 use anyhow::{Context, Result};
 use base64::{engine::general_purpose, Engine};
 use camino::{Utf8Path, Utf8PathBuf};
@@ -39,24 +41,26 @@ impl Rebot<'_> {
     }
 
     fn run(&self) -> Result<Output> {
-        let mut rebot_command = self.environment.wrap(self.build_rebot_command());
-        debug!("Calling rebot command: {:?}", rebot_command);
-        rebot_command.output().context("Rebot command failed")
+        let rebot_command_spec = self.environment.wrap(self.build_rebot_command_spec());
+        debug!("Calling rebot command: {rebot_command_spec}");
+        Command::from(&rebot_command_spec)
+            .output()
+            .context("Rebot command failed")
     }
 
-    fn build_rebot_command(&self) -> Command {
-        let mut rebot_command = Command::new(PYTHON_EXECUTABLE);
-        rebot_command
-            .arg("-m")
-            .arg("robot.rebot")
-            .arg("--output")
-            .arg(self.path_xml)
-            .arg("--log")
-            .arg(self.path_html)
-            .arg("--report")
-            .arg("NONE")
-            .args(self.input_paths);
-        rebot_command
+    fn build_rebot_command_spec(&self) -> CommandSpec {
+        let mut rebot_command_spec: CommandSpec = CommandSpec::new(PYTHON_EXECUTABLE);
+        rebot_command_spec
+            .add_argument("-m")
+            .add_argument("robot.rebot")
+            .add_argument("--output")
+            .add_argument(self.path_xml)
+            .add_argument("--log")
+            .add_argument(self.path_html)
+            .add_argument("--report")
+            .add_argument("NONE")
+            .add_arguments(self.input_paths);
+        rebot_command_spec
     }
 
     fn process_successful_run(&self) -> RebotOutcome {
@@ -94,7 +98,7 @@ mod tests {
 
     #[test]
     fn build_rebot_command() {
-        let rebot_command = Rebot {
+        let rebot_command_spec = Rebot {
             environment: &Environment::new("my_suite", &EnvironmentConfig::System),
             input_paths: &[
                 Utf8PathBuf::from("/working/my_suite/0.xml"),
@@ -103,19 +107,19 @@ mod tests {
             path_xml: &Utf8PathBuf::from("/working/my_suite/rebot.xml"),
             path_html: &Utf8PathBuf::from("/working/my_suite/rebot.html"),
         }
-        .build_rebot_command();
-        let mut expected = Command::new("python");
+        .build_rebot_command_spec();
+        let mut expected = CommandSpec::new("python");
         expected
-            .arg("-m")
-            .arg("robot.rebot")
-            .arg("--output")
-            .arg("/working/my_suite/rebot.xml")
-            .arg("--log")
-            .arg("/working/my_suite/rebot.html")
-            .arg("--report")
-            .arg("NONE")
-            .arg("/working/my_suite/0.xml")
-            .arg("/working/my_suite/1.xml");
-        assert_eq!(format!("{:?}", rebot_command), format!("{:?}", expected))
+            .add_argument("-m")
+            .add_argument("robot.rebot")
+            .add_argument("--output")
+            .add_argument("/working/my_suite/rebot.xml")
+            .add_argument("--log")
+            .add_argument("/working/my_suite/rebot.html")
+            .add_argument("--report")
+            .add_argument("NONE")
+            .add_argument("/working/my_suite/0.xml")
+            .add_argument("/working/my_suite/1.xml");
+        assert_eq!(rebot_command_spec, expected)
     }
 }
