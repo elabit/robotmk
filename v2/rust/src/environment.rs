@@ -1,13 +1,11 @@
-use super::child_process_supervisor::{ChildProcessOutcome, ChildProcessSupervisor};
+use super::child_process_supervisor::{ChildProcessOutcome, ChildProcessSupervisor, StdioPaths};
 use super::command_spec::CommandSpec;
 use super::config::{Config, EnvironmentConfig};
 use super::results::{EnvironmentBuildStatesAdministrator, EnvironmentBuildStatus};
 use super::termination::TerminationFlag;
-
 use anyhow::{Context, Result};
 use camino::{Utf8Path, Utf8PathBuf};
 use log::{debug, error, info};
-use std::process::Command;
 
 pub fn environment_building_stdio_directory(working_directory: &Utf8Path) -> Utf8PathBuf {
     working_directory.join("environment_building_stdio")
@@ -33,17 +31,16 @@ pub fn build_environments(config: &Config, termination_flag: &TerminationFlag) -
                 info!("Building environment for suite {}", suite_name);
                 environment_build_states_administrator
                     .insert_and_write_atomic(suite_name, EnvironmentBuildStatus::InProgress)?;
-                let mut build_command = Command::from(&build_instructions.command_spec);
-                configure_stdio_of_environment_build(
-                    &env_building_stdio_directory,
-                    suite_name,
-                    &mut build_command,
-                )
-                .context("Configuring stdio of environment build process failed")?;
                 environment_build_states_administrator.insert_and_write_atomic(
                     suite_name,
                     run_environment_build(ChildProcessSupervisor {
-                        command: build_command,
+                        command_spec: build_instructions.command_spec,
+                        stdio_paths: Some(StdioPaths {
+                            stdout: env_building_stdio_directory
+                                .join(format!("{suite_name}.stdout")),
+                            stderr: env_building_stdio_directory
+                                .join(format!("{suite_name}.stderr")),
+                        }),
                         timeout: build_instructions.timeout,
                         termination_flag,
                     })?,
@@ -57,25 +54,6 @@ pub fn build_environments(config: &Config, termination_flag: &TerminationFlag) -
         }
     }
 
-    Ok(())
-}
-
-fn configure_stdio_of_environment_build(
-    stdio_directory: &Utf8Path,
-    suite_name: &str,
-    build_command: &mut Command,
-) -> Result<()> {
-    let path_stdout = stdio_directory.join(format!("{}.stdout", suite_name));
-    let path_stderr = stdio_directory.join(format!("{}.stderr", suite_name));
-    build_command
-        .stdout(
-            std::fs::File::create(&path_stdout)
-                .context(format!("Failed to open {path_stdout} for stdout capturing",))?,
-        )
-        .stderr(
-            std::fs::File::create(&path_stderr)
-                .context(format!("Failed to open {path_stderr} for stderr capturing",))?,
-        );
     Ok(())
 }
 
