@@ -1,12 +1,14 @@
-use anyhow::{Context, Result};
-use atomicwrites::replace_atomic;
-use camino::{Utf8Path, Utf8PathBuf};
-use std::collections::HashSet;
-use std::fs::{create_dir_all, remove_file};
-
-use super::config::Config;
+use super::config::{Config, EnvironmentConfig};
 use super::environment::environment_building_stdio_directory;
 use super::results::{suite_result_file, suite_results_directory};
+
+use anyhow::{bail, Context, Result};
+use atomicwrites::replace_atomic;
+use camino::{Utf8Path, Utf8PathBuf};
+use log::debug;
+use std::collections::HashSet;
+use std::fs::{create_dir_all, remove_file};
+use std::process::Command;
 
 pub fn setup(config: &Config) -> Result<()> {
     create_dir_all(&config.working_directory).context("Failed to create working directory")?;
@@ -17,7 +19,8 @@ pub fn setup(config: &Config) -> Result<()> {
     create_dir_all(&config.results_directory).context("Failed to create results directory")?;
     create_dir_all(suite_results_directory(&config.results_directory))
         .context("Failed to create suite results directory")?;
-    clean_up_results_directory_atomic(config)
+    clean_up_results_directory_atomic(config)?;
+    adjust_user_permissions(config)
 }
 
 fn clean_up_results_directory_atomic(config: &Config) -> Result<()> {
@@ -70,5 +73,51 @@ fn remove_files_atomic<'a>(
 
     let _ = remove_file(intermediate_path_for_move);
 
+    Ok(())
+}
+
+fn adjust_user_permissions(config: &Config) -> Result<()> {
+    adjust_working_directory_permissions(&config.working_directory)?;
+    for (_suite_name, suite_config) in config.suites() {
+        if let EnvironmentConfig::Rcc(rcc_environment_config) = &suite_config.environment_config {
+            adjust_executable_permissions(&rcc_environment_config.binary_path)?
+        }
+    }
+    Ok(())
+}
+
+fn adjust_working_directory_permissions(working_directory: &Utf8Path) -> Result<()> {
+    debug!("Granting group `Users` full access to {working_directory}");
+    run_icacls_command(vec![
+        working_directory.as_str(),
+        "/grant",
+        "Users:(OI)(CI)F",
+        "/T",
+    ])
+    .context(format!(
+        "Adjusting permissions of {working_directory} for group `Users` failed"
+    ))
+}
+
+fn adjust_executable_permissions(executable_path: &Utf8Path) -> Result<()> {
+    debug!("Granting group `Users` read and execute access to {executable_path}");
+    run_icacls_command(vec![executable_path.as_str(), "/grant", "Users:(RX)"]).context(format!(
+        "Adjusting permissions of {executable_path} for group `Users` failed",
+    ))
+}
+
+fn run_icacls_command<'a>(arguments: impl IntoIterator<Item = &'a str>) -> Result<()> {
+    let mut command = Command::new("icacls.exe");
+    command.args(arguments);
+    let output = command
+        .output()
+        .context(format!("Calling icacls.exe failed. Command:\n{command:?}"))?;
+    if !output.status.success() {
+        bail!(
+            "icacls.exe exited non-successfully.\n\nCommand:\n{command:?}\n\nStdout:\n{}\n\nStderr:\n{}",
+            String::from_utf8_lossy(&output.stdout),
+            String::from_utf8_lossy(&output.stderr)
+        )
+    }
     Ok(())
 }
