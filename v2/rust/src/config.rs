@@ -61,7 +61,6 @@ pub enum EnvironmentConfig {
 #[cfg_attr(test, derive(Debug, PartialEq))]
 pub struct RCCEnvironmentConfig {
     pub binary_path: Utf8PathBuf,
-    pub robocorp_home_path: Utf8PathBuf,
     pub robot_yaml_path: Utf8PathBuf,
     pub build_timeout: u64,
 }

@@ -111,7 +111,6 @@ pub struct SystemEnvironment {}
 
 pub struct RCCEnvironment {
     binary_path: Utf8PathBuf,
-    robocorp_home_path: Utf8PathBuf,
     robot_yaml_path: Utf8PathBuf,
     controller: String,
     space: String,
@@ -124,7 +123,6 @@ impl Environment {
             EnvironmentConfig::System => Self::System(SystemEnvironment {}),
             EnvironmentConfig::Rcc(rcc_environment_config) => Self::Rcc(RCCEnvironment {
                 binary_path: rcc_environment_config.binary_path.clone(),
-                robocorp_home_path: rcc_environment_config.robocorp_home_path.clone(),
                 robot_yaml_path: rcc_environment_config.robot_yaml_path.clone(),
                 controller: String::from("robotmk"),
                 space: suite_name.to_string(),
@@ -249,7 +247,6 @@ mod tests {
             "my_suite",
             &EnvironmentConfig::Rcc(RCCEnvironmentConfig {
                 binary_path: Utf8PathBuf::from("/bin/rcc"),
-                robocorp_home_path: Utf8PathBuf::from("/robocorp_home"),
                 robot_yaml_path: Utf8PathBuf::from("/a/b/c/robot.yaml"),
                 build_timeout: 60,
             })
@@ -298,7 +295,6 @@ mod tests {
         assert_eq!(
             RCCEnvironment {
                 binary_path: Utf8PathBuf::from("C:\\bin\\z.exe"),
-                robocorp_home_path: Utf8PathBuf::from("C:\\robocorp_home"),
                 robot_yaml_path: Utf8PathBuf::from("C:\\my_suite\\robot.yaml"),
                 controller: String::from("robotmk"),
                 space: String::from("my_suite"),
@@ -326,7 +322,6 @@ mod tests {
         assert_eq!(
             RCCEnvironment {
                 binary_path: Utf8PathBuf::from("/bin/rcc"),
-                robocorp_home_path: Utf8PathBuf::from("/robocorp_home"),
                 robot_yaml_path: Utf8PathBuf::from("/a/b/c/robot.yaml"),
                 controller: String::from("robotmk"),
                 space: String::from("my_suite"),
