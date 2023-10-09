@@ -1,23 +1,45 @@
+use super::command_spec::CommandSpec;
 use super::termination::TerminationFlag;
 use anyhow::{bail, Context, Result};
 use async_std::{future::timeout, task::sleep};
+use camino::Utf8PathBuf;
 use futures::executor;
 use log::{debug, error};
 use std::collections::{HashMap, HashSet};
-use std::process::{Child, Command, ExitStatus};
+use std::process::{Child, Command, ExitStatus, Stdio};
 use std::time::Duration;
 use sysinfo::{Pid, PidExt, Process, ProcessExt, System, SystemExt};
 
 pub struct ChildProcessSupervisor<'a> {
-    pub command: Command,
+    pub command_spec: CommandSpec,
+    pub stdio_paths: Option<StdioPaths>,
     pub timeout: u64,
     pub termination_flag: &'a TerminationFlag,
 }
 
+pub struct StdioPaths {
+    pub stdout: Utf8PathBuf,
+    pub stderr: Utf8PathBuf,
+}
+
 impl ChildProcessSupervisor<'_> {
-    pub fn run(mut self) -> Result<ChildProcessOutcome> {
-        debug!("Executing {:?}", self.command);
-        let mut child = self.command.spawn().context("Failed to spawn subprocess")?;
+    pub fn run(&self) -> Result<ChildProcessOutcome> {
+        let mut command: Command = self.build_command()?;
+
+        let (stdout_path, stderr_path) = if let Some(stdio_paths) = &self.stdio_paths {
+            (
+                stdio_paths.stdout.to_string(),
+                stdio_paths.stderr.to_string(),
+            )
+        } else {
+            ("inherited".into(), "inherited".into())
+        };
+        debug!(
+            "Executing: {}, Stdout: {stdout_path}, Stderr: {stderr_path}",
+            self.command_spec,
+        );
+
+        let mut child = command.spawn().context("Failed to spawn subprocess")?;
         match executor::block_on(timeout(
             Duration::from_secs(self.timeout),
             self.wait_for_child_exit(&mut child),
@@ -31,7 +53,25 @@ impl ChildProcessSupervisor<'_> {
         }
     }
 
-    async fn wait_for_child_exit(self, child: &mut Child) -> Result<ChildProcessOutcome> {
+    fn build_command(&self) -> Result<Command> {
+        let mut command = Command::from(&self.command_spec);
+        if let Some(stdio_paths) = &self.stdio_paths {
+            command
+                .stdout(std::fs::File::create(&stdio_paths.stdout).context(format!(
+                    "Failed to open {} for stdout capturing",
+                    stdio_paths.stdout
+                ))?)
+                .stderr(std::fs::File::create(&stdio_paths.stderr).context(format!(
+                    "Failed to open {} for stderr capturing",
+                    stdio_paths.stderr
+                ))?);
+        } else {
+            command.stdout(Stdio::inherit()).stderr(Stdio::inherit());
+        }
+        Ok(command)
+    }
+
+    async fn wait_for_child_exit(&self, child: &mut Child) -> Result<ChildProcessOutcome> {
         loop {
             if self.termination_flag.should_terminate() {
                 kill_process_tree(child);
