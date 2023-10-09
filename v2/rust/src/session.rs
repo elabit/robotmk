@@ -3,7 +3,8 @@ use super::child_process_supervisor::{ChildProcessOutcome, ChildProcessSuperviso
 use super::config::SessionConfig;
 use super::environment::{Environment, ResultCode};
 use super::termination::TerminationFlag;
-use anyhow::{Context, Ok, Result};
+
+use anyhow::{Context, Result};
 use camino::Utf8PathBuf;
 use std::process::Command;
 
@@ -63,7 +64,7 @@ impl CurrentSession<'_> {
     }
 
     fn command_with_configured_stdio(&self, attempt: &Attempt) -> Result<Command> {
-        let mut command = self.environment.wrap((&attempt.command_spec()).into());
+        let mut command = Command::from(&self.environment.wrap(attempt.command_spec()));
         let stdio_paths = stdio_paths_for_attempt(attempt);
         command
             .stdout(std::fs::File::create(&stdio_paths.stdout).context(format!(
