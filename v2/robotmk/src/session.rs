@@ -1,6 +1,7 @@
 use super::child_process_supervisor::{ChildProcessOutcome, ChildProcessSupervisor, StdioPaths};
 use super::command_spec::CommandSpec;
 use super::config::external::SessionConfig;
+use super::schtasks::{run_task, TaskSpec};
 use super::termination::TerminationFlag;
 
 use anyhow::Result;
@@ -10,19 +11,23 @@ use camino::{Utf8Path, Utf8PathBuf};
 #[cfg_attr(test, derive(Debug, PartialEq))]
 pub enum Session {
     Current(CurrentSession),
+    User(UserSession),
 }
 
 impl Session {
     pub fn new(session_config: &SessionConfig) -> Session {
         match session_config {
             SessionConfig::Current => Session::Current(CurrentSession {}),
-            SessionConfig::SpecificUser(_) => panic!("User sessions not yet implemented!"),
+            SessionConfig::SpecificUser(user_session_config) => Session::User(UserSession {
+                user_name: user_session_config.user_name.clone(),
+            }),
         }
     }
 
     pub fn run(&self, spec: &RunSpec) -> Result<RunOutcome> {
         match self {
             Self::Current(current_session) => current_session.run(spec),
+            Self::User(user_session) => user_session.run(spec),
         }
     }
 }
@@ -30,6 +35,12 @@ impl Session {
 #[derive(Clone)]
 #[cfg_attr(test, derive(Debug, PartialEq))]
 pub struct CurrentSession {}
+
+#[derive(Clone)]
+#[cfg_attr(test, derive(Debug, PartialEq))]
+pub struct UserSession {
+    pub user_name: String,
+}
 
 pub struct RunSpec<'a> {
     pub id: &'a str,
@@ -65,5 +76,18 @@ impl CurrentSession {
             ChildProcessOutcome::TimedOut => Ok(RunOutcome::TimedOut),
             ChildProcessOutcome::Terminated => Ok(RunOutcome::Terminated),
         }
+    }
+}
+
+impl UserSession {
+    fn run(&self, spec: &RunSpec) -> Result<RunOutcome> {
+        run_task(&TaskSpec {
+            task_name: spec.id,
+            command_spec: spec.command_spec,
+            user_name: &self.user_name,
+            base_path: spec.base_path,
+            timeout: spec.timeout,
+            termination_flag: spec.termination_flag,
+        })
     }
 }
