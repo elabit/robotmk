@@ -164,7 +164,7 @@ struct BuildInstructions {
 }
 
 impl SystemEnvironment {
-    pub fn wrap(&self, command: Command) -> Command {
+    fn wrap(&self, command: Command) -> Command {
         command
     }
 
@@ -181,7 +181,7 @@ impl SystemEnvironment {
 }
 
 impl RCCEnvironment {
-    pub fn wrap(&self, command: Command) -> Command {
+    fn wrap(&self, command: Command) -> Command {
         // TODO: Improve this
         if command.get_envs().len() > 0 {
             panic!("Currently unable to handle commands with environment variables");
