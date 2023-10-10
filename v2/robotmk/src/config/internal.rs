@@ -67,9 +67,10 @@ mod tests {
     use super::*;
     use crate::config::external::{
         EnvironmentConfig, RCCEnvironmentConfig, RetryStrategy, SessionConfig, SuiteConfig,
+        UserSessionConfig,
     };
     use crate::environment::{RCCEnvironment, SystemEnvironment};
-    use crate::session::CurrentSession;
+    use crate::session::{CurrentSession, UserSession};
 
     use std::collections::HashMap;
 
@@ -109,7 +110,9 @@ mod tests {
                 robot_yaml_path: Utf8PathBuf::from("/suite/rcc/robot.yaml"),
                 build_timeout: 300,
             }),
-            session_config: SessionConfig::Current,
+            session_config: SessionConfig::SpecificUser(UserSessionConfig {
+                user_name: "user".into(),
+            }),
         }
     }
 
@@ -159,7 +162,12 @@ mod tests {
                 build_timeout: 300,
             })
         );
-        assert_eq!(suites[0].session, Session::Current(CurrentSession {}));
+        assert_eq!(
+            suites[0].session,
+            Session::User(UserSession {
+                user_name: "user".into()
+            })
+        );
         assert_eq!(suites[1].name, "system");
         assert_eq!(suites[1].working_directory, "/working/system");
         assert_eq!(suites[1].results_file, "/results/suites/system.json");

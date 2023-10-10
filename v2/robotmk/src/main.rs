@@ -8,6 +8,7 @@ mod logging;
 mod rebot;
 mod results;
 mod scheduling;
+mod schtasks;
 mod session;
 mod setup;
 mod termination;
