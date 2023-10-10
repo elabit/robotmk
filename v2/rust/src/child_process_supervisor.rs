@@ -33,6 +33,11 @@ impl ChildProcessSupervisor<'_> {
 
     async fn wait_for_child_exit(self, child: &mut Child) -> Result<ChildProcessOutcome> {
         loop {
+            if self.termination_flag.should_terminate() {
+                kill_process_tree(child);
+                bail!("Terminated")
+            }
+
             if let Some(exit_status) = child
                 .try_wait()
                 .context(format!(
@@ -47,10 +52,6 @@ impl ChildProcessSupervisor<'_> {
                 return Ok(ChildProcessOutcome::Exited(exit_status));
             }
 
-            if self.termination_flag.should_terminate() {
-                kill_process_tree(child);
-                bail!("Terminated")
-            }
             sleep(Duration::from_millis(250)).await
         }
     }
