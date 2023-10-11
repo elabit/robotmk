@@ -34,7 +34,7 @@ pub fn build_environments(config: &Config, termination_flag: &TerminationFlag) -
                 environment_build_states_administrator.insert_and_write_atomic(
                     suite_name,
                     run_environment_build(ChildProcessSupervisor {
-                        command_spec: build_instructions.command_spec,
+                        command_spec: &build_instructions.command_spec,
                         stdio_paths: Some(StdioPaths {
                             stdout: env_building_stdio_directory
                                 .join(format!("{suite_name}.stdout")),
