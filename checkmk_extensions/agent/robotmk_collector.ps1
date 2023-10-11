@@ -2,10 +2,7 @@ Set-StrictMode -Version 3.0
 $ErrorActionPreference = "Stop"
 
 function Main {
-    Param (
-        [parameter(Mandatory=$true, Position=0)]
-        [string]$ConfigPath
-    )
+    $ConfigPath = DetermineConfigPath -CommandLineArgs $args
     Write-Output "<<<robotmk_v2:sep(10)>>>"
 
     try {
@@ -27,6 +24,24 @@ function Main {
 }
 
 
+function DetermineConfigPath {
+    [OutputType([string])]
+    Param (
+        [parameter(Mandatory=$false, Position=0)]
+        [String[]]$CommandLineArgs
+    )
+
+    if ($CommandLineArgs -ne "" -and $CommandLineArgs.Count -gt 0) {
+        return $CommandLineArgs[0]
+    }
+
+    $configDir = $env:MK_CONFDIR
+    if ($null -eq $configDir) {
+        $configDir = 'C:\ProgramData\checkmk\agent\config'
+    }
+
+    return Join-Path $configDir 'robotmk.json'
+}
 function SerializeConfigReadingError {
     [OutputType([string])]
     Param (
@@ -56,4 +71,4 @@ function GetResultsDirectory {
     return $configData.results_directory -as [string]
 }
 
-Main("${env:MK_CONFDIR}\robotmk.json")
+Main $args
