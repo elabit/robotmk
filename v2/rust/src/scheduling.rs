@@ -23,6 +23,7 @@ use std::time::Duration;
 
 pub fn run_suites(config: &Config, termination_flag: &TerminationFlag) -> Result<()> {
     let mut scheduler = Scheduler::new();
+    let mut suite_run_specs = vec![];
 
     for (suite_name, suite_config) in config.suites() {
         let suite_run_spec = Arc::new(SuiteRunSpec {
@@ -36,6 +37,7 @@ pub fn run_suites(config: &Config, termination_flag: &TerminationFlag) -> Result
                 suite_name,
             ),
         });
+        suite_run_specs.push(suite_run_spec.clone());
         scheduler
             .every(
                 suite_config
@@ -48,6 +50,8 @@ pub fn run_suites(config: &Config, termination_flag: &TerminationFlag) -> Result
 
     loop {
         if termination_flag.should_terminate() {
+            error!("Received termination signal while scheduling, waiting for suites to terminate");
+            wait_until_all_suites_have_terminated(suite_run_specs);
             bail!("Terminated");
         }
         scheduler.run_pending();
@@ -256,4 +260,19 @@ fn persist_suite_execution_report(
         &suite_run_spec.working_directory,
         &suite_run_spec.result_file,
     )
+}
+
+fn wait_until_all_suites_have_terminated(suite_run_specs: Vec<Arc<SuiteRunSpec>>) {
+    let mut still_running_suite_specs = suite_run_specs;
+    while !still_running_suite_specs.is_empty() {
+        let mut still_running = vec![];
+        for suite_run_spec in still_running_suite_specs {
+            let _ = try_acquire_suite_lock(&suite_run_spec).map_err(|_| {
+                error!("Suite {} is still running", suite_run_spec.suite_name);
+                still_running.push(suite_run_spec.clone())
+            });
+        }
+        still_running_suite_specs = still_running;
+        sleep(Duration::from_millis(250));
+    }
 }
