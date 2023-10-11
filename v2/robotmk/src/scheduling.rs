@@ -7,7 +7,7 @@ use super::results::{
     suite_result_file, suite_results_directory, write_file_atomic, AttemptOutcome, AttemptsOutcome,
     ExecutionReport, SuiteExecutionReport,
 };
-use super::session::{RunOutcome, Session};
+use super::session::{RunOutcome, RunSpec, Session};
 use super::termination::TerminationFlag;
 
 use anyhow::{bail, Context, Result};
@@ -144,12 +144,10 @@ fn produce_suite_results(suite_run_spec: &SuiteRunSpec) -> Result<AttemptsOutcom
         &suite_run_spec.suite_config.environment_config,
     );
     let (attempt_outcomes, output_paths) = run_attempts_until_succesful(
-        &Session::new(
-            &suite_run_spec.suite_config.session_config,
-            &environment,
-            &suite_run_spec.termination_flag,
-        ),
         retry_spec.attempts(),
+        &environment,
+        &Session::new(&suite_run_spec.suite_config.session_config),
+        &suite_run_spec.termination_flag,
     );
 
     Ok(AttemptsOutcome {
@@ -171,14 +169,16 @@ fn produce_suite_results(suite_run_spec: &SuiteRunSpec) -> Result<AttemptsOutcom
 }
 
 fn run_attempts_until_succesful<'a>(
-    session: &Session,
     attempts: impl Iterator<Item = Attempt<'a>>,
+    environment: &Environment,
+    session: &Session,
+    termination_flag: &TerminationFlag,
 ) -> (Vec<AttemptOutcome>, Vec<Utf8PathBuf>) {
     let mut outcomes = vec![];
     let mut output_paths: Vec<Utf8PathBuf> = vec![];
 
     for attempt in attempts {
-        let (outcome, output_path) = run_attempt(session, &attempt);
+        let (outcome, output_path) = run_attempt(&attempt, environment, session, termination_flag);
         let success = matches!(&outcome, &AttemptOutcome::AllTestsPassed);
         outcomes.push(outcome);
         if let Some(output_path) = output_path {
@@ -192,28 +192,42 @@ fn run_attempts_until_succesful<'a>(
     (outcomes, output_paths)
 }
 
-fn run_attempt(session: &Session, attempt: &Attempt) -> (AttemptOutcome, Option<Utf8PathBuf>) {
+fn run_attempt(
+    attempt: &Attempt,
+    environment: &Environment,
+    session: &Session,
+    termination_flag: &TerminationFlag,
+) -> (AttemptOutcome, Option<Utf8PathBuf>) {
     let log_message_start = format!(
         "Suite {}, attempt {}",
         attempt.identifier.name, attempt.index
     );
 
-    let run_outcome = match session.run(attempt) {
+    let run_outcome = match session.run(&RunSpec {
+        id: &format!(
+            "robotmk_suite_{}_attempt_{}",
+            attempt.identifier.name, attempt.index,
+        ),
+        command_spec: &environment.wrap(attempt.command_spec()),
+        base_path: &attempt.output_directory.join(attempt.index.to_string()),
+        timeout: attempt.timeout,
+        termination_flag,
+    }) {
         Ok(run_outcome) => run_outcome,
         Err(error_) => {
             error!("{log_message_start}: {error_:?}");
             return (AttemptOutcome::OtherError(format!("{error_:?}")), None);
         }
     };
-    let result_code = match run_outcome {
-        RunOutcome::Exited(result_code) => result_code,
+    let exit_code = match run_outcome {
+        RunOutcome::Exited(exit_code) => exit_code,
         RunOutcome::TimedOut => {
             error!("{log_message_start}: timed out",);
             return (AttemptOutcome::TimedOut, None);
         }
     };
-    let result_code = match result_code {
-        Some(result_code) => result_code,
+    let exit_code = match exit_code {
+        Some(exit_code) => exit_code,
         None => {
             error!("{log_message_start}: failed to query exit code");
             return (
@@ -224,7 +238,7 @@ fn run_attempt(session: &Session, attempt: &Attempt) -> (AttemptOutcome, Option<
             );
         }
     };
-    match result_code {
+    match environment.create_result_code(exit_code) {
         ResultCode::AllTestsPassed => {
             debug!("{log_message_start}: all tests passed");
             (

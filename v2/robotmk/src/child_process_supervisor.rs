@@ -11,7 +11,7 @@ use std::time::Duration;
 use sysinfo::{Pid, PidExt, Process, ProcessExt, System, SystemExt};
 
 pub struct ChildProcessSupervisor<'a> {
-    pub command_spec: CommandSpec,
+    pub command_spec: &'a CommandSpec,
     pub stdio_paths: Option<StdioPaths>,
     pub timeout: u64,
     pub termination_flag: &'a TerminationFlag,
@@ -54,7 +54,7 @@ impl ChildProcessSupervisor<'_> {
     }
 
     fn build_command(&self) -> Result<Command> {
-        let mut command = Command::from(&self.command_spec);
+        let mut command = Command::from(self.command_spec);
         if let Some(stdio_paths) = &self.stdio_paths {
             command
                 .stdout(std::fs::File::create(&stdio_paths.stdout).context(format!(
