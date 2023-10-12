@@ -4,7 +4,7 @@ use super::config::external::EnvironmentConfig;
 use super::config::internal::{GlobalConfig, Suite};
 use super::results::{EnvironmentBuildStatesAdministrator, EnvironmentBuildStatus};
 
-use anyhow::{Context, Result};
+use anyhow::{bail, Context, Result};
 use camino::{Utf8Path, Utf8PathBuf};
 use log::{debug, error, info};
 
@@ -85,6 +85,9 @@ fn run_environment_build(
         ChildProcessOutcome::TimedOut => {
             error!("Environment building timed out, suite will most likely not execute");
             Ok(EnvironmentBuildStatus::Timeout)
+        }
+        ChildProcessOutcome::Terminated => {
+            bail!("Terminated")
         }
     }
 }

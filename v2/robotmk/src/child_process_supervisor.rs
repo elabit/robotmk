@@ -1,6 +1,6 @@
 use super::command_spec::CommandSpec;
 use super::termination::TerminationFlag;
-use anyhow::{bail, Context, Result};
+use anyhow::{Context, Result};
 use async_std::{future::timeout, task::sleep};
 use camino::Utf8PathBuf;
 use futures::executor;
@@ -75,7 +75,7 @@ impl ChildProcessSupervisor<'_> {
         loop {
             if self.termination_flag.should_terminate() {
                 kill_process_tree(child);
-                bail!("Terminated")
+                return Ok(ChildProcessOutcome::Terminated);
             }
 
             if let Some(exit_status) = child
@@ -100,6 +100,7 @@ impl ChildProcessSupervisor<'_> {
 pub enum ChildProcessOutcome {
     Exited(ExitStatus),
     TimedOut,
+    Terminated,
 }
 
 // This is a non-cooperative termination (SIGKILL) of the entire child process tree. What we would
