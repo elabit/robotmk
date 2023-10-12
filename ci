@@ -3,7 +3,7 @@
 main() {
 	topdir="$(git rev-parse --show-toplevel)"
 	self="${topdir}/ci"
-	cargo_toml_path="${topdir}/v2/rust/Cargo.toml"
+	cargo_toml_path="${topdir}/v2/robotmk/Cargo.toml"
 	checkmk_extensions_dir="${topdir}/checkmk_extensions"
 	mode="${1}"
 	shift

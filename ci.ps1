@@ -7,7 +7,7 @@ function Main {
         [string]$Mode
     )
 
-    $cargoTomlPath = Join-Path -Path $PSScriptRoot -ChildPath "v2\rust\Cargo.toml"
+    $cargoTomlPath = Join-Path -Path $PSScriptRoot -ChildPath "v2\robotmk\Cargo.toml"
 
     switch ( $Mode ) {
         cargo-fmt-check {
