@@ -79,7 +79,7 @@ mod tests {
 
     #[test]
     fn test_parse_rebot() {
-        let test_dir = format!("{}/../tests/rebot.xml", env!("CARGO_MANIFEST_DIR"));
+        let test_dir = format!("{}/tests/rebot.xml", env!("CARGO_MANIFEST_DIR"));
         let xml = fs::read_to_string(&test_dir)
             .unwrap_or_else(|_| panic!("Missing test data! {}", test_dir));
         let rebot: Rebot = from_str(&xml).unwrap();

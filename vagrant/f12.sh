@@ -5,7 +5,7 @@ set -e
 # Todo: Only update out-of-date things.
 
 topdir="$(git rev-parse --show-toplevel)"
-rustdir="$topdir"/v2/rust/
+rustdir="$topdir"/v2/robotmk/
 
 agentdir="C:/ProgramData/checkmk/agent"
 agentplugindir="$agentdir"/plugins
