@@ -109,7 +109,7 @@ fn produce_suite_results(suite: &Suite) -> Result<AttemptsOutcome> {
     ))?;
 
     let (attempt_outcomes, output_paths) =
-        run_attempts_until_succesful(retry_spec.attempts(), suite);
+        run_attempts_until_succesful(retry_spec.attempts(), suite)?;
 
     Ok(AttemptsOutcome {
         attempts: attempt_outcomes,
@@ -132,12 +132,12 @@ fn produce_suite_results(suite: &Suite) -> Result<AttemptsOutcome> {
 fn run_attempts_until_succesful<'a>(
     attempts: impl Iterator<Item = Attempt<'a>>,
     suite: &Suite,
-) -> (Vec<AttemptOutcome>, Vec<Utf8PathBuf>) {
+) -> Result<(Vec<AttemptOutcome>, Vec<Utf8PathBuf>)> {
     let mut outcomes = vec![];
     let mut output_paths: Vec<Utf8PathBuf> = vec![];
 
     for attempt in attempts {
-        let (outcome, output_path) = run_attempt(&attempt, suite);
+        let (outcome, output_path) = run_attempt(&attempt, suite)?;
         let success = matches!(&outcome, &AttemptOutcome::AllTestsPassed);
         outcomes.push(outcome);
         if let Some(output_path) = output_path {
@@ -148,10 +148,10 @@ fn run_attempts_until_succesful<'a>(
         }
     }
 
-    (outcomes, output_paths)
+    Ok((outcomes, output_paths))
 }
 
-fn run_attempt(attempt: &Attempt, suite: &Suite) -> (AttemptOutcome, Option<Utf8PathBuf>) {
+fn run_attempt(attempt: &Attempt, suite: &Suite) -> Result<(AttemptOutcome, Option<Utf8PathBuf>)> {
     let log_message_start = format!(
         "Suite {}, attempt {}",
         attempt.identifier.name, attempt.index
@@ -170,50 +170,51 @@ fn run_attempt(attempt: &Attempt, suite: &Suite) -> (AttemptOutcome, Option<Utf8
         Ok(run_outcome) => run_outcome,
         Err(error_) => {
             error!("{log_message_start}: {error_:?}");
-            return (AttemptOutcome::OtherError(format!("{error_:?}")), None);
+            return Ok((AttemptOutcome::OtherError(format!("{error_:?}")), None));
         }
     };
     let exit_code = match run_outcome {
         RunOutcome::Exited(exit_code) => exit_code,
         RunOutcome::TimedOut => {
             error!("{log_message_start}: timed out");
-            return (AttemptOutcome::TimedOut, None);
+            return Ok((AttemptOutcome::TimedOut, None));
         }
+        RunOutcome::Terminated => bail!("Terminated"),
     };
     let exit_code = match exit_code {
         Some(exit_code) => exit_code,
         None => {
             error!("{log_message_start}: failed to query exit code");
-            return (
+            return Ok((
                 AttemptOutcome::OtherError(
                     "Failed to query exit code of Robot Framework call".into(),
                 ),
                 None,
-            );
+            ));
         }
     };
     match suite.environment.create_result_code(exit_code) {
         ResultCode::AllTestsPassed => {
             debug!("{log_message_start}: all tests passed");
-            (
+            Ok((
                 AttemptOutcome::AllTestsPassed,
                 Some(attempt.output_xml_file()),
-            )
+            ))
         }
         ResultCode::EnvironmentFailed => {
             error!("{log_message_start}: environment failure");
-            (AttemptOutcome::EnvironmentFailure, None)
+            Ok((AttemptOutcome::EnvironmentFailure, None))
         }
         ResultCode::RobotCommandFailed => {
             if attempt.output_xml_file().exists() {
                 debug!("{log_message_start}: some tests failed");
-                (
+                Ok((
                     AttemptOutcome::TestFailures,
                     Some(attempt.output_xml_file()),
-                )
+                ))
             } else {
                 error!("{log_message_start}: Robot Framework failure (no output)");
-                (AttemptOutcome::RobotFrameworkFailure, None)
+                Ok((AttemptOutcome::RobotFrameworkFailure, None))
             }
         }
     }

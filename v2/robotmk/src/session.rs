@@ -42,6 +42,7 @@ pub struct RunSpec<'a> {
 pub enum RunOutcome {
     Exited(Option<i32>),
     TimedOut,
+    Terminated,
 }
 
 impl CurrentSession {
@@ -62,6 +63,7 @@ impl CurrentSession {
                 None => Ok(RunOutcome::Exited(None)),
             },
             ChildProcessOutcome::TimedOut => Ok(RunOutcome::TimedOut),
+            ChildProcessOutcome::Terminated => Ok(RunOutcome::Terminated),
         }
     }
 }
