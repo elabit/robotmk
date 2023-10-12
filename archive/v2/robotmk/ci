@@ -4,6 +4,10 @@ main() {
 	topdir="$(git rev-parse --show-toplevel)"
 	self="${topdir}/ci"
 	cargo_toml_path="${topdir}/v2/rust/Cargo.toml"
+	pyproject_toml_path="${topdir}/pyproject.toml"
+	v2_dir="${topdir}/v2"
+	v2_src="${v2_dir}/robotmk"
+	v2_tests="${v2_dir}/tests"
 	checkmk_extensions_dir="${topdir}/checkmk_extensions"
 	mode="${1}"
 	shift
@@ -19,6 +23,46 @@ main() {
 
 	'cargo-test')
 		cargo test --manifest-path "${cargo_toml_path}" --all-targets
+		;;
+
+	'black')
+		poetry run black --config "${pyproject_toml_path}" "$@"
+		;;
+
+	'black-check-all')
+		"${self}" black --check "${v2_src}" "${v2_tests}"
+		;;
+
+	'isort')
+		poetry run isort --settings-path "${pyproject_toml_path}" "$@"
+		;;
+
+	'isort-check-all')
+		"${self}" isort --check-only "${v2_src}" "${v2_tests}"
+		;;
+
+	'mypy')
+		poetry run mypy --config-file "${pyproject_toml_path}" "$@"
+		;;
+
+	'mypy-check-all')
+		"${self}" mypy "${v2_src}" "${v2_tests}"
+		;;
+
+	'pylint')
+		poetry run pylint --rcfile "${pyproject_toml_path}" "$@"
+		;;
+
+	'pylint-check-all')
+		"${self}" pylint --recursive true "${v2_src}" "${v2_tests}"
+		;;
+
+	'pytest')
+		poetry run pytest --rootdir "${topdir}" "$@"
+		;;
+
+	'pytest-check-all')
+		"${self}" pytest "${v2_tests}"
 		;;
 
 	'PSScriptAnalyzer-check-all')
@@ -47,8 +91,12 @@ main() {
 			"${self}" "cargo-${rust_step}"
 			exit_code=$(( exit_code + $? ))
 		done
-		"${self}" "PSScriptAnalyzer-check-all"
-		return "$(( exit_code + $? ))"
+		for tool in black isort mypy pylint pytest PSScriptAnalyzer
+		do
+			"${self}" "${tool}-check-all"
+			exit_code=$(( exit_code + $? ))
+		done
+		return "${exit_code}"
 		;;
 
 	*)

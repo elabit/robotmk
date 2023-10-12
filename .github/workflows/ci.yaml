@@ -15,30 +15,12 @@ jobs:
           step: cargo-clippy
         - name: Rust tests
           step: cargo-test
-        - name: Python formatting
-          step: black-check-all
-        - name: Python import sorting
-          step: isort-check-all
-        - name: Python type checking
-          step: mypy-check-all
-        - name: Python linting
-          step: pylint-check-all
-        - name: Python unit tests
-          step: pytest-check-all
         - name: Powershell static analysis
           step: PSScriptAnalyzer-check-all
 
     steps:
     - name: Checkout repository
       uses: actions/checkout@v4
-
-    - name: Setup Python
-      uses: actions/setup-python@v4
-      with:
-        python-version-file: "pyproject.toml"
-    
-    - name: Setup Poetry
-      run: python3 -m pip install poetry
 
     - name: Setup environment
       run: ./setup
