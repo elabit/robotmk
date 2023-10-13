@@ -1,4 +1,4 @@
-use super::config::{Config, EnvironmentConfig};
+use super::config::external::{Config, EnvironmentConfig};
 use super::environment::environment_building_stdio_directory;
 use super::results::{suite_result_file, suite_results_directory};
 
