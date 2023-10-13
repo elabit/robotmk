@@ -20,9 +20,7 @@ pub struct RetrySpec<'a> {
 
 impl RetrySpec<'_> {
     pub fn output_directory(&self) -> Utf8PathBuf {
-        self.working_directory
-            .join(self.identifier.name)
-            .join(&self.identifier.timestamp)
+        self.working_directory.join(&self.identifier.timestamp)
     }
 
     pub fn attempts(&self) -> impl Iterator<Item = Attempt> + '_ {
@@ -215,7 +213,7 @@ mod tests {
                 name: "suite_1",
                 timestamp: "2023-08-29T12.23.44.419347+00.00".into(),
             },
-            working_directory: &Utf8PathBuf::from("/tmp/outputdir/"),
+            working_directory: &Utf8PathBuf::from("/tmp/outputdir/suite_1"),
             n_retries_max: 2,
             timeout: 300,
             robot_framework_config: &RobotFrameworkConfig {

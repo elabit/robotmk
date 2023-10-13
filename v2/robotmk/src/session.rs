@@ -6,6 +6,7 @@ use super::termination::TerminationFlag;
 use anyhow::Result;
 use camino::{Utf8Path, Utf8PathBuf};
 
+#[derive(Clone)]
 #[cfg_attr(test, derive(Debug, PartialEq))]
 pub enum Session {
     Current(CurrentSession),
@@ -26,6 +27,7 @@ impl Session {
     }
 }
 
+#[derive(Clone)]
 #[cfg_attr(test, derive(Debug, PartialEq))]
 pub struct CurrentSession {}
 
