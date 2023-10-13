@@ -14,6 +14,7 @@ pub struct GlobalConfig {
     pub termination_flag: TerminationFlag,
 }
 
+#[derive(Clone)]
 pub struct Suite {
     pub name: String,
     pub working_directory: Utf8PathBuf,

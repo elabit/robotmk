@@ -43,6 +43,8 @@ fn run() -> Result<()> {
     environment::build_environments(&conf, &termination_flag)?;
     info!("Environment building finished");
 
+    let (global_config, suites) = config::internal::from_external_config(conf, termination_flag);
+
     info!("Starting suite scheduling");
-    scheduling::run_suites(&conf, &termination_flag)
+    scheduling::run_suites(&global_config, &suites)
 }

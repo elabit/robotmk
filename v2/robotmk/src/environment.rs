@@ -80,15 +80,18 @@ fn run_environment_build(
     }
 }
 
+#[derive(Clone)]
 #[cfg_attr(test, derive(Debug, PartialEq))]
 pub enum Environment {
     System(SystemEnvironment),
     Rcc(RCCEnvironment),
 }
 
+#[derive(Clone)]
 #[cfg_attr(test, derive(Debug, PartialEq))]
 pub struct SystemEnvironment {}
 
+#[derive(Clone)]
 #[cfg_attr(test, derive(Debug, PartialEq))]
 pub struct RCCEnvironment {
     pub binary_path: Utf8PathBuf,
