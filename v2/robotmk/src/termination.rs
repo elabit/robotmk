@@ -20,3 +20,14 @@ impl TerminationFlag {
         self.0.load(Ordering::Relaxed)
     }
 }
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    impl TerminationFlag {
+        pub fn new() -> Self {
+            Self(Arc::new(AtomicBool::new(false)))
+        }
+    }
+}

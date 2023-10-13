@@ -13,7 +13,7 @@ pub fn load(path: &Utf8Path) -> Result<Config> {
 pub struct Config {
     pub working_directory: Utf8PathBuf,
     pub results_directory: Utf8PathBuf,
-    suites: HashMap<String, SuiteConfig>,
+    pub suites: HashMap<String, SuiteConfig>,
 }
 
 #[derive(Clone, Deserialize)]

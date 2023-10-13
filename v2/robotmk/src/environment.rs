@@ -80,19 +80,22 @@ fn run_environment_build(
     }
 }
 
+#[cfg_attr(test, derive(Debug, PartialEq))]
 pub enum Environment {
     System(SystemEnvironment),
     Rcc(RCCEnvironment),
 }
 
+#[cfg_attr(test, derive(Debug, PartialEq))]
 pub struct SystemEnvironment {}
 
+#[cfg_attr(test, derive(Debug, PartialEq))]
 pub struct RCCEnvironment {
-    binary_path: Utf8PathBuf,
-    robot_yaml_path: Utf8PathBuf,
-    controller: String,
-    space: String,
-    build_timeout: u64,
+    pub binary_path: Utf8PathBuf,
+    pub robot_yaml_path: Utf8PathBuf,
+    pub controller: String,
+    pub space: String,
+    pub build_timeout: u64,
 }
 
 impl Environment {
