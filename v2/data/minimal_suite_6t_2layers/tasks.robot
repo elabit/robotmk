@@ -1,9 +1,9 @@
 *** Test Cases ***
-TestA
+Main Test One
     Log    This is TestA doing nothing.
 
-TestB
+Main Test Two
     Log    This is TestB doing nothing.
 
-TestC
+Main Test Three
     Log    This is TestC doing nothing.

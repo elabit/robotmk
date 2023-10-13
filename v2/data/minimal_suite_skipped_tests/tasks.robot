@@ -1,9 +1,9 @@
 *** Test Cases ***
-TestA
-    Log    This is TestA doing nothing.
+Main Test One
+    Fail    msg="Raised an error in Test 1"
 
-TestB
+Main Test Two
     Log    This is TestB doing nothing.
 
-TestC
+Main Test Three
     Log    This is TestC doing nothing.
