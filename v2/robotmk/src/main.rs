@@ -39,11 +39,11 @@ fn run() -> Result<()> {
         termination::start_termination_control().context("Failed to set up termination control")?;
     debug!("Termination control set up");
 
-    info!("Starting environment building");
-    environment::build_environments(&conf, &termination_flag)?;
-    info!("Environment building finished");
-
     let (global_config, suites) = config::internal::from_external_config(conf, termination_flag);
+
+    info!("Starting environment building");
+    environment::build_environments(&global_config, &suites)?;
+    info!("Environment building finished");
 
     info!("Starting suite scheduling");
     scheduling::run_suites(&global_config, &suites)

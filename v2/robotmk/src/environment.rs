@@ -1,8 +1,9 @@
 use super::child_process_supervisor::{ChildProcessOutcome, ChildProcessSupervisor, StdioPaths};
 use super::command_spec::CommandSpec;
-use super::config::external::{Config, EnvironmentConfig};
+use super::config::external::EnvironmentConfig;
+use super::config::internal::{GlobalConfig, Suite};
 use super::results::{EnvironmentBuildStatesAdministrator, EnvironmentBuildStatus};
-use super::termination::TerminationFlag;
+
 use anyhow::{Context, Result};
 use camino::{Utf8Path, Utf8PathBuf};
 use log::{debug, error, info};
@@ -11,50 +12,58 @@ pub fn environment_building_stdio_directory(working_directory: &Utf8Path) -> Utf
     working_directory.join("environment_building_stdio")
 }
 
-pub fn build_environments(config: &Config, termination_flag: &TerminationFlag) -> Result<()> {
-    let suites = config.suites();
+pub fn build_environments(global_config: &GlobalConfig, suites: &Vec<Suite>) -> Result<()> {
     let mut environment_build_states_administrator =
         EnvironmentBuildStatesAdministrator::new_with_pending(
-            suites
-                .iter()
-                .map(|(suite_name, _suite_config)| suite_name.to_owned()),
-            &config.working_directory,
-            &config.results_directory,
+            suites.iter().map(|suite| &suite.name),
+            &global_config.working_directory,
+            &global_config.results_directory,
         );
     environment_build_states_administrator.write_atomic()?;
     let env_building_stdio_directory =
-        environment_building_stdio_directory(&config.working_directory);
+        environment_building_stdio_directory(&global_config.working_directory);
 
-    for (suite_name, suite_config) in suites {
-        match Environment::new(suite_name, &suite_config.environment_config).build_instructions() {
-            Some(build_instructions) => {
-                info!("Building environment for suite {}", suite_name);
-                environment_build_states_administrator
-                    .insert_and_write_atomic(suite_name, EnvironmentBuildStatus::InProgress)?;
-                environment_build_states_administrator.insert_and_write_atomic(
-                    suite_name,
-                    run_environment_build(ChildProcessSupervisor {
-                        command_spec: &build_instructions.command_spec,
-                        stdio_paths: Some(StdioPaths {
-                            stdout: env_building_stdio_directory
-                                .join(format!("{suite_name}.stdout")),
-                            stderr: env_building_stdio_directory
-                                .join(format!("{suite_name}.stderr")),
-                        }),
-                        timeout: build_instructions.timeout,
-                        termination_flag,
-                    })?,
-                )?;
-            }
-            None => {
-                debug!("Nothing to do for suite {}", suite_name);
-                environment_build_states_administrator
-                    .insert_and_write_atomic(suite_name, EnvironmentBuildStatus::NotNeeded)?;
-            }
-        }
+    for suite in suites {
+        environment_build_states_administrator = build_environment(
+            suite,
+            environment_build_states_administrator,
+            &env_building_stdio_directory,
+        )?;
     }
 
     Ok(())
+}
+
+fn build_environment<'a>(
+    suite: &'a Suite,
+    mut environment_build_states_administrator: EnvironmentBuildStatesAdministrator<'a>,
+    stdio_directory: &Utf8Path,
+) -> Result<EnvironmentBuildStatesAdministrator<'a>> {
+    match suite.environment.build_instructions() {
+        Some(build_instructions) => {
+            info!("Building environment for suite {}", suite.name);
+            environment_build_states_administrator
+                .insert_and_write_atomic(&suite.name, EnvironmentBuildStatus::InProgress)?;
+            environment_build_states_administrator.insert_and_write_atomic(
+                &suite.name,
+                run_environment_build(ChildProcessSupervisor {
+                    command_spec: &build_instructions.command_spec,
+                    stdio_paths: Some(StdioPaths {
+                        stdout: stdio_directory.join(format!("{}.stdout", suite.name)),
+                        stderr: stdio_directory.join(format!("{}.stderr", suite.name)),
+                    }),
+                    timeout: build_instructions.timeout,
+                    termination_flag: &suite.termination_flag,
+                })?,
+            )?;
+        }
+        None => {
+            debug!("Nothing to do for suite {}", suite.name);
+            environment_build_states_administrator
+                .insert_and_write_atomic(&suite.name, EnvironmentBuildStatus::NotNeeded)?;
+        }
+    }
+    Ok(environment_build_states_administrator)
 }
 
 fn run_environment_build(
