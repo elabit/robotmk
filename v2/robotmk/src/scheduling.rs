@@ -1,5 +1,5 @@
 use super::attempt::{Attempt, Identifier, RetrySpec};
-use super::config::{Config, SuiteConfig};
+use super::config::external::{Config, SuiteConfig};
 use super::environment::{Environment, ResultCode};
 use super::logging::log_and_return_error;
 use super::rebot::Rebot;

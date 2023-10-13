@@ -1,6 +1,6 @@
 use super::child_process_supervisor::{ChildProcessOutcome, ChildProcessSupervisor, StdioPaths};
 use super::command_spec::CommandSpec;
-use super::config::{Config, EnvironmentConfig};
+use super::config::external::{Config, EnvironmentConfig};
 use super::results::{EnvironmentBuildStatesAdministrator, EnvironmentBuildStatus};
 use super::termination::TerminationFlag;
 use anyhow::{Context, Result};
@@ -210,7 +210,7 @@ impl RCCEnvironment {
 #[cfg(test)]
 mod tests {
     use super::*;
-    use crate::config::RCCEnvironmentConfig;
+    use crate::config::external::RCCEnvironmentConfig;
 
     #[test]
     fn environment_from_system_config() {

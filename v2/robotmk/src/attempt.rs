@@ -1,5 +1,5 @@
 use super::command_spec::CommandSpec;
-use super::config::{RetryStrategy, RobotFrameworkConfig};
+use super::config::external::{RetryStrategy, RobotFrameworkConfig};
 use camino::Utf8PathBuf;
 
 pub const PYTHON_EXECUTABLE: &str = "python";

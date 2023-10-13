@@ -29,7 +29,7 @@ fn run() -> Result<()> {
     logging::init(args.log_specification(), &args.log_path)?;
     info!("Program started and logging set up");
 
-    let conf = config::load(&args.config_path).context("Configuration loading failed")?;
+    let conf = config::external::load(&args.config_path).context("Configuration loading failed")?;
     debug!("Configuration loaded");
 
     setup::setup(&conf).context("Setup failed")?;

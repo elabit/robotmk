@@ -1,6 +1,6 @@
 use super::child_process_supervisor::{ChildProcessOutcome, ChildProcessSupervisor, StdioPaths};
 use super::command_spec::CommandSpec;
-use super::config::SessionConfig;
+use super::config::external::SessionConfig;
 use super::termination::TerminationFlag;
 
 use anyhow::Result;
