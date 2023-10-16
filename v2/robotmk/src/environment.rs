@@ -1,8 +1,11 @@
 use super::child_process_supervisor::{ChildProcessOutcome, ChildProcessSupervisor, StdioPaths};
 use super::command_spec::CommandSpec;
 use super::config::external::EnvironmentConfig;
-use super::config::internal::{GlobalConfig, Suite};
-use super::results::{EnvironmentBuildStatesAdministrator, EnvironmentBuildStatus};
+use super::config::internal::{drop_suites, GlobalConfig, Suite};
+use super::logging::log_and_return_error;
+use super::results::{
+    EnvironmentBuildStatesAdministrator, EnvironmentBuildStatus, EnvironmentBuildStatusError,
+};
 
 use anyhow::{bail, Context, Result};
 use camino::{Utf8Path, Utf8PathBuf};
@@ -12,7 +15,7 @@ pub fn environment_building_stdio_directory(working_directory: &Utf8Path) -> Utf
     working_directory.join("environment_building_stdio")
 }
 
-pub fn build_environments(global_config: &GlobalConfig, suites: &Vec<Suite>) -> Result<()> {
+pub fn build_environments(global_config: &GlobalConfig, suites: Vec<Suite>) -> Result<Vec<Suite>> {
     let mut environment_build_states_administrator =
         EnvironmentBuildStatesAdministrator::new_with_pending(
             suites.iter().map(|suite| &suite.name),
@@ -23,68 +26,89 @@ pub fn build_environments(global_config: &GlobalConfig, suites: &Vec<Suite>) -> 
     let env_building_stdio_directory =
         environment_building_stdio_directory(&global_config.working_directory);
 
-    for suite in suites {
-        environment_build_states_administrator = build_environment(
+    let mut suites_to_be_dropped = vec![];
+    let mut drop_suite;
+    for suite in suites.iter() {
+        (environment_build_states_administrator, drop_suite) = build_environment(
             suite,
             environment_build_states_administrator,
             &env_building_stdio_directory,
         )?;
+
+        if drop_suite {
+            suites_to_be_dropped.push(suite.name.clone());
+        }
     }
 
-    Ok(())
+    Ok(drop_suites(suites, &suites_to_be_dropped))
 }
 
 fn build_environment<'a>(
     suite: &'a Suite,
     mut environment_build_states_administrator: EnvironmentBuildStatesAdministrator<'a>,
     stdio_directory: &Utf8Path,
-) -> Result<EnvironmentBuildStatesAdministrator<'a>> {
-    match suite.environment.build_instructions() {
+) -> Result<(EnvironmentBuildStatesAdministrator<'a>, bool)> {
+    let drop_suite = match suite.environment.build_instructions() {
         Some(build_instructions) => {
             info!("Building environment for suite {}", suite.name);
             environment_build_states_administrator
                 .insert_and_write_atomic(&suite.name, EnvironmentBuildStatus::InProgress)?;
-            environment_build_states_administrator.insert_and_write_atomic(
-                &suite.name,
-                run_environment_build(ChildProcessSupervisor {
-                    command_spec: &build_instructions.command_spec,
-                    stdio_paths: Some(StdioPaths {
-                        stdout: stdio_directory.join(format!("{}.stdout", suite.name)),
-                        stderr: stdio_directory.join(format!("{}.stderr", suite.name)),
-                    }),
-                    timeout: build_instructions.timeout,
-                    termination_flag: &suite.termination_flag,
-                })?,
-            )?;
+            let environment_build_status = run_environment_build(ChildProcessSupervisor {
+                command_spec: &build_instructions.command_spec,
+                stdio_paths: Some(StdioPaths {
+                    stdout: stdio_directory.join(format!("{}.stdout", suite.name)),
+                    stderr: stdio_directory.join(format!("{}.stderr", suite.name)),
+                }),
+                timeout: build_instructions.timeout,
+                termination_flag: &suite.termination_flag,
+            })?;
+            let drop_suite = matches!(environment_build_status, EnvironmentBuildStatus::Failure(_));
+            environment_build_states_administrator
+                .insert_and_write_atomic(&suite.name, environment_build_status)?;
+            drop_suite
         }
         None => {
             debug!("Nothing to do for suite {}", suite.name);
             environment_build_states_administrator
                 .insert_and_write_atomic(&suite.name, EnvironmentBuildStatus::NotNeeded)?;
+            false
         }
-    }
-    Ok(environment_build_states_administrator)
+    };
+    Ok((environment_build_states_administrator, drop_suite))
 }
 
 fn run_environment_build(
     build_process_supervisor: ChildProcessSupervisor,
 ) -> Result<EnvironmentBuildStatus> {
-    match build_process_supervisor
+    let child_process_outcome = match build_process_supervisor
         .run()
-        .context("Environment building failed")?
+        .context("Environment building failed, suite will be dropped")
+        .map_err(log_and_return_error)
     {
+        Ok(child_process_outcome) => child_process_outcome,
+        Err(error) => {
+            return Ok(EnvironmentBuildStatus::Failure(
+                EnvironmentBuildStatusError::Error(format!("{error:?}")),
+            ))
+        }
+    };
+    match child_process_outcome {
         ChildProcessOutcome::Exited(exit_status) => {
             if exit_status.success() {
                 debug!("Environmenent building succeeded");
                 Ok(EnvironmentBuildStatus::Success)
             } else {
-                error!("Environment building not sucessful, suite will most likely not execute");
-                Ok(EnvironmentBuildStatus::Failure)
+                error!("Environment building not sucessful, suite will be dropped");
+                Ok(EnvironmentBuildStatus::Failure(
+                    EnvironmentBuildStatusError::NonZeroExit,
+                ))
             }
         }
         ChildProcessOutcome::TimedOut => {
-            error!("Environment building timed out, suite will most likely not execute");
-            Ok(EnvironmentBuildStatus::Timeout)
+            error!("Environment building timed out, suite will be dropped");
+            Ok(EnvironmentBuildStatus::Failure(
+                EnvironmentBuildStatusError::Timeout,
+            ))
         }
         ChildProcessOutcome::Terminated => {
             bail!("Terminated")

@@ -52,7 +52,7 @@ fn run() -> Result<()> {
     }
 
     info!("Starting environment building");
-    environment::build_environments(&global_config, &suites)?;
+    let suites = environment::build_environments(&global_config, suites)?;
     info!("Environment building finished");
 
     if global_config.termination_flag.should_terminate() {
