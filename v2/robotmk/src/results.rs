@@ -70,11 +70,17 @@ impl<'a> EnvironmentBuildStatesAdministrator<'a> {
 #[derive(Serialize)]
 pub enum EnvironmentBuildStatus {
     Success,
-    Failure,
-    Timeout,
+    Failure(EnvironmentBuildStatusError),
     NotNeeded,
     Pending,
     InProgress,
+}
+
+#[derive(Serialize)]
+pub enum EnvironmentBuildStatusError {
+    NonZeroExit,
+    Timeout,
+    Error(String),
 }
 
 #[derive(Serialize)]
