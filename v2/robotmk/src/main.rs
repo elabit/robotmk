@@ -43,7 +43,7 @@ fn run() -> Result<()> {
         bail!("Terminated")
     }
 
-    setup::setup(&global_config, &suites).context("Setup failed")?;
+    let suites = setup::setup(&global_config, suites)?;
     debug!("Setup completed");
 
     if global_config.termination_flag.should_terminate() {

@@ -1,6 +1,6 @@
-use super::config::internal::{GlobalConfig, Suite};
-use super::environment::environment_building_stdio_directory;
-use super::results::suite_results_directory;
+use crate::config::internal::{GlobalConfig, Suite};
+use crate::environment::environment_building_stdio_directory;
+use crate::results::suite_results_directory;
 
 use anyhow::{bail, Context, Result};
 use atomicwrites::replace_atomic;
@@ -68,7 +68,7 @@ fn remove_files_atomic<'a>(
 ) -> Result<()> {
     for path in files_to_be_removed {
         replace_atomic(path.as_std_path(), intermediate_path_for_move.as_std_path()).context(
-            format!("Failed to move {path} to {intermediate_path_for_move}"),
+            format!("Failed to move {path} to {intermediate_path_for_move}",),
         )?;
     }
 
