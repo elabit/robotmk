@@ -6,9 +6,10 @@ use super::termination::TerminationFlag;
 
 use anyhow::Result;
 use camino::{Utf8Path, Utf8PathBuf};
+use std::fmt::{Display, Formatter, Result as FmtResult};
 
-#[derive(Clone)]
-#[cfg_attr(test, derive(Debug, PartialEq))]
+#[derive(Clone, Eq, Hash, PartialEq)]
+#[cfg_attr(test, derive(Debug))]
 pub enum Session {
     Current(CurrentSession),
     User(UserSession),
@@ -32,14 +33,39 @@ impl Session {
     }
 }
 
-#[derive(Clone)]
-#[cfg_attr(test, derive(Debug, PartialEq))]
+impl Display for Session {
+    fn fmt(&self, f: &mut Formatter<'_>) -> FmtResult {
+        write!(
+            f,
+            "{}",
+            match self {
+                Self::Current(current_session) => format!("{}", current_session),
+                Self::User(user_session) => format!("{}", user_session),
+            }
+        )
+    }
+}
+
+#[derive(Clone, Eq, Hash, PartialEq)]
+#[cfg_attr(test, derive(Debug))]
 pub struct CurrentSession {}
 
-#[derive(Clone)]
-#[cfg_attr(test, derive(Debug, PartialEq))]
+impl Display for CurrentSession {
+    fn fmt(&self, f: &mut Formatter<'_>) -> FmtResult {
+        write!(f, "Current session")
+    }
+}
+
+#[derive(Clone, Eq, Hash, PartialEq)]
+#[cfg_attr(test, derive(Debug))]
 pub struct UserSession {
     pub user_name: String,
+}
+
+impl Display for UserSession {
+    fn fmt(&self, f: &mut Formatter<'_>) -> FmtResult {
+        write!(f, "Session of user {}", self.user_name)
+    }
 }
 
 pub struct RunSpec<'a> {
@@ -89,5 +115,23 @@ impl UserSession {
             timeout: spec.timeout,
             termination_flag: spec.termination_flag,
         })
+    }
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    #[test]
+    fn user_session_fmt() {
+        assert_eq!(
+            format!(
+                "{}",
+                UserSession {
+                    user_name: "some_user".into()
+                }
+            ),
+            "Session of user some_user"
+        )
     }
 }

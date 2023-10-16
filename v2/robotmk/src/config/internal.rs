@@ -64,7 +64,7 @@ pub fn from_external_config(
     )
 }
 
-fn sort_suites_by_name(suites: &mut [Suite]) {
+pub fn sort_suites_by_name(suites: &mut [Suite]) {
     suites.sort_by_key(|suite| suite.name.to_string());
 }
 

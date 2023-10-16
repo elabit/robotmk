@@ -28,6 +28,28 @@ pub fn write_file_atomic(
     ))
 }
 
+#[derive(Serialize)]
+pub struct RCCSetupFailures {
+    pub telemetry_disabling: Vec<String>,
+    pub shared_holotree: Vec<String>,
+    pub holotree_init: Vec<String>,
+}
+
+impl RCCSetupFailures {
+    pub fn write_atomic(
+        &self,
+        working_directory: &Utf8Path,
+        results_directory: &Utf8Path,
+    ) -> Result<()> {
+        write_file_atomic(
+            &to_string(&self)?,
+            working_directory,
+            results_directory.join("rcc_setup_failures.json"),
+        )
+        .context("Writing RCC setup failures failed")
+    }
+}
+
 pub struct EnvironmentBuildStatesAdministrator<'a> {
     build_states: HashMap<String, EnvironmentBuildStatus>,
     working_directory: &'a Utf8Path,
