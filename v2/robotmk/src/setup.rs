@@ -1,6 +1,6 @@
-use super::config::external::{Config, EnvironmentConfig};
-use super::environment::environment_building_stdio_directory;
-use super::results::{suite_result_file, suite_results_directory};
+use super::config::internal::{GlobalConfig, Suite};
+use super::environment::{environment_building_stdio_directory, Environment};
+use super::results::suite_results_directory;
 
 use anyhow::{bail, Context, Result};
 use atomicwrites::replace_atomic;
@@ -10,30 +10,31 @@ use std::collections::HashSet;
 use std::fs::{create_dir_all, remove_file};
 use std::process::Command;
 
-pub fn setup(config: &Config) -> Result<()> {
-    create_dir_all(&config.working_directory).context("Failed to create working directory")?;
+pub fn setup(global_config: &GlobalConfig, suites: &[Suite]) -> Result<()> {
+    create_dir_all(&global_config.working_directory)
+        .context("Failed to create working directory")?;
     create_dir_all(environment_building_stdio_directory(
-        &config.working_directory,
+        &global_config.working_directory,
     ))
     .context("Failed to create environment building stdio directory")?;
-    create_dir_all(&config.results_directory).context("Failed to create results directory")?;
-    create_dir_all(suite_results_directory(&config.results_directory))
+    create_dir_all(&global_config.results_directory)
+        .context("Failed to create results directory")?;
+    create_dir_all(suite_results_directory(&global_config.results_directory))
         .context("Failed to create suite results directory")?;
-    clean_up_results_directory_atomic(config)?;
-    adjust_user_permissions(config)
+    clean_up_results_directory_atomic(global_config, suites)?;
+    adjust_user_permissions(global_config, suites)
 }
 
-fn clean_up_results_directory_atomic(config: &Config) -> Result<()> {
-    let suite_results_directory = suite_results_directory(&config.results_directory);
-    let result_files_to_keep = config
-        .suites()
-        .into_iter()
-        .map(|(suite_name, _suite_config)| suite_result_file(&suite_results_directory, suite_name));
-    let currently_present_result_files = currently_present_result_files(&suite_results_directory)?;
+fn clean_up_results_directory_atomic(global_config: &GlobalConfig, suites: &[Suite]) -> Result<()> {
+    let suite_results_directory = suite_results_directory(&global_config.results_directory);
+    let result_files_to_keep =
+        HashSet::<Utf8PathBuf>::from_iter(suites.iter().map(|suite| suite.results_file.clone()));
+    let currently_present_result_files = HashSet::<Utf8PathBuf>::from_iter(
+        currently_present_result_files(&suite_results_directory)?,
+    );
     remove_files_atomic(
-        &suite_results_directory.join("deprecated_result"),
-        HashSet::<Utf8PathBuf>::from_iter(currently_present_result_files)
-            .difference(&HashSet::from_iter(result_files_to_keep)),
+        &global_config.working_directory.join("deprecated_result"),
+        currently_present_result_files.difference(&result_files_to_keep),
     )
 }
 
@@ -76,11 +77,11 @@ fn remove_files_atomic<'a>(
     Ok(())
 }
 
-fn adjust_user_permissions(config: &Config) -> Result<()> {
-    adjust_working_directory_permissions(&config.working_directory)?;
-    for (_suite_name, suite_config) in config.suites() {
-        if let EnvironmentConfig::Rcc(rcc_environment_config) = &suite_config.environment_config {
-            adjust_executable_permissions(&rcc_environment_config.binary_path)?
+fn adjust_user_permissions(global_config: &GlobalConfig, suites: &[Suite]) -> Result<()> {
+    adjust_working_directory_permissions(&global_config.working_directory)?;
+    for suite in suites {
+        if let Environment::Rcc(rcc_environment) = &suite.environment {
+            adjust_executable_permissions(&rcc_environment.binary_path)?
         }
     }
     Ok(())

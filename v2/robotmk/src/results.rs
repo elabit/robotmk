@@ -9,10 +9,6 @@ pub fn suite_results_directory(results_directory: &Utf8Path) -> Utf8PathBuf {
     results_directory.join("suites")
 }
 
-pub fn suite_result_file(suite_results_dir: &Utf8Path, suite_name: &str) -> Utf8PathBuf {
-    suite_results_dir.join(format!("{}.json", suite_name))
-}
-
 pub fn write_file_atomic(
     content: &str,
     working_directory: &Utf8Path,

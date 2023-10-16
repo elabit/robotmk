@@ -1,6 +1,6 @@
 use super::external::{Config, ExecutionConfig, RobotFrameworkConfig};
 use crate::environment::Environment;
-use crate::results::{suite_result_file, suite_results_directory};
+use crate::results::suite_results_directory;
 use crate::session::Session;
 use crate::termination::TerminationFlag;
 
@@ -37,10 +37,8 @@ pub fn from_external_config(
         .map(|(suite_name, suite_config)| Suite {
             name: suite_name.clone(),
             working_directory: external_config.working_directory.join(&suite_name),
-            results_file: suite_result_file(
-                &suite_results_directory(&external_config.results_directory),
-                &suite_name,
-            ),
+            results_file: suite_results_directory(&external_config.results_directory)
+                .join(format!("{}.json", suite_name)),
             execution_config: suite_config.execution_config,
             robot_framework_config: suite_config.robot_framework_config,
             environment: Environment::new(&suite_name, &suite_config.environment_config),
