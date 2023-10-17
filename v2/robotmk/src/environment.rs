@@ -137,11 +137,15 @@ pub struct RCCEnvironment {
 }
 
 impl Environment {
-    pub fn new(suite_name: &str, environment_config: &EnvironmentConfig) -> Self {
+    pub fn new(
+        suite_name: &str,
+        rcc_binary_path: &Utf8Path,
+        environment_config: &EnvironmentConfig,
+    ) -> Self {
         match environment_config {
             EnvironmentConfig::System => Self::System(SystemEnvironment {}),
             EnvironmentConfig::Rcc(rcc_environment_config) => Self::Rcc(RCCEnvironment {
-                binary_path: rcc_environment_config.binary_path.clone(),
+                binary_path: rcc_binary_path.to_path_buf(),
                 robot_yaml_path: rcc_environment_config.robot_yaml_path.clone(),
                 controller: String::from("robotmk"),
                 space: suite_name.to_string(),
@@ -255,17 +259,19 @@ mod tests {
 
     #[test]
     fn environment_from_system_config() {
-        assert!(Environment::new("my_suite", &EnvironmentConfig::System)
-            .build_instructions()
-            .is_none())
+        assert!(
+            Environment::new("my_suite", "/bin/rcc".into(), &EnvironmentConfig::System)
+                .build_instructions()
+                .is_none()
+        )
     }
 
     #[test]
     fn environment_from_rcc_config() {
         assert!(Environment::new(
             "my_suite",
+            "/bin/rcc".into(),
             &EnvironmentConfig::Rcc(RCCEnvironmentConfig {
-                binary_path: Utf8PathBuf::from("/bin/rcc"),
                 robot_yaml_path: Utf8PathBuf::from("/a/b/c/robot.yaml"),
                 build_timeout: 60,
             })

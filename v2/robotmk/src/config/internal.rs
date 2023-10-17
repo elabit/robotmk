@@ -11,6 +11,7 @@ use std::sync::Mutex;
 pub struct GlobalConfig {
     pub working_directory: Utf8PathBuf,
     pub results_directory: Utf8PathBuf,
+    pub rcc_binary_path: Utf8PathBuf,
     pub termination_flag: TerminationFlag,
 }
 
@@ -41,7 +42,11 @@ pub fn from_external_config(
                 .join(format!("{}.json", suite_name)),
             execution_config: suite_config.execution_config,
             robot_framework_config: suite_config.robot_framework_config,
-            environment: Environment::new(&suite_name, &suite_config.environment_config),
+            environment: Environment::new(
+                &suite_name,
+                &external_config.rcc_binary_path,
+                &suite_config.environment_config,
+            ),
             session: Session::new(&suite_config.session_config),
             termination_flag: termination_flag.clone(),
             parallelism_protection: Arc::new(Mutex::new(0)),
@@ -50,8 +55,9 @@ pub fn from_external_config(
     sort_suites_by_name(&mut suites);
     (
         GlobalConfig {
-            working_directory: external_config.working_directory.clone(),
-            results_directory: external_config.results_directory.clone(),
+            working_directory: external_config.working_directory,
+            results_directory: external_config.results_directory,
+            rcc_binary_path: external_config.rcc_binary_path,
             termination_flag: termination_flag.clone(),
         },
         suites,
@@ -106,7 +112,6 @@ mod tests {
                 timeout: 60,
             },
             environment_config: EnvironmentConfig::Rcc(RCCEnvironmentConfig {
-                binary_path: Utf8PathBuf::from("/bin/rcc"),
                 robot_yaml_path: Utf8PathBuf::from("/suite/rcc/robot.yaml"),
                 build_timeout: 300,
             }),
@@ -122,6 +127,7 @@ mod tests {
             Config {
                 working_directory: Utf8PathBuf::from("/working"),
                 results_directory: Utf8PathBuf::from("/results"),
+                rcc_binary_path: Utf8PathBuf::from("/bin/rcc"),
                 suites: HashMap::from([
                     (String::from("system"), system_suite_config()),
                     (String::from("rcc"), rcc_suite_config()),
@@ -131,6 +137,7 @@ mod tests {
         );
         assert_eq!(global_config.working_directory, "/working");
         assert_eq!(global_config.results_directory, "/results");
+        assert_eq!(global_config.rcc_binary_path, "/bin/rcc");
         assert_eq!(suites.len(), 2);
         assert_eq!(suites[0].name, "rcc");
         assert_eq!(suites[0].working_directory, "/working/rcc");

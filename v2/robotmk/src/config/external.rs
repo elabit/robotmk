@@ -13,6 +13,7 @@ pub fn load(path: &Utf8Path) -> Result<Config> {
 pub struct Config {
     pub working_directory: Utf8PathBuf,
     pub results_directory: Utf8PathBuf,
+    pub rcc_binary_path: Utf8PathBuf,
     pub suites: HashMap<String, SuiteConfig>,
 }
 
@@ -57,7 +58,6 @@ pub enum EnvironmentConfig {
 
 #[derive(Deserialize)]
 pub struct RCCEnvironmentConfig {
-    pub binary_path: Utf8PathBuf,
     pub robot_yaml_path: Utf8PathBuf,
     pub build_timeout: u64,
 }

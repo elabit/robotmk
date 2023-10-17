@@ -99,7 +99,11 @@ mod tests {
     #[test]
     fn build_rebot_command() {
         let rebot_command_spec = Rebot {
-            environment: &Environment::new("my_suite", &EnvironmentConfig::System),
+            environment: &Environment::new(
+                "my_suite",
+                "/bin/rcc".into(),
+                &EnvironmentConfig::System,
+            ),
             input_paths: &[
                 Utf8PathBuf::from("/working/my_suite/0.xml"),
                 Utf8PathBuf::from("/working/my_suite/1.xml"),
