@@ -1,5 +1,5 @@
 use super::config::internal::{GlobalConfig, Suite};
-use super::environment::{environment_building_stdio_directory, Environment};
+use super::environment::environment_building_stdio_directory;
 use super::results::suite_results_directory;
 
 use anyhow::{bail, Context, Result};
@@ -22,7 +22,7 @@ pub fn setup(global_config: &GlobalConfig, suites: &[Suite]) -> Result<()> {
     create_dir_all(suite_results_directory(&global_config.results_directory))
         .context("Failed to create suite results directory")?;
     clean_up_results_directory_atomic(global_config, suites)?;
-    adjust_user_permissions(global_config, suites)
+    adjust_user_permissions(global_config)
 }
 
 fn clean_up_results_directory_atomic(global_config: &GlobalConfig, suites: &[Suite]) -> Result<()> {
@@ -77,14 +77,9 @@ fn remove_files_atomic<'a>(
     Ok(())
 }
 
-fn adjust_user_permissions(global_config: &GlobalConfig, suites: &[Suite]) -> Result<()> {
+fn adjust_user_permissions(global_config: &GlobalConfig) -> Result<()> {
     adjust_working_directory_permissions(&global_config.working_directory)?;
-    for suite in suites {
-        if let Environment::Rcc(rcc_environment) = &suite.environment {
-            adjust_executable_permissions(&rcc_environment.binary_path)?
-        }
-    }
-    Ok(())
+    adjust_executable_permissions(&global_config.rcc_binary_path)
 }
 
 fn adjust_working_directory_permissions(working_directory: &Utf8Path) -> Result<()> {

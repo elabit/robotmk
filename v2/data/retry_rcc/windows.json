@@ -1,6 +1,7 @@
 {
 	"working_directory": "C:\\tmp\\output",
 	"results_directory": "C:\\tmp\\results",
+	"rcc_binary_path": "C:\\Users\\vagrant\\AppData\\Local\\Microsoft\\WindowsApps\\rcc.exe",
 	"suites": {
 		"test": {
 			"robot_framework_config": {
@@ -16,7 +17,6 @@
 			},
 			"environment_config": {
 				"type": "Rcc",
-				"binary_path": "C:\\Users\\vagrant\\AppData\\Local\\Microsoft\\WindowsApps\\rcc.exe",
 				"robot_yaml_path": "C:\\robotmk\\v2\\data\\retry_rcc\\robot.yaml",
 				"build_timeout": 600
 			},
