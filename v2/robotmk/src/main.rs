@@ -58,5 +58,5 @@ fn run() -> Result<()> {
     }
 
     info!("Starting suite scheduling");
-    scheduling::scheduler::run_suites(&global_config, &suites)
+    scheduling::scheduler::run_suites_and_cleanup(&global_config, &suites)
 }
