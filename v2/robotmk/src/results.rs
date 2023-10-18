@@ -12,17 +12,19 @@ pub fn suite_results_directory(results_directory: &Utf8Path) -> Utf8PathBuf {
 
 pub fn write_file_atomic(
     content: &str,
-    working_directory: &Utf8Path,
-    final_path: &Utf8PathBuf,
+    working_directory: impl AsRef<Utf8Path>,
+    final_path: impl AsRef<Utf8Path>,
 ) -> Result<()> {
     AtomicFile::new_with_tmpdir(
-        final_path,
+        final_path.as_ref(),
         OverwriteBehavior::AllowOverwrite,
-        working_directory,
+        working_directory.as_ref(),
     )
     .write(|f| f.write_all(content.as_bytes()))
     .context(format!(
-        "Atomic write failed. Working directory: {working_directory}, final path: {final_path}.",
+        "Atomic write failed. Working directory: {}, final path: {}.",
+        working_directory.as_ref(),
+        final_path.as_ref()
     ))
 }
 
@@ -54,7 +56,7 @@ impl<'a> EnvironmentBuildStatesAdministrator<'a> {
             &to_string(&self.build_states)
                 .context("Serializing environment build states failed")?,
             self.working_directory,
-            &self.results_directory.join("environment_build_states.json"),
+            self.results_directory.join("environment_build_states.json"),
         )
         .context("Writing environment build states failed")
     }
