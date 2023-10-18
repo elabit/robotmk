@@ -1,4 +1,6 @@
-use super::external::{Config, ExecutionConfig, RobotFrameworkConfig};
+use super::external::{
+    Config, ExecutionConfig, RobotFrameworkConfig, WorkingDirectoryCleanupConfig,
+};
 use crate::environment::Environment;
 use crate::results::suite_results_directory;
 use crate::sessions::session::Session;
@@ -24,6 +26,7 @@ pub struct Suite {
     pub robot_framework_config: RobotFrameworkConfig,
     pub environment: Environment,
     pub session: Session,
+    pub working_directory_cleanup_config: WorkingDirectoryCleanupConfig,
     pub termination_flag: TerminationFlag,
     pub parallelism_protection: Arc<Mutex<usize>>,
 }
@@ -51,6 +54,7 @@ pub fn from_external_config(
                 &suite_config.environment_config,
             ),
             session: Session::new(&suite_config.session_config),
+            working_directory_cleanup_config: suite_config.working_directory_cleanup_config,
             termination_flag: termination_flag.clone(),
             parallelism_protection: Arc::new(Mutex::new(0)),
         })
@@ -97,6 +101,7 @@ mod tests {
             },
             environment_config: EnvironmentConfig::System,
             session_config: SessionConfig::Current,
+            working_directory_cleanup_config: WorkingDirectoryCleanupConfig::MaxAgeSecs(1209600),
         }
     }
 
@@ -120,6 +125,7 @@ mod tests {
             session_config: SessionConfig::SpecificUser(UserSessionConfig {
                 user_name: "user".into(),
             }),
+            working_directory_cleanup_config: WorkingDirectoryCleanupConfig::MaxExecutions(50),
         }
     }
 
@@ -177,6 +183,10 @@ mod tests {
                 user_name: "user".into()
             })
         );
+        assert_eq!(
+            suites[0].working_directory_cleanup_config,
+            WorkingDirectoryCleanupConfig::MaxExecutions(50),
+        );
         assert_eq!(suites[1].name, "system");
         assert_eq!(suites[1].working_directory, "/working/suites/system");
         assert_eq!(suites[1].results_file, "/results/suites/system.json");
@@ -201,5 +211,9 @@ mod tests {
             Environment::System(SystemEnvironment {})
         );
         assert_eq!(suites[1].session, Session::Current(CurrentSession {}));
+        assert_eq!(
+            suites[1].working_directory_cleanup_config,
+            WorkingDirectoryCleanupConfig::MaxAgeSecs(1209600),
+        );
     }
 }
