@@ -10,7 +10,7 @@ pub struct CommandSpec {
 
 impl Display for CommandSpec {
     fn fmt(&self, f: &mut Formatter<'_>) -> Result {
-        write!(f, "{:?}", Command::from(self),)
+        write!(f, "{:?}", Command::from(self))
     }
 }
 

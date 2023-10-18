@@ -68,7 +68,7 @@ fn remove_files_atomic<'a>(
 ) -> Result<()> {
     for path in files_to_be_removed {
         replace_atomic(path.as_std_path(), intermediate_path_for_move.as_std_path()).context(
-            format!("Failed to move {path} to {intermediate_path_for_move}",),
+            format!("Failed to move {path} to {intermediate_path_for_move}"),
         )?;
     }
 

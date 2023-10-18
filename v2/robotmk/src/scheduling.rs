@@ -176,7 +176,7 @@ fn run_attempt(attempt: &Attempt, suite: &Suite) -> (AttemptOutcome, Option<Utf8
     let exit_code = match run_outcome {
         RunOutcome::Exited(exit_code) => exit_code,
         RunOutcome::TimedOut => {
-            error!("{log_message_start}: timed out",);
+            error!("{log_message_start}: timed out");
             return (AttemptOutcome::TimedOut, None);
         }
     };

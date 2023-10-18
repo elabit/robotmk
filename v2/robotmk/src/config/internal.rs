@@ -126,8 +126,8 @@ mod tests {
             },
             TerminationFlag::new(),
         );
-        assert_eq!(global_config.working_directory, "/working",);
-        assert_eq!(global_config.results_directory, "/results",);
+        assert_eq!(global_config.working_directory, "/working");
+        assert_eq!(global_config.results_directory, "/results");
         assert_eq!(suites.len(), 2);
         assert_eq!(suites[0].name, "rcc");
         assert_eq!(suites[0].working_directory, "/working/rcc");
