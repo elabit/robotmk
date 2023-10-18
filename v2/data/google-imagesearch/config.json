@@ -21,7 +21,8 @@
 					"env_json_path": null
 				}
 			},
-			"session_config": "Current"
+			"session_config": "Current",
+			"working_directory_cleanup_config": {"MaxAgeSecs": 180}
 		}
 	}
 }

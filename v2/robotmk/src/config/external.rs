@@ -23,6 +23,7 @@ pub struct SuiteConfig {
     pub execution_config: ExecutionConfig,
     pub environment_config: EnvironmentConfig,
     pub session_config: SessionConfig,
+    pub working_directory_cleanup_config: WorkingDirectoryCleanupConfig,
 }
 
 #[derive(Clone, Deserialize)]
@@ -70,4 +71,11 @@ pub enum SessionConfig {
 #[derive(Deserialize)]
 pub struct UserSessionConfig {
     pub user_name: String,
+}
+
+#[derive(Clone, Deserialize)]
+#[cfg_attr(test, derive(Debug, PartialEq))]
+pub enum WorkingDirectoryCleanupConfig {
+    MaxAgeSecs(u64),
+    MaxExecutions(usize),
 }

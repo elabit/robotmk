@@ -14,7 +14,8 @@
 				"timeout": 5
 			},
 			"environment_config": "System",
-			"session_config": "Current"
+			"session_config": "Current",
+			"working_directory_cleanup_config": {"MaxExecutions": 180}
 		}
 	}
 }
