@@ -11,12 +11,18 @@ use std::collections::HashSet;
 use std::fs::{create_dir_all, remove_file};
 
 pub fn setup(global_config: &GlobalConfig, suites: &[Suite]) -> Result<()> {
-    setup_working_directories(&global_config.working_directory)?;
+    setup_working_directories(&global_config.working_directory, suites)?;
     setup_results_directories(global_config, suites)
 }
 
-fn setup_working_directories(working_directory: &Utf8Path) -> Result<()> {
+fn setup_working_directories(working_directory: &Utf8Path, suites: &[Suite]) -> Result<()> {
     create_dir_all(working_directory).context("Failed to create working directory")?;
+    for suite in suites {
+        create_dir_all(&suite.working_directory).context(format!(
+            "Failed to create working directory {} of suite {}",
+            suite.working_directory, suite.name
+        ))?;
+    }
     create_dir_all(environment_building_stdio_directory(working_directory))
         .context("Failed to create environment building stdio directory")?;
     adjust_working_directory_permissions(working_directory)
