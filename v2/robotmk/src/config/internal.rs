@@ -37,7 +37,10 @@ pub fn from_external_config(
         .into_iter()
         .map(|(suite_name, suite_config)| Suite {
             name: suite_name.clone(),
-            working_directory: external_config.working_directory.join(&suite_name),
+            working_directory: external_config
+                .working_directory
+                .join("suites")
+                .join(&suite_name),
             results_file: suite_results_directory(&external_config.results_directory)
                 .join(format!("{}.json", suite_name)),
             execution_config: suite_config.execution_config,
@@ -139,7 +142,7 @@ mod tests {
         assert_eq!(global_config.rcc_binary_path, "/bin/rcc");
         assert_eq!(suites.len(), 2);
         assert_eq!(suites[0].name, "rcc");
-        assert_eq!(suites[0].working_directory, "/working/rcc");
+        assert_eq!(suites[0].working_directory, "/working/suites/rcc");
         assert_eq!(suites[0].results_file, "/results/suites/rcc.json");
         assert_eq!(
             suites[0].execution_config,
@@ -175,7 +178,7 @@ mod tests {
             })
         );
         assert_eq!(suites[1].name, "system");
-        assert_eq!(suites[1].working_directory, "/working/system");
+        assert_eq!(suites[1].working_directory, "/working/suites/system");
         assert_eq!(suites[1].results_file, "/results/suites/system.json");
         assert_eq!(
             suites[1].execution_config,
