@@ -11,20 +11,25 @@ use std::collections::HashSet;
 use std::fs::{create_dir_all, remove_file};
 
 pub fn setup(global_config: &GlobalConfig, suites: &[Suite]) -> Result<()> {
-    create_dir_all(&global_config.working_directory)
-        .context("Failed to create working directory")?;
-    create_dir_all(environment_building_stdio_directory(
-        &global_config.working_directory,
-    ))
-    .context("Failed to create environment building stdio directory")?;
+    setup_working_directories(&global_config.working_directory)?;
+    setup_results_directories(global_config, suites)
+}
+
+fn setup_working_directories(working_directory: &Utf8Path) -> Result<()> {
+    create_dir_all(working_directory).context("Failed to create working directory")?;
+    create_dir_all(environment_building_stdio_directory(working_directory))
+        .context("Failed to create environment building stdio directory")?;
+    adjust_working_directory_permissions(working_directory)
+        .context("Failed adjust working directory permissions")
+}
+
+fn setup_results_directories(global_config: &GlobalConfig, suites: &[Suite]) -> Result<()> {
     create_dir_all(&global_config.results_directory)
         .context("Failed to create results directory")?;
     create_dir_all(suite_results_directory(&global_config.results_directory))
         .context("Failed to create suite results directory")?;
     clean_up_results_directory_atomic(global_config, suites)
-        .context("Failed to clean up results directory")?;
-    adjust_working_directory_permissions(&global_config.working_directory)
-        .context("Failed adjust working directory permissions")
+        .context("Failed to clean up results directory")
 }
 
 fn clean_up_results_directory_atomic(global_config: &GlobalConfig, suites: &[Suite]) -> Result<()> {
