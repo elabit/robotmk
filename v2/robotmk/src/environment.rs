@@ -27,11 +27,10 @@ pub fn build_environments(global_config: &GlobalConfig, suites: Vec<Suite>) -> R
         environment_building_stdio_directory(&global_config.working_directory);
 
     let mut suites_to_be_dropped = vec![];
-    let mut drop_suite;
     for suite in suites.iter() {
-        (environment_build_states_administrator, drop_suite) = build_environment(
+        let drop_suite = build_environment(
             suite,
-            environment_build_states_administrator,
+            &mut environment_build_states_administrator,
             &env_building_stdio_directory,
         )?;
 
@@ -45,9 +44,9 @@ pub fn build_environments(global_config: &GlobalConfig, suites: Vec<Suite>) -> R
 
 fn build_environment<'a>(
     suite: &'a Suite,
-    mut environment_build_states_administrator: EnvironmentBuildStatesAdministrator<'a>,
+    environment_build_states_administrator: &mut EnvironmentBuildStatesAdministrator<'a>,
     stdio_directory: &Utf8Path,
-) -> Result<(EnvironmentBuildStatesAdministrator<'a>, bool)> {
+) -> Result<bool> {
     let drop_suite = match suite.environment.build_instructions() {
         Some(build_instructions) => {
             info!("Building environment for suite {}", suite.name);
@@ -74,7 +73,7 @@ fn build_environment<'a>(
             false
         }
     };
-    Ok((environment_build_states_administrator, drop_suite))
+    Ok(drop_suite)
 }
 
 fn run_environment_build(
