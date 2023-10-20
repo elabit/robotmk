@@ -18,7 +18,7 @@ pub fn environment_building_stdio_directory(working_directory: &Utf8Path) -> Utf
 pub fn build_environments(global_config: &GlobalConfig, suites: Vec<Suite>) -> Result<Vec<Suite>> {
     let mut environment_build_states_administrator =
         EnvironmentBuildStatesAdministrator::new_with_pending(
-            suites.iter().map(|suite| &suite.name),
+            &suites,
             &global_config.working_directory,
             &global_config.results_directory,
         );
@@ -43,7 +43,7 @@ pub fn build_environments(global_config: &GlobalConfig, suites: Vec<Suite>) -> R
 }
 
 fn build_environment<'a>(
-    suite: &'a Suite,
+    suite: &Suite,
     environment_build_states_administrator: &mut EnvironmentBuildStatesAdministrator<'a>,
     stdio_directory: &Utf8Path,
 ) -> Result<bool> {
