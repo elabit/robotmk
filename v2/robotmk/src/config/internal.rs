@@ -5,8 +5,6 @@ use crate::session::Session;
 use crate::termination::TerminationFlag;
 
 use camino::Utf8PathBuf;
-use log::{debug, warn};
-use std::collections::HashMap;
 use std::sync::Arc;
 use std::sync::Mutex;
 
@@ -58,24 +56,6 @@ pub fn from_external_config(
         },
         suites,
     )
-}
-
-pub fn drop_suites<'a>(
-    suites: Vec<Suite>,
-    suites_to_be_dropped: impl IntoIterator<Item = &'a String>,
-) -> Vec<Suite> {
-    let mut suites_by_name: HashMap<String, Suite> =
-        HashMap::from_iter(suites.into_iter().map(|suite| (suite.name.clone(), suite)));
-    for suite_name in suites_to_be_dropped {
-        if suites_by_name.remove(suite_name).is_some() {
-            debug!("Dropped suite {suite_name}")
-        } else {
-            warn!("Attempted to drop suite {suite_name}, but no suite with this name exists")
-        }
-    }
-    let mut suites = suites_by_name.into_values().collect::<Vec<Suite>>();
-    sort_suites_by_name(&mut suites);
-    suites
 }
 
 fn sort_suites_by_name(suites: &mut [Suite]) {
@@ -205,39 +185,5 @@ mod tests {
             Environment::System(SystemEnvironment {})
         );
         assert_eq!(suites[1].session, Session::Current(CurrentSession {}));
-    }
-
-    #[test]
-    fn test_drop_suites() {
-        let (_global_config, suites) = from_external_config(
-            Config {
-                working_directory: Utf8PathBuf::from("/working"),
-                results_directory: Utf8PathBuf::from("/results"),
-                suites: HashMap::from([
-                    (String::from("system"), system_suite_config()),
-                    (String::from("rcc1"), rcc_suite_config()),
-                    (String::from("rcc2"), rcc_suite_config()),
-                ]),
-            },
-            TerminationFlag::new(),
-        );
-        let suites = drop_suites(suites, &vec!["rcc1".into()]);
-        assert_eq!(suites.len(), 2);
-        assert_eq!(suites[0].name, "rcc2");
-        assert_eq!(
-            suites[0].environment,
-            Environment::Rcc(RCCEnvironment {
-                binary_path: Utf8PathBuf::from("/bin/rcc"),
-                robot_yaml_path: Utf8PathBuf::from("/suite/rcc/robot.yaml"),
-                controller: "robotmk".into(),
-                space: "rcc2".into(),
-                build_timeout: 300,
-            })
-        );
-        assert_eq!(suites[1].name, "system");
-        assert_eq!(
-            suites[1].environment,
-            Environment::System(SystemEnvironment {}),
-        );
     }
 }
