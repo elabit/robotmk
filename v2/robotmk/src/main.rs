@@ -1,4 +1,3 @@
-#![allow(dead_code)]
 pub mod attempt;
 mod child_process_supervisor;
 mod cli;
@@ -6,7 +5,6 @@ mod command_spec;
 mod config;
 mod environment;
 mod logging;
-pub mod parse_xml;
 mod rebot;
 mod results;
 mod scheduling;
