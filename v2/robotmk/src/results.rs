@@ -1,10 +1,10 @@
+use super::config::internal::Suite;
 use anyhow::{Context, Result};
 use atomicwrites::{AtomicFile, OverwriteBehavior};
 use camino::{Utf8Path, Utf8PathBuf};
 use serde::Serialize;
 use serde_json::to_string;
 use std::{collections::HashMap, io::Write};
-use super::config::internal::Suite;
 
 pub fn suite_results_directory(results_directory: &Utf8Path) -> Utf8PathBuf {
     results_directory.join("suites")
@@ -40,7 +40,9 @@ impl<'a> EnvironmentBuildStatesAdministrator<'a> {
     ) -> EnvironmentBuildStatesAdministrator<'a> {
         Self {
             build_states: HashMap::from_iter(
-                suites.iter().map(|suite| (suite.name.to_string(), EnvironmentBuildStatus::Pending)),
+                suites
+                    .iter()
+                    .map(|suite| (suite.name.to_string(), EnvironmentBuildStatus::Pending)),
             ),
             working_directory,
             results_directory,

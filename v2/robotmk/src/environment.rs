@@ -1,7 +1,7 @@
 use super::child_process_supervisor::{ChildProcessOutcome, ChildProcessSupervisor, StdioPaths};
 use super::command_spec::CommandSpec;
 use super::config::external::EnvironmentConfig;
-use super::config::internal::{drop_suites, GlobalConfig, Suite};
+use super::config::internal::{GlobalConfig, Suite};
 use super::logging::log_and_return_error;
 use super::results::{
     EnvironmentBuildStatesAdministrator, EnvironmentBuildStatus, EnvironmentBuildStatusError,
@@ -26,28 +26,28 @@ pub fn build_environments(global_config: &GlobalConfig, suites: Vec<Suite>) -> R
     let env_building_stdio_directory =
         environment_building_stdio_directory(&global_config.working_directory);
 
-    let mut suites_to_be_dropped = vec![];
-    for suite in suites.iter() {
-        let drop_suite = build_environment(
-            suite,
-            &mut environment_build_states_administrator,
-            &env_building_stdio_directory,
-        )?;
-
-        if drop_suite {
-            suites_to_be_dropped.push(suite.name.clone());
-        }
-    }
-
-    Ok(drop_suites(suites, &suites_to_be_dropped))
+    suites
+        .into_iter()
+        .filter_map(|suite| {
+            match build_environment(
+                suite,
+                &mut environment_build_states_administrator,
+                &env_building_stdio_directory,
+            ) {
+                Ok(None) => None,
+                Ok(Some(suite)) => Some(Ok(suite)),
+                Err(e) => Some(Err(e)),
+            }
+        })
+        .collect()
 }
 
-fn build_environment<'a>(
-    suite: &Suite,
-    environment_build_states_administrator: &mut EnvironmentBuildStatesAdministrator<'a>,
+fn build_environment(
+    suite: Suite,
+    environment_build_states_administrator: &mut EnvironmentBuildStatesAdministrator<'_>,
     stdio_directory: &Utf8Path,
-) -> Result<bool> {
-    let drop_suite = match suite.environment.build_instructions() {
+) -> Result<Option<Suite>> {
+    let suite = match suite.environment.build_instructions() {
         Some(build_instructions) => {
             info!("Building environment for suite {}", suite.name);
             environment_build_states_administrator
@@ -64,16 +64,16 @@ fn build_environment<'a>(
             let drop_suite = matches!(environment_build_status, EnvironmentBuildStatus::Failure(_));
             environment_build_states_administrator
                 .insert_and_write_atomic(&suite.name, environment_build_status)?;
-            drop_suite
+            (!drop_suite).then_some(suite)
         }
         None => {
             debug!("Nothing to do for suite {}", suite.name);
             environment_build_states_administrator
                 .insert_and_write_atomic(&suite.name, EnvironmentBuildStatus::NotNeeded)?;
-            false
+            Some(suite)
         }
     };
-    Ok(drop_suite)
+    Ok(suite)
 }
 
 fn run_environment_build(
