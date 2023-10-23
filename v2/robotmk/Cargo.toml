@@ -21,3 +21,4 @@ log = "*"
 serde = { version = "1.0.188", features = ["derive"] }
 serde_json = "*"
 sysinfo = "*"
+walkdir = "2.4.0"
