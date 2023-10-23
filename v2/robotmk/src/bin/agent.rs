@@ -3,8 +3,9 @@ use clap::Parser;
 use serde::{Deserialize, Serialize};
 use std::env::{var, VarError};
 use std::fs::read_to_string;
+use std::io;
 use std::path::Path;
-use walkdir::{DirEntry, Error, WalkDir};
+use walkdir::{DirEntry, WalkDir};
 
 #[derive(Deserialize)]
 pub struct Config {
@@ -59,22 +60,22 @@ fn report_config_content(content: String) {
     println!("{config_content}");
 }
 
-fn print_or_ignore(entry: Result<DirEntry, Error>) {
+fn print_or_ignore(entry: Result<DirEntry, walkdir::Error>, stdout: &mut impl io::Write) {
     if let Ok(dir) = entry {
         if dir.file_type().is_file() {
             if let Ok(raw) = read_to_string(dir.path()) {
-                println!("{raw}");
+                writeln!(stdout, "{raw}").unwrap();
             }
         }
     }
 }
 
-fn walk(results_directory: &Path) {
+fn walk(results_directory: &Path, stdout: &mut impl io::Write) {
     for entry in WalkDir::new(results_directory)
         .sort_by_file_name()
         .into_iter()
     {
-        print_or_ignore(entry);
+        print_or_ignore(entry, stdout);
     }
 }
 
@@ -103,5 +104,36 @@ fn main() {
             return;
         }
     };
-    walk(&config.results_directory.into_std_path_buf());
+    walk(
+        &config.results_directory.into_std_path_buf(),
+        &mut io::stdout(),
+    );
+}
+
+#[test]
+fn test_walk() {
+    use std::fs::{create_dir_all, File};
+    use std::io::Write;
+    use std::str::from_utf8_unchecked;
+    use tempfile::tempdir;
+    // Assemble
+    let path_content = [
+        ("1", "Failure is not an Option<T>, it's a Result<T,E>."),
+        ("2", "In Rust, None is always an Option<_>."),
+        ("3/nested", "Rust is the best thing since &Bread[..]."),
+        ("4/more/nesting", "Yes, I stole these jokes from reddit."),
+    ];
+    let expected: String = path_content.map(|(_, c)| format!("{c}\n")).concat();
+    let results_directory = tempdir().unwrap();
+    for (path, content) in path_content {
+        let file_path = results_directory.path().join(path);
+        create_dir_all(file_path.parent().unwrap()).unwrap();
+        let mut file = File::create(file_path).unwrap();
+        write!(file, "{}", content).unwrap();
+    }
+    let mut stdout = Vec::new();
+    //Act
+    walk(results_directory.path(), &mut stdout);
+    //Assert
+    assert_eq!(unsafe { from_utf8_unchecked(&stdout) }, expected);
 }
