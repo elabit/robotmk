@@ -31,24 +31,23 @@ pub struct ConfigFileContent {
 }
 
 fn determine_config_path(arg: Option<Utf8PathBuf>) -> Result<Utf8PathBuf, String> {
-    if let Some(p) = arg {
-        return Ok(p);
-    }
-    let config_dir = match var("MK_CONFDIR") {
+    Ok(arg.unwrap_or(config_path_from_env()?))
+}
+
+fn config_path_from_env() -> Result<Utf8PathBuf, String> {
+    let config_path = match var("MK_CONFDIR") {
         Ok(path) => path,
-        Err(VarError::NotPresent) => "C:\\ProgramData\\checkmk\\agent\\config".to_string(),
+        Err(VarError::NotPresent) => "C:\\ProgramData\\checkmk\\agent\\config".into(),
         Err(VarError::NotUnicode(_path)) => return Err("CONFIG_PATH is not utf-8.".into()),
     };
-    let mut config_dir = Utf8PathBuf::from(config_dir);
-    config_dir.push("robotmk.json");
-    Ok(config_dir)
+    Ok(Utf8PathBuf::from(config_path).join("robotmk.json"))
 }
 
 fn report_config_error(message: String) {
     let config_error = serde_json::to_string(&ConfigError {
         config_reading_error: message,
     })
-    .unwrap();
+    .expect("Unexpected serialization error: ConfigError");
     println!("{config_error}");
 }
 
@@ -56,24 +55,23 @@ fn report_config_content(content: String) {
     let config_content = serde_json::to_string(&ConfigFileContent {
         config_file_content: content,
     })
-    .unwrap();
+    .expect("Unexpected serialization error: ConfigFileContent");
     println!("{config_content}");
 }
 
-fn print_or_ignore(entry: Result<DirEntry, walkdir::Error>, stdout: &mut impl io::Write) {
-    if let Ok(dir) = entry {
-        if dir.file_type().is_file() {
-            if let Ok(raw) = read_to_string(dir.path()) {
-                writeln!(stdout, "{raw}").unwrap();
-            }
+fn print_or_ignore(dir: DirEntry, stdout: &mut impl io::Write) {
+    if dir.file_type().is_file() {
+        if let Ok(raw) = read_to_string(dir.path()) {
+            writeln!(stdout, "{raw}").unwrap();
         }
     }
 }
 
-fn walk(results_directory: &Path, stdout: &mut impl io::Write) {
+fn walk(results_directory: &impl AsRef<Path>, stdout: &mut impl io::Write) {
     for entry in WalkDir::new(results_directory)
         .sort_by_file_name()
         .into_iter()
+        .filter_map(|entry| entry.ok())
     {
         print_or_ignore(entry, stdout);
     }
@@ -104,10 +102,7 @@ fn main() {
             return;
         }
     };
-    walk(
-        &config.results_directory.into_std_path_buf(),
-        &mut io::stdout(),
-    );
+    walk(&config.results_directory, &mut io::stdout());
 }
 
 #[test]
@@ -133,7 +128,7 @@ fn test_walk() {
     }
     let mut stdout = Vec::new();
     //Act
-    walk(results_directory.path(), &mut stdout);
+    walk(&results_directory, &mut stdout);
     //Assert
     assert_eq!(unsafe { from_utf8_unchecked(&stdout) }, expected);
 }
