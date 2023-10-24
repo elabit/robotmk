@@ -4,7 +4,6 @@ main() {
 	topdir="$(git rev-parse --show-toplevel)"
 	self="${topdir}/ci"
 	cargo_toml_path="${topdir}/v2/robotmk/Cargo.toml"
-	checkmk_extensions_dir="${topdir}/checkmk_extensions"
 	mode="${1}"
 	shift
 
@@ -21,25 +20,6 @@ main() {
 		cargo test --manifest-path "${cargo_toml_path}" --all-targets
 		;;
 
-	'PSScriptAnalyzer-check-all')
-		pwsh_output=$(pwsh -Command "Invoke-ScriptAnalyzer -Settings ${topdir}/PSScriptAnalyzerSettings.psd1 -Path ${checkmk_extensions_dir} -Recurse")
-		pwsh_exitcode="$?"
-		if [ "${pwsh_exitcode}" -eq 0 ]; then {
-			if [ -z "${pwsh_output}" ]; then {
-				echo "No static Powershell issues found"
-				return 0
-			} else {
-				echo "${pwsh_output}"
-				return 1
-			}
-			fi
-		} else {
-			echo "${pwsh_output}"
-			return "${pwsh_exitcode}"
-		}
-		fi
-		;;
-
 	'check-all')
 		exit_code=0
 		for rust_step in fmt-check clippy test
@@ -47,8 +27,6 @@ main() {
 			"${self}" "cargo-${rust_step}"
 			exit_code=$(( exit_code + $? ))
 		done
-		"${self}" "PSScriptAnalyzer-check-all"
-		return "$(( exit_code + $? ))"
 		;;
 
 	*)
