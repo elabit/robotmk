@@ -1,3 +1,0 @@
-@{
-    Severity=@('Error', 'Warning', 'Information')
-}

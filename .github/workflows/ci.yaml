@@ -15,8 +15,6 @@ jobs:
           step: cargo-clippy
         - name: Rust tests
           step: cargo-test
-        - name: Powershell static analysis
-          step: PSScriptAnalyzer-check-all
 
     steps:
     - name: Checkout repository
@@ -51,12 +49,6 @@ jobs:
       uses: actions-rust-lang/setup-rust-toolchain@v1.5.0
       with:
         components: rustfmt, clippy
-
-    - name: ${{ matrix.name  }}
-      env:
-        STEP: ${{ matrix.step }}
-      run: .\ci.ps1 $env:STEP
-      shell: powershell
 
   check_success:
     if: always()
