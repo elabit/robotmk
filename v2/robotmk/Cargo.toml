@@ -20,6 +20,7 @@ futures = "*"
 log = "*"
 serde = { version = "1.0.188", features = ["derive"] }
 serde_json = "*"
+strum_macros = "0.25.3"
 sysinfo = "*"
 tempfile = "3.8.0"
 walkdir = "2.4.0"

@@ -6,6 +6,7 @@ use std::fs::read_to_string;
 use std::io;
 use std::path::Path;
 use walkdir::{DirEntry, WalkDir};
+use strum_macros::IntoStaticStr;
 
 #[derive(Deserialize)]
 pub struct Config {
@@ -21,13 +22,33 @@ struct Args {
 }
 
 #[derive(Serialize)]
-pub struct ConfigError {
-    config_reading_error: String,
+#[serde(tag = "type", rename_all = "snake_case")]
+#[derive(IntoStaticStr)]
+#[strum(serialize_all = "snake_case")]
+enum Section {
+    ConfigError{error: String},
+    ConfigFileContent{content: String},
 }
 
-#[derive(Serialize)]
-pub struct ConfigFileContent {
-    config_file_content: String,
+
+
+impl Section {
+    fn section_header(&self) -> &'static str {
+       self.into()
+    }
+
+    fn section(&self) -> String
+    where
+        Self: Serialize,
+    {
+        let header = self.section_header();
+        format!(
+            "<<<robotmk_{}>>>\n{}",
+            header,
+            serde_json::to_string(&self)
+                .unwrap_or_else(|_| panic!("Unexpected serialization error: {header}")),
+        )
+    }
 }
 
 fn determine_config_path(arg: Option<Utf8PathBuf>) -> Result<Utf8PathBuf, String> {
@@ -43,20 +64,14 @@ fn config_path_from_env() -> Result<Utf8PathBuf, String> {
     Ok(Utf8PathBuf::from(config_path).join("robotmk.json"))
 }
 
-fn report_config_error(message: String) {
-    let config_error = serde_json::to_string(&ConfigError {
-        config_reading_error: message,
-    })
-    .expect("Unexpected serialization error: ConfigError");
-    println!("{config_error}");
+fn report_config_error(error: String) {
+    let config_error = Section::ConfigError { error };
+    println!("{}", config_error.section());
 }
 
 fn report_config_content(content: String) {
-    let config_content = serde_json::to_string(&ConfigFileContent {
-        config_file_content: content,
-    })
-    .expect("Unexpected serialization error: ConfigFileContent");
-    println!("{config_content}");
+    let config_content = Section::ConfigFileContent { content };
+    println!("{}", config_content.section());
 }
 
 fn print_or_ignore(dir: DirEntry, stdout: &mut impl io::Write) {
@@ -79,7 +94,6 @@ fn walk(results_directory: &impl AsRef<Path>, stdout: &mut impl io::Write) {
 
 fn main() {
     let arguments = Args::parse();
-    println!("<<<robotmk_v2:sep(10)>>>");
     let config_path = match determine_config_path(arguments.config_path) {
         Ok(p) => p,
         Err(e) => {
@@ -102,6 +116,7 @@ fn main() {
             return;
         }
     };
+    println!("<<<robotmk_v2:sep(10)>>>");
     walk(&config.results_directory, &mut io::stdout());
 }
 
