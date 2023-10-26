@@ -5,8 +5,8 @@ use std::env::{var, VarError};
 use std::fs::read_to_string;
 use std::io;
 use std::path::Path;
-use walkdir::{DirEntry, WalkDir};
 use strum_macros::IntoStaticStr;
+use walkdir::{DirEntry, WalkDir};
 
 #[derive(Deserialize)]
 pub struct Config {
@@ -26,15 +26,13 @@ struct Args {
 #[derive(IntoStaticStr)]
 #[strum(serialize_all = "snake_case")]
 enum Section {
-    ConfigError{error: String},
-    ConfigFileContent{content: String},
+    ConfigError { error: Option<String> },
+    ConfigFileContent { content: Option<String> },
 }
-
-
 
 impl Section {
     fn section_header(&self) -> &'static str {
-       self.into()
+        self.into()
     }
 
     fn section(&self) -> String
@@ -64,16 +62,6 @@ fn config_path_from_env() -> Result<Utf8PathBuf, String> {
     Ok(Utf8PathBuf::from(config_path).join("robotmk.json"))
 }
 
-fn report_config_error(error: String) {
-    let config_error = Section::ConfigError { error };
-    println!("{}", config_error.section());
-}
-
-fn report_config_content(content: String) {
-    let config_content = Section::ConfigFileContent { content };
-    println!("{}", config_content.section());
-}
-
 fn print_or_ignore(dir: DirEntry, stdout: &mut impl io::Write) {
     if dir.file_type().is_file() {
         if let Ok(raw) = read_to_string(dir.path()) {
@@ -92,32 +80,33 @@ fn walk(results_directory: &impl AsRef<Path>, stdout: &mut impl io::Write) {
     }
 }
 
+fn read_config(config_path: Option<Utf8PathBuf>) -> Result<String, String> {
+    let config_path = determine_config_path(config_path)?;
+    read_to_string(config_path).map_err(|e| e.to_string())
+}
+
+fn parse_config(config_raw: &Result<String, String>) -> Result<Config, String> {
+    let config_raw: &str = config_raw.as_deref()?;
+    serde_json::from_str(config_raw).map_err(|e| e.to_string())
+}
+
 fn main() {
     let arguments = Args::parse();
-    let config_path = match determine_config_path(arguments.config_path) {
-        Ok(p) => p,
-        Err(e) => {
-            report_config_error(e);
-            return;
-        }
-    };
-    let raw = match read_to_string(config_path) {
-        Ok(raw) => raw,
-        Err(e) => {
-            report_config_error(e.to_string());
-            return;
-        }
-    };
-    report_config_content(raw.clone());
-    let config: Config = match serde_json::from_str(&raw) {
-        Ok(config) => config,
-        Err(e) => {
-            report_config_error(e.to_string());
-            return;
-        }
-    };
+    let config_raw = read_config(arguments.config_path);
+    let config = parse_config(&config_raw);
+
+    let content = config_raw.ok();
+    let config_content = Section::ConfigFileContent { content };
+    println!("{}", config_content.section());
+
     println!("<<<robotmk_v2:sep(10)>>>");
-    walk(&config.results_directory, &mut io::stdout());
+    if let Ok(config) = &config {
+        walk(&config.results_directory, &mut io::stdout());
+    }
+
+    let error = config.err();
+    let config_error = Section::ConfigError { error };
+    println!("{}", config_error.section());
 }
 
 #[test]
