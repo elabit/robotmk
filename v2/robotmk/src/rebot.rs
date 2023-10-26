@@ -1,6 +1,6 @@
 use super::attempt::PYTHON_EXECUTABLE;
 use super::command_spec::CommandSpec;
-use super::environment::Environment;
+use super::environment::{Environment, ResultCode};
 use super::results::{RebotOutcome, RebotResult};
 
 use anyhow::{Context, Result};
@@ -21,18 +21,22 @@ pub struct Rebot<'a> {
 impl Rebot<'_> {
     pub fn rebot(&self) -> RebotOutcome {
         match self.run() {
-            Ok(output) => {
-                if output.status.success() {
-                    self.process_successful_run()
-                } else {
-                    let rebot_run_stdout = String::from_utf8_lossy(&output.stdout);
-                    let rebot_run_stderr = String::from_utf8_lossy(&output.stderr);
-                    let error_message =
-                        format!("Rebot run failed. Stdout:\n{rebot_run_stdout}\n\nStderr:\n{rebot_run_stderr}");
-                    error!("{error_message}");
-                    RebotOutcome::Error(error_message)
-                }
-            }
+            Ok(output) => match output.status.code() {
+                Some(exit_code) => match self.environment.create_result_code(exit_code) {
+                    ResultCode::AllTestsPassed => self.process_successful_run(),
+                    ResultCode::RobotCommandFailed => {
+                        if self.path_xml.exists() {
+                            self.process_successful_run()
+                        } else {
+                            Self::process_failure(&output, "Rebot run failed (no merged XML found)")
+                        }
+                    }
+                    ResultCode::EnvironmentFailed => {
+                        Self::process_failure(&output, "Environment failure when running rebot")
+                    }
+                },
+                None => Self::process_failure(&output, "Failed to retrieve exit code of rebot run"),
+            },
             Err(error) => {
                 error!("Calling rebot command failed: {error:?}");
                 RebotOutcome::Error(format!("{error:?}"))
@@ -88,6 +92,15 @@ impl Rebot<'_> {
                 RebotOutcome::Error(error_message)
             }
         }
+    }
+
+    fn process_failure(rebot_command_output: &Output, error_message: &str) -> RebotOutcome {
+        let rebot_run_stdout = String::from_utf8_lossy(&rebot_command_output.stdout);
+        let rebot_run_stderr = String::from_utf8_lossy(&rebot_command_output.stderr);
+        let error_diagnostics =
+            format!("{error_message}. Stdout:\n{rebot_run_stdout}\n\nStderr:\n{rebot_run_stderr}");
+        error!("{error_diagnostics}");
+        RebotOutcome::Error(error_diagnostics)
     }
 }
 
