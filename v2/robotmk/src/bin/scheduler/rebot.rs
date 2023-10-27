@@ -1,7 +1,7 @@
-use super::attempt::PYTHON_EXECUTABLE;
 use super::command_spec::CommandSpec;
 use super::environment::{Environment, ResultCode};
 use super::results::{RebotOutcome, RebotResult};
+use super::robot::PYTHON_EXECUTABLE;
 
 use anyhow::{Context, Result};
 use base64::{engine::general_purpose, Engine};

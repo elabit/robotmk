@@ -1,10 +1,10 @@
-use crate::attempt::{Attempt, Identifier, RetrySpec};
 use crate::config::internal::Suite;
 use crate::environment::ResultCode;
 use crate::rebot::Rebot;
 use crate::results::{
     write_file_atomic, AttemptOutcome, AttemptsOutcome, ExecutionReport, SuiteExecutionReport,
 };
+use crate::robot::{Attempt, Identifier, RetrySpec};
 use crate::sessions::session::{RunOutcome, RunSpec};
 
 use anyhow::{bail, Context, Result};
