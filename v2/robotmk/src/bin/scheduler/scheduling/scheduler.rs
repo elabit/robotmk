@@ -15,7 +15,7 @@ pub fn run_suites_and_cleanup(global_config: &GlobalConfig, suites: &[Suite]) ->
 
     for suite in suites_for_scheduling {
         scheduler
-            .every(suite.execution_config.execution_interval_seconds.seconds())
+            .every(suite.execution_interval_seconds.seconds())
             .run(move || run_suite_in_new_thread(suite.clone()));
     }
 
