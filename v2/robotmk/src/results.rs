@@ -96,11 +96,11 @@ impl<'a> EnvironmentBuildStatesAdministrator<'a> {
 
 #[derive(Serialize)]
 pub enum EnvironmentBuildStatus {
-    Success,
+    Success(i64),
     Failure(EnvironmentBuildStatusError),
     NotNeeded,
     Pending,
-    InProgress,
+    InProgress(i64),
 }
 
 #[derive(Serialize)]
