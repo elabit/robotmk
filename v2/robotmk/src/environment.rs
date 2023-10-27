@@ -134,6 +134,7 @@ pub struct RCCEnvironment {
     pub controller: String,
     pub space: String,
     pub build_timeout: u64,
+    pub env_json_path: Option<Utf8PathBuf>,
 }
 
 impl Environment {
@@ -150,6 +151,7 @@ impl Environment {
                 controller: String::from("robotmk"),
                 space: suite_name.to_string(),
                 build_timeout: rcc_environment_config.build_timeout,
+                env_json_path: rcc_environment_config.env_json_path.clone(),
             }),
         }
     }
@@ -249,6 +251,11 @@ impl RCCEnvironment {
             .add_argument(&self.controller)
             .add_argument("--space")
             .add_argument(&self.space);
+        if let Some(env_json_path) = &self.env_json_path {
+            command_spec
+                .add_argument("--environment")
+                .add_argument(env_json_path);
+        }
     }
 }
 
@@ -274,6 +281,7 @@ mod tests {
             &EnvironmentConfig::Rcc(RCCEnvironmentConfig {
                 robot_yaml_path: Utf8PathBuf::from("/a/b/c/robot.yaml"),
                 build_timeout: 60,
+                env_json_path: None,
             })
         )
         .build_instructions()
@@ -311,6 +319,8 @@ mod tests {
             .add_argument("robotmk")
             .add_argument("--space")
             .add_argument("my_suite")
+            .add_argument("--environment")
+            .add_argument("C:\\my_suite\\env.json")
             .add_argument("--")
             .add_argument("C:\\x\\y\\z.exe")
             .add_argument("arg1")
@@ -324,6 +334,7 @@ mod tests {
                 controller: String::from("robotmk"),
                 space: String::from("my_suite"),
                 build_timeout: 600,
+                env_json_path: Some("C:\\my_suite\\env.json".into())
             }
             .wrap(command_spec_for_wrap()),
             expected
@@ -351,6 +362,7 @@ mod tests {
                 controller: String::from("robotmk"),
                 space: String::from("my_suite"),
                 build_timeout: 123,
+                env_json_path: None,
             }
             .build_instructions()
             .unwrap()

@@ -18,7 +18,8 @@
 			"environment_config": {
 				"type": "Rcc",
 				"robot_yaml_path": "C:\\robotmk\\v2\\data\\retry_rcc\\robot.yaml",
-				"build_timeout": 600
+				"build_timeout": 600,
+				"env_json_path": null
 			},
 			"session_config": {"type": "Current"}
 		}
