@@ -23,7 +23,7 @@ impl RetrySpec<'_> {
     }
 
     pub fn attempts(&self) -> impl Iterator<Item = Attempt> + '_ {
-        (0..self.execution_config.n_retries_max).map(|i| Attempt {
+        (0..self.execution_config.n_attempts_max).map(|i| Attempt {
             output_directory: self.output_directory(),
             identifier: &self.identifier,
             index: i,
@@ -200,7 +200,7 @@ mod tests {
             },
             working_directory: &Utf8PathBuf::from("/tmp/outputdir/suite_1"),
             execution_config: &ExecutionConfig {
-                n_retries_max: 2,
+                n_attempts_max: 2,
                 retry_strategy: RetryStrategy::Incremental,
                 execution_interval_seconds: 600,
                 timeout: 300,
