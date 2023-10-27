@@ -1,4 +1,3 @@
-pub mod attempt;
 mod child_process_supervisor;
 mod cli;
 mod command_spec;
@@ -7,6 +6,7 @@ mod environment;
 mod logging;
 mod rebot;
 mod results;
+mod robot;
 mod scheduling;
 mod sessions;
 mod setup;
