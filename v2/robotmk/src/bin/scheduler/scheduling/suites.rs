@@ -3,14 +3,11 @@ use crate::environment::ResultCode;
 use crate::results::{
     write_file_atomic, AttemptOutcome, AttemptsOutcome, ExecutionReport, SuiteExecutionReport,
 };
-use crate::rf::{
-    rebot::Rebot,
-    robot::{Attempt, Identifier, RetrySpec},
-};
+use crate::rf::{rebot::Rebot, robot::Attempt};
 use crate::sessions::session::{RunOutcome, RunSpec};
 
 use anyhow::{bail, Context, Result};
-use camino::Utf8PathBuf;
+use camino::{Utf8Path, Utf8PathBuf};
 use chrono::Utc;
 use log::{debug, error};
 use serde_json::to_string;
@@ -65,23 +62,16 @@ pub fn try_acquire_suite_lock(suite: &Suite) -> Result<MutexGuard<usize>> {
 }
 
 fn produce_suite_results(suite: &Suite) -> Result<AttemptsOutcome> {
-    let retry_spec = RetrySpec {
-        identifier: Identifier {
-            name: &suite.name,
-            timestamp: Utc::now().format("%Y-%m-%dT%H.%M.%S%.f%z").to_string(),
-        },
-        working_directory: &suite.working_directory,
-        execution_config: &suite.execution_config,
-        robot_framework_config: &suite.robot_framework_config,
-    };
+    let output_directory = suite
+        .working_directory
+        .join(Utc::now().format("%Y-%m-%dT%H.%M.%S%.f%z").to_string());
 
-    create_dir_all(retry_spec.output_directory()).context(format!(
+    create_dir_all(&output_directory).context(format!(
         "Failed to create directory for suite run: {}",
-        retry_spec.output_directory()
+        output_directory
     ))?;
 
-    let (attempt_outcomes, output_paths) =
-        run_attempts_until_succesful(retry_spec.attempts(), suite)?;
+    let (attempt_outcomes, output_paths) = run_attempts_until_succesful(suite, &output_directory)?;
 
     Ok(AttemptsOutcome {
         attempts: attempt_outcomes,
@@ -92,8 +82,8 @@ fn produce_suite_results(suite: &Suite) -> Result<AttemptsOutcome> {
                 Rebot {
                     environment: &suite.environment,
                     input_paths: &output_paths,
-                    path_xml: &retry_spec.output_directory().join("rebot.xml"),
-                    path_html: &retry_spec.output_directory().join("rebot.html"),
+                    path_xml: &output_directory.join("rebot.xml"),
+                    path_html: &output_directory.join("rebot.html"),
                 }
                 .rebot(),
             )
@@ -101,15 +91,15 @@ fn produce_suite_results(suite: &Suite) -> Result<AttemptsOutcome> {
     })
 }
 
-fn run_attempts_until_succesful<'a>(
-    attempts: impl Iterator<Item = Attempt<'a>>,
+fn run_attempts_until_succesful(
     suite: &Suite,
+    output_directory: &Utf8Path,
 ) -> Result<(Vec<AttemptOutcome>, Vec<Utf8PathBuf>)> {
     let mut outcomes = vec![];
     let mut output_paths: Vec<Utf8PathBuf> = vec![];
 
-    for attempt in attempts {
-        let (outcome, output_path) = run_attempt(&attempt, suite)?;
+    for attempt in suite.robot.attempts(output_directory) {
+        let (outcome, output_path) = run_attempt(suite, attempt, output_directory)?;
         let success = matches!(&outcome, &AttemptOutcome::AllTestsPassed);
         outcomes.push(outcome);
         if let Some(output_path) = output_path {
@@ -123,20 +113,18 @@ fn run_attempts_until_succesful<'a>(
     Ok((outcomes, output_paths))
 }
 
-fn run_attempt(attempt: &Attempt, suite: &Suite) -> Result<(AttemptOutcome, Option<Utf8PathBuf>)> {
-    let log_message_start = format!(
-        "Suite {}, attempt {}",
-        attempt.identifier.name, attempt.index
-    );
+fn run_attempt(
+    suite: &Suite,
+    attempt: Attempt,
+    output_directory: &Utf8Path,
+) -> Result<(AttemptOutcome, Option<Utf8PathBuf>)> {
+    let log_message_start = format!("Suite {}, attempt {}", suite.name, attempt.index);
 
     let run_outcome = match suite.session.run(&RunSpec {
-        id: &format!(
-            "robotmk_suite_{}_attempt_{}",
-            attempt.identifier.name, attempt.index,
-        ),
-        command_spec: &suite.environment.wrap(attempt.command_spec()),
-        base_path: &attempt.output_directory.join(attempt.index.to_string()),
-        timeout: attempt.timeout,
+        id: &format!("robotmk_suite_{}_attempt_{}", suite.name, attempt.index),
+        command_spec: &suite.environment.wrap(attempt.command_spec),
+        base_path: &output_directory.join(attempt.index.to_string()),
+        timeout: suite.timeout,
         termination_flag: &suite.termination_flag,
     }) {
         Ok(run_outcome) => run_outcome,
@@ -170,7 +158,7 @@ fn run_attempt(attempt: &Attempt, suite: &Suite) -> Result<(AttemptOutcome, Opti
             debug!("{log_message_start}: all tests passed");
             Ok((
                 AttemptOutcome::AllTestsPassed,
-                Some(attempt.output_xml_file()),
+                Some(attempt.output_xml_file),
             ))
         }
         ResultCode::EnvironmentFailed => {
@@ -178,12 +166,9 @@ fn run_attempt(attempt: &Attempt, suite: &Suite) -> Result<(AttemptOutcome, Opti
             Ok((AttemptOutcome::EnvironmentFailure, None))
         }
         ResultCode::RobotCommandFailed => {
-            if attempt.output_xml_file().exists() {
+            if attempt.output_xml_file.exists() {
                 debug!("{log_message_start}: some tests failed");
-                Ok((
-                    AttemptOutcome::TestFailures,
-                    Some(attempt.output_xml_file()),
-                ))
+                Ok((AttemptOutcome::TestFailures, Some(attempt.output_xml_file)))
             } else {
                 error!("{log_message_start}: Robot Framework failure (no output)");
                 Ok((AttemptOutcome::RobotFrameworkFailure, None))

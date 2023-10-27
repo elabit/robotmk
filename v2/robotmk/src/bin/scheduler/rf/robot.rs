@@ -1,75 +1,67 @@
 use crate::command_spec::CommandSpec;
-use crate::config::external::{ExecutionConfig, RetryStrategy, RobotFrameworkConfig};
+use crate::config::external::RetryStrategy;
 
-use camino::Utf8PathBuf;
+use camino::{Utf8Path, Utf8PathBuf};
 
 pub const PYTHON_EXECUTABLE: &str = "python";
 
+#[derive(Clone)]
 #[cfg_attr(test, derive(Debug, PartialEq))]
-pub struct Identifier<'a> {
-    pub name: &'a str,
-    pub timestamp: String,
-}
-
-pub struct RetrySpec<'a> {
-    pub identifier: Identifier<'a>,
-    pub working_directory: &'a Utf8PathBuf,
-    pub execution_config: &'a ExecutionConfig,
-    pub robot_framework_config: &'a RobotFrameworkConfig,
-}
-
-impl RetrySpec<'_> {
-    pub fn output_directory(&self) -> Utf8PathBuf {
-        self.working_directory.join(&self.identifier.timestamp)
-    }
-
-    pub fn attempts(&self) -> impl Iterator<Item = Attempt> + '_ {
-        (0..self.execution_config.n_attempts_max).map(|i| Attempt {
-            output_directory: self.output_directory(),
-            identifier: &self.identifier,
-            index: i,
-            timeout: self.execution_config.timeout,
-            retry_strategy: &self.execution_config.retry_strategy,
-            robot_framework_config: self.robot_framework_config,
-        })
-    }
+pub struct Robot {
+    pub robot_target: Utf8PathBuf,
+    pub command_line_args: Vec<String>,
+    pub n_attempts_max: usize,
+    pub retry_strategy: RetryStrategy,
 }
 
 #[cfg_attr(test, derive(Debug, PartialEq))]
-pub struct Attempt<'a> {
-    pub output_directory: Utf8PathBuf,
-    pub identifier: &'a Identifier<'a>,
+pub struct Attempt {
     pub index: usize,
-    pub timeout: u64,
-    retry_strategy: &'a RetryStrategy,
-    robot_framework_config: &'a RobotFrameworkConfig,
+    pub command_spec: CommandSpec,
+    pub output_xml_file: Utf8PathBuf,
 }
 
-impl Attempt<'_> {
-    pub fn output_xml_file(&self) -> Utf8PathBuf {
-        self.output_directory.join(format!("{}.xml", self.index))
+impl Robot {
+    pub fn attempts<'a>(
+        &'a self,
+        output_directory: &'a Utf8Path,
+    ) -> impl Iterator<Item = Attempt> + 'a {
+        (0..self.n_attempts_max).map(move |i| self.attempt(output_directory, i))
     }
 
-    pub fn command_spec(&self) -> CommandSpec {
+    fn attempt(&self, output_directory: &Utf8Path, index: usize) -> Attempt {
+        let output_xml_file = output_directory.join(format!("{}.xml", index));
+        Attempt {
+            index,
+            command_spec: self.command_spec(output_directory, &output_xml_file, index),
+            output_xml_file,
+        }
+    }
+
+    fn command_spec(
+        &self,
+        output_directory: &Utf8Path,
+        output_xml_file: &Utf8Path,
+        index: usize,
+    ) -> CommandSpec {
         let mut command_spec = CommandSpec::new(PYTHON_EXECUTABLE);
         command_spec.add_argument("-m").add_argument("robot");
-        command_spec.add_arguments(&self.robot_framework_config.command_line_args);
-        if matches!(self.retry_strategy, RetryStrategy::Incremental) && self.index > 0 {
-            command_spec.add_argument("--rerunfailed").add_argument(
-                self.output_directory
-                    .join(format!("{}.xml", self.index - 1)),
-            );
+        command_spec.add_arguments(&self.command_line_args);
+        if matches!(self.retry_strategy, RetryStrategy::Incremental) && index > 0 {
+            command_spec
+                .add_argument("--rerunfailed")
+                .add_argument(output_directory.join(format!("{}.xml", index - 1)));
         };
         command_spec
             .add_argument("--outputdir")
-            .add_argument(&self.output_directory)
+            .add_argument(output_directory)
             .add_argument("--output")
-            .add_argument(self.output_xml_file())
+            .add_argument(output_xml_file)
             .add_argument("--log")
-            .add_argument(self.output_directory.join(format!("{}.html", self.index)))
+            .add_argument(output_directory.join(format!("{}.html", index)))
             .add_argument("--report")
             .add_argument("NONE")
-            .add_argument(&self.robot_framework_config.robot_target);
+            .add_argument(&self.robot_target);
         command_spec
     }
 }
@@ -78,21 +70,36 @@ impl Attempt<'_> {
 mod tests {
     use super::*;
 
-    fn expected_first_run() -> CommandSpec {
+    fn expected_first_run(output_directory: &Utf8Path) -> CommandSpec {
         let mut expected = CommandSpec::new(PYTHON_EXECUTABLE);
         expected
             .add_argument("-m")
             .add_argument("robot")
             .add_argument("--outputdir")
-            .add_argument("/tmp/my_suite/2023-08-29T12.23.44.419347+00.00")
+            .add_argument(output_directory)
             .add_argument("--output")
-            .add_argument(
-                Utf8PathBuf::from("/tmp/my_suite/2023-08-29T12.23.44.419347+00.00").join("0.xml"),
-            )
+            .add_argument(output_directory.join("0.xml"))
             .add_argument("--log")
-            .add_argument(
-                Utf8PathBuf::from("/tmp/my_suite/2023-08-29T12.23.44.419347+00.00").join("0.html"),
-            )
+            .add_argument(output_directory.join("0.html"))
+            .add_argument("--report")
+            .add_argument("NONE")
+            .add_argument("~/suite/calculator.robot");
+        expected
+    }
+
+    fn expected_second_run(output_directory: &Utf8Path) -> CommandSpec {
+        let mut expected = CommandSpec::new(PYTHON_EXECUTABLE);
+        expected
+            .add_argument("-m")
+            .add_argument("robot")
+            .add_argument("--rerunfailed")
+            .add_argument(output_directory.join("0.xml"))
+            .add_argument("--outputdir")
+            .add_argument(output_directory)
+            .add_argument("--output")
+            .add_argument(output_directory.join("1.xml"))
+            .add_argument("--log")
+            .add_argument(output_directory.join("1.html"))
             .add_argument("--report")
             .add_argument("NONE")
             .add_argument("~/suite/calculator.robot");
@@ -102,23 +109,17 @@ mod tests {
     #[test]
     fn create_complete_command_spec() {
         // Assemble
-        let attempt = Attempt {
-            output_directory: "/tmp/my_suite/2023-08-29T12.23.44.419347+00.00".into(),
-            identifier: &Identifier {
-                name: "my_suite",
-                timestamp: "2023-08-29T12.23.44.419347+00.00".into(),
-            },
-            index: 0,
-            timeout: 200,
-            retry_strategy: &RetryStrategy::Complete,
-            robot_framework_config: &RobotFrameworkConfig {
-                robot_target: "~/suite/calculator.robot".into(),
-                command_line_args: vec![],
-            },
+        let robot = Robot {
+            robot_target: "~/suite/calculator.robot".into(),
+            n_attempts_max: 1,
+            command_line_args: vec![],
+            retry_strategy: RetryStrategy::Complete,
         };
-        let expected = expected_first_run();
+        let output_directory = Utf8PathBuf::from("/tmp/my_suite/2023-08-29T12.23.44.419347+00.00");
+        let expected = expected_first_run(&output_directory);
         // Act
-        let command_spec = attempt.command_spec();
+        let command_spec =
+            robot.command_spec(&output_directory, &output_directory.join("0.xml"), 0);
         // Assert
         assert_eq!(command_spec, expected);
     }
@@ -126,23 +127,17 @@ mod tests {
     #[test]
     fn create_incremental_command_first() {
         // Assemble
-        let attempt = Attempt {
-            output_directory: "/tmp/my_suite/2023-08-29T12.23.44.419347+00.00".into(),
-            identifier: &Identifier {
-                name: "my_suite",
-                timestamp: "2023-08-29T12.23.44.419347+00.00".into(),
-            },
-            index: 0,
-            timeout: 200,
-            retry_strategy: &RetryStrategy::Incremental,
-            robot_framework_config: &RobotFrameworkConfig {
-                robot_target: "~/suite/calculator.robot".into(),
-                command_line_args: vec![],
-            },
+        let robot = Robot {
+            robot_target: "~/suite/calculator.robot".into(),
+            n_attempts_max: 1,
+            command_line_args: vec![],
+            retry_strategy: RetryStrategy::Incremental,
         };
-        let expected = expected_first_run();
+        let output_directory = Utf8PathBuf::from("/tmp/my_suite/2023-08-29T12.23.44.419347+00.00");
+        let expected = expected_first_run(&output_directory);
         // Act
-        let command_spec = attempt.command_spec();
+        let command_spec =
+            robot.command_spec(&output_directory, &output_directory.join("0.xml"), 0);
         // Assert
         assert_eq!(command_spec, expected);
     }
@@ -150,43 +145,17 @@ mod tests {
     #[test]
     fn create_incremental_command_second() {
         // Assemble
-        let attempt = Attempt {
-            output_directory: "/tmp/my_suite/2023-08-29T12.23.44.419347+00.00".into(),
-            identifier: &Identifier {
-                name: "my_suite",
-                timestamp: "2023-08-29T12.23.44.419347+00.00".into(),
-            },
-            index: 1,
-            timeout: 200,
-            retry_strategy: &RetryStrategy::Incremental,
-            robot_framework_config: &RobotFrameworkConfig {
-                robot_target: "~/suite/calculator.robot".into(),
-                command_line_args: vec![],
-            },
+        let robot = Robot {
+            robot_target: "~/suite/calculator.robot".into(),
+            n_attempts_max: 1,
+            command_line_args: vec![],
+            retry_strategy: RetryStrategy::Incremental,
         };
-        let mut expected = CommandSpec::new(PYTHON_EXECUTABLE);
-        expected
-            .add_argument("-m")
-            .add_argument("robot")
-            .add_argument("--rerunfailed")
-            .add_argument(
-                Utf8PathBuf::from("/tmp/my_suite/2023-08-29T12.23.44.419347+00.00").join("0.xml"),
-            )
-            .add_argument("--outputdir")
-            .add_argument("/tmp/my_suite/2023-08-29T12.23.44.419347+00.00")
-            .add_argument("--output")
-            .add_argument(
-                Utf8PathBuf::from("/tmp/my_suite/2023-08-29T12.23.44.419347+00.00").join("1.xml"),
-            )
-            .add_argument("--log")
-            .add_argument(
-                Utf8PathBuf::from("/tmp/my_suite/2023-08-29T12.23.44.419347+00.00").join("1.html"),
-            )
-            .add_argument("--report")
-            .add_argument("NONE")
-            .add_argument("~/suite/calculator.robot");
+        let output_directory = Utf8PathBuf::from("/tmp/my_suite/2023-08-29T12.23.44.419347+00.00");
+        let expected = expected_second_run(&output_directory);
         // Act
-        let command_spec = attempt.command_spec();
+        let command_spec =
+            robot.command_spec(&output_directory, &output_directory.join("1.xml"), 1);
         // Assert
         assert_eq!(command_spec, expected)
     }
@@ -194,53 +163,27 @@ mod tests {
     #[test]
     fn create_two_attempts() {
         // Assemble
-        let spec = RetrySpec {
-            identifier: Identifier {
-                name: "suite_1",
-                timestamp: "2023-08-29T12.23.44.419347+00.00".into(),
-            },
-            working_directory: &Utf8PathBuf::from("/tmp/outputdir/suite_1"),
-            execution_config: &ExecutionConfig {
-                n_attempts_max: 2,
-                retry_strategy: RetryStrategy::Incremental,
-                execution_interval_seconds: 600,
-                timeout: 300,
-            },
-            robot_framework_config: &RobotFrameworkConfig {
-                robot_target: "~/suite/calculator.robot".into(),
-                command_line_args: vec!["--variablefile".into(), "~/suite/retry.yaml".into()],
-            },
+        let robot = Robot {
+            robot_target: "~/suite/calculator.robot".into(),
+            n_attempts_max: 2,
+            command_line_args: vec![],
+            retry_strategy: RetryStrategy::Incremental,
         };
+        let output_directory =
+            Utf8PathBuf::from("/tmp/outputdir/suite_1/2023-08-29T12.23.44.419347+00.00");
         let first_attempt = Attempt {
-            output_directory: "/tmp/outputdir/suite_1/2023-08-29T12.23.44.419347+00.00".into(),
-            identifier: &Identifier {
-                name: "suite_1",
-                timestamp: "2023-08-29T12.23.44.419347+00.00".into(),
-            },
             index: 0,
-            timeout: 300,
-            retry_strategy: &RetryStrategy::Incremental,
-            robot_framework_config: &RobotFrameworkConfig {
-                robot_target: "~/suite/calculator.robot".into(),
-                command_line_args: vec!["--variablefile".into(), "~/suite/retry.yaml".into()],
-            },
+            command_spec: expected_first_run(&output_directory),
+            output_xml_file: output_directory.join("0.xml"),
         };
         let second_attempt = Attempt {
-            output_directory: "/tmp/outputdir/suite_1/2023-08-29T12.23.44.419347+00.00".into(),
-            identifier: &Identifier {
-                name: "suite_1",
-                timestamp: "2023-08-29T12.23.44.419347+00.00".into(),
-            },
             index: 1,
-            timeout: 300,
-            retry_strategy: &RetryStrategy::Incremental,
-            robot_framework_config: &RobotFrameworkConfig {
-                robot_target: "~/suite/calculator.robot".into(),
-                command_line_args: vec!["--variablefile".into(), "~/suite/retry.yaml".into()],
-            },
+            command_spec: expected_second_run(&output_directory),
+            output_xml_file: output_directory.join("1.xml"),
         };
         // Act
-        let attempts: Vec<Attempt> = spec.attempts().collect();
+        let attempts: Vec<Attempt> = robot.attempts(&output_directory).collect();
+        // Assert
         assert_eq!(attempts, [first_attempt, second_attempt])
     }
 }
