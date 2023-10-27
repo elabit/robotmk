@@ -36,7 +36,7 @@ pub struct RobotFrameworkConfig {
 #[derive(Clone, Deserialize)]
 #[cfg_attr(test, derive(Debug, PartialEq))]
 pub struct ExecutionConfig {
-    pub n_retries_max: usize,
+    pub n_attempts_max: usize,
     pub retry_strategy: RetryStrategy,
     pub execution_interval_seconds: u32,
     pub timeout: u64,

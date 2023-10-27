@@ -94,7 +94,7 @@ mod tests {
                 command_line_args: vec![],
             },
             execution_config: ExecutionConfig {
-                n_retries_max: 1,
+                n_attempts_max: 1,
                 retry_strategy: RetryStrategy::Incremental,
                 execution_interval_seconds: 300,
                 timeout: 60,
@@ -112,7 +112,7 @@ mod tests {
                 command_line_args: vec![],
             },
             execution_config: ExecutionConfig {
-                n_retries_max: 1,
+                n_attempts_max: 1,
                 retry_strategy: RetryStrategy::Complete,
                 execution_interval_seconds: 300,
                 timeout: 60,
@@ -153,7 +153,7 @@ mod tests {
         assert_eq!(
             suites[0].execution_config,
             ExecutionConfig {
-                n_retries_max: 1,
+                n_attempts_max: 1,
                 retry_strategy: RetryStrategy::Complete,
                 execution_interval_seconds: 300,
                 timeout: 60,
@@ -193,7 +193,7 @@ mod tests {
         assert_eq!(
             suites[1].execution_config,
             ExecutionConfig {
-                n_retries_max: 1,
+                n_attempts_max: 1,
                 retry_strategy: RetryStrategy::Incremental,
                 execution_interval_seconds: 300,
                 timeout: 60,
