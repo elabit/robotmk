@@ -29,9 +29,8 @@ pub struct SuiteConfig {
 #[cfg_attr(test, derive(Debug, PartialEq))]
 pub struct RobotFrameworkConfig {
     pub robot_target: Utf8PathBuf,
-    pub variable_file: Option<Utf8PathBuf>,
-    pub argument_file: Option<Utf8PathBuf>,
     pub retry_strategy: RetryStrategy,
+    pub command_line_args: Vec<String>,
 }
 
 #[derive(Clone, Deserialize)]

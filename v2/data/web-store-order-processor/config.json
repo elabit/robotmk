@@ -6,9 +6,8 @@
 		"webstore-playwright": {
 			"robot_framework_config": {
 				"robot_target": "C:\\rmk\\v2\\data\\web-store-order-processor\\tasks.robot",
-				"variable_file": null,
-				"argument_file": null,
-				"retry_strategy": "Incremental"
+				"retry_strategy": "Incremental",
+				"command_line_args": []
 			},
 			"execution_config": {
 				"n_retries_max": 1,

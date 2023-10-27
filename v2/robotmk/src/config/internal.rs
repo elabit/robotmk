@@ -84,8 +84,7 @@ mod tests {
         SuiteConfig {
             robot_framework_config: RobotFrameworkConfig {
                 robot_target: Utf8PathBuf::from("/suite/system/tasks.robot"),
-                variable_file: None,
-                argument_file: None,
+                command_line_args: vec![],
                 retry_strategy: RetryStrategy::Incremental,
             },
             execution_config: ExecutionConfig {
@@ -102,8 +101,7 @@ mod tests {
         SuiteConfig {
             robot_framework_config: RobotFrameworkConfig {
                 robot_target: Utf8PathBuf::from("/suite/rcc/tasks.robot"),
-                variable_file: None,
-                argument_file: None,
+                command_line_args: vec![],
                 retry_strategy: RetryStrategy::Complete,
             },
             execution_config: ExecutionConfig {
@@ -155,8 +153,7 @@ mod tests {
             suites[0].robot_framework_config,
             RobotFrameworkConfig {
                 robot_target: Utf8PathBuf::from("/suite/rcc/tasks.robot"),
-                variable_file: None,
-                argument_file: None,
+                command_line_args: vec![],
                 retry_strategy: RetryStrategy::Complete,
             },
         );
@@ -192,8 +189,7 @@ mod tests {
             suites[1].robot_framework_config,
             RobotFrameworkConfig {
                 robot_target: Utf8PathBuf::from("/suite/system/tasks.robot"),
-                variable_file: None,
-                argument_file: None,
+                command_line_args: vec![],
                 retry_strategy: RetryStrategy::Incremental,
             },
         );

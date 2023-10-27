@@ -51,16 +51,7 @@ impl Attempt<'_> {
     pub fn command_spec(&self) -> CommandSpec {
         let mut command_spec = CommandSpec::new(PYTHON_EXECUTABLE);
         command_spec.add_argument("-m").add_argument("robot");
-        if let Some(variable_file) = &self.robot_framework_config.variable_file {
-            command_spec
-                .add_argument("--variablefile")
-                .add_argument(variable_file);
-        }
-        if let Some(argument_file) = &self.robot_framework_config.argument_file {
-            command_spec
-                .add_argument("--argumentfile")
-                .add_argument(argument_file);
-        }
+        command_spec.add_arguments(&self.robot_framework_config.command_line_args);
         if matches!(
             self.robot_framework_config.retry_strategy,
             RetryStrategy::Incremental
@@ -123,8 +114,7 @@ mod tests {
             timeout: 200,
             robot_framework_config: &RobotFrameworkConfig {
                 robot_target: "~/suite/calculator.robot".into(),
-                variable_file: None,
-                argument_file: None,
+                command_line_args: vec![],
                 retry_strategy: RetryStrategy::Complete,
             },
         };
@@ -148,8 +138,7 @@ mod tests {
             timeout: 200,
             robot_framework_config: &RobotFrameworkConfig {
                 robot_target: "~/suite/calculator.robot".into(),
-                variable_file: None,
-                argument_file: None,
+                command_line_args: vec![],
                 retry_strategy: RetryStrategy::Incremental,
             },
         };
@@ -173,8 +162,7 @@ mod tests {
             timeout: 200,
             robot_framework_config: &RobotFrameworkConfig {
                 robot_target: "~/suite/calculator.robot".into(),
-                variable_file: None,
-                argument_file: None,
+                command_line_args: vec![],
                 retry_strategy: RetryStrategy::Incremental,
             },
         };
@@ -218,8 +206,7 @@ mod tests {
             timeout: 300,
             robot_framework_config: &RobotFrameworkConfig {
                 robot_target: "~/suite/calculator.robot".into(),
-                variable_file: Some("~/suite/retry.yaml".into()),
-                argument_file: None,
+                command_line_args: vec!["--variablefile".into(), "~/suite/retry.yaml".into()],
                 retry_strategy: RetryStrategy::Incremental,
             },
         };
@@ -233,8 +220,7 @@ mod tests {
             timeout: 300,
             robot_framework_config: &RobotFrameworkConfig {
                 robot_target: "~/suite/calculator.robot".into(),
-                variable_file: Some("~/suite/retry.yaml".into()),
-                argument_file: None,
+                command_line_args: vec!["--variablefile".into(), "~/suite/retry.yaml".into()],
                 retry_strategy: RetryStrategy::Incremental,
             },
         };
@@ -248,8 +234,7 @@ mod tests {
             timeout: 300,
             robot_framework_config: &RobotFrameworkConfig {
                 robot_target: "~/suite/calculator.robot".into(),
-                variable_file: Some("~/suite/retry.yaml".into()),
-                argument_file: None,
+                command_line_args: vec!["--variablefile".into(), "~/suite/retry.yaml".into()],
                 retry_strategy: RetryStrategy::Incremental,
             },
         };
