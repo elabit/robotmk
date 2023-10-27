@@ -6,11 +6,11 @@
 		"googleimagesearch": {
 			"robot_framework_config": {
 				"robot_target": "C:\\rmk\\v2\\data\\google-imagesearch\\tasks.robot",
-				"retry_strategy": "Incremental",
 				"command_line_args": []
 			},
 			"execution_config": {
 				"n_retries_max": 1,
+				"retry_strategy": "Incremental",
 				"execution_interval_seconds": 120,
 				"timeout": 110
 			},

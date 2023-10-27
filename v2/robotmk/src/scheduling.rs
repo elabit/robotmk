@@ -98,8 +98,7 @@ fn produce_suite_results(suite: &Suite) -> Result<AttemptsOutcome> {
             timestamp: Utc::now().format("%Y-%m-%dT%H.%M.%S%.f%z").to_string(),
         },
         working_directory: &suite.working_directory,
-        n_retries_max: suite.execution_config.n_retries_max,
-        timeout: suite.execution_config.timeout,
+        execution_config: &suite.execution_config,
         robot_framework_config: &suite.robot_framework_config,
     };
 

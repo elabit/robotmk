@@ -85,10 +85,10 @@ mod tests {
             robot_framework_config: RobotFrameworkConfig {
                 robot_target: Utf8PathBuf::from("/suite/system/tasks.robot"),
                 command_line_args: vec![],
-                retry_strategy: RetryStrategy::Incremental,
             },
             execution_config: ExecutionConfig {
                 n_retries_max: 1,
+                retry_strategy: RetryStrategy::Incremental,
                 execution_interval_seconds: 300,
                 timeout: 60,
             },
@@ -102,10 +102,10 @@ mod tests {
             robot_framework_config: RobotFrameworkConfig {
                 robot_target: Utf8PathBuf::from("/suite/rcc/tasks.robot"),
                 command_line_args: vec![],
-                retry_strategy: RetryStrategy::Complete,
             },
             execution_config: ExecutionConfig {
                 n_retries_max: 1,
+                retry_strategy: RetryStrategy::Complete,
                 execution_interval_seconds: 300,
                 timeout: 60,
             },
@@ -145,6 +145,7 @@ mod tests {
             suites[0].execution_config,
             ExecutionConfig {
                 n_retries_max: 1,
+                retry_strategy: RetryStrategy::Complete,
                 execution_interval_seconds: 300,
                 timeout: 60,
             }
@@ -154,7 +155,6 @@ mod tests {
             RobotFrameworkConfig {
                 robot_target: Utf8PathBuf::from("/suite/rcc/tasks.robot"),
                 command_line_args: vec![],
-                retry_strategy: RetryStrategy::Complete,
             },
         );
         assert_eq!(
@@ -181,6 +181,7 @@ mod tests {
             suites[1].execution_config,
             ExecutionConfig {
                 n_retries_max: 1,
+                retry_strategy: RetryStrategy::Incremental,
                 execution_interval_seconds: 300,
                 timeout: 60,
             }
@@ -190,7 +191,6 @@ mod tests {
             RobotFrameworkConfig {
                 robot_target: Utf8PathBuf::from("/suite/system/tasks.robot"),
                 command_line_args: vec![],
-                retry_strategy: RetryStrategy::Incremental,
             },
         );
         assert_eq!(

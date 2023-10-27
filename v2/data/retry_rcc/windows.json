@@ -6,11 +6,11 @@
 		"test": {
 			"robot_framework_config": {
 				"robot_target": "C:\\robotmk\\v2\\data\\retry_suite\\tasks.robot",
-				"retry_strategy": "Incremental",
 				"command_line_args": ["--variable_file", "C:\\robotmk\\v2\\data\\retry_suite\\retry_variables.yaml"]
 			},
 			"execution_config": {
 				"n_retries_max": 1,
+				"retry_strategy": "Incremental",
 				"execution_interval_seconds": 10,
 				"timeout": 5
 			},
