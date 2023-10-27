@@ -1,5 +1,5 @@
 use super::command_spec::CommandSpec;
-use super::config::external::{RetryStrategy, RobotFrameworkConfig};
+use super::config::external::{ExecutionConfig, RetryStrategy, RobotFrameworkConfig};
 use camino::Utf8PathBuf;
 
 pub const PYTHON_EXECUTABLE: &str = "python";
@@ -13,8 +13,7 @@ pub struct Identifier<'a> {
 pub struct RetrySpec<'a> {
     pub identifier: Identifier<'a>,
     pub working_directory: &'a Utf8PathBuf,
-    pub n_retries_max: usize,
-    pub timeout: u64,
+    pub execution_config: &'a ExecutionConfig,
     pub robot_framework_config: &'a RobotFrameworkConfig,
 }
 
@@ -24,11 +23,12 @@ impl RetrySpec<'_> {
     }
 
     pub fn attempts(&self) -> impl Iterator<Item = Attempt> + '_ {
-        (0..self.n_retries_max).map(|i| Attempt {
+        (0..self.execution_config.n_retries_max).map(|i| Attempt {
             output_directory: self.output_directory(),
             identifier: &self.identifier,
             index: i,
-            timeout: self.timeout,
+            timeout: self.execution_config.timeout,
+            retry_strategy: &self.execution_config.retry_strategy,
             robot_framework_config: self.robot_framework_config,
         })
     }
@@ -40,6 +40,7 @@ pub struct Attempt<'a> {
     pub identifier: &'a Identifier<'a>,
     pub index: usize,
     pub timeout: u64,
+    retry_strategy: &'a RetryStrategy,
     robot_framework_config: &'a RobotFrameworkConfig,
 }
 
@@ -52,11 +53,7 @@ impl Attempt<'_> {
         let mut command_spec = CommandSpec::new(PYTHON_EXECUTABLE);
         command_spec.add_argument("-m").add_argument("robot");
         command_spec.add_arguments(&self.robot_framework_config.command_line_args);
-        if matches!(
-            self.robot_framework_config.retry_strategy,
-            RetryStrategy::Incremental
-        ) && self.index > 0
-        {
+        if matches!(self.retry_strategy, RetryStrategy::Incremental) && self.index > 0 {
             command_spec.add_argument("--rerunfailed").add_argument(
                 self.output_directory
                     .join(format!("{}.xml", self.index - 1)),
@@ -112,10 +109,10 @@ mod tests {
             },
             index: 0,
             timeout: 200,
+            retry_strategy: &RetryStrategy::Complete,
             robot_framework_config: &RobotFrameworkConfig {
                 robot_target: "~/suite/calculator.robot".into(),
                 command_line_args: vec![],
-                retry_strategy: RetryStrategy::Complete,
             },
         };
         let expected = expected_first_run();
@@ -136,10 +133,10 @@ mod tests {
             },
             index: 0,
             timeout: 200,
+            retry_strategy: &RetryStrategy::Incremental,
             robot_framework_config: &RobotFrameworkConfig {
                 robot_target: "~/suite/calculator.robot".into(),
                 command_line_args: vec![],
-                retry_strategy: RetryStrategy::Incremental,
             },
         };
         let expected = expected_first_run();
@@ -160,10 +157,10 @@ mod tests {
             },
             index: 1,
             timeout: 200,
+            retry_strategy: &RetryStrategy::Incremental,
             robot_framework_config: &RobotFrameworkConfig {
                 robot_target: "~/suite/calculator.robot".into(),
                 command_line_args: vec![],
-                retry_strategy: RetryStrategy::Incremental,
             },
         };
         let mut expected = CommandSpec::new(PYTHON_EXECUTABLE);
@@ -202,12 +199,15 @@ mod tests {
                 timestamp: "2023-08-29T12.23.44.419347+00.00".into(),
             },
             working_directory: &Utf8PathBuf::from("/tmp/outputdir/suite_1"),
-            n_retries_max: 2,
-            timeout: 300,
+            execution_config: &ExecutionConfig {
+                n_retries_max: 2,
+                retry_strategy: RetryStrategy::Incremental,
+                execution_interval_seconds: 600,
+                timeout: 300,
+            },
             robot_framework_config: &RobotFrameworkConfig {
                 robot_target: "~/suite/calculator.robot".into(),
                 command_line_args: vec!["--variablefile".into(), "~/suite/retry.yaml".into()],
-                retry_strategy: RetryStrategy::Incremental,
             },
         };
         let first_attempt = Attempt {
@@ -218,10 +218,10 @@ mod tests {
             },
             index: 0,
             timeout: 300,
+            retry_strategy: &RetryStrategy::Incremental,
             robot_framework_config: &RobotFrameworkConfig {
                 robot_target: "~/suite/calculator.robot".into(),
                 command_line_args: vec!["--variablefile".into(), "~/suite/retry.yaml".into()],
-                retry_strategy: RetryStrategy::Incremental,
             },
         };
         let second_attempt = Attempt {
@@ -232,10 +232,10 @@ mod tests {
             },
             index: 1,
             timeout: 300,
+            retry_strategy: &RetryStrategy::Incremental,
             robot_framework_config: &RobotFrameworkConfig {
                 robot_target: "~/suite/calculator.robot".into(),
                 command_line_args: vec!["--variablefile".into(), "~/suite/retry.yaml".into()],
-                retry_strategy: RetryStrategy::Incremental,
             },
         };
         // Act

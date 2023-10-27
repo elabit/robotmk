@@ -29,8 +29,16 @@ pub struct SuiteConfig {
 #[cfg_attr(test, derive(Debug, PartialEq))]
 pub struct RobotFrameworkConfig {
     pub robot_target: Utf8PathBuf,
-    pub retry_strategy: RetryStrategy,
     pub command_line_args: Vec<String>,
+}
+
+#[derive(Clone, Deserialize)]
+#[cfg_attr(test, derive(Debug, PartialEq))]
+pub struct ExecutionConfig {
+    pub n_retries_max: usize,
+    pub retry_strategy: RetryStrategy,
+    pub execution_interval_seconds: u32,
+    pub timeout: u64,
 }
 
 #[derive(Clone, Deserialize)]
@@ -38,14 +46,6 @@ pub struct RobotFrameworkConfig {
 pub enum RetryStrategy {
     Incremental,
     Complete,
-}
-
-#[derive(Clone, Deserialize)]
-#[cfg_attr(test, derive(Debug, PartialEq))]
-pub struct ExecutionConfig {
-    pub n_retries_max: usize,
-    pub execution_interval_seconds: u32,
-    pub timeout: u64,
 }
 
 #[derive(Deserialize)]
