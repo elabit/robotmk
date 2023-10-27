@@ -9,6 +9,7 @@ use super::results::{
 
 use anyhow::{bail, Context, Result};
 use camino::{Utf8Path, Utf8PathBuf};
+use chrono::Utc;
 use log::{debug, error, info};
 
 pub fn environment_building_stdio_directory(working_directory: &Utf8Path) -> Utf8PathBuf {
@@ -50,17 +51,23 @@ fn build_environment(
     let suite = match suite.environment.build_instructions() {
         Some(build_instructions) => {
             info!("Building environment for suite {}", suite.name);
-            environment_build_states_administrator
-                .insert_and_write_atomic(&suite.name, EnvironmentBuildStatus::InProgress)?;
-            let environment_build_status = run_environment_build(ChildProcessSupervisor {
-                command_spec: &build_instructions.command_spec,
-                stdio_paths: Some(StdioPaths {
-                    stdout: stdio_directory.join(format!("{}.stdout", suite.name)),
-                    stderr: stdio_directory.join(format!("{}.stderr", suite.name)),
-                }),
-                timeout: build_instructions.timeout,
-                termination_flag: &suite.termination_flag,
-            })?;
+            let start_time = Utc::now().timestamp();
+            environment_build_states_administrator.insert_and_write_atomic(
+                &suite.name,
+                EnvironmentBuildStatus::InProgress(start_time),
+            )?;
+            let environment_build_status = run_environment_build(
+                ChildProcessSupervisor {
+                    command_spec: &build_instructions.command_spec,
+                    stdio_paths: Some(StdioPaths {
+                        stdout: stdio_directory.join(format!("{}.stdout", suite.name)),
+                        stderr: stdio_directory.join(format!("{}.stderr", suite.name)),
+                    }),
+                    timeout: build_instructions.timeout,
+                    termination_flag: &suite.termination_flag,
+                },
+                start_time,
+            )?;
             let drop_suite = matches!(environment_build_status, EnvironmentBuildStatus::Failure(_));
             environment_build_states_administrator
                 .insert_and_write_atomic(&suite.name, environment_build_status)?;
@@ -78,6 +85,7 @@ fn build_environment(
 
 fn run_environment_build(
     build_process_supervisor: ChildProcessSupervisor,
+    reference_timestamp_for_duration: i64,
 ) -> Result<EnvironmentBuildStatus> {
     let child_process_outcome = match build_process_supervisor
         .run()
@@ -91,11 +99,12 @@ fn run_environment_build(
             ))
         }
     };
+    let duration = Utc::now().timestamp() - reference_timestamp_for_duration;
     match child_process_outcome {
         ChildProcessOutcome::Exited(exit_status) => {
             if exit_status.success() {
                 debug!("Environmenent building succeeded");
-                Ok(EnvironmentBuildStatus::Success)
+                Ok(EnvironmentBuildStatus::Success(duration))
             } else {
                 error!("Environment building not sucessful, suite will be dropped");
                 Ok(EnvironmentBuildStatus::Failure(
