@@ -3,7 +3,7 @@ use crate::command_spec::CommandSpec;
 use crate::config::internal::{sort_suites_by_name, GlobalConfig, Suite};
 use crate::environment::Environment;
 use crate::results::RCCSetupFailures;
-use crate::session::{CurrentSession, RunOutcome, RunSpec, Session};
+use crate::sessions::session::{CurrentSession, RunOutcome, RunSpec, Session};
 
 use anyhow::{bail, Context, Result};
 use camino::{Utf8Path, Utf8PathBuf};

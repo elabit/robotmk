@@ -1,8 +1,8 @@
-use super::child_process_supervisor::{ChildProcessOutcome, ChildProcessSupervisor, StdioPaths};
-use super::command_spec::CommandSpec;
-use super::config::external::SessionConfig;
 use super::schtasks::{run_task, TaskSpec};
-use super::termination::TerminationFlag;
+use crate::child_process_supervisor::{ChildProcessOutcome, ChildProcessSupervisor, StdioPaths};
+use crate::command_spec::CommandSpec;
+use crate::config::external::SessionConfig;
+use crate::termination::TerminationFlag;
 
 use anyhow::Result;
 use camino::{Utf8Path, Utf8PathBuf};

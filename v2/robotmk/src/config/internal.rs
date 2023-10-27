@@ -1,7 +1,7 @@
 use super::external::{Config, ExecutionConfig, RobotFrameworkConfig};
 use crate::environment::Environment;
 use crate::results::suite_results_directory;
-use crate::session::Session;
+use crate::sessions::session::Session;
 use crate::termination::TerminationFlag;
 
 use camino::Utf8PathBuf;
@@ -79,7 +79,7 @@ mod tests {
         UserSessionConfig,
     };
     use crate::environment::{RCCEnvironment, SystemEnvironment};
-    use crate::session::{CurrentSession, UserSession};
+    use crate::sessions::session::{CurrentSession, UserSession};
 
     use std::collections::HashMap;
 

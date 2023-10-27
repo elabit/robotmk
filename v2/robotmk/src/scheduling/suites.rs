@@ -5,7 +5,7 @@ use crate::rebot::Rebot;
 use crate::results::{
     write_file_atomic, AttemptOutcome, AttemptsOutcome, ExecutionReport, SuiteExecutionReport,
 };
-use crate::session::{RunOutcome, RunSpec};
+use crate::sessions::session::{RunOutcome, RunSpec};
 
 use anyhow::{bail, Context, Result};
 use camino::Utf8PathBuf;
