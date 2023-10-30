@@ -1,10 +1,9 @@
 use super::icacls::run_icacls_command;
-use crate::child_process_supervisor::{ChildProcessOutcome, ChildProcessSupervisor, StdioPaths};
 use crate::command_spec::CommandSpec;
 use crate::config::internal::{sort_suites_by_name, GlobalConfig, Suite};
 use crate::environment::Environment;
 use crate::results::RCCSetupFailures;
-use crate::session::{RunOutcome, RunSpec, Session};
+use crate::session::{CurrentSession, RunOutcome, RunSpec, Session};
 
 use anyhow::{bail, Context, Result};
 use camino::{Utf8Path, Utf8PathBuf};
@@ -112,10 +111,29 @@ fn shared_holotree_init(
     global_config: &GlobalConfig,
     suites: Vec<Suite>,
 ) -> Result<(Vec<Suite>, Vec<Suite>)> {
-    Ok(if run_shared_holotree_init(global_config)? {
-        (suites, vec![])
-    } else {
-        error!(
+    Ok(
+        if run_command_spec_in_session(
+            &Session::Current(CurrentSession {}),
+            &RunSpec {
+                id: "rcc_shared_holotree_init",
+                command_spec: &CommandSpec {
+                    executable: global_config.rcc_binary_path.to_string(),
+                    arguments: vec![
+                        "holotree".into(),
+                        "shared".into(),
+                        "--enable".into(),
+                        "--once".into(),
+                    ],
+                },
+                base_path: &rcc_setup_working_directory(&global_config.working_directory)
+                    .join("shared_holotree_init"),
+                timeout: 120,
+                termination_flag: &global_config.termination_flag,
+            },
+        )? {
+            (suites, vec![])
+        } else {
+            error!(
             "Shared holotree initialization failed for the following suites which will now be dropped: {}",
             suites
                 .iter()
@@ -123,8 +141,9 @@ fn shared_holotree_init(
                 .collect::<Vec<&str>>()
                 .join(", ")
         );
-        (vec![], suites)
-    })
+            (vec![], suites)
+        },
+    )
 }
 
 fn holotree_init(
@@ -220,44 +239,5 @@ fn run_command_spec_in_session(session: &Session, run_spec: &RunSpec) -> Result<
             Ok(false)
         }
         RunOutcome::Terminated => bail!("Terminated"),
-    }
-}
-
-fn run_shared_holotree_init(global_config: &GlobalConfig) -> Result<bool> {
-    let working_dir = rcc_setup_working_directory(&global_config.working_directory);
-    match (ChildProcessSupervisor {
-        command_spec: &CommandSpec {
-            executable: global_config.rcc_binary_path.to_string(),
-            arguments: vec![
-                "holotree".into(),
-                "shared".into(),
-                "--enable".into(),
-                "--once".into(),
-            ],
-        },
-        stdio_paths: Some(StdioPaths {
-            stdout: working_dir.join("shared_holotree_init.stdout"),
-            stderr: working_dir.join("shared_holotree_init.stderr"),
-        }),
-        timeout: 120,
-        termination_flag: &global_config.termination_flag,
-    })
-    .run()
-    .context("Failed to run shared holotree initialization")?
-    {
-        ChildProcessOutcome::Exited(exit_status) => {
-            if exit_status.success() {
-                debug!("Shared holotree initialization successful");
-                Ok(true)
-            } else {
-                error!("Shared holotree initialization exited non-successfully");
-                Ok(false)
-            }
-        }
-        ChildProcessOutcome::TimedOut => {
-            error!("Shared holotree initialization timed out");
-            Ok(false)
-        }
-        ChildProcessOutcome::Terminated => bail!("Terminated"),
     }
 }
