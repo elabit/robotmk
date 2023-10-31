@@ -13,6 +13,10 @@ pub struct Args {
     #[arg(long, name = "LOG_PATH")]
     pub log_path: Option<Utf8PathBuf>,
 
+    /// Run flag file. If specified, the program will terminate as soon as this file does not exist.
+    #[arg(long, name = "RUN_FLAG")]
+    pub run_flag: Option<Utf8PathBuf>,
+
     /// Enable verbose output. Use once (-v) for logging level INFO and twice (-vv) for logging
     /// level DEBUG.
     #[arg(short, long, action = ArgAction::Count)]
