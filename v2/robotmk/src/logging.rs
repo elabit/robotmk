@@ -7,7 +7,7 @@ use log::error;
 
 pub fn init(
     specification: LogSpecification,
-    path: &Option<Utf8PathBuf>,
+    path: Option<Utf8PathBuf>,
 ) -> Result<LoggerHandle, FlexiLoggerError> {
     let logger = Logger::with(specification);
     match path {
