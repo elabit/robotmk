@@ -24,7 +24,7 @@ fn main() -> Result<()> {
 
 fn run() -> Result<()> {
     let args = cli::Args::parse();
-    logging::init(args.log_specification(), &args.log_path)?;
+    logging::init(args.log_specification(), args.log_path)?;
     info!("Program started and logging set up");
 
     let external_config =
