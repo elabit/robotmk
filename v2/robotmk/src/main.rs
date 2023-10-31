@@ -31,8 +31,8 @@ fn run() -> Result<()> {
         config::external::load(&args.config_path).context("Configuration loading failed")?;
     debug!("Configuration loaded");
 
-    let termination_flag =
-        termination::start_termination_control().context("Failed to set up termination control")?;
+    let termination_flag = termination::start_termination_control(args.run_flag)
+        .context("Failed to set up termination control")?;
     debug!("Termination control set up");
 
     let (global_config, suites) =
