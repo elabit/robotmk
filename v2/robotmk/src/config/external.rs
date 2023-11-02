@@ -49,7 +49,6 @@ pub enum RetryStrategy {
 }
 
 #[derive(Deserialize)]
-#[serde(tag = "type")]
 pub enum EnvironmentConfig {
     System,
     Rcc(RCCEnvironmentConfig),
@@ -63,7 +62,6 @@ pub struct RCCEnvironmentConfig {
 }
 
 #[derive(Deserialize)]
-#[serde(tag = "type")]
 pub enum SessionConfig {
     Current,
     SpecificUser(UserSessionConfig),

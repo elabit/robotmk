@@ -15,13 +15,13 @@
 				"timeout": 110
 			},
 			"environment_config": {
-				"type": "Rcc",
-				"robocorp_home_path": "C:\\tmp\\ROBOCORP_HOME",
-				"robot_yaml_path": "C:\\rmk\\v2\\data\\google-imagesearch\\robot.yaml",
-				"build_timeout": 600,
-				"env_json_path": null
+				"Rcc": {
+					"robot_yaml_path": "C:\\rmk\\v2\\data\\google-imagesearch\\robot.yaml",
+					"build_timeout": 600,
+					"env_json_path": null
+				}
 			},
-			"session_config": {"type": "Current"}
+			"session_config": "Current"
 		}
 	}
 }
