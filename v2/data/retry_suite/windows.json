@@ -13,8 +13,8 @@
 				"execution_interval_seconds": 10,
 				"timeout": 5
 			},
-			"environment_config": {"type": "System"},
-			"session_config": {"type": "Current"}
+			"environment_config": "System",
+			"session_config": "Current"
 		}
 	}
 }
