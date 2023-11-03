@@ -80,10 +80,7 @@ fn rcc_setup(global_config: &GlobalConfig, rcc_suites: Vec<Suite>) -> Result<Vec
         );
     }
 
-    rcc_setup_failures.write_atomic(
-        &global_config.working_directory,
-        &global_config.results_directory,
-    )?;
+    rcc_setup_failures.write_atomic(&global_config.working_directory)?;
 
     Ok(sucessful_suites)
 }

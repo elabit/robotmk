@@ -1,31 +1,27 @@
 use super::config::internal::Suite;
 use anyhow::{Context, Result};
-use atomicwrites::{AtomicFile, OverwriteBehavior};
 use camino::{Utf8Path, Utf8PathBuf};
 use serde::Serialize;
 use serde_json::to_string;
 use std::{collections::HashMap, io::Write};
+use tempfile::NamedTempFile;
 
 pub fn suite_results_directory(results_directory: &Utf8Path) -> Utf8PathBuf {
     results_directory.join("suites")
 }
 
-pub fn write_file_atomic(
-    content: &str,
-    working_directory: impl AsRef<Utf8Path>,
-    final_path: impl AsRef<Utf8Path>,
-) -> Result<()> {
-    AtomicFile::new_with_tmpdir(
-        final_path.as_ref(),
-        OverwriteBehavior::AllowOverwrite,
-        working_directory.as_ref(),
-    )
-    .write(|f| f.write_all(content.as_bytes()))
-    .context(format!(
-        "Atomic write failed. Working directory: {}, final path: {}.",
-        working_directory.as_ref(),
-        final_path.as_ref()
-    ))
+pub fn write_file_atomic(content: &str, final_path: impl AsRef<Utf8Path>) -> Result<()> {
+    let mut file = NamedTempFile::new().context("Opening tempfile failed")?;
+    file.write_all(content.as_bytes()).context(format!(
+        "Writing tempfile failed, {}",
+        file.path().display()
+    ))?;
+    file.persist(final_path.as_ref())
+        .context(format!(
+            "Persisting tempfile failed, final_path: {}",
+            final_path.as_ref()
+        ))
+        .map(|_| ())
 }
 
 #[derive(Serialize)]
@@ -36,14 +32,9 @@ pub struct RCCSetupFailures {
 }
 
 impl RCCSetupFailures {
-    pub fn write_atomic(
-        &self,
-        working_directory: &Utf8Path,
-        results_directory: &Utf8Path,
-    ) -> Result<()> {
+    pub fn write_atomic(&self, results_directory: &Utf8Path) -> Result<()> {
         write_file_atomic(
             &to_string(&self)?,
-            working_directory,
             results_directory.join("rcc_setup_failures.json"),
         )
         .context("Writing RCC setup failures failed")
@@ -52,14 +43,12 @@ impl RCCSetupFailures {
 
 pub struct EnvironmentBuildStatesAdministrator<'a> {
     build_states: HashMap<String, EnvironmentBuildStatus>,
-    working_directory: &'a Utf8Path,
     results_directory: &'a Utf8Path,
 }
 
 impl<'a> EnvironmentBuildStatesAdministrator<'a> {
     pub fn new_with_pending(
         suites: &[Suite],
-        working_directory: &'a Utf8Path,
         results_directory: &'a Utf8Path,
     ) -> EnvironmentBuildStatesAdministrator<'a> {
         Self {
@@ -68,7 +57,6 @@ impl<'a> EnvironmentBuildStatesAdministrator<'a> {
                     .iter()
                     .map(|suite| (suite.name.to_string(), EnvironmentBuildStatus::Pending)),
             ),
-            working_directory,
             results_directory,
         }
     }
@@ -77,7 +65,6 @@ impl<'a> EnvironmentBuildStatesAdministrator<'a> {
         write_file_atomic(
             &to_string(&self.build_states)
                 .context("Serializing environment build states failed")?,
-            self.working_directory,
             self.results_directory.join("environment_build_states.json"),
         )
         .context("Writing environment build states failed")
