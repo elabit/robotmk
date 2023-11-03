@@ -1,16 +1,12 @@
 use camino::Utf8PathBuf;
 use clap::Parser;
-use serde::{Deserialize, Serialize};
+use robotmk::config::Config;
+use serde::Serialize;
 use std::env::{var, VarError};
 use std::fs::read_to_string;
 use std::io;
 use std::path::Path;
 use walkdir::{DirEntry, WalkDir};
-
-#[derive(Deserialize)]
-pub struct Config {
-    pub results_directory: Utf8PathBuf,
-}
 
 #[derive(Parser)]
 #[command(about = "Robotmk agent plugin.")]

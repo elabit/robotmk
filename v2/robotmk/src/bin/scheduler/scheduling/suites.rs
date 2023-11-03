@@ -1,5 +1,5 @@
-use crate::config::internal::Suite;
 use crate::environment::ResultCode;
+use crate::internal_config::Suite;
 use crate::results::{
     write_file_atomic, AttemptOutcome, AttemptsOutcome, ExecutionReport, SuiteExecutionReport,
 };

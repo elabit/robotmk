@@ -1,5 +1,5 @@
 use crate::command_spec::CommandSpec;
-use crate::config::external::RetryStrategy;
+use robotmk::config::RetryStrategy;
 
 use camino::{Utf8Path, Utf8PathBuf};
 

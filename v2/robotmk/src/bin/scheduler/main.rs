@@ -1,8 +1,8 @@
 mod child_process_supervisor;
 mod cli;
 mod command_spec;
-mod config;
 mod environment;
+mod internal_config;
 mod logging;
 mod results;
 mod rf;
@@ -27,7 +27,7 @@ fn run() -> Result<()> {
     info!("Program started and logging set up");
 
     let external_config =
-        config::external::load(&args.config_path).context("Configuration loading failed")?;
+        robotmk::config::load(&args.config_path).context("Configuration loading failed")?;
     debug!("Configuration loaded");
 
     let termination_flag = termination::start_termination_control(args.run_flag)
@@ -35,7 +35,7 @@ fn run() -> Result<()> {
     debug!("Termination control set up");
 
     let (global_config, suites) =
-        config::internal::from_external_config(external_config, termination_flag);
+        internal_config::from_external_config(external_config, termination_flag);
 
     if global_config.termination_flag.should_terminate() {
         bail!("Terminated")

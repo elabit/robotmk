@@ -107,7 +107,7 @@ impl Rebot<'_> {
 #[cfg(test)]
 mod tests {
     use super::*;
-    use crate::config::external::EnvironmentConfig;
+    use robotmk::config::EnvironmentConfig;
 
     #[test]
     fn build_rebot_command() {

@@ -1,11 +1,11 @@
 use super::child_process_supervisor::{ChildProcessOutcome, ChildProcessSupervisor, StdioPaths};
 use super::command_spec::CommandSpec;
-use super::config::external::EnvironmentConfig;
-use super::config::internal::{GlobalConfig, Suite};
+use super::internal_config::{GlobalConfig, Suite};
 use super::logging::log_and_return_error;
 use super::results::{
     EnvironmentBuildStatesAdministrator, EnvironmentBuildStatus, EnvironmentBuildStatusError,
 };
+use robotmk::config::EnvironmentConfig;
 
 use anyhow::{bail, Context, Result};
 use camino::{Utf8Path, Utf8PathBuf};
@@ -270,7 +270,7 @@ impl RCCEnvironment {
 #[cfg(test)]
 mod tests {
     use super::*;
-    use crate::config::external::RCCEnvironmentConfig;
+    use robotmk::config::RCCEnvironmentConfig;
 
     #[test]
     fn environment_from_system_config() {

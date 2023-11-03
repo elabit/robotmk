@@ -1,7 +1,7 @@
 use super::icacls::run_icacls_command;
 use crate::command_spec::CommandSpec;
-use crate::config::internal::{sort_suites_by_name, GlobalConfig, Suite};
 use crate::environment::Environment;
+use crate::internal_config::{sort_suites_by_name, GlobalConfig, Suite};
 use crate::results::RCCSetupFailures;
 use crate::sessions::session::{CurrentSession, RunOutcome, RunSpec, Session};
 
