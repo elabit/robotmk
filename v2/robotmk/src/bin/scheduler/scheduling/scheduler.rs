@@ -1,6 +1,6 @@
 use super::cleanup::cleanup_working_directories;
 use super::suites::{run_suite, try_acquire_suite_lock};
-use crate::config::internal::{GlobalConfig, Suite};
+use crate::internal_config::{GlobalConfig, Suite};
 use crate::logging::log_and_return_error;
 
 use anyhow::{bail, Result};

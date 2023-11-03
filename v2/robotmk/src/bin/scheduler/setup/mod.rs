@@ -2,7 +2,7 @@ mod general;
 mod icacls;
 mod rcc;
 
-use crate::config::internal::{GlobalConfig, Suite};
+use crate::internal_config::{GlobalConfig, Suite};
 
 use anyhow::{Context, Result};
 use log::debug;

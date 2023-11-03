@@ -1,4 +1,4 @@
-use super::config::internal::Suite;
+use super::internal_config::Suite;
 use anyhow::{Context, Result};
 use camino::{Utf8Path, Utf8PathBuf};
 use serde::Serialize;

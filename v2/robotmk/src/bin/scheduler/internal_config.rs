@@ -1,9 +1,9 @@
-use super::external::{Config, WorkingDirectoryCleanupConfig};
 use crate::environment::Environment;
 use crate::results::suite_results_directory;
 use crate::rf::robot::Robot;
 use crate::sessions::session::Session;
 use crate::termination::TerminationFlag;
+use robotmk::config::{Config, WorkingDirectoryCleanupConfig};
 
 use camino::Utf8PathBuf;
 use std::sync::Arc;
@@ -84,12 +84,12 @@ pub fn sort_suites_by_name(suites: &mut [Suite]) {
 #[cfg(test)]
 mod tests {
     use super::*;
-    use crate::config::external::{
+    use crate::environment::{RCCEnvironment, SystemEnvironment};
+    use crate::sessions::session::{CurrentSession, UserSession};
+    use robotmk::config::{
         EnvironmentConfig, ExecutionConfig, RCCEnvironmentConfig, RetryStrategy,
         RobotFrameworkConfig, SessionConfig, SuiteConfig, UserSessionConfig,
     };
-    use crate::environment::{RCCEnvironment, SystemEnvironment};
-    use crate::sessions::session::{CurrentSession, UserSession};
 
     use std::collections::HashMap;
 

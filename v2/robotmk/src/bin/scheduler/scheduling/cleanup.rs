@@ -1,6 +1,6 @@
-use crate::config::external::WorkingDirectoryCleanupConfig;
-use crate::config::internal::Suite;
+use crate::internal_config::Suite;
 use crate::log_and_return_error;
+use robotmk::config::WorkingDirectoryCleanupConfig;
 
 use anyhow::{Context, Result};
 use camino::{Utf8DirEntry, Utf8Path};

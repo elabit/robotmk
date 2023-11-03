@@ -1,6 +1,6 @@
 use super::icacls::run_icacls_command;
-use crate::config::internal::{GlobalConfig, Suite};
 use crate::environment::environment_building_stdio_directory;
+use crate::internal_config::{GlobalConfig, Suite};
 use crate::results::suite_results_directory;
 use anyhow::{Context, Result};
 use camino::{Utf8Path, Utf8PathBuf};

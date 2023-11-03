@@ -9,7 +9,7 @@ pub fn load(path: &Utf8Path) -> Result<Config> {
     Ok(from_str(&read_to_string(path)?)?)
 }
 
-#[derive(Deserialize)]
+#[derive(Clone, Debug, Deserialize, PartialEq)]
 pub struct Config {
     pub working_directory: Utf8PathBuf,
     pub results_directory: Utf8PathBuf,
@@ -17,7 +17,7 @@ pub struct Config {
     pub suites: HashMap<String, SuiteConfig>,
 }
 
-#[derive(Deserialize)]
+#[derive(Clone, Debug, Deserialize, PartialEq)]
 pub struct SuiteConfig {
     pub robot_framework_config: RobotFrameworkConfig,
     pub execution_config: ExecutionConfig,
@@ -26,15 +26,13 @@ pub struct SuiteConfig {
     pub working_directory_cleanup_config: WorkingDirectoryCleanupConfig,
 }
 
-#[derive(Clone, Deserialize)]
-#[cfg_attr(test, derive(Debug, PartialEq))]
+#[derive(Clone, Debug, Deserialize, PartialEq)]
 pub struct RobotFrameworkConfig {
     pub robot_target: Utf8PathBuf,
     pub command_line_args: Vec<String>,
 }
 
-#[derive(Clone, Deserialize)]
-#[cfg_attr(test, derive(Debug, PartialEq))]
+#[derive(Clone, Debug, Deserialize, PartialEq)]
 pub struct ExecutionConfig {
     pub n_attempts_max: usize,
     pub retry_strategy: RetryStrategy,
@@ -42,39 +40,37 @@ pub struct ExecutionConfig {
     pub timeout: u64,
 }
 
-#[derive(Clone, Deserialize)]
-#[cfg_attr(test, derive(Debug, PartialEq))]
+#[derive(Clone, Debug, Deserialize, PartialEq)]
 pub enum RetryStrategy {
     Incremental,
     Complete,
 }
 
-#[derive(Deserialize)]
+#[derive(Clone, Debug, Deserialize, PartialEq)]
 pub enum EnvironmentConfig {
     System,
     Rcc(RCCEnvironmentConfig),
 }
 
-#[derive(Deserialize)]
+#[derive(Clone, Debug, Deserialize, PartialEq)]
 pub struct RCCEnvironmentConfig {
     pub robot_yaml_path: Utf8PathBuf,
     pub build_timeout: u64,
     pub env_json_path: Option<Utf8PathBuf>,
 }
 
-#[derive(Deserialize)]
+#[derive(Clone, Debug, Deserialize, PartialEq)]
 pub enum SessionConfig {
     Current,
     SpecificUser(UserSessionConfig),
 }
 
-#[derive(Deserialize)]
+#[derive(Clone, Debug, Deserialize, PartialEq)]
 pub struct UserSessionConfig {
     pub user_name: String,
 }
 
-#[derive(Clone, Deserialize)]
-#[cfg_attr(test, derive(Debug, PartialEq))]
+#[derive(Clone, Debug, Deserialize, PartialEq)]
 pub enum WorkingDirectoryCleanupConfig {
     MaxAgeSecs(u64),
     MaxExecutions(usize),
