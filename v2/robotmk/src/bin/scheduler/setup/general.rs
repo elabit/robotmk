@@ -1,10 +1,8 @@
+use super::icacls::run_icacls_command;
 use crate::config::internal::{GlobalConfig, Suite};
 use crate::environment::environment_building_stdio_directory;
 use crate::results::suite_results_directory;
-
-use super::icacls::run_icacls_command;
 use anyhow::{Context, Result};
-use atomicwrites::replace_atomic;
 use camino::{Utf8Path, Utf8PathBuf};
 use log::debug;
 use std::collections::HashSet;
@@ -45,10 +43,11 @@ fn clean_up_results_directory_atomic(global_config: &GlobalConfig, suites: &[Sui
     let currently_present_result_files = HashSet::<Utf8PathBuf>::from_iter(
         currently_present_result_files(&suite_results_directory)?,
     );
-    remove_files_atomic(
-        &global_config.working_directory.join("deprecated_result"),
-        currently_present_result_files.difference(&result_files_to_keep),
-    )
+    for path in currently_present_result_files.difference(&result_files_to_keep) {
+        remove_file(path)?; // TODO: This fails, if the agent plugin is currently reading the file
+                            // (a non-critical and recoverable) error. How to handle it?
+    }
+    Ok(())
 }
 
 fn currently_present_result_files(suite_results_directory: &Utf8Path) -> Result<Vec<Utf8PathBuf>> {
@@ -73,21 +72,6 @@ fn currently_present_result_files(suite_results_directory: &Utf8Path) -> Result<
     }
 
     Ok(result_files)
-}
-
-fn remove_files_atomic<'a>(
-    intermediate_path_for_move: &Utf8Path,
-    files_to_be_removed: impl Iterator<Item = &'a Utf8PathBuf>,
-) -> Result<()> {
-    for path in files_to_be_removed {
-        replace_atomic(path.as_std_path(), intermediate_path_for_move.as_std_path()).context(
-            format!("Failed to move {path} to {intermediate_path_for_move}",),
-        )?;
-    }
-
-    let _ = remove_file(intermediate_path_for_move);
-
-    Ok(())
 }
 
 fn adjust_working_directory_permissions(working_directory: &Utf8Path) -> Result<()> {
