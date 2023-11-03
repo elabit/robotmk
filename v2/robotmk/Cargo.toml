@@ -27,3 +27,7 @@ walkdir = "2.4.0"
 [[bin]]
 name = "robotmk_agent"
 path = "src/bin/agent.rs"
+
+[[bin]]
+name = "robotmk"
+path = "src/bin/scheduler/main.rs"
