@@ -20,7 +20,6 @@ pub fn build_environments(global_config: &GlobalConfig, suites: Vec<Suite>) -> R
     let mut environment_build_states_administrator =
         EnvironmentBuildStatesAdministrator::new_with_pending(
             &suites,
-            &global_config.working_directory,
             &global_config.results_directory,
         );
     environment_build_states_administrator.write_atomic()?;

@@ -196,7 +196,6 @@ fn persist_suite_execution_report(
 ) -> Result<()> {
     write_file_atomic(
         &to_string(suite_execution_report).context("Serializing suite execution report failed")?,
-        &suite.working_directory,
         &suite.results_file,
     )
 }
