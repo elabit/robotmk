@@ -2,26 +2,43 @@ use super::internal_config::Suite;
 use anyhow::{Context, Result};
 use camino::{Utf8Path, Utf8PathBuf};
 use serde::Serialize;
-use serde_json::to_string;
 use std::{collections::HashMap, io::Write};
 use tempfile::NamedTempFile;
 
-pub fn suite_results_directory(results_directory: &Utf8Path) -> Utf8PathBuf {
-    results_directory.join("suites")
+#[derive(Serialize)]
+pub struct Section {
+    pub name: String,
+    pub content: String,
 }
 
-pub fn write_file_atomic(content: &str, final_path: impl AsRef<Utf8Path>) -> Result<()> {
+fn write(name: String, content: &impl Serialize, path: impl AsRef<Utf8Path>) -> Result<()> {
+    let path = path.as_ref();
+    let content = serde_json::to_string(content).unwrap();
+    let section = Section { name, content };
+    let section = serde_json::to_string(&section).unwrap();
     let mut file = NamedTempFile::new().context("Opening tempfile failed")?;
-    file.write_all(content.as_bytes()).context(format!(
+    file.write_all(section.as_bytes()).context(format!(
         "Writing tempfile failed, {}",
         file.path().display()
     ))?;
-    file.persist(final_path.as_ref())
-        .context(format!(
-            "Persisting tempfile failed, final_path: {}",
-            final_path.as_ref()
-        ))
+    file.persist(path)
+        .context(format!("Persisting tempfile failed, final_path: {path}"))
         .map(|_| ())
+}
+
+pub trait WriteSection {
+    fn name() -> &'static str;
+
+    fn write(&self, path: impl AsRef<Utf8Path>) -> Result<()>
+    where
+        Self: Serialize,
+    {
+        write(Self::name().into(), &self, path)
+    }
+}
+
+pub fn suite_results_directory(results_directory: &Utf8Path) -> Utf8PathBuf {
+    results_directory.join("suites")
 }
 
 #[derive(Serialize)]
@@ -31,53 +48,43 @@ pub struct RCCSetupFailures {
     pub holotree_init: Vec<String>,
 }
 
-impl RCCSetupFailures {
-    pub fn write_atomic(&self, results_directory: &Utf8Path) -> Result<()> {
-        write_file_atomic(
-            &to_string(&self)?,
-            results_directory.join("rcc_setup_failures.json"),
-        )
-        .context("Writing RCC setup failures failed")
+impl WriteSection for RCCSetupFailures {
+    fn name() -> &'static str {
+        "rcc_setup_failures"
     }
 }
 
-pub struct EnvironmentBuildStatesAdministrator<'a> {
+pub struct EnvironmentBuildStatesAdministrator {
     build_states: HashMap<String, EnvironmentBuildStatus>,
-    results_directory: &'a Utf8Path,
+    path: Utf8PathBuf,
 }
 
-impl<'a> EnvironmentBuildStatesAdministrator<'a> {
+#[derive(Serialize)]
+pub struct BuildStates<'a>(&'a HashMap<String, EnvironmentBuildStatus>);
+
+impl WriteSection for BuildStates<'_> {
+    fn name() -> &'static str {
+        "environment_build_states"
+    }
+}
+
+impl EnvironmentBuildStatesAdministrator {
     pub fn new_with_pending(
         suites: &[Suite],
-        results_directory: &'a Utf8Path,
-    ) -> EnvironmentBuildStatesAdministrator<'a> {
-        Self {
-            build_states: HashMap::from_iter(
-                suites
-                    .iter()
-                    .map(|suite| (suite.name.to_string(), EnvironmentBuildStatus::Pending)),
-            ),
-            results_directory,
-        }
+        results_directory: &Utf8Path,
+    ) -> Result<EnvironmentBuildStatesAdministrator> {
+        let build_states: HashMap<_, _> = suites
+            .iter()
+            .map(|suite| (suite.name.to_string(), EnvironmentBuildStatus::Pending))
+            .collect();
+        let path = results_directory.join("environment_build_states.json");
+        BuildStates(&build_states).write(&path)?;
+        Ok(Self { build_states, path })
     }
 
-    pub fn write_atomic(&self) -> Result<()> {
-        write_file_atomic(
-            &to_string(&self.build_states)
-                .context("Serializing environment build states failed")?,
-            self.results_directory.join("environment_build_states.json"),
-        )
-        .context("Writing environment build states failed")
-    }
-
-    pub fn insert_and_write_atomic(
-        &mut self,
-        suite_name: &str,
-        environment_build_status: EnvironmentBuildStatus,
-    ) -> Result<()> {
-        self.build_states
-            .insert(suite_name.to_string(), environment_build_status);
-        self.write_atomic()
+    pub fn update(&mut self, suite_name: &str, build_status: EnvironmentBuildStatus) -> Result<()> {
+        self.build_states.insert(suite_name.into(), build_status);
+        BuildStates(&self.build_states).write(&self.path)
     }
 }
 
@@ -101,6 +108,12 @@ pub enum EnvironmentBuildStatusError {
 pub struct SuiteExecutionReport {
     pub suite_name: String,
     pub outcome: ExecutionReport,
+}
+
+impl WriteSection for SuiteExecutionReport {
+    fn name() -> &'static str {
+        "suite_execution_report"
+    }
 }
 
 #[derive(Serialize)]

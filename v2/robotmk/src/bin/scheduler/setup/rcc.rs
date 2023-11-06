@@ -2,7 +2,7 @@ use super::icacls::run_icacls_command;
 use crate::command_spec::CommandSpec;
 use crate::environment::Environment;
 use crate::internal_config::{sort_suites_by_name, GlobalConfig, Suite};
-use crate::results::RCCSetupFailures;
+use crate::results::{RCCSetupFailures, WriteSection};
 use crate::sessions::session::{CurrentSession, RunOutcome, RunSpec, Session};
 
 use anyhow::{bail, Context, Result};
@@ -80,7 +80,10 @@ fn rcc_setup(global_config: &GlobalConfig, rcc_suites: Vec<Suite>) -> Result<Vec
         );
     }
 
-    rcc_setup_failures.write_atomic(&global_config.working_directory)?;
+    let path = global_config
+        .working_directory
+        .join("rcc_setup_failures.json");
+    rcc_setup_failures.write(path)?;
 
     Ok(sucessful_suites)
 }
