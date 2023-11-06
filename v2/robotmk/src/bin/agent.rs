@@ -6,7 +6,7 @@ use std::env::{var, VarError};
 use std::fs::read_to_string;
 use std::io;
 use std::path::Path;
-use walkdir::{DirEntry, WalkDir};
+use walkdir::WalkDir;
 
 #[derive(Parser)]
 #[command(about = "Robotmk agent plugin.")]
@@ -24,6 +24,12 @@ pub struct ConfigError {
 #[derive(Serialize)]
 pub struct ConfigFileContent {
     config_file_content: String,
+}
+
+#[derive(Deserialize)]
+pub struct Section {
+    pub name: String,
+    pub content: String,
 }
 
 fn determine_config_path(arg: Option<Utf8PathBuf>) -> Result<Utf8PathBuf, String> {
@@ -55,21 +61,31 @@ fn report_config_content(content: String) {
     println!("{config_content}");
 }
 
-fn print_or_ignore(dir: DirEntry, stdout: &mut impl io::Write) {
-    if dir.file_type().is_file() {
-        if let Ok(raw) = read_to_string(dir.path()) {
-            writeln!(stdout, "{raw}").unwrap();
-        }
-    }
-}
-
-fn walk(results_directory: &impl AsRef<Path>, stdout: &mut impl io::Write) {
-    for entry in WalkDir::new(results_directory)
+pub fn read(directory: impl AsRef<Path>) -> Vec<Section> {
+    // TODO: Test this function.
+    let mut sections = Vec::new();
+    for entry in WalkDir::new(directory)
         .sort_by_file_name()
         .into_iter()
         .filter_map(|entry| entry.ok())
     {
-        print_or_ignore(entry, stdout);
+        if entry.file_type().is_file() {
+            if let Ok(raw) = read_to_string(entry.path()) {
+                let section: Result<Section, _> = serde_json::from_str(&raw);
+                if let Ok(section) = section {
+                    sections.push(section)
+                }
+            }
+        }
+    }
+    sections
+}
+
+fn print_sections(sections: &[Section], stdout: &mut impl io::Write) {
+    // TODO: Test this function.
+    for section in sections.iter() {
+        let with_header = format!("<<<{}>>>\n{}\n", section.name, section.content);
+        write!(stdout, "{}", with_header).unwrap();
     }
 }
 
@@ -98,33 +114,6 @@ fn main() {
             return;
         }
     };
-    walk(&config.results_directory, &mut io::stdout());
-}
-
-#[test]
-fn test_walk() {
-    use std::fs::{create_dir_all, File};
-    use std::io::Write;
-    use std::str::from_utf8_unchecked;
-    use tempfile::tempdir;
-    // Assemble
-    let path_content = [
-        ("1", "Failure is not an Option<T>, it's a Result<T,E>."),
-        ("2", "In Rust, None is always an Option<_>."),
-        ("3/nested", "Rust is the best thing since &Bread[..]."),
-        ("4/more/nesting", "Yes, I stole these jokes from reddit."),
-    ];
-    let expected: String = path_content.map(|(_, c)| format!("{c}\n")).concat();
-    let results_directory = tempdir().unwrap();
-    for (path, content) in path_content {
-        let file_path = results_directory.path().join(path);
-        create_dir_all(file_path.parent().unwrap()).unwrap();
-        let mut file = File::create(file_path).unwrap();
-        write!(file, "{}", content).unwrap();
-    }
-    let mut stdout = Vec::new();
-    //Act
-    walk(&results_directory, &mut stdout);
-    //Assert
-    assert_eq!(unsafe { from_utf8_unchecked(&stdout) }, expected);
+    let sections = read(config.results_directory);
+    print_sections(&sections, &mut io::stdout());
 }
