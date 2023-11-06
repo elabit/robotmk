@@ -18,7 +18,8 @@ jobs:
     - name: "Checkout repository"
       uses: actions/checkout@v4
       with:
-        submodules: true
+        repository: robocorp/rcc
+        ref: v14.15.4
 
     - name: "Setup Go"
       uses: actions/setup-go@v3
@@ -31,15 +32,13 @@ jobs:
           ruby-version: '2.7'
 
     - name: "Build RCC"
-      working-directory: rcc
       run: rake build
 
     - name: "Test RCC"
-      working-directory: rcc
       run: rake test
 
     - name: "Upload RCC binaries"
       uses: actions/upload-artifact@v3
       with:
-        name: rcc
-        path: rcc/build
+        path: build
+        if-no-files-found: error
