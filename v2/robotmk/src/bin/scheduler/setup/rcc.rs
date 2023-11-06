@@ -2,12 +2,13 @@ use super::icacls::run_icacls_command;
 use crate::command_spec::CommandSpec;
 use crate::environment::Environment;
 use crate::internal_config::{sort_suites_by_name, GlobalConfig, Suite};
-use crate::results::{RCCSetupFailures, WriteSection};
+use crate::results::RCCSetupFailures;
 use crate::sessions::session::{CurrentSession, RunOutcome, RunSpec, Session};
 
 use anyhow::{bail, Context, Result};
 use camino::{Utf8Path, Utf8PathBuf};
 use log::{debug, error};
+use robotmk::section::WriteSection;
 use std::collections::HashMap;
 use std::fs::create_dir_all;
 

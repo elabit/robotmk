@@ -1,41 +1,9 @@
 use super::internal_config::Suite;
-use anyhow::{Context, Result};
+use anyhow::Result;
 use camino::{Utf8Path, Utf8PathBuf};
+use robotmk::section::WriteSection;
 use serde::Serialize;
-use std::{collections::HashMap, io::Write};
-use tempfile::NamedTempFile;
-
-#[derive(Serialize)]
-pub struct Section {
-    pub name: String,
-    pub content: String,
-}
-
-fn write(name: String, content: &impl Serialize, path: impl AsRef<Utf8Path>) -> Result<()> {
-    let path = path.as_ref();
-    let content = serde_json::to_string(content).unwrap();
-    let section = Section { name, content };
-    let section = serde_json::to_string(&section).unwrap();
-    let mut file = NamedTempFile::new().context("Opening tempfile failed")?;
-    file.write_all(section.as_bytes()).context(format!(
-        "Writing tempfile failed, {}",
-        file.path().display()
-    ))?;
-    file.persist(path)
-        .context(format!("Persisting tempfile failed, final_path: {path}"))
-        .map(|_| ())
-}
-
-pub trait WriteSection {
-    fn name() -> &'static str;
-
-    fn write(&self, path: impl AsRef<Utf8Path>) -> Result<()>
-    where
-        Self: Serialize,
-    {
-        write(Self::name().into(), &self, path)
-    }
-}
+use std::collections::HashMap;
 
 pub fn suite_results_directory(results_directory: &Utf8Path) -> Utf8PathBuf {
     results_directory.join("suites")

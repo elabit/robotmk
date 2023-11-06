@@ -1,8 +1,6 @@
 use crate::environment::ResultCode;
 use crate::internal_config::Suite;
-use crate::results::{
-    AttemptOutcome, AttemptsOutcome, ExecutionReport, SuiteExecutionReport, WriteSection,
-};
+use crate::results::{AttemptOutcome, AttemptsOutcome, ExecutionReport, SuiteExecutionReport};
 use crate::rf::{rebot::Rebot, robot::Attempt};
 use crate::sessions::session::{RunOutcome, RunSpec};
 
@@ -10,6 +8,7 @@ use anyhow::{bail, Context, Result};
 use camino::{Utf8Path, Utf8PathBuf};
 use chrono::Utc;
 use log::{debug, error};
+use robotmk::section::WriteSection;
 use std::fs::create_dir_all;
 use std::sync::{MutexGuard, TryLockError};
 

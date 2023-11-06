@@ -1,12 +1,11 @@
 use camino::Utf8PathBuf;
 use clap::Parser;
 use robotmk::config::Config;
+use robotmk::section::{read, Section};
 use serde::Serialize;
 use std::env::{var, VarError};
 use std::fs::read_to_string;
 use std::io;
-use std::path::Path;
-use walkdir::WalkDir;
 
 #[derive(Parser)]
 #[command(about = "Robotmk agent plugin.")]
@@ -24,12 +23,6 @@ pub struct ConfigError {
 #[derive(Serialize)]
 pub struct ConfigFileContent {
     config_file_content: String,
-}
-
-#[derive(Deserialize)]
-pub struct Section {
-    pub name: String,
-    pub content: String,
 }
 
 fn determine_config_path(arg: Option<Utf8PathBuf>) -> Result<Utf8PathBuf, String> {
@@ -59,26 +52,6 @@ fn report_config_content(content: String) {
     })
     .expect("Unexpected serialization error: ConfigFileContent");
     println!("{config_content}");
-}
-
-pub fn read(directory: impl AsRef<Path>) -> Vec<Section> {
-    // TODO: Test this function.
-    let mut sections = Vec::new();
-    for entry in WalkDir::new(directory)
-        .sort_by_file_name()
-        .into_iter()
-        .filter_map(|entry| entry.ok())
-    {
-        if entry.file_type().is_file() {
-            if let Ok(raw) = read_to_string(entry.path()) {
-                let section: Result<Section, _> = serde_json::from_str(&raw);
-                if let Ok(section) = section {
-                    sections.push(section)
-                }
-            }
-        }
-    }
-    sections
 }
 
 fn print_sections(sections: &[Section], stdout: &mut impl io::Write) {
