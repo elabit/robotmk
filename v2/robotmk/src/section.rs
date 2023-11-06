@@ -20,19 +20,8 @@ pub struct Section {
     pub content: String,
 }
 
-fn write(
-    host: Host,
-    name: String,
-    content: &impl Serialize,
-    path: impl AsRef<Utf8Path>,
-) -> Result<()> {
+fn write(section: &Section, path: impl AsRef<Utf8Path>) -> Result<()> {
     let path = path.as_ref();
-    let content = serde_json::to_string(content).unwrap();
-    let section = Section {
-        name,
-        content,
-        host,
-    };
     let section = serde_json::to_string(&section).unwrap();
     let mut file = NamedTempFile::new().context("Opening tempfile failed")?;
     file.write_all(section.as_bytes()).context(format!(
@@ -51,7 +40,12 @@ pub trait WriteSection {
     where
         Self: Serialize,
     {
-        write(Host::Source, Self::name().into(), &self, path)
+        let section = Section {
+            name: Self::name().into(),
+            content: serde_json::to_string(&self).unwrap(),
+            host: Host::Source,
+        };
+        write(&section, path)
     }
 }
 
@@ -62,7 +56,12 @@ pub trait WritePiggybackSection {
     where
         Self: Serialize,
     {
-        write(host, Self::name().into(), &self, path)
+        let section = Section {
+            name: Self::name().into(),
+            content: serde_json::to_string(&self).unwrap(),
+            host,
+        };
+        write(&section, path)
     }
 }
 
