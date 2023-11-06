@@ -1,7 +1,7 @@
 use camino::Utf8PathBuf;
 use clap::Parser;
 use robotmk::config::Config;
-use robotmk::section::{read, Section};
+use robotmk::section::{read, Host, Section};
 use serde::Serialize;
 use std::env::{var, VarError};
 use std::fs::read_to_string;
@@ -57,7 +57,10 @@ fn report_config_content(content: String) {
 fn print_sections(sections: &[Section], stdout: &mut impl io::Write) {
     // TODO: Test this function.
     for section in sections.iter() {
-        let with_header = format!("<<<{}>>>\n{}\n", section.name, section.content);
+        let mut with_header = format!("<<<{}>>>\n{}\n", section.name, section.content);
+        if let Host::Piggyback(host) = &section.host {
+            with_header = format!("<<<<{}>>>>\n{}<<<<>>>>\n", host, with_header);
+        }
         write!(stdout, "{}", with_header).unwrap();
     }
 }
