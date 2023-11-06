@@ -7,12 +7,11 @@ use std::path::Path;
 use tempfile::NamedTempFile;
 use walkdir::{DirEntry, Error, WalkDir};
 
-#[derive(Deserialize, Serialize)]
+#[derive(Deserialize, Serialize, Clone, Debug, PartialEq)]
 pub enum Host {
     Piggyback(String),
     Source,
 }
-
 
 #[derive(Deserialize, Serialize)]
 pub struct Section {
@@ -21,7 +20,12 @@ pub struct Section {
     pub content: String,
 }
 
-fn write(host: Host, name: String, content: &impl Serialize, path: impl AsRef<Utf8Path>) -> Result<()> {
+fn write(
+    host: Host,
+    name: String,
+    content: &impl Serialize,
+    path: impl AsRef<Utf8Path>,
+) -> Result<()> {
     let path = path.as_ref();
     let content = serde_json::to_string(content).unwrap();
     let section = Section {
@@ -39,7 +43,6 @@ fn write(host: Host, name: String, content: &impl Serialize, path: impl AsRef<Ut
         .context(format!("Persisting tempfile failed, final_path: {path}"))
         .map(|_| ())
 }
-
 
 pub trait WriteSection {
     fn name() -> &'static str;
@@ -62,7 +65,6 @@ pub trait WritePiggybackSection {
         write(host, Self::name().into(), &self, path)
     }
 }
-
 
 fn read_entry(entry: Result<DirEntry, Error>) -> Result<Section> {
     let entry = entry?;

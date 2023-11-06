@@ -8,7 +8,7 @@ use anyhow::{bail, Context, Result};
 use camino::{Utf8Path, Utf8PathBuf};
 use chrono::Utc;
 use log::{debug, error};
-use robotmk::section::WriteSection;
+use robotmk::section::WritePiggybackSection;
 use std::fs::create_dir_all;
 use std::sync::{MutexGuard, TryLockError};
 
@@ -20,7 +20,7 @@ pub fn run_suite(suite: &Suite) -> Result<()> {
             outcome: ExecutionReport::AlreadyRunning,
         };
         report
-            .write(&suite.results_file)
+            .write(&suite.results_file, suite.host.clone())
             .context("Reporting failure to acquire suite lock failed")
             .err()
             .unwrap_or(err)
@@ -32,7 +32,7 @@ pub fn run_suite(suite: &Suite) -> Result<()> {
         outcome: ExecutionReport::Executed(produce_suite_results(suite)?),
     };
     report
-        .write(&suite.results_file)
+        .write(&suite.results_file, suite.host.clone())
         .context("Reporting suite results failed")?;
     debug!("Suite {} finished", &suite.name);
 

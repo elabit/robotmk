@@ -1,7 +1,7 @@
 use super::internal_config::Suite;
 use anyhow::Result;
 use camino::{Utf8Path, Utf8PathBuf};
-use robotmk::section::WriteSection;
+use robotmk::section::{WritePiggybackSection, WriteSection};
 use serde::Serialize;
 use std::collections::HashMap;
 
@@ -78,7 +78,7 @@ pub struct SuiteExecutionReport {
     pub outcome: ExecutionReport,
 }
 
-impl WriteSection for SuiteExecutionReport {
+impl WritePiggybackSection for SuiteExecutionReport {
     fn name() -> &'static str {
         "suite_execution_report"
     }

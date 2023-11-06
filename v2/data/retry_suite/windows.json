@@ -5,7 +5,10 @@
 		"test": {
 			"robot_framework_config": {
 				"robot_target": "C:\\robotmk\\v2\\data\\retry_suite\\tasks.robot",
-				"command_line_args": ["--variablefile", "C:\\robotmk\\v2\\data\\retry_suite\\retry_variables.yaml"]
+				"command_line_args": [
+					"--variablefile",
+					"C:\\robotmk\\v2\\data\\retry_suite\\retry_variables.yaml"
+				]
 			},
 			"execution_config": {
 				"n_attempts_max": 1,
@@ -15,7 +18,12 @@
 			},
 			"environment_config": "System",
 			"session_config": "Current",
-			"working_directory_cleanup_config": {"MaxExecutions": 180}
+			"working_directory_cleanup_config": {
+				"MaxExecutions": 180
+			},
+			"host": {
+				"Piggyback": "test"
+			}
 		}
 	}
 }

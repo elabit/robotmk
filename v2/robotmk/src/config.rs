@@ -1,3 +1,4 @@
+use crate::section::Host;
 use anyhow::Result;
 use camino::{Utf8Path, Utf8PathBuf};
 use serde::Deserialize;
@@ -24,6 +25,7 @@ pub struct SuiteConfig {
     pub environment_config: EnvironmentConfig,
     pub session_config: SessionConfig,
     pub working_directory_cleanup_config: WorkingDirectoryCleanupConfig,
+    pub host: Host,
 }
 
 #[derive(Clone, Debug, Deserialize, PartialEq)]

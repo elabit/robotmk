@@ -4,6 +4,7 @@ use crate::rf::robot::Robot;
 use crate::sessions::session::Session;
 use crate::termination::TerminationFlag;
 use robotmk::config::{Config, WorkingDirectoryCleanupConfig};
+use robotmk::section::Host;
 
 use camino::Utf8PathBuf;
 use std::sync::Arc;
@@ -29,6 +30,7 @@ pub struct Suite {
     pub working_directory_cleanup_config: WorkingDirectoryCleanupConfig,
     pub termination_flag: TerminationFlag,
     pub parallelism_protection: Arc<Mutex<usize>>,
+    pub host: Host,
 }
 
 pub fn from_external_config(
@@ -63,6 +65,7 @@ pub fn from_external_config(
             working_directory_cleanup_config: suite_config.working_directory_cleanup_config,
             termination_flag: termination_flag.clone(),
             parallelism_protection: Arc::new(Mutex::new(0)),
+            host: suite_config.host,
         })
         .collect();
     sort_suites_by_name(&mut suites);
@@ -108,6 +111,7 @@ mod tests {
             environment_config: EnvironmentConfig::System,
             session_config: SessionConfig::Current,
             working_directory_cleanup_config: WorkingDirectoryCleanupConfig::MaxAgeSecs(1209600),
+            host: Host::Source,
         }
     }
 
@@ -132,6 +136,7 @@ mod tests {
                 user_name: "user".into(),
             }),
             working_directory_cleanup_config: WorkingDirectoryCleanupConfig::MaxExecutions(50),
+            host: Host::Source,
         }
     }
 
