@@ -5,7 +5,7 @@ use std::fs::read_to_string;
 use std::io::Write;
 use std::path::Path;
 use tempfile::NamedTempFile;
-use walkdir::WalkDir;
+use walkdir::{DirEntry, Error, WalkDir};
 
 #[derive(Deserialize, Serialize)]
 pub struct Section {
@@ -38,22 +38,18 @@ pub trait WriteSection {
         write(Self::name().into(), &self, path)
     }
 }
+
+fn read_entry(entry: Result<DirEntry, Error>) -> Result<Section> {
+    let entry = entry?;
+    let raw = read_to_string(entry.path())?;
+    Ok(serde_json::from_str(&raw)?)
+}
+
 pub fn read(directory: impl AsRef<Path>) -> Vec<Section> {
     // TODO: Test this function.
-    let mut sections = Vec::new();
-    for entry in WalkDir::new(directory)
+    WalkDir::new(directory)
         .sort_by_file_name()
         .into_iter()
-        .filter_map(|entry| entry.ok())
-    {
-        if entry.file_type().is_file() {
-            if let Ok(raw) = read_to_string(entry.path()) {
-                let section: Result<Section, _> = serde_json::from_str(&raw);
-                if let Ok(section) = section {
-                    sections.push(section)
-                }
-            }
-        }
-    }
-    sections
+        .filter_map(|entry| read_entry(entry).ok())
+        .collect()
 }
