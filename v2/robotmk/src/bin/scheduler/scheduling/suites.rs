@@ -1,7 +1,7 @@
 use crate::environment::ResultCode;
 use crate::internal_config::Suite;
 use crate::results::{
-    write_file_atomic, AttemptOutcome, AttemptsOutcome, ExecutionReport, SuiteExecutionReport,
+    AttemptOutcome, AttemptsOutcome, ExecutionReport, SuiteExecutionReport, WriteSection,
 };
 use crate::rf::{rebot::Rebot, robot::Attempt};
 use crate::sessions::session::{RunOutcome, RunSpec};
@@ -10,34 +10,31 @@ use anyhow::{bail, Context, Result};
 use camino::{Utf8Path, Utf8PathBuf};
 use chrono::Utc;
 use log::{debug, error};
-use serde_json::to_string;
 use std::fs::create_dir_all;
 use std::sync::{MutexGuard, TryLockError};
 
 pub fn run_suite(suite: &Suite) -> Result<()> {
     // We hold the lock as long as `_non_parallel_guard` is in scope
     let _non_parallel_guard = try_acquire_suite_lock(suite).map_err(|err| {
-        persist_suite_execution_report(
-            suite,
-            &SuiteExecutionReport {
-                suite_name: suite.name.clone(),
-                outcome: ExecutionReport::AlreadyRunning,
-            },
-        )
-        .context("Reporting failure to acquire suite lock failed")
-        .err()
-        .unwrap_or(err)
+        let report = SuiteExecutionReport {
+            suite_name: suite.name.clone(),
+            outcome: ExecutionReport::AlreadyRunning,
+        };
+        report
+            .write(&suite.results_file)
+            .context("Reporting failure to acquire suite lock failed")
+            .err()
+            .unwrap_or(err)
     })?;
 
     debug!("Running suite {}", &suite.name);
-    persist_suite_execution_report(
-        suite,
-        &SuiteExecutionReport {
-            suite_name: suite.name.clone(),
-            outcome: ExecutionReport::Executed(produce_suite_results(suite)?),
-        },
-    )
-    .context("Reporting suite results failed")?;
+    let report = SuiteExecutionReport {
+        suite_name: suite.name.clone(),
+        outcome: ExecutionReport::Executed(produce_suite_results(suite)?),
+    };
+    report
+        .write(&suite.results_file)
+        .context("Reporting suite results failed")?;
     debug!("Suite {} finished", &suite.name);
 
     Ok(())
@@ -175,14 +172,4 @@ fn run_attempt(
             }
         }
     }
-}
-
-fn persist_suite_execution_report(
-    suite: &Suite,
-    suite_execution_report: &SuiteExecutionReport,
-) -> Result<()> {
-    write_file_atomic(
-        &to_string(suite_execution_report).context("Serializing suite execution report failed")?,
-        &suite.results_file,
-    )
 }

@@ -21,8 +21,7 @@ pub fn build_environments(global_config: &GlobalConfig, suites: Vec<Suite>) -> R
         EnvironmentBuildStatesAdministrator::new_with_pending(
             &suites,
             &global_config.results_directory,
-        );
-    environment_build_states_administrator.write_atomic()?;
+        )?;
     let env_building_stdio_directory =
         environment_building_stdio_directory(&global_config.working_directory);
 
@@ -44,17 +43,15 @@ pub fn build_environments(global_config: &GlobalConfig, suites: Vec<Suite>) -> R
 
 fn build_environment(
     suite: Suite,
-    environment_build_states_administrator: &mut EnvironmentBuildStatesAdministrator<'_>,
+    environment_build_states_administrator: &mut EnvironmentBuildStatesAdministrator,
     stdio_directory: &Utf8Path,
 ) -> Result<Option<Suite>> {
     let suite = match suite.environment.build_instructions() {
         Some(build_instructions) => {
             info!("Building environment for suite {}", suite.name);
             let start_time = Utc::now().timestamp();
-            environment_build_states_administrator.insert_and_write_atomic(
-                &suite.name,
-                EnvironmentBuildStatus::InProgress(start_time),
-            )?;
+            environment_build_states_administrator
+                .update(&suite.name, EnvironmentBuildStatus::InProgress(start_time))?;
             let environment_build_status = run_environment_build(
                 ChildProcessSupervisor {
                     command_spec: &build_instructions.command_spec,
@@ -68,14 +65,13 @@ fn build_environment(
                 start_time,
             )?;
             let drop_suite = matches!(environment_build_status, EnvironmentBuildStatus::Failure(_));
-            environment_build_states_administrator
-                .insert_and_write_atomic(&suite.name, environment_build_status)?;
+            environment_build_states_administrator.update(&suite.name, environment_build_status)?;
             (!drop_suite).then_some(suite)
         }
         None => {
             debug!("Nothing to do for suite {}", suite.name);
             environment_build_states_administrator
-                .insert_and_write_atomic(&suite.name, EnvironmentBuildStatus::NotNeeded)?;
+                .update(&suite.name, EnvironmentBuildStatus::NotNeeded)?;
             Some(suite)
         }
     };
