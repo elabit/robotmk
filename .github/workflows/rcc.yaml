@@ -15,30 +15,30 @@ jobs:
     runs-on: ubuntu-latest
 
     steps:
-    - name: Checkout repository
+    - name: "Checkout repository"
       uses: actions/checkout@v4
       with:
         submodules: true
 
-    - name: Setup Rake
-      run: |
-        sudo apt-get install rubygems
-        sudo gem install rake
-    
-    - name: Setup Go
-      run: |
-        wget https://go.dev/dl/go1.21.0.linux-amd64.tar.gz
-        # rcc expects $HOME/go/bin to be present (hard-coded)
-        tar -C $HOME -xzf go1.21.0.linux-amd64.tar.gz
-        echo "PATH=$PATH:$HOME/go/bin" >> $GITHUB_ENV
+    - name: "Setup Go"
+      uses: actions/setup-go@v3
+      with:
+        go-version: '1.20.x'
 
-    - name: Build RCC
-      run: rake -C rcc build
-    
-    - name: Test RCC
-      run: rake -C rcc test
+    - name: "Setup Rake"
+      uses: ruby/setup-ruby@v1
+      with:
+          ruby-version: '2.7'
 
-    - name: Upload RCC binaries
+    - name: "Build RCC"
+      working-directory: rcc
+      run: rake build
+
+    - name: "Test RCC"
+      working-directory: rcc
+      run: rake test
+
+    - name: "Upload RCC binaries"
       uses: actions/upload-artifact@v3
       with:
         name: rcc
