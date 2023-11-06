@@ -8,15 +8,27 @@ use tempfile::NamedTempFile;
 use walkdir::{DirEntry, Error, WalkDir};
 
 #[derive(Deserialize, Serialize)]
+pub enum Host {
+    Piggyback(String),
+    Source,
+}
+
+
+#[derive(Deserialize, Serialize)]
 pub struct Section {
+    pub host: Host,
     pub name: String,
     pub content: String,
 }
 
-fn write(name: String, content: &impl Serialize, path: impl AsRef<Utf8Path>) -> Result<()> {
+fn write(host: Host, name: String, content: &impl Serialize, path: impl AsRef<Utf8Path>) -> Result<()> {
     let path = path.as_ref();
     let content = serde_json::to_string(content).unwrap();
-    let section = Section { name, content };
+    let section = Section {
+        name,
+        content,
+        host,
+    };
     let section = serde_json::to_string(&section).unwrap();
     let mut file = NamedTempFile::new().context("Opening tempfile failed")?;
     file.write_all(section.as_bytes()).context(format!(
@@ -28,6 +40,7 @@ fn write(name: String, content: &impl Serialize, path: impl AsRef<Utf8Path>) -> 
         .map(|_| ())
 }
 
+
 pub trait WriteSection {
     fn name() -> &'static str;
 
@@ -35,9 +48,21 @@ pub trait WriteSection {
     where
         Self: Serialize,
     {
-        write(Self::name().into(), &self, path)
+        write(Host::Source, Self::name().into(), &self, path)
     }
 }
+
+pub trait WritePiggybackSection {
+    fn name() -> &'static str;
+
+    fn write(&self, path: impl AsRef<Utf8Path>, host: Host) -> Result<()>
+    where
+        Self: Serialize,
+    {
+        write(host, Self::name().into(), &self, path)
+    }
+}
+
 
 fn read_entry(entry: Result<DirEntry, Error>) -> Result<Section> {
     let entry = entry?;
