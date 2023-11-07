@@ -29,3 +29,6 @@ jobs:
 
       - run: cargo clippy --all-targets --target ${{ matrix.type.target }} -- --deny warnings
         working-directory: ${{ github.workspace }}/v2/robotmk/
+
+      - run: cargo build --target ${{ matrix.type.target }}
+        working-directory: ${{ github.workspace }}/v2/robotmk/
