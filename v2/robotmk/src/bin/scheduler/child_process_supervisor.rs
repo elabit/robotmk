@@ -1,5 +1,6 @@
 use super::command_spec::CommandSpec;
-use super::termination::{kill_process_tree, TerminationFlag};
+use super::termination::kill_process_tree;
+use robotmk::termination::TerminationFlag;
 
 use anyhow::{Context, Result};
 use async_std::{future::timeout, task::sleep};

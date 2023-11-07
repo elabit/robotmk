@@ -2,9 +2,11 @@ use crate::environment::Environment;
 use crate::results::suite_results_directory;
 use crate::rf::robot::Robot;
 use crate::sessions::session::Session;
-use crate::termination::TerminationFlag;
-use robotmk::config::{Config, WorkingDirectoryCleanupConfig};
-use robotmk::section::Host;
+use robotmk::{
+    config::{Config, WorkingDirectoryCleanupConfig},
+    section::Host,
+    termination::TerminationFlag,
+};
 
 use camino::Utf8PathBuf;
 use std::sync::Arc;
@@ -95,6 +97,7 @@ mod tests {
     };
 
     use std::collections::HashMap;
+    use std::sync::{atomic::AtomicBool, Arc};
 
     fn system_suite_config() -> SuiteConfig {
         SuiteConfig {
@@ -152,7 +155,7 @@ mod tests {
                     (String::from("rcc"), rcc_suite_config()),
                 ]),
             },
-            TerminationFlag::new(),
+            TerminationFlag::new(Arc::new(AtomicBool::new(false))),
         );
         assert_eq!(global_config.working_directory, "/working");
         assert_eq!(global_config.results_directory, "/results");

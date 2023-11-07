@@ -1,6 +1,7 @@
 use anyhow::{Context, Result};
 use camino::Utf8PathBuf;
 use log::debug;
+use robotmk::termination::TerminationFlag;
 use std::collections::{HashMap, HashSet};
 use std::sync::atomic::{AtomicBool, Ordering};
 use std::sync::Arc;
@@ -18,16 +19,7 @@ pub fn start_termination_control(run_flag_file: Option<Utf8PathBuf>) -> Result<T
     if let Some(run_flag_file) = run_flag_file {
         start_run_flag_watch_thread(run_flag_file, raw_flag.clone());
     }
-    Ok(TerminationFlag(raw_flag))
-}
-
-#[derive(Clone)]
-pub struct TerminationFlag(Arc<AtomicBool>);
-
-impl TerminationFlag {
-    pub fn should_terminate(&self) -> bool {
-        self.0.load(Ordering::Relaxed)
-    }
+    Ok(TerminationFlag::new(raw_flag))
 }
 
 fn start_run_flag_watch_thread(file: Utf8PathBuf, raw_termination_flag: Arc<AtomicBool>) {
@@ -92,12 +84,6 @@ fn add_and_kill_direct_children<'a>(
 mod tests {
     use super::*;
     use tempfile::NamedTempFile;
-
-    impl TerminationFlag {
-        pub fn new() -> Self {
-            Self(Arc::new(AtomicBool::new(false)))
-        }
-    }
 
     #[test]
     fn run_flag_file() -> Result<()> {

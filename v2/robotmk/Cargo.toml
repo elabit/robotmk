@@ -15,6 +15,7 @@ clap = { version = "*", features = ["derive"] }
 clokwerk = "*"
 ctrlc = "*"
 flexi_logger = "*"
+fs4 = "0.7.0"
 futures = "*"
 log = "*"
 serde = { version = "1.0.188", features = ["derive"] }

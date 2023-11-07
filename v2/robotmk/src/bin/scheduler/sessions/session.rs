@@ -1,8 +1,7 @@
 use super::schtasks::{run_task, TaskSpec};
 use crate::child_process_supervisor::{ChildProcessOutcome, ChildProcessSupervisor, StdioPaths};
 use crate::command_spec::CommandSpec;
-use crate::termination::TerminationFlag;
-use robotmk::config::SessionConfig;
+use robotmk::{config::SessionConfig, termination::TerminationFlag};
 
 use anyhow::Result;
 use camino::{Utf8Path, Utf8PathBuf};
