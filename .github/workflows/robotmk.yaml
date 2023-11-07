@@ -11,7 +11,7 @@ on:
 
 jobs:
   build_robotmk_from_source:
-    runs-on: ubuntu-latest
+    runs-on: windows-latest
 
     steps:
       - name: "Checkout repository"
@@ -21,9 +21,6 @@ jobs:
         uses: actions-rust-lang/setup-rust-toolchain@v1.5.0
         with:
           target: x86_64-pc-windows-gnu
-
-      - name: "Install MinGW-w64"
-        run: sudo apt-get install -y mingw-w64
 
       - name: "Build Robotmk Windows"
         working-directory: ${{ github.workspace }}/v2/robotmk/
