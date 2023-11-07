@@ -27,5 +27,5 @@ jobs:
         with:
           path: |
             ${{ github.workspace }}/v2/robotmk/target/x86_64-pc-windows-gnu/release/robotmk.exe
-            ${{ github.workspace }}/v2/robotmk/x86_64-pc-windows-gnu/release/robotmk_agent.exe
+            ${{ github.workspace }}/v2/robotmk/target/x86_64-pc-windows-gnu/release/robotmk_agent.exe
           if-no-files-found: error
