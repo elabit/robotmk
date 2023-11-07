@@ -84,7 +84,7 @@ fn rcc_setup(global_config: &GlobalConfig, rcc_suites: Vec<Suite>) -> Result<Vec
     let path = global_config
         .results_directory
         .join("rcc_setup_failures.json");
-    rcc_setup_failures.write(path)?;
+    rcc_setup_failures.write(path, &global_config.results_directory_locker)?;
 
     Ok(sucessful_suites)
 }

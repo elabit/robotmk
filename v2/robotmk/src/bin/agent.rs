@@ -1,7 +1,10 @@
 use camino::Utf8PathBuf;
 use clap::Parser;
-use robotmk::config::Config;
-use robotmk::section::{read, Host, Section};
+use robotmk::{
+    config::Config,
+    lock::Locker,
+    section::{read, Host, Section},
+};
 use serde::Serialize;
 use std::env::{var, VarError};
 use std::fs::read_to_string;
@@ -75,7 +78,7 @@ fn main() {
             return;
         }
     };
-    let raw = match read_to_string(config_path) {
+    let raw = match read_to_string(&config_path) {
         Ok(raw) => raw,
         Err(e) => {
             report_config_error(e.to_string());
@@ -90,6 +93,6 @@ fn main() {
             return;
         }
     };
-    let sections = read(config.results_directory);
+    let sections = read(config.results_directory, &Locker::new(&config_path, None)).unwrap();
     print_sections(&sections, &mut io::stdout());
 }

@@ -4,6 +4,7 @@ use crate::rf::robot::Robot;
 use crate::sessions::session::Session;
 use robotmk::{
     config::{Config, WorkingDirectoryCleanupConfig},
+    lock::Locker,
     section::Host,
     termination::TerminationFlag,
 };
@@ -17,6 +18,7 @@ pub struct GlobalConfig {
     pub results_directory: Utf8PathBuf,
     pub rcc_binary_path: Utf8PathBuf,
     pub termination_flag: TerminationFlag,
+    pub results_directory_locker: Locker,
 }
 
 #[derive(Clone)]
@@ -33,11 +35,13 @@ pub struct Suite {
     pub termination_flag: TerminationFlag,
     pub parallelism_protection: Arc<Mutex<usize>>,
     pub host: Host,
+    pub results_directory_locker: Locker,
 }
 
 pub fn from_external_config(
     external_config: Config,
     termination_flag: TerminationFlag,
+    results_directory_locker: Locker,
 ) -> (GlobalConfig, Vec<Suite>) {
     let mut suites: Vec<Suite> = external_config
         .suites
@@ -68,6 +72,7 @@ pub fn from_external_config(
             termination_flag: termination_flag.clone(),
             parallelism_protection: Arc::new(Mutex::new(0)),
             host: suite_config.host,
+            results_directory_locker: results_directory_locker.clone(),
         })
         .collect();
     sort_suites_by_name(&mut suites);
@@ -76,7 +81,8 @@ pub fn from_external_config(
             working_directory: external_config.working_directory,
             results_directory: external_config.results_directory,
             rcc_binary_path: external_config.rcc_binary_path,
-            termination_flag: termination_flag.clone(),
+            termination_flag,
+            results_directory_locker,
         },
         suites,
     )
@@ -145,6 +151,7 @@ mod tests {
 
     #[test]
     fn test_from_external_config() {
+        let termination_flag = TerminationFlag::new(Arc::new(AtomicBool::new(false)));
         let (global_config, suites) = from_external_config(
             Config {
                 working_directory: Utf8PathBuf::from("/working"),
@@ -155,7 +162,8 @@ mod tests {
                     (String::from("rcc"), rcc_suite_config()),
                 ]),
             },
-            TerminationFlag::new(Arc::new(AtomicBool::new(false))),
+            termination_flag.clone(),
+            Locker::new("/config.json", Some(&termination_flag)),
         );
         assert_eq!(global_config.working_directory, "/working");
         assert_eq!(global_config.results_directory, "/results");

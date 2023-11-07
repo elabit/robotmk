@@ -1,7 +1,10 @@
 use super::internal_config::Suite;
 use anyhow::Result;
 use camino::{Utf8Path, Utf8PathBuf};
-use robotmk::section::{WritePiggybackSection, WriteSection};
+use robotmk::{
+    lock::Locker,
+    section::{WritePiggybackSection, WriteSection},
+};
 use serde::Serialize;
 use std::collections::HashMap;
 
@@ -22,9 +25,10 @@ impl WriteSection for RCCSetupFailures {
     }
 }
 
-pub struct EnvironmentBuildStatesAdministrator {
+pub struct EnvironmentBuildStatesAdministrator<'a> {
     build_states: HashMap<String, EnvironmentBuildStatus>,
     path: Utf8PathBuf,
+    locker: &'a Locker,
 }
 
 #[derive(Serialize)]
@@ -36,23 +40,28 @@ impl WriteSection for BuildStates<'_> {
     }
 }
 
-impl EnvironmentBuildStatesAdministrator {
+impl<'a> EnvironmentBuildStatesAdministrator<'a> {
     pub fn new_with_pending(
         suites: &[Suite],
         results_directory: &Utf8Path,
-    ) -> Result<EnvironmentBuildStatesAdministrator> {
+        locker: &'a Locker,
+    ) -> Result<EnvironmentBuildStatesAdministrator<'a>> {
         let build_states: HashMap<_, _> = suites
             .iter()
             .map(|suite| (suite.name.to_string(), EnvironmentBuildStatus::Pending))
             .collect();
         let path = results_directory.join("environment_build_states.json");
-        BuildStates(&build_states).write(&path)?;
-        Ok(Self { build_states, path })
+        BuildStates(&build_states).write(&path, locker)?;
+        Ok(Self {
+            build_states,
+            path,
+            locker,
+        })
     }
 
     pub fn update(&mut self, suite_name: &str, build_status: EnvironmentBuildStatus) -> Result<()> {
         self.build_states.insert(suite_name.into(), build_status);
-        BuildStates(&self.build_states).write(&self.path)
+        BuildStates(&self.build_states).write(&self.path, self.locker)
     }
 }
 
