@@ -12,11 +12,9 @@ jobs:
           - { os: windows-latest, target: x86_64-pc-windows-gnu }
           - { os: ubuntu-latest,  target: x86_64-unknown-linux-gnu }
     steps:
-      - name: Checkout repository
-        uses: actions/checkout@v4
+      - uses: actions/checkout@v4
 
-      - name: "Setup Rust"
-        uses: actions-rust-lang/setup-rust-toolchain@v1.5.0
+      - uses: actions-rust-lang/setup-rust-toolchain@v1.5.0
         with:
           components: rustfmt, clippy
           target: ${{ matrix.type.target }}

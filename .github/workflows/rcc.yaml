@@ -15,30 +15,24 @@ jobs:
     runs-on: ubuntu-latest
 
     steps:
-    - name: "Checkout repository"
-      uses: actions/checkout@v4
-      with:
-        repository: robocorp/rcc
-        ref: v14.15.4
+      - uses: actions/checkout@v4
+        with:
+          repository: robocorp/rcc
+          ref: v14.15.4
 
-    - name: "Setup Go"
-      uses: actions/setup-go@v3
-      with:
-        go-version: '1.20.x'
+      - uses: actions/setup-go@v3
+        with:
+          go-version: '1.20.x'
 
-    - name: "Setup Rake"
-      uses: ruby/setup-ruby@v1
-      with:
-          ruby-version: '2.7'
+      - uses: ruby/setup-ruby@v1
+        with:
+            ruby-version: '2.7'
 
-    - name: "Build RCC"
-      run: rake build
+      - run: rake build
 
-    - name: "Test RCC"
-      run: rake test
+      - run: rake test
 
-    - name: "Upload RCC binaries"
-      uses: actions/upload-artifact@v3
-      with:
-        path: build
-        if-no-files-found: error
+      - uses: actions/upload-artifact@v3
+        with:
+          path: build
+          if-no-files-found: error
