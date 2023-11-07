@@ -13,6 +13,19 @@ pub fn suite_results_directory(results_directory: &Utf8Path) -> Utf8PathBuf {
 }
 
 #[derive(Serialize)]
+pub enum SchedulerState {
+    Setup,
+    EnvironmentBuilding,
+    Scheduling,
+}
+
+impl WriteSection for SchedulerState {
+    fn name() -> &'static str {
+        "robotmk_scheduler_state"
+    }
+}
+
+#[derive(Serialize)]
 pub struct RCCSetupFailures {
     pub telemetry_disabling: Vec<String>,
     pub shared_holotree: Vec<String>,
