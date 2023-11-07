@@ -21,6 +21,7 @@ pub fn build_environments(global_config: &GlobalConfig, suites: Vec<Suite>) -> R
         EnvironmentBuildStatesAdministrator::new_with_pending(
             &suites,
             &global_config.results_directory,
+            &global_config.results_directory_locker,
         )?;
     let env_building_stdio_directory =
         environment_building_stdio_directory(&global_config.working_directory);

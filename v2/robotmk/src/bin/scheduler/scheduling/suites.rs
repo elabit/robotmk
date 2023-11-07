@@ -20,7 +20,11 @@ pub fn run_suite(suite: &Suite) -> Result<()> {
             outcome: ExecutionReport::AlreadyRunning,
         };
         report
-            .write(&suite.results_file, suite.host.clone())
+            .write(
+                &suite.results_file,
+                suite.host.clone(),
+                &suite.results_directory_locker,
+            )
             .context("Reporting failure to acquire suite lock failed")
             .err()
             .unwrap_or(err)
@@ -32,7 +36,11 @@ pub fn run_suite(suite: &Suite) -> Result<()> {
         outcome: ExecutionReport::Executed(produce_suite_results(suite)?),
     };
     report
-        .write(&suite.results_file, suite.host.clone())
+        .write(
+            &suite.results_file,
+            suite.host.clone(),
+            &suite.results_directory_locker,
+        )
         .context("Reporting suite results failed")?;
     debug!("Suite {} finished", &suite.name);
 

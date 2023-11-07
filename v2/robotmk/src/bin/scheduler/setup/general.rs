@@ -37,6 +37,9 @@ fn setup_results_directories(global_config: &GlobalConfig, suites: &[Suite]) -> 
 }
 
 fn clean_up_results_directory_atomic(global_config: &GlobalConfig, suites: &[Suite]) -> Result<()> {
+    let results_directory_lock = global_config
+        .results_directory_locker
+        .wait_for_write_lock()?;
     let suite_results_directory = suite_results_directory(&global_config.results_directory);
     let result_files_to_keep =
         HashSet::<Utf8PathBuf>::from_iter(suites.iter().map(|suite| suite.results_file.clone()));
@@ -44,10 +47,9 @@ fn clean_up_results_directory_atomic(global_config: &GlobalConfig, suites: &[Sui
         currently_present_result_files(&suite_results_directory)?,
     );
     for path in currently_present_result_files.difference(&result_files_to_keep) {
-        remove_file(path)?; // TODO: This fails, if the agent plugin is currently reading the file
-                            // (a non-critical and recoverable) error. How to handle it?
+        remove_file(path)?;
     }
-    Ok(())
+    results_directory_lock.release()
 }
 
 fn currently_present_result_files(suite_results_directory: &Utf8Path) -> Result<Vec<Utf8PathBuf>> {

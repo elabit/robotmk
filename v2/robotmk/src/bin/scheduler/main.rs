@@ -15,6 +15,7 @@ use anyhow::{bail, Context, Result};
 use clap::Parser;
 use log::{debug, info};
 use logging::log_and_return_error;
+use robotmk::lock::Locker;
 
 fn main() -> Result<()> {
     run().map_err(log_and_return_error)?;
@@ -34,8 +35,11 @@ fn run() -> Result<()> {
         .context("Failed to set up termination control")?;
     debug!("Termination control set up");
 
-    let (global_config, suites) =
-        internal_config::from_external_config(external_config, termination_flag);
+    let (global_config, suites) = internal_config::from_external_config(
+        external_config,
+        termination_flag.clone(),
+        Locker::new(&args.config_path, Some(&termination_flag)),
+    );
 
     if global_config.termination_flag.should_terminate() {
         bail!("Terminated")

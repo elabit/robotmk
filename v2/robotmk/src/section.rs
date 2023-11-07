@@ -1,3 +1,5 @@
+use super::lock::Locker;
+
 use anyhow::{Context, Result};
 use camino::Utf8Path;
 use serde::{Deserialize, Serialize};
@@ -20,7 +22,7 @@ pub struct Section {
     pub content: String,
 }
 
-fn write(section: &Section, path: impl AsRef<Utf8Path>) -> Result<()> {
+fn write(section: &Section, path: impl AsRef<Utf8Path>, locker: &Locker) -> Result<()> {
     let path = path.as_ref();
     let section = serde_json::to_string(&section).unwrap();
     let mut file = NamedTempFile::new().context("Opening tempfile failed")?;
@@ -28,15 +30,17 @@ fn write(section: &Section, path: impl AsRef<Utf8Path>) -> Result<()> {
         "Writing tempfile failed, {}",
         file.path().display()
     ))?;
+
+    let lock = locker.wait_for_write_lock()?;
     file.persist(path)
-        .context(format!("Persisting tempfile failed, final_path: {path}"))
-        .map(|_| ())
+        .context(format!("Persisting tempfile failed, final_path: {path}"))?;
+    lock.release()
 }
 
 pub trait WriteSection {
     fn name() -> &'static str;
 
-    fn write(&self, path: impl AsRef<Utf8Path>) -> Result<()>
+    fn write(&self, path: impl AsRef<Utf8Path>, locker: &Locker) -> Result<()>
     where
         Self: Serialize,
     {
@@ -45,14 +49,14 @@ pub trait WriteSection {
             content: serde_json::to_string(&self).unwrap(),
             host: Host::Source,
         };
-        write(&section, path)
+        write(&section, path, locker)
     }
 }
 
 pub trait WritePiggybackSection {
     fn name() -> &'static str;
 
-    fn write(&self, path: impl AsRef<Utf8Path>, host: Host) -> Result<()>
+    fn write(&self, path: impl AsRef<Utf8Path>, host: Host, locker: &Locker) -> Result<()>
     where
         Self: Serialize,
     {
@@ -61,7 +65,7 @@ pub trait WritePiggybackSection {
             content: serde_json::to_string(&self).unwrap(),
             host,
         };
-        write(&section, path)
+        write(&section, path, locker)
     }
 }
 
@@ -71,11 +75,14 @@ fn read_entry(entry: Result<DirEntry, Error>) -> Result<Section> {
     Ok(serde_json::from_str(&raw)?)
 }
 
-pub fn read(directory: impl AsRef<Path>) -> Vec<Section> {
+pub fn read(directory: impl AsRef<Path>, locker: &Locker) -> Result<Vec<Section>> {
     // TODO: Test this function.
-    WalkDir::new(directory)
+    let lock = locker.wait_for_read_lock()?;
+    let sections = WalkDir::new(directory)
         .sort_by_file_name()
         .into_iter()
         .filter_map(|entry| read_entry(entry).ok())
-        .collect()
+        .collect();
+    lock.release()?;
+    Ok(sections)
 }
