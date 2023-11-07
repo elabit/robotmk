@@ -1,7 +1,8 @@
 use super::session::RunOutcome;
 use crate::command_spec::CommandSpec;
 use crate::logging::log_and_return_error;
-use crate::termination::{kill_process_tree, TerminationFlag};
+use crate::termination::kill_process_tree;
+use robotmk::termination::TerminationFlag;
 
 use anyhow::{bail, Context, Result};
 use async_std::{future::timeout, task::sleep as async_sleep};
