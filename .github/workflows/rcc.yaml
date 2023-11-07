@@ -1,14 +1,14 @@
-name: RCC
+---
+name: "RCC"
 
 on:
   push:
     paths:
-    - rcc
     - .github/workflows/rcc.yaml
   pull_request:
     paths:
-    - rcc
     - .github/workflows/rcc.yaml
+  workflow_call: {}
 
 jobs:
   build_and_test:
