@@ -28,34 +28,11 @@ jobs:
         STEP: ${{ matrix.step }}
       run: ./ci "${STEP}"
 
-  windows:
-    runs-on: windows-latest
-
-    strategy:
-      matrix:
-        include:
-        - name: Rust formatting
-          step: cargo-fmt-check
-        - name: Rust linting
-          step: cargo-clippy
-        - name: Rust tests
-          step: cargo-test
-
-    steps:
-    - name: Checkout repository
-      uses: actions/checkout@v4
-
-    - name: "Setup Rust"
-      uses: actions-rust-lang/setup-rust-toolchain@v1.5.0
-      with:
-        components: rustfmt, clippy
-
   check_success:
     if: always()
 
     needs:
     - linux
-    - windows
 
     runs-on: ubuntu-latest
 
