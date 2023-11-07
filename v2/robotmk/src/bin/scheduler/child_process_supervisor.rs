@@ -79,20 +79,17 @@ impl ChildProcessSupervisor<'_> {
                 return Ok(ChildProcessOutcome::Terminated);
             }
 
-            if let Some(exit_status) = child
-                .try_wait()
-                .context(format!(
-                    "Failed to query exit status of process {}, killing",
-                    child.id()
-                ))
-                .map_err(|err| {
+            match child.try_wait() {
+                Ok(Some(exit_status)) => return Ok(ChildProcessOutcome::Exited(exit_status)),
+                Ok(None) => {}
+                e => {
                     kill_child_tree(child);
-                    err
-                })?
-            {
-                return Ok(ChildProcessOutcome::Exited(exit_status));
+                    e.context(format!(
+                        "Failed to query exit status of process {}, killing",
+                        child.id()
+                    ))?;
+                }
             }
-
             sleep(Duration::from_millis(250)).await
         }
     }
