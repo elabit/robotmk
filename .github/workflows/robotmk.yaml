@@ -14,20 +14,16 @@ jobs:
     runs-on: windows-latest
 
     steps:
-      - name: "Checkout repository"
-        uses: actions/checkout@v4
+      - uses: actions/checkout@v4
 
-      - name: "Setup Rust"
-        uses: actions-rust-lang/setup-rust-toolchain@v1.5.0
+      - uses: actions-rust-lang/setup-rust-toolchain@v1.5.0
         with:
           target: x86_64-pc-windows-gnu
 
-      - name: "Build Robotmk Windows"
+      - run: cargo build --target=x86_64-pc-windows-gnu --release
         working-directory: ${{ github.workspace }}/v2/robotmk/
-        run: cargo build --target=x86_64-pc-windows-gnu --release
 
-      - name: "Upload Artifact"
-        uses: actions/upload-artifact@v3
+      - uses: actions/upload-artifact@v3
         with:
           path: |
             ${{ github.workspace }}/v2/robotmk/target/x86_64-pc-windows-gnu/release/robotmk.exe
