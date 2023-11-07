@@ -21,7 +21,7 @@ pub struct RCCSetupFailures {
 
 impl WriteSection for RCCSetupFailures {
     fn name() -> &'static str {
-        "rcc_setup_failures"
+        "robotmk_rcc_setup_failures"
     }
 }
 
@@ -36,7 +36,7 @@ pub struct BuildStates<'a>(&'a HashMap<String, EnvironmentBuildStatus>);
 
 impl WriteSection for BuildStates<'_> {
     fn name() -> &'static str {
-        "environment_build_states"
+        "robotmk_environment_build_states"
     }
 }
 
@@ -89,7 +89,7 @@ pub struct SuiteExecutionReport {
 
 impl WritePiggybackSection for SuiteExecutionReport {
     fn name() -> &'static str {
-        "suite_execution_report"
+        "robotmk_suite_execution_report"
     }
 }
 
