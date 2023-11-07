@@ -2,6 +2,7 @@ use super::icacls::run_icacls_command;
 use crate::command_spec::CommandSpec;
 use crate::environment::Environment;
 use crate::internal_config::{sort_suites_by_name, GlobalConfig, Suite};
+use crate::logging::log_and_return_error;
 use crate::results::RCCSetupFailures;
 use crate::sessions::session::{CurrentSession, RunOutcome, RunSpec, Session};
 
@@ -218,10 +219,17 @@ fn run_command_spec_per_session(
 }
 
 fn run_command_spec_in_session(session: &Session, run_spec: &RunSpec) -> Result<bool> {
-    match session.run(run_spec).context(format!(
+    let run_outcome = match session.run(run_spec).context(format!(
         "Failed to run {} for `{session}`",
         run_spec.command_spec
-    ))? {
+    )) {
+        Ok(run_outcome) => run_outcome,
+        Err(error) => {
+            log_and_return_error(error);
+            return Ok(false);
+        }
+    };
+    match run_outcome {
         RunOutcome::Exited(exit_code) => match exit_code {
             Some(exit_code) => {
                 if exit_code == 0 {
