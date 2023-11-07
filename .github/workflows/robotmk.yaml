@@ -1,0 +1,38 @@
+---
+name: "Robotmk"
+on:
+  push:
+    paths:
+      - .github/workflows/robotmk.yaml
+  pull_request:
+    paths:
+      - .github/workflows/robotmk.yaml
+  workflow_call: {}
+
+jobs:
+  build_robotmk_from_source:
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: "Checkout repository"
+        uses: actions/checkout@v4
+
+      - name: "Setup Rust"
+        uses: actions-rust-lang/setup-rust-toolchain@v1.5.0
+        with:
+          target: x86_64-pc-windows-gnu
+
+      - name: "Install MinGW-w64"
+        run: sudo apt-get install -y mingw-w64
+
+      - name: "Build Robotmk Windows"
+        working-directory: ${{ github.workspace }}/v2/robotmk/
+        run: cargo build --target=x86_64-pc-windows-gnu --release
+
+      - name: "Upload Artifact"
+        uses: actions/upload-artifact@v3
+        with:
+          path: |
+            ${{ github.workspace }}/v2/robotmk/target/x86_64-pc-windows-gnu/release/robotmk.exe
+            ${{ github.workspace }}/v2/robotmk/x86_64-pc-windows-gnu/release/robotmk_agent.exe
+          if-no-files-found: error
