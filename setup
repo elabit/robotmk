@@ -4,22 +4,11 @@ set -e
 
 main() {
     setup_rust
-    setup_powershell
     git config core.hooksPath .githooks
 }
 
 setup_rust() {
     curl --proto '=https' --tlsv1.2 -sSf https://sh.rustup.rs | sh -s - -y
-}
-
-setup_powershell() {
-    sudo apt-get install wget apt-transport-https software-properties-common
-    wget -q "https://packages.microsoft.com/config/ubuntu/$(lsb_release -rs)/packages-microsoft-prod.deb"
-    sudo dpkg -i packages-microsoft-prod.deb
-    rm packages-microsoft-prod.deb
-    sudo apt-get update
-    sudo apt-get install powershell
-    pwsh -Command "Install-Module -Name PSScriptAnalyzer"
 }
 
 main
