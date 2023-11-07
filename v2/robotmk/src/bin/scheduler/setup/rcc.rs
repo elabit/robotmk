@@ -10,15 +10,14 @@ use camino::{Utf8Path, Utf8PathBuf};
 use log::{debug, error};
 use robotmk::section::WriteSection;
 use std::collections::HashMap;
-use std::fs::create_dir_all;
+use std::fs::{create_dir_all, remove_dir_all};
 
 pub fn setup(global_config: &GlobalConfig, suites: Vec<Suite>) -> Result<Vec<Suite>> {
     adjust_rcc_binary_permissions(&global_config.rcc_binary_path)
         .context("Failed to adjust permissions of RCC binary")?;
-    create_dir_all(rcc_setup_working_directory(
+    clear_rcc_setup_working_directory(&rcc_setup_working_directory(
         &global_config.working_directory,
-    ))
-    .context("Failed to create working directory for RCC setup")?;
+    ))?;
 
     let (rcc_suites, mut surviving_suites): (Vec<Suite>, Vec<Suite>) = suites
         .into_iter()
@@ -32,6 +31,15 @@ fn adjust_rcc_binary_permissions(executable_path: &Utf8Path) -> Result<()> {
     debug!("Granting group `Users` read and execute access to {executable_path}");
     run_icacls_command(vec![executable_path.as_str(), "/grant", "Users:(RX)"]).context(format!(
         "Adjusting permissions of {executable_path} for group `Users` failed",
+    ))
+}
+
+fn clear_rcc_setup_working_directory(working_directory: &Utf8Path) -> Result<()> {
+    remove_dir_all(working_directory).context(format!(
+        "Failed to remove working directory for RCC setup: {working_directory}"
+    ))?;
+    create_dir_all(working_directory).context(format!(
+        "Failed to create working directory for RCC setup: {working_directory}"
     ))
 }
 
