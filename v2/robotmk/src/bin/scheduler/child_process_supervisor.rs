@@ -23,6 +23,31 @@ pub struct StdioPaths {
     pub stderr: Utf8PathBuf,
 }
 
+async fn wait_for_child_exit(
+    flag: &TerminationFlag,
+    child: &mut Child,
+) -> Result<ChildProcessOutcome> {
+    loop {
+        if flag.should_terminate() {
+            kill_child_tree(child);
+            return Ok(ChildProcessOutcome::Terminated);
+        }
+
+        match child.try_wait() {
+            Ok(Some(exit_status)) => return Ok(ChildProcessOutcome::Exited(exit_status)),
+            Ok(None) => {}
+            e => {
+                kill_child_tree(child);
+                e.context(format!(
+                    "Failed to query exit status of process {}, killing",
+                    child.id()
+                ))?;
+            }
+        }
+        sleep(Duration::from_millis(250)).await
+    }
+}
+
 impl ChildProcessSupervisor<'_> {
     pub fn run(&self) -> Result<ChildProcessOutcome> {
         let mut command: Command = self.build_command()?;
@@ -43,7 +68,7 @@ impl ChildProcessSupervisor<'_> {
         let mut child = command.spawn().context("Failed to spawn subprocess")?;
         match executor::block_on(timeout(
             Duration::from_secs(self.timeout),
-            self.wait_for_child_exit(&mut child),
+            wait_for_child_exit(self.termination_flag, &mut child),
         )) {
             Ok(child_result) => child_result,
             _ => {
@@ -70,28 +95,6 @@ impl ChildProcessSupervisor<'_> {
             command.stdout(Stdio::inherit()).stderr(Stdio::inherit());
         }
         Ok(command)
-    }
-
-    async fn wait_for_child_exit(&self, child: &mut Child) -> Result<ChildProcessOutcome> {
-        loop {
-            if self.termination_flag.should_terminate() {
-                kill_child_tree(child);
-                return Ok(ChildProcessOutcome::Terminated);
-            }
-
-            match child.try_wait() {
-                Ok(Some(exit_status)) => return Ok(ChildProcessOutcome::Exited(exit_status)),
-                Ok(None) => {}
-                e => {
-                    kill_child_tree(child);
-                    e.context(format!(
-                        "Failed to query exit status of process {}, killing",
-                        child.id()
-                    ))?;
-                }
-            }
-            sleep(Duration::from_millis(250)).await
-        }
     }
 }
 
