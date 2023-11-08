@@ -1,18 +1,14 @@
 ---
 name: "Upload all artifacts"
+
 on:
   push:
-    paths:
-      - .github/workflows/release.yaml
-      - .github/workflows/rcc.yaml
-      - .github/workflows/robotmk.yaml
-  pull_request:
-    paths:
-      - .github/workflows/release.yaml
-      - .github/workflows/rcc.yaml
-      - .github/workflows/robotmk.yaml
+    tags:
+      "**"
 
 jobs:
+  tests:
+    uses: ./.github/workflows/tests.yaml
   build_rcc:
     uses: ./.github/workflows/rcc.yaml
   build_robotmk:
