@@ -22,6 +22,14 @@ impl From<&CommandSpec> for Command {
     }
 }
 
+impl From<&CommandSpec> for tokio::process::Command {
+    fn from(command_spec: &CommandSpec) -> Self {
+        let mut command = Self::new(&command_spec.executable);
+        command.args(&command_spec.arguments);
+        command
+    }
+}
+
 impl CommandSpec {
     pub fn new(executable: impl AsRef<str>) -> Self {
         Self {
