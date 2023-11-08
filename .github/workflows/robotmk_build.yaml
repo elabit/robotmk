@@ -2,12 +2,6 @@
 name: "Build Robotmk"
 
 on:
-  push:
-    paths:
-      - .github/workflows/robotmk.yaml
-  pull_request:
-    paths:
-      - .github/workflows/robotmk.yaml
   workflow_call: {}
 
 jobs:

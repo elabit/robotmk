@@ -1,0 +1,58 @@
+---
+name: "CI"
+
+on:
+  push:
+    branches:
+      # Do not trigger on tags
+      # https://stackoverflow.com/questions/68573888/how-can-i-not-execute-a-github-action-when-i-push-a-new-tag
+      "**"
+  pull_request:
+
+jobs:
+  analyse_changes:
+    if: always()
+    runs-on: ubuntu-latest
+    outputs:
+      robotmk_yaml_changed: ${{ steps.filter.outputs.robotmk_yaml }}
+      rcc_yaml_changed: ${{ steps.filter.outputs.rcc_yaml }}
+    steps:
+      - uses: actions/checkout@v4
+      - uses: dorny/paths-filter@v2
+        id: filter
+        with:
+          filters: |
+            robotmk_yaml:
+              - '.github/workflows/robotmk.yaml'
+            rcc_yaml:
+              - '.github/workflows/rcc.yaml'
+
+  tests:
+    if: always()
+    uses: ./.github/workflows/tests.yaml
+
+  build_robotmk:
+    needs:
+      - analyse_changes
+    if: ${{ needs.analyse_changes.outputs.robotmk_yaml_changed == 'true' }}
+    uses: ./.github/workflows/robotmk_build.yaml
+  
+  rcc:
+    needs:
+      - analyse_changes
+    if: ${{ needs.analyse_changes.outputs.rcc_yaml_changed == 'true' }}
+    uses: ./.github/workflows/rcc.yaml
+
+  check_success:
+    if: always()
+    runs-on: Ubuntu-latest
+    needs:
+    - tests
+    - build_robotmk
+    - rcc
+    steps:
+    - name: Decide whether the needed jobs succeeded or failed
+      uses: re-actors/alls-green@release/v1
+      with:
+        allowed-skips: build_robotmk, rcc
+        jobs: ${{ toJSON(needs) }}

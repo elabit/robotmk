@@ -2,12 +2,6 @@
 name: "RCC"
 
 on:
-  push:
-    paths:
-    - .github/workflows/rcc.yaml
-  pull_request:
-    paths:
-    - .github/workflows/rcc.yaml
   workflow_call: {}
 
 jobs:
