@@ -3,13 +3,12 @@ use super::termination::kill_process_tree;
 use robotmk::termination::TerminationFlag;
 
 use anyhow::{Context, Result};
-use async_std::{future::timeout, task::sleep};
 use camino::Utf8PathBuf;
-use futures::executor;
 use log::{debug, error};
 use std::process::{Child, Command, ExitStatus, Stdio};
 use std::time::Duration;
 use sysinfo::{Pid, PidExt};
+use tokio::time::{timeout, sleep};
 
 pub struct ChildProcessSupervisor<'a> {
     pub command_spec: &'a CommandSpec,
@@ -48,6 +47,23 @@ async fn wait_for_child_exit(
     }
 }
 
+#[tokio::main]
+async fn wait_with_timeout(
+    duration: Duration,
+    flag: &TerminationFlag,
+    child: &mut Child,
+) -> Result<ChildProcessOutcome> {
+    let child_future = wait_for_child_exit(flag, &mut child);
+    match timeout(duration, child_future).await {
+        Ok(child_result) => child_result,
+        _ => {
+            error!("Timed out");
+            kill_child_tree(&child);
+            Ok(ChildProcessOutcome::TimedOut)
+        }
+    }
+}
+
 impl ChildProcessSupervisor<'_> {
     pub fn run(&self) -> Result<ChildProcessOutcome> {
         let mut command: Command = self.build_command()?;
@@ -66,17 +82,7 @@ impl ChildProcessSupervisor<'_> {
         );
 
         let mut child = command.spawn().context("Failed to spawn subprocess")?;
-        match executor::block_on(timeout(
-            Duration::from_secs(self.timeout),
-            wait_for_child_exit(self.termination_flag, &mut child),
-        )) {
-            Ok(child_result) => child_result,
-            _ => {
-                error!("Timed out");
-                kill_child_tree(&child);
-                Ok(ChildProcessOutcome::TimedOut)
-            }
-        }
+        wait_with_timeout(Duration::from_secs(self.timeout), self.termination_flag, &mut child)
     }
 
     fn build_command(&self) -> Result<Command> {
