@@ -1,5 +1,6 @@
 ---
-name: "Robotmk"
+name: "Build Robotmk"
+
 on:
   push:
     paths:
