@@ -7,7 +7,6 @@ edition = "2021"
 
 [dependencies]
 anyhow = { version = "*", features = ["backtrace"] }
-async-std = "*"
 base64 = "*"
 camino = { version = "1.1.6", features = ["serde1"] }
 chrono = "0.4.31"
@@ -16,7 +15,6 @@ clokwerk = "*"
 ctrlc = "*"
 flexi_logger = "*"
 fs4 = "0.7.0"
-futures = "*"
 log = "*"
 serde = { version = "1.0.188", features = ["derive"] }
 serde_json = "*"
