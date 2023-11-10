@@ -36,9 +36,11 @@ fn adjust_rcc_binary_permissions(executable_path: &Utf8Path) -> Result<()> {
 }
 
 fn clear_rcc_setup_working_directory(working_directory: &Utf8Path) -> Result<()> {
-    remove_dir_all(working_directory).context(format!(
-        "Failed to remove working directory for RCC setup: {working_directory}"
-    ))?;
+    if working_directory.exists() {
+        remove_dir_all(working_directory).context(format!(
+            "Failed to remove working directory for RCC setup: {working_directory}"
+        ))?;
+    }
     create_dir_all(working_directory).context(format!(
         "Failed to create working directory for RCC setup: {working_directory}"
     ))
