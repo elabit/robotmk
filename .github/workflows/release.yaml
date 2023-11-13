@@ -1,8 +1,13 @@
----
 name: "Release"
-
-on: workflow_dispatch
-
+on:
+  workflow_dispatch:
+    inputs:
+      tag:
+        description: >
+          Tag, which is set by the this GitHub workflow.
+          Should follow SemVer and is not allowed to exist already.
+        required: true
+        type: string
 jobs:
   tests:
     uses: ./.github/workflows/tests.yaml
@@ -12,14 +17,25 @@ jobs:
     uses: ./.github/workflows/robotmk_build.yaml
   release:
     runs-on: ubuntu-latest
-    needs: [build_rcc, build_robotmk, tests]
+    needs: [tests, build_rcc, build_robotmk]
     steps:
+      - uses: actions/checkout@v4
       - uses: actions/download-artifact@v3
-
       - run: zip -r executables.zip artifact
-
       - name: Push release tag
         run: |
           git checkout main
-          git tag v2.0.0-alpha
+          git tag ${{ inputs.tag }}
           git push --tags
+      - uses: ncipollo/release-action@v1.13.0
+        with:
+          allowUpdates: false
+          artifacts: "executables.zip"
+          replacesArtifacts: true
+          removeArtifacts: true
+          prerelease: true
+          draft: true
+          artifactErrorsFailBuild: true
+          updateOnlyUnreleased: true
+          makeLatest: false
+          tag: ${{ inputs.tag }}
