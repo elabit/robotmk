@@ -116,6 +116,7 @@ pub enum ExecutionReport {
 pub struct AttemptsOutcome {
     pub attempts: Vec<AttemptOutcome>,
     pub rebot: Option<RebotOutcome>,
+    pub config: AttemptsConfig,
 }
 
 #[derive(Serialize)]
@@ -138,4 +139,12 @@ pub enum RebotOutcome {
 pub struct RebotResult {
     pub xml: String,
     pub html_base64: String,
+    pub timestamp: i64,
+}
+
+#[derive(Serialize)]
+pub struct AttemptsConfig {
+    pub interval: u32,
+    pub timeout: u64,
+    pub n_attempts_max: usize,
 }
