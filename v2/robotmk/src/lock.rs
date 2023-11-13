@@ -1,5 +1,3 @@
-use super::termination::TerminationFlag;
-
 use anyhow::{bail, Context, Result};
 use camino::{Utf8Path, Utf8PathBuf};
 use fs4::{lock_contended_error, FileExt};
@@ -7,11 +5,12 @@ use log::debug;
 use std::fs::File;
 use std::io::Result as IOResult;
 use std::time::Duration;
+use tokio_util::sync::CancellationToken;
 
 #[derive(Clone)]
 pub struct Locker {
     lock_path: Utf8PathBuf,
-    termination_flag: Option<TerminationFlag>,
+    cancellation_token: Option<CancellationToken>,
 }
 
 pub struct Lock(File);
@@ -19,19 +18,19 @@ pub struct Lock(File);
 impl Locker {
     pub fn new(
         lock_path: impl AsRef<Utf8Path>,
-        termination_flag: Option<&TerminationFlag>,
+        cancellation_token: Option<&CancellationToken>,
     ) -> Self {
         Self {
             lock_path: lock_path.as_ref().to_owned(),
-            termination_flag: termination_flag.cloned(),
+            cancellation_token: cancellation_token.cloned(),
         }
     }
 
     pub fn wait_for_read_lock(&self) -> Result<Lock> {
         debug!("Waiting for read lock");
         let file = self.file()?;
-        if let Some(termination_flag) = &self.termination_flag {
-            Self::lock_manual_loop(&(|| file.try_lock_shared()), termination_flag)
+        if let Some(cancellation_token) = &self.cancellation_token {
+            Self::lock_manual_loop(&(|| file.try_lock_shared()), cancellation_token)
         } else {
             file.lock_shared()
                 .context("Unexpected error while attempting to acquire read lock")
@@ -44,8 +43,8 @@ impl Locker {
     pub fn wait_for_write_lock(&self) -> Result<Lock> {
         debug!("Waiting for write lock");
         let file = self.file()?;
-        if let Some(termination_flag) = &self.termination_flag {
-            Self::lock_manual_loop(&(|| file.try_lock_exclusive()), termination_flag)
+        if let Some(cancellation_token) = &self.cancellation_token {
+            Self::lock_manual_loop(&(|| file.try_lock_exclusive()), cancellation_token)
         } else {
             file.lock_exclusive()
                 .context("Unexpected error while attempting to acquire write lock")
@@ -64,10 +63,10 @@ impl Locker {
 
     fn lock_manual_loop(
         lock_tryer: &dyn Fn() -> IOResult<()>,
-        termination_flag: &TerminationFlag,
+        cancellation_token: &CancellationToken,
     ) -> Result<()> {
         loop {
-            if termination_flag.should_terminate() {
+            if cancellation_token.is_cancelled() {
                 bail!("Terminated")
             }
             match lock_tryer() {

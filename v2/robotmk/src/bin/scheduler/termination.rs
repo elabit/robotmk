@@ -1,35 +1,33 @@
 use anyhow::{Context, Result};
 use camino::Utf8PathBuf;
 use log::debug;
-use robotmk::termination::TerminationFlag;
 use std::collections::{HashMap, HashSet};
-use std::sync::atomic::{AtomicBool, Ordering};
-use std::sync::Arc;
 use std::thread::{sleep, spawn};
 use std::time::Duration;
 use sysinfo::{Pid, Process, ProcessExt, System, SystemExt};
+use tokio_util::sync::CancellationToken;
 
-pub fn start_termination_control(run_flag_file: Option<Utf8PathBuf>) -> Result<TerminationFlag> {
-    let raw_flag = Arc::new(AtomicBool::new(false));
-    let raw_flag_clone = raw_flag.clone();
-    ctrlc::set_handler(move || {
-        raw_flag_clone.store(true, Ordering::Relaxed);
-    })
-    .context("Failed to register signal handler for CTRL+C")?;
+pub fn start_termination_control(run_flag_file: Option<Utf8PathBuf>) -> Result<CancellationToken> {
+    let token = CancellationToken::new();
+    watch_ctrlc(token.clone()).context("Failed to register signal handler for CTRL+C")?;
     if let Some(run_flag_file) = run_flag_file {
-        start_run_flag_watch_thread(run_flag_file, raw_flag.clone());
+        start_run_flag_watch_thread(run_flag_file, token.clone());
     }
-    Ok(TerminationFlag::new(raw_flag))
+    Ok(token)
 }
 
-fn start_run_flag_watch_thread(file: Utf8PathBuf, raw_termination_flag: Arc<AtomicBool>) {
+fn watch_ctrlc(token: CancellationToken) -> Result<(), ctrlc::Error> {
+    ctrlc::set_handler(move || token.cancel())
+}
+
+fn start_run_flag_watch_thread(file: Utf8PathBuf, token: CancellationToken) {
     spawn(move || {
         debug!("Watching {file}");
         while file.exists() {
             sleep(Duration::from_millis(250));
         }
         debug!("{file} not found, raising termination flag");
-        raw_termination_flag.store(true, Ordering::Relaxed)
+        token.cancel()
     });
 }
 
@@ -88,12 +86,12 @@ mod tests {
     #[test]
     fn run_flag_file() -> Result<()> {
         let run_flag_temp_path = NamedTempFile::new()?.into_temp_path();
-        let termination_flag = start_termination_control(Some(Utf8PathBuf::try_from(
+        let cancellation_token = start_termination_control(Some(Utf8PathBuf::try_from(
             run_flag_temp_path.to_path_buf(),
         )?))?;
         run_flag_temp_path.close()?;
         sleep(Duration::from_millis(500));
-        assert!(termination_flag.should_terminate());
+        assert!(cancellation_token.is_cancelled());
         Ok(())
     }
 }

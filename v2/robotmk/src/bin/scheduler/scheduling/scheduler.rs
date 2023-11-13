@@ -25,7 +25,7 @@ pub fn run_suites_and_cleanup(global_config: &GlobalConfig, suites: &[Suite]) ->
         .run(move || run_cleanup_working_directories_in_new_thread(suites_for_cleanup.clone()));
 
     loop {
-        if global_config.termination_flag.should_terminate() {
+        if global_config.cancellation_token.is_cancelled() {
             error!("Received termination signal while scheduling, waiting for suites to terminate");
             wait_until_all_suites_have_terminated(suites);
             bail!("Terminated");
