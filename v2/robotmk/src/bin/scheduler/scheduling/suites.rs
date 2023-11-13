@@ -1,6 +1,8 @@
 use crate::environment::ResultCode;
 use crate::internal_config::Suite;
-use crate::results::{AttemptOutcome, AttemptsOutcome, ExecutionReport, SuiteExecutionReport};
+use crate::results::{
+    AttemptOutcome, AttemptsConfig, AttemptsOutcome, ExecutionReport, SuiteExecutionReport,
+};
 use crate::rf::{rebot::Rebot, robot::Attempt};
 use crate::sessions::session::{RunOutcome, RunSpec};
 
@@ -91,6 +93,11 @@ fn produce_suite_results(suite: &Suite) -> Result<AttemptsOutcome> {
                 }
                 .rebot(),
             )
+        },
+        config: AttemptsConfig {
+            interval: suite.execution_interval_seconds,
+            timeout: suite.timeout,
+            n_attempts_max: suite.robot.n_attempts_max,
         },
     })
 }

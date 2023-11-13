@@ -6,6 +6,7 @@ use crate::results::{RebotOutcome, RebotResult};
 use anyhow::{Context, Result};
 use base64::{engine::general_purpose, Engine};
 use camino::{Utf8Path, Utf8PathBuf};
+use chrono::Utc;
 use log::debug;
 use log::error;
 use std::fs::{read, read_to_string};
@@ -20,13 +21,14 @@ pub struct Rebot<'a> {
 
 impl Rebot<'_> {
     pub fn rebot(&self) -> RebotOutcome {
+        let timestamp = Utc::now().timestamp();
         match self.run() {
             Ok(output) => match output.status.code() {
                 Some(exit_code) => match self.environment.create_result_code(exit_code) {
-                    ResultCode::AllTestsPassed => self.process_successful_run(),
+                    ResultCode::AllTestsPassed => self.process_successful_run(timestamp),
                     ResultCode::RobotCommandFailed => {
                         if self.path_xml.exists() {
-                            self.process_successful_run()
+                            self.process_successful_run(timestamp)
                         } else {
                             Self::process_failure(&output, "Rebot run failed (no merged XML found)")
                         }
@@ -67,12 +69,13 @@ impl Rebot<'_> {
         rebot_command_spec
     }
 
-    fn process_successful_run(&self) -> RebotOutcome {
+    fn process_successful_run(&self, timestamp: i64) -> RebotOutcome {
         match read_to_string(self.path_xml) {
             Ok(merged_xml) => match read(self.path_html) {
                 Ok(merged_html) => RebotOutcome::Ok(RebotResult {
                     xml: merged_xml,
                     html_base64: general_purpose::STANDARD.encode(merged_html),
+                    timestamp,
                 }),
                 Err(error) => {
                     let error_message = format!(
