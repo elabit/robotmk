@@ -6,18 +6,18 @@ use robotmk::{
     config::{Config, WorkingDirectoryCleanupConfig},
     lock::Locker,
     section::Host,
-    termination::TerminationFlag,
 };
 
 use camino::Utf8PathBuf;
 use std::sync::Arc;
 use std::sync::Mutex;
+use tokio_util::sync::CancellationToken;
 
 pub struct GlobalConfig {
     pub working_directory: Utf8PathBuf,
     pub results_directory: Utf8PathBuf,
     pub rcc_binary_path: Utf8PathBuf,
-    pub termination_flag: TerminationFlag,
+    pub cancellation_token: CancellationToken,
     pub results_directory_locker: Locker,
 }
 
@@ -32,7 +32,7 @@ pub struct Suite {
     pub environment: Environment,
     pub session: Session,
     pub working_directory_cleanup_config: WorkingDirectoryCleanupConfig,
-    pub termination_flag: TerminationFlag,
+    pub cancellation_token: CancellationToken,
     pub parallelism_protection: Arc<Mutex<usize>>,
     pub host: Host,
     pub results_directory_locker: Locker,
@@ -40,7 +40,7 @@ pub struct Suite {
 
 pub fn from_external_config(
     external_config: Config,
-    termination_flag: TerminationFlag,
+    cancellation_token: CancellationToken,
     results_directory_locker: Locker,
 ) -> (GlobalConfig, Vec<Suite>) {
     let mut suites: Vec<Suite> = external_config
@@ -69,7 +69,7 @@ pub fn from_external_config(
             ),
             session: Session::new(&suite_config.session_config),
             working_directory_cleanup_config: suite_config.working_directory_cleanup_config,
-            termination_flag: termination_flag.clone(),
+            cancellation_token: cancellation_token.clone(),
             parallelism_protection: Arc::new(Mutex::new(0)),
             host: suite_config.host,
             results_directory_locker: results_directory_locker.clone(),
@@ -81,7 +81,7 @@ pub fn from_external_config(
             working_directory: external_config.working_directory,
             results_directory: external_config.results_directory,
             rcc_binary_path: external_config.rcc_binary_path,
-            termination_flag,
+            cancellation_token,
             results_directory_locker,
         },
         suites,
@@ -103,7 +103,6 @@ mod tests {
     };
 
     use std::collections::HashMap;
-    use std::sync::{atomic::AtomicBool, Arc};
 
     fn system_suite_config() -> SuiteConfig {
         SuiteConfig {
@@ -151,7 +150,7 @@ mod tests {
 
     #[test]
     fn test_from_external_config() {
-        let termination_flag = TerminationFlag::new(Arc::new(AtomicBool::new(false)));
+        let cancellation_token = CancellationToken::new();
         let (global_config, suites) = from_external_config(
             Config {
                 working_directory: Utf8PathBuf::from("/working"),
@@ -162,8 +161,8 @@ mod tests {
                     (String::from("rcc"), rcc_suite_config()),
                 ]),
             },
-            termination_flag.clone(),
-            Locker::new("/config.json", Some(&termination_flag)),
+            cancellation_token.clone(),
+            Locker::new("/config.json", Some(&cancellation_token)),
         );
         assert_eq!(global_config.working_directory, "/working");
         assert_eq!(global_config.results_directory, "/results");

@@ -136,7 +136,7 @@ fn run_attempt(
         command_spec: &suite.environment.wrap(attempt.command_spec),
         base_path: &output_directory.join(attempt.index.to_string()),
         timeout: suite.timeout,
-        termination_flag: &suite.termination_flag,
+        cancellation_token: &suite.cancellation_token,
     }) {
         Ok(run_outcome) => run_outcome,
         Err(error_) => {

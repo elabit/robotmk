@@ -2,7 +2,7 @@ use super::session::RunOutcome;
 use crate::command_spec::CommandSpec;
 use crate::logging::log_and_return_error;
 use crate::termination::kill_process_tree;
-use robotmk::termination::{waited, Outcome, TerminationFlag};
+use robotmk::termination::{waited, Outcome};
 
 use anyhow::{bail, Context, Result};
 use camino::{Utf8Path, Utf8PathBuf};
@@ -14,11 +14,12 @@ use std::str::FromStr;
 use std::time::Duration;
 use sysinfo::Pid;
 use tokio::task::yield_now;
+use tokio_util::sync::CancellationToken;
 
 fn wait_for_task_exit(task: &TaskSpec, paths: &Paths) -> Result<RunOutcome> {
     let duration = Duration::from_secs(task.timeout);
     let queried = query(task.task_name, &paths.exit_code);
-    match waited(duration, task.termination_flag, queried) {
+    match waited(duration, task.cancellation_token, queried) {
         Outcome::Cancel => {
             kill_and_delete_task(task.task_name, paths);
             Ok(RunOutcome::TimedOut)
@@ -60,7 +61,7 @@ pub struct TaskSpec<'a> {
     pub user_name: &'a str,
     pub base_path: &'a Utf8Path,
     pub timeout: u64,
-    pub termination_flag: &'a TerminationFlag,
+    pub cancellation_token: &'a CancellationToken,
 }
 
 #[cfg_attr(test, derive(Debug, PartialEq))]

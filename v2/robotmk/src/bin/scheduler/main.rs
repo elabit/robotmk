@@ -32,17 +32,17 @@ fn run() -> Result<()> {
         robotmk::config::load(&args.config_path).context("Configuration loading failed")?;
     debug!("Configuration loaded");
 
-    let termination_flag = termination::start_termination_control(args.run_flag)
+    let cancellation_token = termination::start_termination_control(args.run_flag)
         .context("Failed to set up termination control")?;
     debug!("Termination control set up");
 
     let (global_config, suites) = internal_config::from_external_config(
         external_config,
-        termination_flag.clone(),
-        Locker::new(&args.config_path, Some(&termination_flag)),
+        cancellation_token.clone(),
+        Locker::new(&args.config_path, Some(&cancellation_token)),
     );
 
-    if global_config.termination_flag.should_terminate() {
+    if global_config.cancellation_token.is_cancelled() {
         bail!("Terminated")
     }
 
@@ -52,7 +52,7 @@ fn run() -> Result<()> {
     let suites = setup::rcc::setup(&global_config, suites).context("RCC-specific setup failed")?;
     debug!("RCC-specific setup completed");
 
-    if global_config.termination_flag.should_terminate() {
+    if global_config.cancellation_token.is_cancelled() {
         bail!("Terminated")
     }
 
@@ -64,7 +64,7 @@ fn run() -> Result<()> {
     let suites = environment::build_environments(&global_config, suites)?;
     info!("Environment building finished");
 
-    if global_config.termination_flag.should_terminate() {
+    if global_config.cancellation_token.is_cancelled() {
         bail!("Terminated")
     }
 

@@ -1,11 +1,12 @@
 use super::schtasks::{run_task, TaskSpec};
 use crate::child_process_supervisor::{ChildProcessOutcome, ChildProcessSupervisor, StdioPaths};
 use crate::command_spec::CommandSpec;
-use robotmk::{config::SessionConfig, termination::TerminationFlag};
+use robotmk::config::SessionConfig;
 
 use anyhow::Result;
 use camino::{Utf8Path, Utf8PathBuf};
 use std::fmt::{Display, Formatter, Result as FmtResult};
+use tokio_util::sync::CancellationToken;
 
 #[derive(Clone, Eq, Hash, PartialEq)]
 #[cfg_attr(test, derive(Debug))]
@@ -72,7 +73,7 @@ pub struct RunSpec<'a> {
     pub command_spec: &'a CommandSpec,
     pub base_path: &'a Utf8Path,
     pub timeout: u64,
-    pub termination_flag: &'a TerminationFlag,
+    pub cancellation_token: &'a CancellationToken,
 }
 
 pub enum RunOutcome {
@@ -90,7 +91,7 @@ impl CurrentSession {
                 stderr: Utf8PathBuf::from(format!("{}.stderr", spec.base_path)),
             }),
             timeout: spec.timeout,
-            termination_flag: spec.termination_flag,
+            cancellation_token: spec.cancellation_token,
         }
         .run())?
         {
@@ -112,7 +113,7 @@ impl UserSession {
             user_name: &self.user_name,
             base_path: spec.base_path,
             timeout: spec.timeout,
-            termination_flag: spec.termination_flag,
+            cancellation_token: spec.cancellation_token,
         })
     }
 }

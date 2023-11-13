@@ -61,7 +61,7 @@ fn build_environment(
                         stderr: stdio_directory.join(format!("{}.stderr", suite.id)),
                     }),
                     timeout: build_instructions.timeout,
-                    termination_flag: &suite.termination_flag,
+                    cancellation_token: &suite.cancellation_token,
                 },
                 start_time,
             )?;

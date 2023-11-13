@@ -196,7 +196,7 @@ fn run_command_spec_once_in_current_session(
                 command_spec,
                 base_path: &rcc_setup_working_directory(&global_config.working_directory).join(id),
                 timeout: 120,
-                termination_flag: &global_config.termination_flag,
+                cancellation_token: &global_config.cancellation_token,
             },
         )? {
             (suites, vec![])
@@ -241,7 +241,7 @@ fn run_command_spec_per_session(
                 base_path: &rcc_setup_working_directory(&global_config.working_directory)
                     .join(session_id),
                 timeout: 120,
-                termination_flag: &global_config.termination_flag,
+                cancellation_token: &global_config.cancellation_token,
             },
         )? {
             succesful_suites.extend(suites);

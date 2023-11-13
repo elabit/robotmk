@@ -1,6 +1,6 @@
 use super::command_spec::CommandSpec;
 use super::termination::kill_process_tree;
-use robotmk::termination::{waited, Outcome, TerminationFlag};
+use robotmk::termination::{waited, Outcome};
 
 use anyhow::{Context, Result};
 use camino::Utf8PathBuf;
@@ -9,12 +9,13 @@ use std::process::{ExitStatus, Stdio};
 use std::time::Duration;
 use sysinfo::{Pid, PidExt};
 use tokio::process::{Child, Command};
+use tokio_util::sync::CancellationToken;
 
 pub struct ChildProcessSupervisor<'a> {
     pub command_spec: &'a CommandSpec,
     pub stdio_paths: Option<StdioPaths>,
     pub timeout: u64,
-    pub termination_flag: &'a TerminationFlag,
+    pub cancellation_token: &'a CancellationToken,
 }
 
 pub struct StdioPaths {
@@ -24,7 +25,7 @@ pub struct StdioPaths {
 
 fn wait_for_child(
     duration: Duration,
-    flag: &TerminationFlag,
+    flag: &CancellationToken,
     child: &mut Child,
 ) -> Result<ChildProcessOutcome> {
     match waited(duration, flag, child.wait()) {
@@ -64,7 +65,7 @@ impl ChildProcessSupervisor<'_> {
 
         wait_for_child(
             Duration::from_secs(self.timeout),
-            self.termination_flag,
+            self.cancellation_token,
             &mut command.spawn().context("Failed to spawn subprocess")?,
         )
     }
