@@ -14,7 +14,7 @@ pub fn suite_results_directory(results_directory: &Utf8Path) -> Utf8PathBuf {
 
 #[derive(Serialize)]
 pub enum SchedulerState {
-    Setup,
+    RCCSetup,
     EnvironmentBuilding,
     Scheduling,
 }
