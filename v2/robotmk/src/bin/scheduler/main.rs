@@ -47,8 +47,10 @@ fn run() -> Result<()> {
     }
 
     write_state(&results::SchedulerState::Setup, &global_config)?;
-    let suites = setup::setup(&global_config, suites)?;
-    debug!("Setup completed");
+    setup::general::setup(&global_config, &suites).context("General setup failed")?;
+    debug!("General setup completed");
+    let suites = setup::rcc::setup(&global_config, suites).context("RCC-specific setup failed")?;
+    debug!("RCC-specific setup completed");
 
     if global_config.termination_flag.should_terminate() {
         bail!("Terminated")
