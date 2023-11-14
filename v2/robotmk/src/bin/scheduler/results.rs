@@ -13,15 +13,15 @@ pub fn suite_results_directory(results_directory: &Utf8Path) -> Utf8PathBuf {
 }
 
 #[derive(Serialize)]
-pub enum SchedulerState {
+pub enum SchedulerPhase {
     RCCSetup,
     EnvironmentBuilding,
     Scheduling,
 }
 
-impl WriteSection for SchedulerState {
+impl WriteSection for SchedulerPhase {
     fn name() -> &'static str {
-        "robotmk_scheduler_state"
+        "robotmk_scheduler_phase"
     }
 }
 

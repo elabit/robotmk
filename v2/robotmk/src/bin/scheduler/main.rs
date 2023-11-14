@@ -48,7 +48,7 @@ fn run() -> Result<()> {
 
     setup::general::setup(&global_config, &suites).context("General setup failed")?;
     debug!("General setup completed");
-    write_state(&results::SchedulerState::RCCSetup, &global_config)?;
+    write_phase(&results::SchedulerPhase::RCCSetup, &global_config)?;
     let suites = setup::rcc::setup(&global_config, suites).context("RCC-specific setup failed")?;
     debug!("RCC-specific setup completed");
 
@@ -57,8 +57,8 @@ fn run() -> Result<()> {
     }
 
     info!("Starting environment building");
-    write_state(
-        &results::SchedulerState::EnvironmentBuilding,
+    write_phase(
+        &results::SchedulerPhase::EnvironmentBuilding,
         &global_config,
     )?;
     let suites = environment::build_environments(&global_config, suites)?;
@@ -69,16 +69,16 @@ fn run() -> Result<()> {
     }
 
     info!("Starting suite scheduling");
-    write_state(&results::SchedulerState::Scheduling, &global_config)?;
+    write_phase(&results::SchedulerPhase::Scheduling, &global_config)?;
     scheduling::scheduler::run_suites_and_cleanup(&global_config, &suites)
 }
 
-fn write_state(
-    state: &results::SchedulerState,
+fn write_phase(
+    phase: &results::SchedulerPhase,
     global_config: &internal_config::GlobalConfig,
 ) -> Result<()> {
-    state.write(
-        global_config.results_directory.join("scheduler_state.json"),
+    phase.write(
+        global_config.results_directory.join("scheduler_phase.json"),
         &global_config.results_directory_locker,
     )
 }
