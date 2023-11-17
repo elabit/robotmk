@@ -53,6 +53,7 @@ fn rcc_setup_working_directory(working_directory: &Utf8Path) -> Utf8PathBuf {
 fn rcc_setup(global_config: &GlobalConfig, rcc_suites: Vec<Suite>) -> Result<Vec<Suite>> {
     let mut rcc_setup_failures = RCCSetupFailures {
         telemetry_disabling: vec![],
+        long_path_support: vec![],
         shared_holotree: vec![],
         holotree_init: vec![],
     };
@@ -66,6 +67,19 @@ fn rcc_setup(global_config: &GlobalConfig, rcc_suites: Vec<Suite>) -> Result<Vec
         error!(
             "Dropping the following suites due to RCC telemetry disabling failure: {}",
             rcc_setup_failures.telemetry_disabling.join(", ")
+        );
+    }
+
+    debug!("Enabling support for long paths");
+    let (sucessful_suites, failed_suites) =
+        enable_long_path_support(global_config, sucessful_suites)
+            .context("Enabling support for long paths failed")?;
+    rcc_setup_failures.long_path_support =
+        failed_suites.into_iter().map(|suite| suite.name).collect();
+    if !rcc_setup_failures.long_path_support.is_empty() {
+        error!(
+            "Dropping the following suites due to long path support enabling failure: {}",
+            rcc_setup_failures.long_path_support.join(", ")
         );
     }
 
@@ -116,6 +130,21 @@ fn disable_rcc_telemetry(
             ],
         },
         "telemetry_disabling",
+    )
+}
+
+fn enable_long_path_support(
+    global_config: &GlobalConfig,
+    suites: Vec<Suite>,
+) -> Result<(Vec<Suite>, Vec<Suite>)> {
+    run_command_spec_once_in_current_session(
+        global_config,
+        suites,
+        &CommandSpec {
+            executable: global_config.rcc_binary_path.to_string(),
+            arguments: vec!["configure".into(), "longpaths".into(), "--enable".into()],
+        },
+        "long_path_support_enabling",
     )
 }
 
