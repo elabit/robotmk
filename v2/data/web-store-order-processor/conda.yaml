@@ -8,11 +8,11 @@ channels:
 dependencies:
   - python=3.10.12                    # https://pyreadiness.org/3.10
   - pip=23.2.1                        # https://pip.pypa.io/en/stable/news
-  - truststore=0.7.0                  # https://github.com/sethmlarson/truststore/blob/main/CHANGELOG.md
+  - robocorp-truststore=0.8.0         # https://pypi.org/project/robocorp-truststore/
   - nodejs=18.17.1                    # https://github.com/nodejs/node/blob/main/CHANGELOG.md
   - pip:
-    - robotframework-browser==17.4.0  # https://github.com/MarketSquare/robotframework-browser/releases
-    - rpaframework==27.1.0            # https://rpaframework.org/releasenotes.html
+    - robotframework-browser==17.5.2  # https://github.com/MarketSquare/robotframework-browser/releases
+    - rpaframework==27.6.0            # https://rpaframework.org/releasenotes.html
 
 rccPostInstall:
   - rfbrowser init                    # Initialize Playwright
