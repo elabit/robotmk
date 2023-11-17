@@ -25,8 +25,7 @@ Place orders
 *** Keywords ***
 Process orders
     Open Swag Labs
-    ${secret}=    Get Secret    swaglabs
-    Login    ${secret}[username]    ${secret}[password]
+    Login    standard_user    secret_sauce
     ${orders}=    Collect orders
     FOR    ${order}    IN    @{orders}
         Run Keyword And Continue On Failure    Process order    ${order}
