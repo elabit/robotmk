@@ -64,7 +64,7 @@ fn rcc_setup(global_config: &GlobalConfig, rcc_suites: Vec<Suite>) -> Result<Vec
         failed_suites.into_iter().map(|suite| suite.name).collect();
     if !rcc_setup_failures.telemetry_disabling.is_empty() {
         error!(
-            "Dropping the following suites due RCC telemetry disabling failure: {}",
+            "Dropping the following suites due to RCC telemetry disabling failure: {}",
             rcc_setup_failures.telemetry_disabling.join(", ")
         );
     }
@@ -115,7 +115,7 @@ fn disable_rcc_telemetry(
                 "--do-not-track".into(),
             ],
         },
-        "rcc_telemetry_disabling",
+        "telemetry_disabling",
     )
 }
 
@@ -123,38 +123,19 @@ fn shared_holotree_init(
     global_config: &GlobalConfig,
     suites: Vec<Suite>,
 ) -> Result<(Vec<Suite>, Vec<Suite>)> {
-    Ok(
-        if run_command_spec_in_session(
-            &Session::Current(CurrentSession {}),
-            &RunSpec {
-                id: "rcc_shared_holotree_init",
-                command_spec: &CommandSpec {
-                    executable: global_config.rcc_binary_path.to_string(),
-                    arguments: vec![
-                        "holotree".into(),
-                        "shared".into(),
-                        "--enable".into(),
-                        "--once".into(),
-                    ],
-                },
-                base_path: &rcc_setup_working_directory(&global_config.working_directory)
-                    .join("shared_holotree_init"),
-                timeout: 120,
-                termination_flag: &global_config.termination_flag,
-            },
-        )? {
-            (suites, vec![])
-        } else {
-            error!(
-            "Shared holotree initialization failed for the following suites which will now be dropped: {}",
-            suites
-                .iter()
-                .map(|suite| suite.name.as_str())
-                .collect::<Vec<&str>>()
-                .join(", ")
-        );
-            (vec![], suites)
+    run_command_spec_once_in_current_session(
+        global_config,
+        suites,
+        &CommandSpec {
+            executable: global_config.rcc_binary_path.to_string(),
+            arguments: vec![
+                "holotree".into(),
+                "shared".into(),
+                "--enable".into(),
+                "--once".into(),
+            ],
         },
+        "shared_holotree_init",
     )
 }
 
@@ -170,6 +151,30 @@ fn holotree_init(
             arguments: vec!["holotree".into(), "init".into()],
         },
         "holotree_initialization",
+    )
+}
+
+fn run_command_spec_once_in_current_session(
+    global_config: &GlobalConfig,
+    suites: Vec<Suite>,
+    command_spec: &CommandSpec,
+    id: &str,
+) -> Result<(Vec<Suite>, Vec<Suite>)> {
+    Ok(
+        if run_command_spec_in_session(
+            &Session::Current(CurrentSession {}),
+            &RunSpec {
+                id: &format!("robotmk_{id}"),
+                command_spec,
+                base_path: &rcc_setup_working_directory(&global_config.working_directory).join(id),
+                timeout: 120,
+                termination_flag: &global_config.termination_flag,
+            },
+        )? {
+            (suites, vec![])
+        } else {
+            (vec![], suites)
+        },
     )
 }
 
