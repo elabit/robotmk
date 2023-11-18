@@ -13,24 +13,24 @@ ${OUTPUT_EXCEL}     ${OUTPUT_DIR}${/}calculation_results.xlsx
 
 
 *** Tasks ***
-Count My Veggies
+Do Calculations
     [Documentation]    A sample robot that reads two columns of input and outputs calculations
-    Check Veggies Excel And Start Calculator
-    ${inputs}=    Read Veggies Excel
-    ${outputs}=    Count Veggie Totals    ${inputs}
-    Save Veggie Results Excel    ${outputs}
+    Check Input FIle And Start Calculator
+    ${inputs}=    Read Input Excel
+    ${outputs}=    Calculate    ${inputs}
+    Save Results In Excel    ${outputs}
     Close Window    name:Calculator
 
 
 *** Keywords ***
-Read Veggies Excel
+Read Input Excel
     [Documentation]    Reads the Excel sheet for veggies
     Open Workbook    ${INPUT_EXCEL}
     ${inputs}=    Read Worksheet As Table    Sheet1    ${TRUE}    ${TRUE}
     Close Workbook
     RETURN    ${inputs}
 
-Count Veggie Totals
+Calculate
     [Documentation]    Counts the total amounts with Calculator Application
     [Arguments]    ${table}
     ${totals}=    Create List
@@ -57,7 +57,7 @@ Input Number To Calc
         Click    Calculator - ${digit}
     END
 
-Save Veggie Results Excel
+Save Results In Excel
     [Documentation]    Writes the Excel sheet for total amounts of veggies
     [Arguments]    ${outputs}
     Create Workbook    ${CURDIR}${/}calculation_results.xlsx    xlsx
@@ -81,7 +81,7 @@ Get Result From Calc
     ${total}=    Convert To Integer    ${total}
     RETURN    ${total}
 
-Check Veggies Excel And Start Calculator
+Check Input FIle And Start Calculator
     ${exists}=    Does File Exist    ${INPUT_EXCEL}
     IF    not $exists    Fail    Missing input: ${INPUT_EXCEL}
     Windows Search    Calculator

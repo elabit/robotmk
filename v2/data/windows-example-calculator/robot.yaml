@@ -1,6 +1,16 @@
 tasks:
-  Count My Veggies:
-    robotTaskName: Count My Veggies
+  Calc Demo:
+    command:
+      - python
+      - -m
+      - robot
+      - --report
+      - NONE
+      - -d
+      - output
+      - --logtitle
+      - Task log
+      - tasks.robot
 condaConfigFile: conda.yaml
 ignoreFiles:
 - .gitignore

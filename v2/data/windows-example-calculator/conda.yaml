@@ -1,8 +1,3 @@
-# Generated environment configuration file.
-
-# Editing this file manually can prevent the project from being
-# opened in Automation Studio.
-
 channels:
   - conda-forge
 dependencies:
