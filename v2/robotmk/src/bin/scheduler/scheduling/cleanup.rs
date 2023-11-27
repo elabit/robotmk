@@ -13,7 +13,7 @@ pub fn cleanup_working_directories<'a>(suites: impl Iterator<Item = &'a Suite>) 
     for suite in suites {
         debug!(
             "Cleaning up working directory {} of suite {}",
-            suite.working_directory, suite.name
+            suite.working_directory, suite.id
         );
         let _ = cleanup_working_directory(
             &suite.working_directory,
@@ -21,7 +21,7 @@ pub fn cleanup_working_directories<'a>(suites: impl Iterator<Item = &'a Suite>) 
         )
         .context(format!(
             "Error while cleaning up working directory of suite {}",
-            suite.name
+            suite.id
         ))
         .map_err(log_and_return_error);
     }

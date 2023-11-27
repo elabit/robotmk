@@ -18,7 +18,7 @@ fn setup_working_directories(working_directory: &Utf8Path, suites: &[Suite]) -> 
     for suite in suites {
         create_dir_all(&suite.working_directory).context(format!(
             "Failed to create working directory {} of suite {}",
-            suite.working_directory, suite.name
+            suite.working_directory, suite.id
         ))?;
     }
     create_dir_all(environment_building_stdio_directory(working_directory))

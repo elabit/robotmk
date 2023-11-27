@@ -1,7 +1,7 @@
 use super::icacls::run_icacls_command;
 use crate::command_spec::CommandSpec;
 use crate::environment::Environment;
-use crate::internal_config::{sort_suites_by_name, GlobalConfig, Suite};
+use crate::internal_config::{sort_suites_by_id, GlobalConfig, Suite};
 use crate::logging::log_and_return_error;
 use crate::results::RCCSetupFailures;
 use crate::sessions::session::{CurrentSession, RunOutcome, RunSpec, Session};
@@ -24,7 +24,7 @@ pub fn setup(global_config: &GlobalConfig, suites: Vec<Suite>) -> Result<Vec<Sui
         .into_iter()
         .partition(|suite| matches!(suite.environment, Environment::Rcc(_)));
     surviving_suites.append(&mut rcc_setup(global_config, rcc_suites)?);
-    sort_suites_by_name(&mut surviving_suites);
+    sort_suites_by_id(&mut surviving_suites);
     Ok(surviving_suites)
 }
 
@@ -62,7 +62,7 @@ fn rcc_setup(global_config: &GlobalConfig, rcc_suites: Vec<Suite>) -> Result<Vec
     let (sucessful_suites, failed_suites) = disable_rcc_telemetry(global_config, rcc_suites)
         .context("Disabling RCC telemetry failed")?;
     rcc_setup_failures.telemetry_disabling =
-        failed_suites.into_iter().map(|suite| suite.name).collect();
+        failed_suites.into_iter().map(|suite| suite.id).collect();
     if !rcc_setup_failures.telemetry_disabling.is_empty() {
         error!(
             "Dropping the following suites due to RCC telemetry disabling failure: {}",
@@ -75,7 +75,7 @@ fn rcc_setup(global_config: &GlobalConfig, rcc_suites: Vec<Suite>) -> Result<Vec
         enable_long_path_support(global_config, sucessful_suites)
             .context("Enabling support for long paths failed")?;
     rcc_setup_failures.long_path_support =
-        failed_suites.into_iter().map(|suite| suite.name).collect();
+        failed_suites.into_iter().map(|suite| suite.id).collect();
     if !rcc_setup_failures.long_path_support.is_empty() {
         error!(
             "Dropping the following suites due to long path support enabling failure: {}",
@@ -86,8 +86,7 @@ fn rcc_setup(global_config: &GlobalConfig, rcc_suites: Vec<Suite>) -> Result<Vec
     debug!("Initializing shared holotree");
     let (sucessful_suites, failed_suites) = shared_holotree_init(global_config, sucessful_suites)
         .context("Shared holotree initialization failed")?;
-    rcc_setup_failures.shared_holotree =
-        failed_suites.into_iter().map(|suite| suite.name).collect();
+    rcc_setup_failures.shared_holotree = failed_suites.into_iter().map(|suite| suite.id).collect();
     if !rcc_setup_failures.shared_holotree.is_empty() {
         error!(
             "Dropping the following suites due to shared holotree initialization failure: {}",
@@ -98,7 +97,7 @@ fn rcc_setup(global_config: &GlobalConfig, rcc_suites: Vec<Suite>) -> Result<Vec
     debug!("Initializing holotree");
     let (sucessful_suites, failed_suites) =
         holotree_init(global_config, sucessful_suites).context("Holotree initialization failed")?;
-    rcc_setup_failures.holotree_init = failed_suites.into_iter().map(|suite| suite.name).collect();
+    rcc_setup_failures.holotree_init = failed_suites.into_iter().map(|suite| suite.id).collect();
     if !rcc_setup_failures.holotree_init.is_empty() {
         error!(
             "Dropping the following suites due to holotree initialization failure: {}",

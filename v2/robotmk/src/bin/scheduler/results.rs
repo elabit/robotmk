@@ -62,7 +62,7 @@ impl<'a> EnvironmentBuildStatesAdministrator<'a> {
     ) -> Result<EnvironmentBuildStatesAdministrator<'a>> {
         let build_states: HashMap<_, _> = suites
             .iter()
-            .map(|suite| (suite.name.to_string(), EnvironmentBuildStatus::Pending))
+            .map(|suite| (suite.id.to_string(), EnvironmentBuildStatus::Pending))
             .collect();
         let path = results_directory.join("environment_build_states.json");
         BuildStates(&build_states).write(&path, locker)?;
@@ -73,8 +73,8 @@ impl<'a> EnvironmentBuildStatesAdministrator<'a> {
         })
     }
 
-    pub fn update(&mut self, suite_name: &str, build_status: EnvironmentBuildStatus) -> Result<()> {
-        self.build_states.insert(suite_name.into(), build_status);
+    pub fn update(&mut self, suite_id: &str, build_status: EnvironmentBuildStatus) -> Result<()> {
+        self.build_states.insert(suite_id.into(), build_status);
         BuildStates(&self.build_states).write(&self.path, self.locker)
     }
 }
@@ -97,7 +97,7 @@ pub enum EnvironmentBuildStatusError {
 
 #[derive(Serialize)]
 pub struct SuiteExecutionReport {
-    pub suite_name: String,
+    pub suite_id: String,
     pub outcome: ExecutionReport,
 }
 

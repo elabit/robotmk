@@ -23,7 +23,7 @@ pub struct GlobalConfig {
 
 #[derive(Clone)]
 pub struct Suite {
-    pub name: String,
+    pub id: String,
     pub working_directory: Utf8PathBuf,
     pub results_file: Utf8PathBuf,
     pub execution_interval_seconds: u32,
@@ -46,14 +46,14 @@ pub fn from_external_config(
     let mut suites: Vec<Suite> = external_config
         .suites
         .into_iter()
-        .map(|(suite_name, suite_config)| Suite {
-            name: suite_name.clone(),
+        .map(|(suite_id, suite_config)| Suite {
+            id: suite_id.clone(),
             working_directory: external_config
                 .working_directory
                 .join("suites")
-                .join(&suite_name),
+                .join(&suite_id),
             results_file: suite_results_directory(&external_config.results_directory)
-                .join(format!("{}.json", suite_name)),
+                .join(format!("{}.json", suite_id)),
             execution_interval_seconds: suite_config.execution_config.execution_interval_seconds,
             timeout: suite_config.execution_config.timeout,
             robot: Robot {
@@ -63,7 +63,7 @@ pub fn from_external_config(
                 retry_strategy: suite_config.execution_config.retry_strategy,
             },
             environment: Environment::new(
-                &suite_name,
+                &suite_id,
                 &external_config.rcc_binary_path,
                 &suite_config.environment_config,
             ),
@@ -75,7 +75,7 @@ pub fn from_external_config(
             results_directory_locker: results_directory_locker.clone(),
         })
         .collect();
-    sort_suites_by_name(&mut suites);
+    sort_suites_by_id(&mut suites);
     (
         GlobalConfig {
             working_directory: external_config.working_directory,
@@ -88,8 +88,8 @@ pub fn from_external_config(
     )
 }
 
-pub fn sort_suites_by_name(suites: &mut [Suite]) {
-    suites.sort_by_key(|suite| suite.name.to_string());
+pub fn sort_suites_by_id(suites: &mut [Suite]) {
+    suites.sort_by_key(|suite| suite.id.to_string());
 }
 
 #[cfg(test)]
@@ -169,7 +169,7 @@ mod tests {
         assert_eq!(global_config.results_directory, "/results");
         assert_eq!(global_config.rcc_binary_path, "/bin/rcc");
         assert_eq!(suites.len(), 2);
-        assert_eq!(suites[0].name, "rcc");
+        assert_eq!(suites[0].id, "rcc");
         assert_eq!(suites[0].working_directory, "/working/suites/rcc");
         assert_eq!(suites[0].results_file, "/results/suites/rcc.json");
         assert_eq!(suites[0].execution_interval_seconds, 300);
@@ -204,7 +204,7 @@ mod tests {
             suites[0].working_directory_cleanup_config,
             WorkingDirectoryCleanupConfig::MaxExecutions(50),
         );
-        assert_eq!(suites[1].name, "system");
+        assert_eq!(suites[1].id, "system");
         assert_eq!(suites[1].working_directory, "/working/suites/system");
         assert_eq!(suites[1].results_file, "/results/suites/system.json");
         assert_eq!(suites[1].execution_interval_seconds, 300);

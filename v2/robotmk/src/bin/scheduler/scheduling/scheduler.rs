@@ -49,7 +49,7 @@ fn wait_until_all_suites_have_terminated(suites: &[Suite]) {
         let mut still_running = vec![];
         for suite in still_running_suites {
             let _ = try_acquire_suite_lock(suite).map_err(|_| {
-                error!("Suite {} is still running", suite.name);
+                error!("Suite {} is still running", suite.id);
                 still_running.push(suite)
             });
         }

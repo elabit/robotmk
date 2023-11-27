@@ -18,7 +18,7 @@ pub fn run_suite(suite: &Suite) -> Result<()> {
     // We hold the lock as long as `_non_parallel_guard` is in scope
     let _non_parallel_guard = try_acquire_suite_lock(suite).map_err(|err| {
         let report = SuiteExecutionReport {
-            suite_name: suite.name.clone(),
+            suite_id: suite.id.clone(),
             outcome: ExecutionReport::AlreadyRunning,
         };
         report
@@ -32,9 +32,9 @@ pub fn run_suite(suite: &Suite) -> Result<()> {
             .unwrap_or(err)
     })?;
 
-    debug!("Running suite {}", &suite.name);
+    debug!("Running suite {}", &suite.id);
     let report = SuiteExecutionReport {
-        suite_name: suite.name.clone(),
+        suite_id: suite.id.clone(),
         outcome: ExecutionReport::Executed(produce_suite_results(suite)?),
     };
     report
@@ -44,7 +44,7 @@ pub fn run_suite(suite: &Suite) -> Result<()> {
             &suite.results_directory_locker,
         )
         .context("Reporting suite results failed")?;
-    debug!("Suite {} finished", &suite.name);
+    debug!("Suite {} finished", &suite.id);
 
     Ok(())
 }
@@ -56,11 +56,11 @@ pub fn try_acquire_suite_lock(suite: &Suite) -> Result<MutexGuard<usize>> {
             TryLockError::WouldBlock => {
                 bail!(
                     "Failed to acquire lock for suite {}, skipping this run",
-                    suite.name
+                    suite.id
                 );
             }
             TryLockError::Poisoned(poison_error) => {
-                error!("Lock for suite {} poisoned, unpoisoning", suite.name);
+                error!("Lock for suite {} poisoned, unpoisoning", suite.id);
                 Ok(poison_error.into_inner())
             }
         },
@@ -129,10 +129,10 @@ fn run_attempt(
     attempt: Attempt,
     output_directory: &Utf8Path,
 ) -> Result<(AttemptOutcome, Option<Utf8PathBuf>)> {
-    let log_message_start = format!("Suite {}, attempt {}", suite.name, attempt.index);
+    let log_message_start = format!("Suite {}, attempt {}", suite.id, attempt.index);
 
     let run_outcome = match suite.session.run(&RunSpec {
-        id: &format!("robotmk_suite_{}_attempt_{}", suite.name, attempt.index),
+        id: &format!("robotmk_suite_{}_attempt_{}", suite.id, attempt.index),
         command_spec: &suite.environment.wrap(attempt.command_spec),
         base_path: &output_directory.join(attempt.index.to_string()),
         timeout: suite.timeout,
