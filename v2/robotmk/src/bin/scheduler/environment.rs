@@ -49,16 +49,16 @@ fn build_environment(
 ) -> Result<Option<Suite>> {
     let suite = match suite.environment.build_instructions() {
         Some(build_instructions) => {
-            info!("Building environment for suite {}", suite.name);
+            info!("Building environment for suite {}", suite.id);
             let start_time = Utc::now().timestamp();
             environment_build_states_administrator
-                .update(&suite.name, EnvironmentBuildStatus::InProgress(start_time))?;
+                .update(&suite.id, EnvironmentBuildStatus::InProgress(start_time))?;
             let environment_build_status = run_environment_build(
                 ChildProcessSupervisor {
                     command_spec: &build_instructions.command_spec,
                     stdio_paths: Some(StdioPaths {
-                        stdout: stdio_directory.join(format!("{}.stdout", suite.name)),
-                        stderr: stdio_directory.join(format!("{}.stderr", suite.name)),
+                        stdout: stdio_directory.join(format!("{}.stdout", suite.id)),
+                        stderr: stdio_directory.join(format!("{}.stderr", suite.id)),
                     }),
                     timeout: build_instructions.timeout,
                     termination_flag: &suite.termination_flag,
@@ -66,13 +66,13 @@ fn build_environment(
                 start_time,
             )?;
             let drop_suite = matches!(environment_build_status, EnvironmentBuildStatus::Failure(_));
-            environment_build_states_administrator.update(&suite.name, environment_build_status)?;
+            environment_build_states_administrator.update(&suite.id, environment_build_status)?;
             (!drop_suite).then_some(suite)
         }
         None => {
-            debug!("Nothing to do for suite {}", suite.name);
+            debug!("Nothing to do for suite {}", suite.id);
             environment_build_states_administrator
-                .update(&suite.name, EnvironmentBuildStatus::NotNeeded)?;
+                .update(&suite.id, EnvironmentBuildStatus::NotNeeded)?;
             Some(suite)
         }
     };
@@ -144,7 +144,7 @@ pub struct RCCEnvironment {
 
 impl Environment {
     pub fn new(
-        suite_name: &str,
+        suite_id: &str,
         rcc_binary_path: &Utf8Path,
         environment_config: &EnvironmentConfig,
     ) -> Self {
@@ -154,7 +154,7 @@ impl Environment {
                 binary_path: rcc_binary_path.to_path_buf(),
                 robot_yaml_path: rcc_environment_config.robot_yaml_path.clone(),
                 controller: String::from("robotmk"),
-                space: suite_name.to_string(),
+                space: suite_id.to_string(),
                 build_timeout: rcc_environment_config.build_timeout,
                 env_json_path: rcc_environment_config.env_json_path.clone(),
             }),
