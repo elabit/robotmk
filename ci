@@ -17,13 +17,13 @@ main() {
 		cargo clippy --manifest-path "${cargo_toml_path}" --all-targets --target "${target}" -- --deny warnings
 		;;
 
-	'cargo-test')
-		cargo test --manifest-path "${cargo_toml_path}" --all-targets --target "${target}"
+	'cargo-test-unit')
+		cargo test --manifest-path "${cargo_toml_path}" --all-targets --target "${target}" -- --skip test_scheduler
 		;;
 
 	'check-all')
 		exit_code=0
-		for rust_step in fmt-check clippy test
+		for rust_step in fmt-check clippy test-unit
 		do
 			"${self}" "cargo-${rust_step}"
 			exit_code=$(( exit_code + $? ))

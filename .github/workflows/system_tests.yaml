@@ -1,0 +1,30 @@
+---
+name: "System tests"
+
+on: [push, pull_request]
+
+jobs:
+  rcc:
+    uses: ./.github/workflows/rcc.yaml
+
+  test_scheduler:
+    runs-on: windows-latest
+    needs: 
+      - rcc
+    steps:
+      - uses: actions/download-artifact@v3
+        with:
+          path: C:\
+      - uses: actions/checkout@v4
+      - uses: actions-rust-lang/setup-rust-toolchain@v1.5.0
+        with:
+          target: x86_64-pc-windows-gnu
+      - run: cargo test --target=x86_64-pc-windows-gnu --test test_scheduler -- --nocapture
+        working-directory: ${{ github.workspace }}/v2/robotmk/
+        env:
+          TEST_DIR: C:\test_scheduler
+          RCC_BINARY_PATH: C:\artifact\windows64\rcc.exe
+          RUN_FOR: 240
+      - uses: actions/upload-artifact@v3
+        with:
+          path: C:\test_scheduler

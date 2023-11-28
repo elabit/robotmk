@@ -23,7 +23,7 @@ jobs:
       - run: cargo fmt -- --check
         working-directory: ${{ github.workspace }}/v2/robotmk/
 
-      - run: cargo test --all-targets --target ${{ matrix.type.target }}
+      - run: cargo test --all-targets --target ${{ matrix.type.target }} -- --skip test_scheduler
         working-directory: ${{ github.workspace }}/v2/robotmk/
 
       - run: cargo clippy --all-targets --target ${{ matrix.type.target }} -- --deny warnings
