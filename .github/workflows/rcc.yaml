@@ -2,30 +2,64 @@
 name: "RCC"
 
 on:
-  workflow_call: {}
+  workflow_call:
+    {}
+
+env:
+  RCC_TAG: "v14.15.4"
+  GO_VERSION: "1.20.x"
+  RUBY_VERSION: "2.7"
 
 jobs:
-  build_and_test:
+  check_cache:
     runs-on: ubuntu-latest
+    outputs:
+      cache_hit: ${{ steps.restore-from-cache.outputs.cache-hit }}
+    steps:
+      - id: restore-from-cache
+        uses: actions/cache/restore@v3
+        with:
+          key: rcc-${{ env.RCC_TAG }}-${{ env.GO_VERSION }}-${{ env.RUBY_VERSION }}
+          path: build
+          lookup-only: true
 
+  build_and_cache:
+    runs-on: ubuntu-latest
+    needs:
+      - check_cache
+    if: ${{ needs.check_cache.outputs.cache_hit != 'true' }}
     steps:
       - uses: actions/checkout@v4
         with:
           repository: robocorp/rcc
-          ref: v14.15.4
-
+          ref: ${{ env.RCC_TAG }}
       - uses: actions/setup-go@v3
         with:
-          go-version: '1.20.x'
-
+          go-version: ${{ env.GO_VERSION }}
       - uses: ruby/setup-ruby@v1
         with:
-            ruby-version: '2.7'
-
+            ruby-version: ${{ env.RUBY_VERSION }}
       - run: rake build
-
       - run: rake test
+      - uses: actions/cache/save@v3
+        with:
+          key: rcc-${{ env.RCC_TAG }}-${{ env.GO_VERSION }}-${{ env.RUBY_VERSION }}
+          path: build
 
+  upload:
+    runs-on: ubuntu-latest
+    needs:
+      - build_and_cache
+    # See https://github.com/actions/runner/issues/491 for the following condition
+    if: |
+      always() &&
+      (needs.build_and_cache.result == 'success' || needs.build_and_cache.result == 'skipped')
+    steps:
+      - uses: actions/cache/restore@v3
+        with:
+          path: build
+          key: rcc-${{ env.RCC_TAG }}-${{ env.GO_VERSION }}-${{ env.RUBY_VERSION }}
+          fail-on-cache-miss: true
       - uses: actions/upload-artifact@v3
         with:
           path: build
