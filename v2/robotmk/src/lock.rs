@@ -1,16 +1,16 @@
 use anyhow::{bail, Context, Result};
 use camino::{Utf8Path, Utf8PathBuf};
-use fs4::{lock_contended_error, FileExt};
+use fs4::FileExt;
 use log::debug;
 use std::fs::File;
-use std::io::Result as IOResult;
-use std::time::Duration;
+use std::io;
+use tokio::task::spawn_blocking;
 use tokio_util::sync::CancellationToken;
 
 #[derive(Clone)]
 pub struct Locker {
     lock_path: Utf8PathBuf,
-    cancellation_token: Option<CancellationToken>,
+    cancellation_token: CancellationToken,
 }
 
 pub struct Lock(File);
@@ -22,19 +22,17 @@ impl Locker {
     ) -> Self {
         Self {
             lock_path: lock_path.as_ref().to_owned(),
-            cancellation_token: cancellation_token.cloned(),
+            cancellation_token: cancellation_token.cloned().unwrap_or_default(),
         }
     }
 
     pub fn wait_for_read_lock(&self) -> Result<Lock> {
         debug!("Waiting for read lock");
         let file = self.file()?;
-        if let Some(cancellation_token) = &self.cancellation_token {
-            Self::lock_manual_loop(&(|| file.try_lock_shared()), cancellation_token)
-        } else {
-            file.lock_shared()
-                .context("Unexpected error while attempting to acquire read lock")
-        }
+        let file = with_cancellation(
+            || file.lock_shared().map(|_| file),
+            &self.cancellation_token,
+        )
         .context("Failed to acquire read lock")?;
         debug!("Got read lock");
         Ok(Lock(file))
@@ -43,12 +41,10 @@ impl Locker {
     pub fn wait_for_write_lock(&self) -> Result<Lock> {
         debug!("Waiting for write lock");
         let file = self.file()?;
-        if let Some(cancellation_token) = &self.cancellation_token {
-            Self::lock_manual_loop(&(|| file.try_lock_exclusive()), cancellation_token)
-        } else {
-            file.lock_exclusive()
-                .context("Unexpected error while attempting to acquire write lock")
-        }
+        let file = with_cancellation(
+            || file.lock_exclusive().map(|_| file),
+            &self.cancellation_token,
+        )
         .context("Failed to acquire write lock")?;
         debug!("Got write lock");
         Ok(Lock(file))
@@ -60,27 +56,16 @@ impl Locker {
             self.lock_path,
         ))
     }
+}
 
-    fn lock_manual_loop(
-        lock_tryer: &dyn Fn() -> IOResult<()>,
-        cancellation_token: &CancellationToken,
-    ) -> Result<()> {
-        loop {
-            if cancellation_token.is_cancelled() {
-                bail!("Terminated")
-            }
-            match lock_tryer() {
-                Ok(lock) => return Ok(lock),
-                Err(error) => {
-                    if error.kind() == lock_contended_error().kind() {
-                        std::thread::sleep(Duration::from_millis(250))
-                    } else {
-                        return Err(error)
-                            .context("Unexpected error while attempting to acquire lock");
-                    }
-                }
-            }
-        }
+#[tokio::main]
+async fn with_cancellation<F>(lock: F, cancellation_token: &CancellationToken) -> Result<File>
+where
+    F: FnOnce() -> io::Result<File> + Send + 'static,
+{
+    tokio::select! {
+        file = spawn_blocking(lock) => { Ok(file??) }
+        _ = cancellation_token.cancelled() => { bail!("Terminated") }
     }
 }
 
