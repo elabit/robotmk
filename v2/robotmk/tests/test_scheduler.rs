@@ -2,8 +2,8 @@ use anyhow::Result;
 use assert_cmd::cargo::cargo_bin;
 use camino::{Utf8Path, Utf8PathBuf};
 use robotmk::config::{
-    Config, EnvironmentConfig, ExecutionConfig, RCCConfig, RCCEnvironmentConfig, RetryStrategy,
-    RobotFrameworkConfig, SessionConfig, SuiteConfig, UserSessionConfig,
+    Config, EnvironmentConfig, ExecutionConfig, RCCConfig, RCCEnvironmentConfig, RCCProfileConfig,
+    RetryStrategy, RobotFrameworkConfig, SessionConfig, SuiteConfig, UserSessionConfig,
     WorkingDirectoryCleanupConfig,
 };
 use robotmk::section::Host;
@@ -26,7 +26,10 @@ async fn test_scheduler() -> Result<()> {
         &Utf8PathBuf::from(var("CARGO_MANIFEST_DIR")?)
             .join("tests")
             .join("minimal_suite"),
-        var("RCC_BINARY_PATH")?,
+        RCCConfig {
+            binary_path: var("RCC_BINARY_PATH")?.into(),
+            profile_config: Some(create_rcc_profile(&test_dir)?),
+        },
         &current_user_name,
     );
 
@@ -39,18 +42,35 @@ async fn test_scheduler() -> Result<()> {
     Ok(())
 }
 
+fn create_rcc_profile(test_dir: &Utf8Path) -> Result<RCCProfileConfig> {
+    let rcc_profile_path = test_dir.join("rcc_profile.yaml");
+    write(
+        &rcc_profile_path,
+        "name: Robotmk
+description: Robotmk RCC profile
+settings:
+  meta:
+    name: Robotmk
+    description: Robotmk RCC profile
+    source: Robotmk
+",
+    )?;
+    Ok(RCCProfileConfig {
+        name: "Robotmk".into(),
+        path: rcc_profile_path,
+    })
+}
+
 fn create_config(
     test_dir: &Utf8Path,
     suite_dir: &Utf8Path,
-    rcc_binary_path: impl Into<Utf8PathBuf>,
+    rcc_config: RCCConfig,
     user_name_headed: &str,
 ) -> Config {
     Config {
         working_directory: test_dir.join("working"),
         results_directory: test_dir.join("results"),
-        rcc_config: RCCConfig {
-            binary_path: rcc_binary_path.into(),
-        },
+        rcc_config,
         suites: [
             (
                 String::from("rcc_headless"),
@@ -165,7 +185,7 @@ async fn assert_working_directory(
     working_directory: &Utf8Path,
     headed_user_name: &str,
 ) -> Result<()> {
-    assert_working_directory_permissions(&working_directory).await?;
+    assert_permissions(&working_directory, "BUILTIN\\Users:(OI)(CI)(F)").await?;
     assert!(working_directory.is_dir());
     assert_eq!(
         directory_entries(working_directory, 1),
@@ -184,6 +204,22 @@ async fn assert_working_directory(
             &format!("holotree_initialization_user_{headed_user_name}.stdout"),
             "long_path_support_enabling.stderr",
             "long_path_support_enabling.stdout",
+            "profile_import_current_user.stderr",
+            "profile_import_current_user.stdout",
+            &format!("profile_import_user_{headed_user_name}.bat"),
+            &format!("profile_import_user_{headed_user_name}.exit_code"),
+            &format!("profile_import_user_{headed_user_name}.pid"),
+            &format!("profile_import_user_{headed_user_name}.run_flag"),
+            &format!("profile_import_user_{headed_user_name}.stderr"),
+            &format!("profile_import_user_{headed_user_name}.stdout"),
+            "profile_switch_current_user.stderr",
+            "profile_switch_current_user.stdout",
+            &format!("profile_switch_user_{headed_user_name}.bat"),
+            &format!("profile_switch_user_{headed_user_name}.exit_code"),
+            &format!("profile_switch_user_{headed_user_name}.pid"),
+            &format!("profile_switch_user_{headed_user_name}.run_flag"),
+            &format!("profile_switch_user_{headed_user_name}.stderr"),
+            &format!("profile_switch_user_{headed_user_name}.stdout"),
             "shared_holotree_init.stderr",
             "shared_holotree_init.stdout",
             "telemetry_disabling_current_user.stderr",
@@ -227,11 +263,10 @@ async fn assert_working_directory(
     Ok(())
 }
 
-async fn assert_working_directory_permissions(working_directory: &impl AsRef<OsStr>) -> Result<()> {
+async fn assert_permissions(path: impl AsRef<OsStr>, permissions: &str) -> Result<()> {
     let mut icacls_command = Command::new("icacls.exe");
-    icacls_command.arg(working_directory);
-    let stdout = String::from_utf8(icacls_command.output().await?.stdout)?;
-    assert!(stdout.contains("BUILTIN\\Users:(OI)(CI)(F)"));
+    icacls_command.arg(path);
+    assert!(String::from_utf8(icacls_command.output().await?.stdout)?.contains(permissions));
     Ok(())
 }
 
@@ -252,21 +287,21 @@ fn assert_results_directory(results_directory: &Utf8Path) {
 }
 
 async fn assert_rcc(rcc_config: &RCCConfig) -> Result<()> {
-    assert_rcc_binary_permissions(&rcc_config.binary_path).await?;
-    assert_rcc_configuration(&rcc_config.binary_path).await?;
+    assert_rcc_files_permissions(rcc_config).await?;
+    assert_rcc_configuration(rcc_config).await?;
     assert_rcc_longpath_support_enabled(&rcc_config.binary_path).await
 }
 
-async fn assert_rcc_binary_permissions(rcc_binary_path: impl AsRef<OsStr>) -> Result<()> {
-    let mut icacls_command = Command::new("icacls.exe");
-    icacls_command.arg(rcc_binary_path);
-    let stdout = String::from_utf8(icacls_command.output().await?.stdout)?;
-    assert!(stdout.contains("BUILTIN\\Users:(RX)"));
-    Ok(())
+async fn assert_rcc_files_permissions(rcc_config: &RCCConfig) -> Result<()> {
+    assert_permissions(&rcc_config.binary_path, "BUILTIN\\Users:(RX)").await?;
+    let Some(rcc_profile_config) = &rcc_config.profile_config else {
+        return Ok(());
+    };
+    assert_permissions(&rcc_profile_config.path, "BUILTIN\\Users:(R)").await
 }
 
-async fn assert_rcc_configuration(rcc_binary_path: impl AsRef<OsStr>) -> Result<()> {
-    let mut rcc_config_diag_command = Command::new(rcc_binary_path);
+async fn assert_rcc_configuration(rcc_config: &RCCConfig) -> Result<()> {
+    let mut rcc_config_diag_command = Command::new(&rcc_config.binary_path);
     rcc_config_diag_command
         .arg("configuration")
         .arg("diagnostics");
@@ -274,6 +309,12 @@ async fn assert_rcc_configuration(rcc_binary_path: impl AsRef<OsStr>) -> Result<
     assert!(stdout.contains("telemetry-enabled                     ...  \"false\""));
     assert!(stdout.contains("holotree-shared                       ...  \"true\""));
     assert!(stdout.contains("holotree-global-shared                ...  \"true\""));
+    if let Some(rcc_profile_config) = &rcc_config.profile_config {
+        assert!(stdout.contains(&format!(
+            "config-active-profile                 ...  \"{}\"",
+            rcc_profile_config.name
+        )));
+    }
     Ok(())
 }
 

@@ -28,6 +28,7 @@ impl WriteSection for SchedulerPhase {
 #[derive(Serialize)]
 pub struct RCCSetupFailures {
     pub telemetry_disabling: Vec<String>,
+    pub profile_configuring: Vec<String>,
     pub long_path_support: Vec<String>,
     pub shared_holotree: Vec<String>,
     pub holotree_init: Vec<String>,

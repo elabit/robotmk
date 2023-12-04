@@ -9,9 +9,10 @@ use crate::sessions::session::{CurrentSession, RunOutcome, RunSpec, Session};
 use anyhow::{bail, Context, Result};
 use camino::{Utf8Path, Utf8PathBuf};
 use log::{debug, error};
-use robotmk::section::WriteSection;
+use robotmk::{config::RCCProfileConfig, section::WriteSection};
 use std::collections::HashMap;
 use std::fs::{create_dir_all, remove_dir_all};
+use std::vec;
 
 pub fn setup(global_config: &GlobalConfig, suites: Vec<Suite>) -> Result<Vec<Suite>> {
     adjust_rcc_binary_permissions(&global_config.rcc_config.binary_path)
@@ -19,6 +20,10 @@ pub fn setup(global_config: &GlobalConfig, suites: Vec<Suite>) -> Result<Vec<Sui
     clear_rcc_setup_working_directory(&rcc_setup_working_directory(
         &global_config.working_directory,
     ))?;
+    if let Some(rcc_profile_config) = &global_config.rcc_config.profile_config {
+        adjust_rcc_profile_permissions(&rcc_profile_config.path)
+            .context("Failed to adjust permissions of RCC profile")?;
+    }
 
     let (rcc_suites, mut surviving_suites): (Vec<Suite>, Vec<Suite>) = suites
         .into_iter()
@@ -50,17 +55,26 @@ fn rcc_setup_working_directory(working_directory: &Utf8Path) -> Utf8PathBuf {
     working_directory.join("rcc_setup")
 }
 
+fn adjust_rcc_profile_permissions(profile_path: &Utf8Path) -> Result<()> {
+    debug!("Granting group `Users` read access to {profile_path}");
+    run_icacls_command(vec![profile_path.as_str(), "/grant", "Users:(R)"]).context(format!(
+        "Adjusting permissions of {profile_path} for group `Users` failed",
+    ))
+}
+
 fn rcc_setup(global_config: &GlobalConfig, rcc_suites: Vec<Suite>) -> Result<Vec<Suite>> {
     let mut rcc_setup_failures = RCCSetupFailures {
         telemetry_disabling: vec![],
+        profile_configuring: vec![],
         long_path_support: vec![],
         shared_holotree: vec![],
         holotree_init: vec![],
     };
 
     debug!("Disabling RCC telemetry");
-    let (sucessful_suites, failed_suites) = disable_rcc_telemetry(global_config, rcc_suites)
-        .context("Disabling RCC telemetry failed")?;
+    let (mut sucessful_suites, mut failed_suites) =
+        disable_rcc_telemetry(global_config, rcc_suites)
+            .context("Disabling RCC telemetry failed")?;
     rcc_setup_failures.telemetry_disabling =
         failed_suites.into_iter().map(|suite| suite.id).collect();
     if !rcc_setup_failures.telemetry_disabling.is_empty() {
@@ -70,10 +84,24 @@ fn rcc_setup(global_config: &GlobalConfig, rcc_suites: Vec<Suite>) -> Result<Vec
         );
     }
 
+    if let Some(rcc_profile_config) = &global_config.rcc_config.profile_config {
+        debug!("Configuring RCC profile");
+        (sucessful_suites, failed_suites) =
+            configure_rcc_profile(rcc_profile_config, global_config, sucessful_suites)
+                .context("Configuring RCC profile failed")?;
+        rcc_setup_failures.profile_configuring =
+            failed_suites.into_iter().map(|suite| suite.id).collect();
+        if !rcc_setup_failures.profile_configuring.is_empty() {
+            error!(
+                "Dropping the following suites due to profile configuring failure: {}",
+                rcc_setup_failures.profile_configuring.join(", ")
+            );
+        }
+    }
+
     debug!("Enabling support for long paths");
-    let (sucessful_suites, failed_suites) =
-        enable_long_path_support(global_config, sucessful_suites)
-            .context("Enabling support for long paths failed")?;
+    (sucessful_suites, failed_suites) = enable_long_path_support(global_config, sucessful_suites)
+        .context("Enabling support for long paths failed")?;
     rcc_setup_failures.long_path_support =
         failed_suites.into_iter().map(|suite| suite.id).collect();
     if !rcc_setup_failures.long_path_support.is_empty() {
@@ -84,7 +112,7 @@ fn rcc_setup(global_config: &GlobalConfig, rcc_suites: Vec<Suite>) -> Result<Vec
     }
 
     debug!("Initializing shared holotree");
-    let (sucessful_suites, failed_suites) = shared_holotree_init(global_config, sucessful_suites)
+    (sucessful_suites, failed_suites) = shared_holotree_init(global_config, sucessful_suites)
         .context("Shared holotree initialization failed")?;
     rcc_setup_failures.shared_holotree = failed_suites.into_iter().map(|suite| suite.id).collect();
     if !rcc_setup_failures.shared_holotree.is_empty() {
@@ -95,7 +123,7 @@ fn rcc_setup(global_config: &GlobalConfig, rcc_suites: Vec<Suite>) -> Result<Vec
     }
 
     debug!("Initializing holotree");
-    let (sucessful_suites, failed_suites) =
+    (sucessful_suites, failed_suites) =
         holotree_init(global_config, sucessful_suites).context("Holotree initialization failed")?;
     rcc_setup_failures.holotree_init = failed_suites.into_iter().map(|suite| suite.id).collect();
     if !rcc_setup_failures.holotree_init.is_empty() {
@@ -130,6 +158,45 @@ fn disable_rcc_telemetry(
         },
         "telemetry_disabling",
     )
+}
+
+fn configure_rcc_profile(
+    rcc_profile_config: &RCCProfileConfig,
+    global_config: &GlobalConfig,
+    suites: Vec<Suite>,
+) -> Result<(Vec<Suite>, Vec<Suite>)> {
+    let (sucessful_suites_import, failed_suites_import) = run_command_spec_per_session(
+        global_config,
+        suites,
+        &CommandSpec {
+            executable: global_config.rcc_config.binary_path.to_string(),
+            arguments: vec![
+                "configuration".into(),
+                "import".into(),
+                "--filename".into(),
+                rcc_profile_config.path.to_string(),
+            ],
+        },
+        "profile_import",
+    )?;
+    let (sucessful_suites_switch, failed_suites_switch) = run_command_spec_per_session(
+        global_config,
+        sucessful_suites_import,
+        &CommandSpec {
+            executable: global_config.rcc_config.binary_path.to_string(),
+            arguments: vec![
+                "configuration".into(),
+                "switch".into(),
+                "--profile".into(),
+                rcc_profile_config.name.to_string(),
+            ],
+        },
+        "profile_switch",
+    )?;
+    let mut failed_suites = vec![];
+    failed_suites.extend(failed_suites_import);
+    failed_suites.extend(failed_suites_switch);
+    Ok((sucessful_suites_switch, failed_suites))
 }
 
 fn enable_long_path_support(

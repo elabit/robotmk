@@ -98,7 +98,7 @@ mod tests {
     use crate::environment::{RCCEnvironment, SystemEnvironment};
     use crate::sessions::session::{CurrentSession, UserSession};
     use robotmk::config::{
-        EnvironmentConfig, ExecutionConfig, RCCEnvironmentConfig, RetryStrategy,
+        EnvironmentConfig, ExecutionConfig, RCCEnvironmentConfig, RCCProfileConfig, RetryStrategy,
         RobotFrameworkConfig, SessionConfig, SuiteConfig, UserSessionConfig,
     };
 
@@ -157,6 +157,10 @@ mod tests {
                 results_directory: Utf8PathBuf::from("/results"),
                 rcc_config: RCCConfig {
                     binary_path: Utf8PathBuf::from("/bin/rcc"),
+                    profile_config: Some(RCCProfileConfig {
+                        name: "Robotmk".into(),
+                        path: "/rcc_profile_robotmk.yaml".into(),
+                    }),
                 },
                 suites: HashMap::from([
                     (String::from("system"), system_suite_config()),
@@ -172,6 +176,10 @@ mod tests {
             global_config.rcc_config,
             RCCConfig {
                 binary_path: Utf8PathBuf::from("/bin/rcc"),
+                profile_config: Some(RCCProfileConfig {
+                    name: "Robotmk".into(),
+                    path: "/rcc_profile_robotmk.yaml".into(),
+                }),
             }
         );
         assert_eq!(suites.len(), 2);
