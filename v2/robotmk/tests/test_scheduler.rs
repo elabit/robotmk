@@ -2,7 +2,7 @@ use anyhow::Result;
 use assert_cmd::cargo::cargo_bin;
 use camino::{Utf8Path, Utf8PathBuf};
 use robotmk::config::{
-    Config, EnvironmentConfig, ExecutionConfig, RCCEnvironmentConfig, RetryStrategy,
+    Config, EnvironmentConfig, ExecutionConfig, RCCConfig, RCCEnvironmentConfig, RetryStrategy,
     RobotFrameworkConfig, SessionConfig, SuiteConfig, UserSessionConfig,
     WorkingDirectoryCleanupConfig,
 };
@@ -34,7 +34,7 @@ async fn test_scheduler() -> Result<()> {
 
     assert_working_directory(&config.working_directory, &current_user_name).await?;
     assert_results_directory(&config.results_directory);
-    assert_rcc(&config.rcc_binary_path).await?;
+    assert_rcc(&config.rcc_config).await?;
 
     Ok(())
 }
@@ -48,7 +48,9 @@ fn create_config(
     Config {
         working_directory: test_dir.join("working"),
         results_directory: test_dir.join("results"),
-        rcc_binary_path: rcc_binary_path.into(),
+        rcc_config: RCCConfig {
+            binary_path: rcc_binary_path.into(),
+        },
         suites: [
             (
                 String::from("rcc_headless"),
@@ -249,10 +251,10 @@ fn assert_results_directory(results_directory: &Utf8Path) {
     );
 }
 
-async fn assert_rcc(rcc_binary_path: impl AsRef<OsStr>) -> Result<()> {
-    assert_rcc_binary_permissions(&rcc_binary_path).await?;
-    assert_rcc_configuration(&rcc_binary_path).await?;
-    assert_rcc_longpath_support_enabled(&rcc_binary_path).await
+async fn assert_rcc(rcc_config: &RCCConfig) -> Result<()> {
+    assert_rcc_binary_permissions(&rcc_config.binary_path).await?;
+    assert_rcc_configuration(&rcc_config.binary_path).await?;
+    assert_rcc_longpath_support_enabled(&rcc_config.binary_path).await
 }
 
 async fn assert_rcc_binary_permissions(rcc_binary_path: impl AsRef<OsStr>) -> Result<()> {
