@@ -14,7 +14,7 @@ use std::collections::HashMap;
 use std::fs::{create_dir_all, remove_dir_all};
 
 pub fn setup(global_config: &GlobalConfig, suites: Vec<Suite>) -> Result<Vec<Suite>> {
-    adjust_rcc_binary_permissions(&global_config.rcc_binary_path)
+    adjust_rcc_binary_permissions(&global_config.rcc_config.binary_path)
         .context("Failed to adjust permissions of RCC binary")?;
     clear_rcc_setup_working_directory(&rcc_setup_working_directory(
         &global_config.working_directory,
@@ -121,7 +121,7 @@ fn disable_rcc_telemetry(
         global_config,
         suites,
         &CommandSpec {
-            executable: global_config.rcc_binary_path.to_string(),
+            executable: global_config.rcc_config.binary_path.to_string(),
             arguments: vec![
                 "configure".into(),
                 "identity".into(),
@@ -140,7 +140,7 @@ fn enable_long_path_support(
         global_config,
         suites,
         &CommandSpec {
-            executable: global_config.rcc_binary_path.to_string(),
+            executable: global_config.rcc_config.binary_path.to_string(),
             arguments: vec!["configure".into(), "longpaths".into(), "--enable".into()],
         },
         "long_path_support_enabling",
@@ -155,7 +155,7 @@ fn shared_holotree_init(
         global_config,
         suites,
         &CommandSpec {
-            executable: global_config.rcc_binary_path.to_string(),
+            executable: global_config.rcc_config.binary_path.to_string(),
             arguments: vec![
                 "holotree".into(),
                 "shared".into(),
@@ -175,7 +175,7 @@ fn holotree_init(
         global_config,
         suites,
         &CommandSpec {
-            executable: global_config.rcc_binary_path.to_string(),
+            executable: global_config.rcc_config.binary_path.to_string(),
             arguments: vec!["holotree".into(), "init".into()],
         },
         "holotree_initialization",

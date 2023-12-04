@@ -14,8 +14,13 @@ pub fn load(path: &Utf8Path) -> Result<Config> {
 pub struct Config {
     pub working_directory: Utf8PathBuf,
     pub results_directory: Utf8PathBuf,
-    pub rcc_binary_path: Utf8PathBuf,
+    pub rcc_config: RCCConfig,
     pub suites: HashMap<String, SuiteConfig>,
+}
+
+#[derive(Clone, Debug, Deserialize, PartialEq, Serialize)]
+pub struct RCCConfig {
+    pub binary_path: Utf8PathBuf,
 }
 
 #[derive(Clone, Debug, Deserialize, PartialEq, Serialize)]

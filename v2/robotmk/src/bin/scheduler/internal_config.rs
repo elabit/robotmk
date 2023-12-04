@@ -3,7 +3,7 @@ use crate::results::suite_results_directory;
 use crate::rf::robot::Robot;
 use crate::sessions::session::Session;
 use robotmk::{
-    config::{Config, WorkingDirectoryCleanupConfig},
+    config::{Config, RCCConfig, WorkingDirectoryCleanupConfig},
     lock::Locker,
     section::Host,
 };
@@ -16,7 +16,7 @@ use tokio_util::sync::CancellationToken;
 pub struct GlobalConfig {
     pub working_directory: Utf8PathBuf,
     pub results_directory: Utf8PathBuf,
-    pub rcc_binary_path: Utf8PathBuf,
+    pub rcc_config: RCCConfig,
     pub cancellation_token: CancellationToken,
     pub results_directory_locker: Locker,
 }
@@ -64,7 +64,7 @@ pub fn from_external_config(
             },
             environment: Environment::new(
                 &suite_id,
-                &external_config.rcc_binary_path,
+                &external_config.rcc_config.binary_path,
                 &suite_config.environment_config,
             ),
             session: Session::new(&suite_config.session_config),
@@ -80,7 +80,7 @@ pub fn from_external_config(
         GlobalConfig {
             working_directory: external_config.working_directory,
             results_directory: external_config.results_directory,
-            rcc_binary_path: external_config.rcc_binary_path,
+            rcc_config: external_config.rcc_config,
             cancellation_token,
             results_directory_locker,
         },
@@ -155,7 +155,9 @@ mod tests {
             Config {
                 working_directory: Utf8PathBuf::from("/working"),
                 results_directory: Utf8PathBuf::from("/results"),
-                rcc_binary_path: Utf8PathBuf::from("/bin/rcc"),
+                rcc_config: RCCConfig {
+                    binary_path: Utf8PathBuf::from("/bin/rcc"),
+                },
                 suites: HashMap::from([
                     (String::from("system"), system_suite_config()),
                     (String::from("rcc"), rcc_suite_config()),
@@ -166,7 +168,12 @@ mod tests {
         );
         assert_eq!(global_config.working_directory, "/working");
         assert_eq!(global_config.results_directory, "/results");
-        assert_eq!(global_config.rcc_binary_path, "/bin/rcc");
+        assert_eq!(
+            global_config.rcc_config,
+            RCCConfig {
+                binary_path: Utf8PathBuf::from("/bin/rcc"),
+            }
+        );
         assert_eq!(suites.len(), 2);
         assert_eq!(suites[0].id, "rcc");
         assert_eq!(suites[0].working_directory, "/working/suites/rcc");
