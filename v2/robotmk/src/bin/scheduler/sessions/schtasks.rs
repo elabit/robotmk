@@ -46,6 +46,7 @@ pub fn run_task(task_spec: &TaskSpec) -> Result<RunOutcome> {
         "Running the following command as task {} for user {}:\n{}\n\nBase path: {}",
         task_spec.task_name, task_spec.user_name, task_spec.command_spec, task_spec.base_path
     );
+    assert_session_is_active(task_spec.user_name)?;
 
     let paths = Paths::from(task_spec.base_path);
     create_task(task_spec, &paths)
@@ -87,6 +88,47 @@ impl From<&Utf8Path> for Paths {
             exit_code: Utf8PathBuf::from(format!("{base_path}.exit_code")),
         }
     }
+}
+
+fn assert_session_is_active(user_name: &str) -> Result<()> {
+    let mut query_user_command = Command::new("query");
+    query_user_command.arg("user");
+    if check_if_user_has_active_session(
+        user_name,
+        &String::from_utf8_lossy(
+            &query_user_command
+                .output()
+                .context(format!(
+                    "Failed to query if user {user_name} has an active session"
+                ))?
+                .stdout,
+        ),
+    ) {
+        return Ok(());
+    }
+    bail!("No active session for user {user_name} found")
+}
+
+fn check_if_user_has_active_session(user_name: &str, query_user_stdout: &str) -> bool {
+    for line in query_user_stdout.lines().skip(1) {
+        let words: Vec<&str> = line.split_whitespace().collect();
+        let Some(user_name_of_session) = words.first() else {
+            continue;
+        };
+        let Some(session_state) = words.get(3) else {
+            continue;
+        };
+        if (&user_name == user_name_of_session
+            || &format!(
+                // `>` marks the current session
+                ">{user_name}"
+            ) == user_name_of_session)
+            && session_state == &"Active"
+        {
+            return true;
+        }
+    }
+    false
 }
 
 fn create_task(task_spec: &TaskSpec, paths: &Paths) -> Result<()> {
@@ -252,6 +294,35 @@ mod tests {
                 exit_code: Utf8PathBuf::from("C:\\working\\suites\\my_suite\\123\\0.exit_code"),
             }
         )
+    }
+
+    #[test]
+    fn check_if_user_has_active_session_ok() {
+        assert!(check_if_user_has_active_session(
+            "vagrant",
+            " USERNAME              SESSIONNAME        ID  STATE   IDLE TIME  LOGON TIME
+>vagrant               console             1  Active      none   12/4/2023 9:35 AM
+ vagrant2              rdp-tcp#0           2  Active          .  12/4/2023 9:36 AM"
+        ))
+    }
+
+    #[test]
+    fn check_if_user_has_active_session_disconnected() {
+        assert!(!check_if_user_has_active_session(
+            "vagrant2",
+            " USERNAME              SESSIONNAME        ID  STATE   IDLE TIME  LOGON TIME
+>vagrant               console             1  Active      none   12/4/2023 9:35 AM
+ vagrant2                                  2  Disc            .  12/4/2023 9:36 AM"
+        ))
+    }
+
+    #[test]
+    fn check_if_user_has_active_session_no_session() {
+        assert!(!check_if_user_has_active_session(
+            "vagrant2",
+            " USERNAME              SESSIONNAME        ID  STATE   IDLE TIME  LOGON TIME
+>vagrant               console             1  Active      none   12/4/2023 9:35 AM"
+        ))
     }
 
     #[test]
