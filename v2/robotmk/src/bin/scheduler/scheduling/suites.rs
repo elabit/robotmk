@@ -49,7 +49,7 @@ pub fn run_suite(suite: &Suite) -> Result<()> {
     Ok(())
 }
 
-pub fn try_acquire_suite_lock(suite: &Suite) -> Result<MutexGuard<usize>> {
+fn try_acquire_suite_lock(suite: &Suite) -> Result<MutexGuard<usize>> {
     match suite.parallelism_protection.try_lock() {
         Ok(non_parallel_guard) => Ok(non_parallel_guard),
         Err(try_lock_error) => match try_lock_error {
