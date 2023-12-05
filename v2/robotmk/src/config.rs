@@ -50,7 +50,7 @@ pub struct RobotFrameworkConfig {
 pub struct ExecutionConfig {
     pub n_attempts_max: usize,
     pub retry_strategy: RetryStrategy,
-    pub execution_interval_seconds: u32,
+    pub execution_interval_seconds: u64,
     pub timeout: u64,
 }
 

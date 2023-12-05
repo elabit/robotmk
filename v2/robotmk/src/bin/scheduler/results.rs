@@ -146,7 +146,7 @@ pub struct RebotResult {
 
 #[derive(Serialize)]
 pub struct AttemptsConfig {
-    pub interval: u32,
+    pub interval: u64,
     pub timeout: u64,
     pub n_attempts_max: usize,
 }

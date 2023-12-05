@@ -26,7 +26,7 @@ pub struct Suite {
     pub id: String,
     pub working_directory: Utf8PathBuf,
     pub results_file: Utf8PathBuf,
-    pub execution_interval_seconds: u32,
+    pub execution_interval_seconds: u64,
     pub timeout: u64,
     pub robot: Robot,
     pub environment: Environment,
