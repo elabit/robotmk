@@ -9,8 +9,6 @@ use robotmk::{
 };
 
 use camino::Utf8PathBuf;
-use std::sync::Arc;
-use std::sync::Mutex;
 use tokio_util::sync::CancellationToken;
 
 pub struct GlobalConfig {
@@ -33,7 +31,6 @@ pub struct Suite {
     pub session: Session,
     pub working_directory_cleanup_config: WorkingDirectoryCleanupConfig,
     pub cancellation_token: CancellationToken,
-    pub parallelism_protection: Arc<Mutex<usize>>,
     pub host: Host,
     pub results_directory_locker: Locker,
 }
@@ -70,7 +67,6 @@ pub fn from_external_config(
             session: Session::new(&suite_config.session_config),
             working_directory_cleanup_config: suite_config.working_directory_cleanup_config,
             cancellation_token: cancellation_token.clone(),
-            parallelism_protection: Arc::new(Mutex::new(0)),
             host: suite_config.host,
             results_directory_locker: results_directory_locker.clone(),
         })

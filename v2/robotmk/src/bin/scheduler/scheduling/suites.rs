@@ -1,8 +1,6 @@
 use crate::environment::ResultCode;
 use crate::internal_config::Suite;
-use crate::results::{
-    AttemptOutcome, AttemptsConfig, AttemptsOutcome, ExecutionReport, SuiteExecutionReport,
-};
+use crate::results::{AttemptOutcome, AttemptsConfig, AttemptsOutcome, SuiteExecutionReport};
 use crate::rf::{rebot::Rebot, robot::Attempt};
 use crate::sessions::session::{RunOutcome, RunSpec};
 
@@ -12,30 +10,12 @@ use chrono::Utc;
 use log::{debug, error};
 use robotmk::section::WritePiggybackSection;
 use std::fs::create_dir_all;
-use std::sync::{MutexGuard, TryLockError};
 
 pub fn run_suite(suite: &Suite) -> Result<()> {
-    // We hold the lock as long as `_non_parallel_guard` is in scope
-    let _non_parallel_guard = try_acquire_suite_lock(suite).map_err(|err| {
-        let report = SuiteExecutionReport {
-            suite_id: suite.id.clone(),
-            outcome: ExecutionReport::AlreadyRunning,
-        };
-        report
-            .write(
-                &suite.results_file,
-                suite.host.clone(),
-                &suite.results_directory_locker,
-            )
-            .context("Reporting failure to acquire suite lock failed")
-            .err()
-            .unwrap_or(err)
-    })?;
-
     debug!("Running suite {}", &suite.id);
     let report = SuiteExecutionReport {
         suite_id: suite.id.clone(),
-        outcome: ExecutionReport::Executed(produce_suite_results(suite)?),
+        outcome: produce_suite_results(suite)?,
     };
     report
         .write(
@@ -47,24 +27,6 @@ pub fn run_suite(suite: &Suite) -> Result<()> {
     debug!("Suite {} finished", &suite.id);
 
     Ok(())
-}
-
-fn try_acquire_suite_lock(suite: &Suite) -> Result<MutexGuard<usize>> {
-    match suite.parallelism_protection.try_lock() {
-        Ok(non_parallel_guard) => Ok(non_parallel_guard),
-        Err(try_lock_error) => match try_lock_error {
-            TryLockError::WouldBlock => {
-                bail!(
-                    "Failed to acquire lock for suite {}, skipping this run",
-                    suite.id
-                );
-            }
-            TryLockError::Poisoned(poison_error) => {
-                error!("Lock for suite {} poisoned, unpoisoning", suite.id);
-                Ok(poison_error.into_inner())
-            }
-        },
-    }
 }
 
 fn produce_suite_results(suite: &Suite) -> Result<AttemptsOutcome> {
