@@ -2,10 +2,9 @@ use super::child_process_supervisor::{ChildProcessOutcome, ChildProcessSuperviso
 use super::command_spec::CommandSpec;
 use super::internal_config::{GlobalConfig, Suite};
 use super::logging::log_and_return_error;
-use super::results::{
-    EnvironmentBuildStatesAdministrator, EnvironmentBuildStatus, EnvironmentBuildStatusError,
-};
+use super::results::EnvironmentBuildStatesAdministrator;
 use robotmk::config::EnvironmentConfig;
+use robotmk::results::{EnvironmentBuildStatus, EnvironmentBuildStatusError};
 
 use anyhow::{bail, Context, Result};
 use camino::{Utf8Path, Utf8PathBuf};

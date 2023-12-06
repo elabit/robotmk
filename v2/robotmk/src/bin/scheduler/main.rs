@@ -16,6 +16,7 @@ use clap::Parser;
 use log::{debug, info};
 use logging::log_and_return_error;
 use robotmk::lock::Locker;
+use robotmk::results::SchedulerPhase;
 use robotmk::section::WriteSection;
 
 fn main() -> Result<()> {
@@ -48,7 +49,7 @@ fn run() -> Result<()> {
 
     setup::general::setup(&global_config, &suites).context("General setup failed")?;
     debug!("General setup completed");
-    write_phase(&results::SchedulerPhase::RCCSetup, &global_config)?;
+    write_phase(&SchedulerPhase::RCCSetup, &global_config)?;
     let suites = setup::rcc::setup(&global_config, suites).context("RCC-specific setup failed")?;
     debug!("RCC-specific setup completed");
 
@@ -57,10 +58,7 @@ fn run() -> Result<()> {
     }
 
     info!("Starting environment building");
-    write_phase(
-        &results::SchedulerPhase::EnvironmentBuilding,
-        &global_config,
-    )?;
+    write_phase(&SchedulerPhase::EnvironmentBuilding, &global_config)?;
     let suites = environment::build_environments(&global_config, suites)?;
     info!("Environment building finished");
 
@@ -69,12 +67,12 @@ fn run() -> Result<()> {
     }
 
     info!("Starting suite scheduling");
-    write_phase(&results::SchedulerPhase::Scheduling, &global_config)?;
+    write_phase(&SchedulerPhase::Scheduling, &global_config)?;
     scheduling::scheduler::run_suites_and_cleanup(&global_config, &suites)
 }
 
 fn write_phase(
-    phase: &results::SchedulerPhase,
+    phase: &SchedulerPhase,
     global_config: &internal_config::GlobalConfig,
 ) -> Result<()> {
     phase.write(
