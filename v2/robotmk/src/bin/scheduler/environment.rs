@@ -4,6 +4,7 @@ use super::internal_config::{GlobalConfig, Suite};
 use super::logging::log_and_return_error;
 use super::results::EnvironmentBuildStatesAdministrator;
 use robotmk::config::EnvironmentConfig;
+use robotmk::environment::ResultCode;
 use robotmk::results::{EnvironmentBuildStatus, EnvironmentBuildStatusError};
 
 use anyhow::{bail, Context, Result};
@@ -180,12 +181,6 @@ impl Environment {
             Self::Rcc(rcc_environment) => rcc_environment.build_instructions(),
         }
     }
-}
-
-pub enum ResultCode {
-    AllTestsPassed,
-    RobotCommandFailed,
-    EnvironmentFailed,
 }
 
 struct BuildInstructions {
