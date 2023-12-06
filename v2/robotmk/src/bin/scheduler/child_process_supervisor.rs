@@ -1,6 +1,5 @@
 use super::command_spec::CommandSpec;
-use super::termination::kill_process_tree;
-use robotmk::termination::{waited, Outcome};
+use robotmk::termination::{kill_process_tree, waited, Outcome};
 
 use anyhow::{Context, Result};
 use camino::Utf8PathBuf;
