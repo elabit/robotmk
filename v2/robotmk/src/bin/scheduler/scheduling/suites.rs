@@ -1,7 +1,7 @@
-use crate::environment::ResultCode;
 use crate::internal_config::Suite;
 use crate::rf::{rebot::Rebot, robot::Attempt};
 use crate::sessions::session::{RunOutcome, RunSpec};
+use robotmk::environment::ResultCode;
 use robotmk::results::{AttemptOutcome, AttemptsConfig, SuiteExecutionReport};
 
 use anyhow::{bail, Context, Result};
