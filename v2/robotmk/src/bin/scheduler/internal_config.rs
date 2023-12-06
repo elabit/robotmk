@@ -1,7 +1,7 @@
 use crate::environment::Environment;
-use crate::results::suite_results_directory;
 use crate::rf::robot::Robot;
 use crate::sessions::session::Session;
+use robotmk::results::suite_results_directory;
 use robotmk::{
     config::{Config, RCCConfig, WorkingDirectoryCleanupConfig},
     lock::Locker,
