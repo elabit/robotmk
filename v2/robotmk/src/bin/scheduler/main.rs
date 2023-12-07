@@ -1,4 +1,3 @@
-mod child_process_supervisor;
 mod cli;
 mod environment;
 mod internal_config;
