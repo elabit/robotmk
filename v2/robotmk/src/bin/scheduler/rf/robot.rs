@@ -1,4 +1,4 @@
-use crate::command_spec::CommandSpec;
+use robotmk::command_spec::CommandSpec;
 use robotmk::config::RetryStrategy;
 
 use camino::{Utf8Path, Utf8PathBuf};

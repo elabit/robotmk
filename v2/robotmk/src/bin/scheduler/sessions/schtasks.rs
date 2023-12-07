@@ -1,6 +1,6 @@
 use super::session::RunOutcome;
-use crate::command_spec::CommandSpec;
 use crate::logging::log_and_return_error;
+use robotmk::command_spec::CommandSpec;
 use robotmk::termination::{kill_process_tree, waited, Outcome};
 
 use anyhow::{bail, Context, Result};

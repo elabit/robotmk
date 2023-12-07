@@ -1,8 +1,8 @@
 use super::child_process_supervisor::{ChildProcessOutcome, ChildProcessSupervisor, StdioPaths};
-use super::command_spec::CommandSpec;
 use super::internal_config::{GlobalConfig, Suite};
 use super::logging::log_and_return_error;
 use super::results::EnvironmentBuildStatesAdministrator;
+use robotmk::command_spec::CommandSpec;
 use robotmk::config::EnvironmentConfig;
 use robotmk::environment::ResultCode;
 use robotmk::results::{EnvironmentBuildStatus, EnvironmentBuildStatusError};

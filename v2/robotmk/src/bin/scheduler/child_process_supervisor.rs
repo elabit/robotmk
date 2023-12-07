@@ -1,4 +1,4 @@
-use super::command_spec::CommandSpec;
+use robotmk::command_spec::CommandSpec;
 use robotmk::termination::{kill_process_tree, waited, Outcome};
 
 use anyhow::{Context, Result};

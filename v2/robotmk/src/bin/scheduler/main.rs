@@ -1,6 +1,5 @@
 mod child_process_supervisor;
 mod cli;
-mod command_spec;
 mod environment;
 mod internal_config;
 mod logging;
