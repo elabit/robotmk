@@ -1,9 +1,9 @@
 use super::icacls::run_icacls_command;
-use crate::command_spec::CommandSpec;
 use crate::environment::Environment;
 use crate::internal_config::{sort_suites_by_id, GlobalConfig, Suite};
 use crate::logging::log_and_return_error;
 use crate::sessions::session::{CurrentSession, RunOutcome, RunSpec, Session};
+use robotmk::command_spec::CommandSpec;
 use robotmk::results::RCCSetupFailures;
 
 use anyhow::{bail, Context, Result};
