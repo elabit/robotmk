@@ -1,6 +1,6 @@
 use super::robot::PYTHON_EXECUTABLE;
-use crate::command_spec::CommandSpec;
 use crate::environment::Environment;
+use robotmk::command_spec::CommandSpec;
 use robotmk::environment::ResultCode;
 use robotmk::results::{RebotOutcome, RebotResult};
 

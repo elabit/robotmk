@@ -2,7 +2,7 @@ use std::convert::From;
 use std::fmt::{Display, Formatter, Result};
 use std::process::Command;
 
-#[cfg_attr(test, derive(Debug, PartialEq))]
+#[derive(Debug, PartialEq)]
 pub struct CommandSpec {
     pub executable: String,
     pub arguments: Vec<String>,
