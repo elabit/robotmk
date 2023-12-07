@@ -1,5 +1,5 @@
 use super::schtasks::{run_task, TaskSpec};
-use crate::child_process_supervisor::{ChildProcessOutcome, ChildProcessSupervisor, StdioPaths};
+use robotmk::child_process_supervisor::{ChildProcessOutcome, ChildProcessSupervisor, StdioPaths};
 use robotmk::command_spec::CommandSpec;
 use robotmk::config::SessionConfig;
 
