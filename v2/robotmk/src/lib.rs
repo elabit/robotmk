@@ -1,3 +1,4 @@
+pub mod child_process_supervisor;
 pub mod command_spec;
 pub mod config;
 pub mod environment;
