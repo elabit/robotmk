@@ -1,98 +1,99 @@
 use super::internal_config::{GlobalConfig, Suite};
 use super::logging::log_and_return_error;
-use super::results::EnvironmentBuildStatesAdministrator;
 use robotmk::child_process_supervisor::{ChildProcessOutcome, ChildProcessSupervisor, StdioPaths};
 use robotmk::command_spec::CommandSpec;
 use robotmk::config::EnvironmentConfig;
 use robotmk::environment::ResultCode;
-use robotmk::results::{EnvironmentBuildStatus, EnvironmentBuildStatusError};
+use robotmk::results::{BuildOutcome, BuildStates, EnvironmentBuildStage};
 
-use anyhow::{bail, Context, Result};
+use robotmk::lock::Locker;
+use robotmk::section::WriteSection;
+
+use anyhow::{bail, Result};
 use camino::{Utf8Path, Utf8PathBuf};
-use chrono::{Utc, DateTime};
+use chrono::{DateTime, Utc};
 use log::{debug, error, info};
+use std::collections::HashMap;
+use tokio_util::sync::CancellationToken;
 
 pub fn environment_building_stdio_directory(working_directory: &Utf8Path) -> Utf8PathBuf {
     working_directory.join("environment_building_stdio")
 }
 
 pub fn build_environments(global_config: &GlobalConfig, suites: Vec<Suite>) -> Result<Vec<Suite>> {
-    let mut environment_build_states_administrator =
-        EnvironmentBuildStatesAdministrator::new_with_pending(
-            suites.iter().map(|suite| suite.id.as_ref()),
-            &global_config.results_directory,
-            &global_config.results_directory_locker,
-        )?;
+    let mut build_stage_reporter = BuildStageReporter::new(
+        suites.iter().map(|suite| suite.id.as_ref()),
+        &global_config.results_directory,
+        &global_config.results_directory_locker,
+    )?;
     let env_building_stdio_directory =
         environment_building_stdio_directory(&global_config.working_directory);
 
-    suites
-        .into_iter()
-        .filter_map(|suite| {
-            match build_environment(
-                suite,
-                &mut environment_build_states_administrator,
-                &env_building_stdio_directory,
-            ) {
-                Ok(None) => None,
-                Ok(Some(suite)) => Some(Ok(suite)),
-                Err(e) => Some(Err(e)),
-            }
-        })
-        .collect()
+    let mut completed_suites = Vec::new();
+    for suite in suites.into_iter() {
+        let outcome = build_environment(
+            &suite.id,
+            suite.environment.build_instructions(),
+            &global_config.cancellation_token,
+            &mut build_stage_reporter,
+            &env_building_stdio_directory,
+        )?;
+        match outcome {
+            BuildOutcome::NotNeeded => completed_suites.push(suite),
+            BuildOutcome::Success(_) => completed_suites.push(suite),
+            BuildOutcome::Terminated => bail!("Terminated"),
+            _ => {}
+        }
+    }
+    Ok(completed_suites)
 }
 
 fn build_environment(
-    suite: Suite,
-    environment_build_states_administrator: &mut EnvironmentBuildStatesAdministrator,
+    id: &str,
+    instructions: Option<BuildInstructions>,
+    cancellation_token: &CancellationToken,
+    build_stage_reporter: &mut BuildStageReporter,
     stdio_directory: &Utf8Path,
-) -> Result<Option<Suite>> {
-    let suite = match suite.environment.build_instructions() {
-        Some(build_instructions) => {
-            info!("Building environment for suite {}", suite.id);
-            let start_time = Utc::now();
-            environment_build_states_administrator
-                .update(&suite.id, EnvironmentBuildStatus::InProgress(start_time.timestamp()))?;
-            let environment_build_status = run_environment_build(
-                ChildProcessSupervisor {
-                    command_spec: &build_instructions.command_spec,
-                    stdio_paths: Some(StdioPaths {
-                        stdout: stdio_directory.join(format!("{}.stdout", suite.id)),
-                        stderr: stdio_directory.join(format!("{}.stderr", suite.id)),
-                    }),
-                    timeout: build_instructions.timeout,
-                    cancellation_token: &suite.cancellation_token,
-                },
-                start_time,
-            )?;
-            let drop_suite = matches!(environment_build_status, EnvironmentBuildStatus::Failure(_));
-            environment_build_states_administrator.update(&suite.id, environment_build_status)?;
-            (!drop_suite).then_some(suite)
-        }
-        None => {
-            debug!("Nothing to do for suite {}", suite.id);
-            environment_build_states_administrator
-                .update(&suite.id, EnvironmentBuildStatus::NotNeeded)?;
-            Some(suite)
-        }
+) -> Result<BuildOutcome> {
+    let Some(instructions) = instructions else {
+        let outcome = BuildOutcome::NotNeeded;
+        debug!("Nothing to do for suite {}", id);
+        build_stage_reporter.update(id, EnvironmentBuildStage::Complete(outcome.clone()))?;
+        return Ok(outcome);
     };
-    Ok(suite)
+    info!("Building environment for suite {}", id);
+    let start_time = Utc::now();
+    build_stage_reporter.update(
+        id,
+        EnvironmentBuildStage::InProgress(start_time.timestamp()),
+    )?;
+    let outcome = run_environment_build(
+        ChildProcessSupervisor {
+            command_spec: &instructions.command_spec,
+            stdio_paths: Some(StdioPaths {
+                stdout: stdio_directory.join(format!("{}.stdout", id)),
+                stderr: stdio_directory.join(format!("{}.stderr", id)),
+            }),
+            timeout: instructions.timeout,
+            cancellation_token,
+        },
+        start_time,
+    )?;
+    build_stage_reporter.update(id, EnvironmentBuildStage::Complete(outcome.clone()))?;
+    Ok(outcome)
 }
 
 fn run_environment_build(
     build_process_supervisor: ChildProcessSupervisor,
     reference_timestamp_for_duration: DateTime<Utc>,
-) -> Result<EnvironmentBuildStatus> {
-    let child_process_outcome = match build_process_supervisor
-        .run()
-        .context("Environment building failed, suite will be dropped")
-        .map_err(log_and_return_error)
-    {
-        Ok(child_process_outcome) => child_process_outcome,
-        Err(error) => {
-            return Ok(EnvironmentBuildStatus::Failure(
-                EnvironmentBuildStatusError::Error(format!("{error:?}")),
-            ))
+) -> Result<BuildOutcome> {
+    let build_result = build_process_supervisor.run();
+    let child_process_outcome = match build_result {
+        Ok(o) => o,
+        Err(e) => {
+            let e = e.context("Environment building failed, suite will be dropped");
+            let e = log_and_return_error(e);
+            return Ok(BuildOutcome::Error(format!("{e:?}")));
         }
     };
     let duration = (Utc::now() - reference_timestamp_for_duration).num_seconds();
@@ -100,23 +101,17 @@ fn run_environment_build(
         ChildProcessOutcome::Exited(exit_status) => {
             if exit_status.success() {
                 debug!("Environmenent building succeeded");
-                Ok(EnvironmentBuildStatus::Success(duration))
+                Ok(BuildOutcome::Success(duration))
             } else {
                 error!("Environment building not sucessful, suite will be dropped");
-                Ok(EnvironmentBuildStatus::Failure(
-                    EnvironmentBuildStatusError::NonZeroExit,
-                ))
+                Ok(BuildOutcome::NonZeroExit)
             }
         }
         ChildProcessOutcome::TimedOut => {
             error!("Environment building timed out, suite will be dropped");
-            Ok(EnvironmentBuildStatus::Failure(
-                EnvironmentBuildStatusError::Timeout,
-            ))
+            Ok(BuildOutcome::Timeout)
         }
-        ChildProcessOutcome::Terminated => {
-            bail!("Terminated")
-        }
+        ChildProcessOutcome::Terminated => Ok(BuildOutcome::Terminated),
     }
 }
 
@@ -368,5 +363,35 @@ mod tests {
             .command_spec,
             expected
         )
+    }
+}
+
+struct BuildStageReporter<'a> {
+    build_states: HashMap<String, EnvironmentBuildStage>,
+    path: Utf8PathBuf,
+    locker: &'a Locker,
+}
+
+impl<'a> BuildStageReporter<'a> {
+    pub fn new<'c>(
+        ids: impl Iterator<Item = &'c str>,
+        results_directory: &Utf8Path,
+        locker: &'a Locker,
+    ) -> Result<BuildStageReporter<'a>> {
+        let build_states: HashMap<_, _> = ids
+            .map(|id| (id.to_string(), EnvironmentBuildStage::Pending))
+            .collect();
+        let path = results_directory.join("environment_build_states.json");
+        BuildStates(&build_states).write(&path, locker)?;
+        Ok(Self {
+            build_states,
+            path,
+            locker,
+        })
+    }
+
+    pub fn update(&mut self, suite_id: &str, build_status: EnvironmentBuildStage) -> Result<()> {
+        self.build_states.insert(suite_id.into(), build_status);
+        BuildStates(&self.build_states).write(&self.path, self.locker)
     }
 }

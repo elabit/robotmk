@@ -36,7 +36,7 @@ impl WriteSection for RCCSetupFailures {
 }
 
 #[derive(Serialize)]
-pub struct BuildStates<'a>(pub &'a HashMap<String, EnvironmentBuildStatus>);
+pub struct BuildStates<'a>(pub &'a HashMap<String, EnvironmentBuildStage>);
 
 impl WriteSection for BuildStates<'_> {
     fn name() -> &'static str {
@@ -44,20 +44,21 @@ impl WriteSection for BuildStates<'_> {
     }
 }
 
-#[derive(Serialize)]
-pub enum EnvironmentBuildStatus {
-    Success(i64),
-    Failure(EnvironmentBuildStatusError),
+#[derive(Serialize, Clone)]
+pub enum BuildOutcome {
     NotNeeded,
-    Pending,
-    InProgress(i64),
+    Success(i64),
+    NonZeroExit,
+    Timeout,
+    Terminated,
+    Error(String),
 }
 
 #[derive(Serialize)]
-pub enum EnvironmentBuildStatusError {
-    NonZeroExit,
-    Timeout,
-    Error(String),
+pub enum EnvironmentBuildStage {
+    Pending,
+    InProgress(i64),
+    Complete(BuildOutcome),
 }
 
 #[derive(Serialize)]
