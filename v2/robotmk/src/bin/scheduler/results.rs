@@ -1,4 +1,3 @@
-use super::internal_config::Suite;
 use anyhow::Result;
 use camino::{Utf8Path, Utf8PathBuf};
 use robotmk::lock::Locker;
@@ -13,14 +12,13 @@ pub struct EnvironmentBuildStatesAdministrator<'a> {
 }
 
 impl<'a> EnvironmentBuildStatesAdministrator<'a> {
-    pub fn new_with_pending(
-        suites: &[Suite],
+    pub fn new_with_pending<'b>(
+        ids: impl Iterator<Item = &'b str>,
         results_directory: &Utf8Path,
         locker: &'a Locker,
     ) -> Result<EnvironmentBuildStatesAdministrator<'a>> {
-        let build_states: HashMap<_, _> = suites
-            .iter()
-            .map(|suite| (suite.id.to_string(), EnvironmentBuildStatus::Pending))
+        let build_states: HashMap<_, _> = ids
+            .map(|id| (id.to_string(), EnvironmentBuildStatus::Pending))
             .collect();
         let path = results_directory.join("environment_build_states.json");
         BuildStates(&build_states).write(&path, locker)?;
