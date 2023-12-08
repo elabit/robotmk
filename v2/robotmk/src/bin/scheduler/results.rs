@@ -99,20 +99,15 @@ pub enum EnvironmentBuildStatusError {
 #[derive(Serialize)]
 pub struct SuiteExecutionReport {
     pub suite_id: String,
-    pub outcome: AttemptsOutcome,
+    pub attempts: Vec<AttemptOutcome>,
+    pub rebot: Option<RebotOutcome>,
+    pub config: AttemptsConfig,
 }
 
 impl WritePiggybackSection for SuiteExecutionReport {
     fn name() -> &'static str {
         "robotmk_suite_execution_report"
     }
-}
-
-#[derive(Serialize)]
-pub struct AttemptsOutcome {
-    pub attempts: Vec<AttemptOutcome>,
-    pub rebot: Option<RebotOutcome>,
-    pub config: AttemptsConfig,
 }
 
 #[derive(Serialize)]

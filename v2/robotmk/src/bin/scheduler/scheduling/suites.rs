@@ -1,6 +1,6 @@
 use crate::environment::ResultCode;
 use crate::internal_config::Suite;
-use crate::results::{AttemptOutcome, AttemptsConfig, AttemptsOutcome, SuiteExecutionReport};
+use crate::results::{AttemptOutcome, AttemptsConfig, SuiteExecutionReport};
 use crate::rf::{rebot::Rebot, robot::Attempt};
 use crate::sessions::session::{RunOutcome, RunSpec};
 
@@ -13,11 +13,7 @@ use std::fs::create_dir_all;
 
 pub fn run_suite(suite: &Suite) -> Result<()> {
     debug!("Running suite {}", &suite.id);
-    let report = SuiteExecutionReport {
-        suite_id: suite.id.clone(),
-        outcome: produce_suite_results(suite)?,
-    };
-    report
+    produce_suite_results(suite)?
         .write(
             &suite.results_file,
             suite.host.clone(),
@@ -29,7 +25,7 @@ pub fn run_suite(suite: &Suite) -> Result<()> {
     Ok(())
 }
 
-fn produce_suite_results(suite: &Suite) -> Result<AttemptsOutcome> {
+fn produce_suite_results(suite: &Suite) -> Result<SuiteExecutionReport> {
     let output_directory = suite
         .working_directory
         .join(Utc::now().format("%Y-%m-%dT%H.%M.%S%.f%z").to_string());
@@ -41,7 +37,8 @@ fn produce_suite_results(suite: &Suite) -> Result<AttemptsOutcome> {
 
     let (attempt_outcomes, output_paths) = run_attempts_until_succesful(suite, &output_directory)?;
 
-    Ok(AttemptsOutcome {
+    Ok(SuiteExecutionReport {
+        suite_id: suite.id.clone(),
         attempts: attempt_outcomes,
         rebot: if output_paths.is_empty() {
             None
