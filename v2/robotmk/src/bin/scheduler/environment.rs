@@ -9,7 +9,7 @@ use robotmk::results::{EnvironmentBuildStatus, EnvironmentBuildStatusError};
 
 use anyhow::{bail, Context, Result};
 use camino::{Utf8Path, Utf8PathBuf};
-use chrono::Utc;
+use chrono::{Utc, DateTime};
 use log::{debug, error, info};
 
 pub fn environment_building_stdio_directory(working_directory: &Utf8Path) -> Utf8PathBuf {
@@ -50,9 +50,9 @@ fn build_environment(
     let suite = match suite.environment.build_instructions() {
         Some(build_instructions) => {
             info!("Building environment for suite {}", suite.id);
-            let start_time = Utc::now().timestamp();
+            let start_time = Utc::now();
             environment_build_states_administrator
-                .update(&suite.id, EnvironmentBuildStatus::InProgress(start_time))?;
+                .update(&suite.id, EnvironmentBuildStatus::InProgress(start_time.timestamp()))?;
             let environment_build_status = run_environment_build(
                 ChildProcessSupervisor {
                     command_spec: &build_instructions.command_spec,
@@ -81,7 +81,7 @@ fn build_environment(
 
 fn run_environment_build(
     build_process_supervisor: ChildProcessSupervisor,
-    reference_timestamp_for_duration: i64,
+    reference_timestamp_for_duration: DateTime<Utc>,
 ) -> Result<EnvironmentBuildStatus> {
     let child_process_outcome = match build_process_supervisor
         .run()
@@ -95,7 +95,7 @@ fn run_environment_build(
             ))
         }
     };
-    let duration = Utc::now().timestamp() - reference_timestamp_for_duration;
+    let duration = (Utc::now() - reference_timestamp_for_duration).num_seconds();
     match child_process_outcome {
         ChildProcessOutcome::Exited(exit_status) => {
             if exit_status.success() {
