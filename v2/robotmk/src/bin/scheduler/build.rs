@@ -1,9 +1,8 @@
-use super::internal_config::{
-    apply_current_settings, Environment, GlobalConfig, RCCEnvironment, Suite,
-};
+use super::internal_config::{GlobalConfig, Suite};
 use super::logging::log_and_return_error;
 use robotmk::child_process_supervisor::{ChildProcessOutcome, ChildProcessSupervisor, StdioPaths};
 use robotmk::command_spec::CommandSpec;
+use robotmk::environment::{apply_current_settings, Environment, RCCEnvironment};
 use robotmk::results::{BuildOutcome, BuildStates, EnvironmentBuildStage};
 
 use robotmk::lock::Locker;
