@@ -1,5 +1,5 @@
+mod build;
 mod cli;
-mod environment;
 mod internal_config;
 mod logging;
 mod results;
@@ -57,7 +57,7 @@ fn run() -> Result<()> {
 
     info!("Starting environment building");
     write_phase(&SchedulerPhase::EnvironmentBuilding, &global_config)?;
-    let suites = environment::build_environments(&global_config, suites)?;
+    let suites = build::build_environments(&global_config, suites)?;
     info!("Environment building finished");
 
     if global_config.cancellation_token.is_cancelled() {
