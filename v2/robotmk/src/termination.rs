@@ -11,7 +11,6 @@ pub enum Outcome<T> {
     Completed(T),
 }
 
-#[tokio::main]
 pub async fn waited<F>(
     duration: Duration,
     flag: &CancellationToken,

@@ -34,14 +34,10 @@ impl Session {
 
 impl Display for Session {
     fn fmt(&self, f: &mut Formatter<'_>) -> FmtResult {
-        write!(
-            f,
-            "{}",
-            match self {
-                Self::Current(current_session) => format!("{}", current_session),
-                Self::User(user_session) => format!("{}", user_session),
-            }
-        )
+        match self {
+            Self::Current(current_session) => write!(f, "{}", current_session),
+            Self::User(user_session) => write!(f, "{}", user_session),
+        }
     }
 }
 
