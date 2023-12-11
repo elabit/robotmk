@@ -1,15 +1,14 @@
 use super::schtasks::{run_task, TaskSpec};
-use robotmk::child_process_supervisor::{ChildProcessOutcome, ChildProcessSupervisor, StdioPaths};
-use robotmk::command_spec::CommandSpec;
-use robotmk::config::SessionConfig;
+use crate::child_process_supervisor::{ChildProcessOutcome, ChildProcessSupervisor, StdioPaths};
+use crate::command_spec::CommandSpec;
+use crate::config::SessionConfig;
 
 use anyhow::Result;
 use camino::{Utf8Path, Utf8PathBuf};
 use std::fmt::{Display, Formatter, Result as FmtResult};
 use tokio_util::sync::CancellationToken;
 
-#[derive(Clone, Eq, Hash, PartialEq)]
-#[cfg_attr(test, derive(Debug))]
+#[derive(Clone, Eq, Hash, PartialEq, Debug)]
 pub enum Session {
     Current(CurrentSession),
     User(UserSession),
@@ -46,8 +45,7 @@ impl Display for Session {
     }
 }
 
-#[derive(Clone, Eq, Hash, PartialEq)]
-#[cfg_attr(test, derive(Debug))]
+#[derive(Clone, Eq, Hash, PartialEq, Debug)]
 pub struct CurrentSession {}
 
 impl Display for CurrentSession {
@@ -56,8 +54,7 @@ impl Display for CurrentSession {
     }
 }
 
-#[derive(Clone, Eq, Hash, PartialEq)]
-#[cfg_attr(test, derive(Debug))]
+#[derive(Clone, Eq, Hash, PartialEq, Debug)]
 pub struct UserSession {
     pub user_name: String,
 }

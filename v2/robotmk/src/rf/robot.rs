@@ -1,12 +1,11 @@
-use robotmk::command_spec::CommandSpec;
-use robotmk::config::RetryStrategy;
+use crate::command_spec::CommandSpec;
+use crate::config::RetryStrategy;
 
 use camino::{Utf8Path, Utf8PathBuf};
 
 pub const PYTHON_EXECUTABLE: &str = "python";
 
-#[derive(Clone)]
-#[cfg_attr(test, derive(Debug, PartialEq))]
+#[derive(Clone, Debug, PartialEq)]
 pub struct Robot {
     pub robot_target: Utf8PathBuf,
     pub command_line_args: Vec<String>,

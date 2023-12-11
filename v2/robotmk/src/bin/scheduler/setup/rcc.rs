@@ -1,10 +1,10 @@
 use super::icacls::run_icacls_command;
 use crate::internal_config::{sort_suites_by_id, GlobalConfig, Suite};
 use crate::logging::log_and_return_error;
-use crate::sessions::session::{CurrentSession, RunOutcome, RunSpec, Session};
 use robotmk::command_spec::CommandSpec;
 use robotmk::environment::Environment;
 use robotmk::results::RCCSetupFailures;
+use robotmk::sessions::session::{CurrentSession, RunOutcome, RunSpec, Session};
 
 use anyhow::{bail, Context, Result};
 use camino::{Utf8Path, Utf8PathBuf};

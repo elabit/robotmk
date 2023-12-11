@@ -1,10 +1,10 @@
-use crate::rf::robot::Robot;
-use crate::sessions::session::Session;
 use robotmk::config::{Config, RCCConfig, WorkingDirectoryCleanupConfig};
 use robotmk::environment::Environment;
 use robotmk::lock::Locker;
 use robotmk::results::suite_results_directory;
+use robotmk::rf::robot::Robot;
 use robotmk::section::Host;
+use robotmk::sessions::session::Session;
 
 use camino::Utf8PathBuf;
 use tokio_util::sync::CancellationToken;
@@ -89,12 +89,12 @@ pub fn sort_suites_by_id(suites: &mut [Suite]) {
 #[cfg(test)]
 mod tests {
     use super::*;
-    use crate::sessions::session::{CurrentSession, UserSession};
     use robotmk::config::{
         EnvironmentConfig, ExecutionConfig, RCCEnvironmentConfig, RCCProfileConfig, RetryStrategy,
         RobotFrameworkConfig, SessionConfig, SuiteConfig, UserSessionConfig,
     };
     use robotmk::environment::{Environment, RCCEnvironment, SystemEnvironment};
+    use robotmk::sessions::session::{CurrentSession, UserSession};
 
     use std::collections::HashMap;
 
