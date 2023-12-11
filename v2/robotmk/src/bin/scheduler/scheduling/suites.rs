@@ -1,8 +1,11 @@
 use crate::internal_config::Suite;
-use robotmk::environment::ResultCode;
+use robotmk::environment::{Environment, ResultCode};
 use robotmk::results::{AttemptOutcome, AttemptsConfig, SuiteExecutionReport};
-use robotmk::rf::{rebot::Rebot, robot::Attempt};
-use robotmk::sessions::session::{RunOutcome, RunSpec};
+use robotmk::rf::{
+    rebot::Rebot,
+    robot::{Attempt, Robot},
+};
+use robotmk::sessions::session::{RunOutcome, RunSpec, Session};
 
 use anyhow::{bail, Context, Result};
 use camino::{Utf8Path, Utf8PathBuf};
@@ -10,6 +13,7 @@ use chrono::Utc;
 use log::{debug, error};
 use robotmk::section::WritePiggybackSection;
 use std::fs::create_dir_all;
+use tokio_util::sync::CancellationToken;
 
 pub fn run_suite(suite: &Suite) -> Result<()> {
     debug!("Running suite {}", &suite.id);
@@ -35,7 +39,15 @@ fn produce_suite_results(suite: &Suite) -> Result<SuiteExecutionReport> {
         output_directory
     ))?;
 
-    let (attempt_outcomes, output_paths) = run_attempts_until_succesful(suite, &output_directory)?;
+    let (attempt_outcomes, output_paths) = run_attempts_until_succesful(
+        &suite.robot,
+        &suite.id,
+        &suite.environment,
+        &suite.session,
+        suite.timeout,
+        &suite.cancellation_token,
+        &output_directory,
+    )?;
 
     Ok(SuiteExecutionReport {
         suite_id: suite.id.clone(),
@@ -62,14 +74,27 @@ fn produce_suite_results(suite: &Suite) -> Result<SuiteExecutionReport> {
 }
 
 fn run_attempts_until_succesful(
-    suite: &Suite,
+    robot: &Robot,
+    id: &str,
+    environment: &Environment,
+    session: &Session,
+    timeout: u64,
+    cancellation_token: &CancellationToken,
     output_directory: &Utf8Path,
 ) -> Result<(Vec<AttemptOutcome>, Vec<Utf8PathBuf>)> {
     let mut outcomes = vec![];
     let mut output_paths: Vec<Utf8PathBuf> = vec![];
 
-    for attempt in suite.robot.attempts(output_directory) {
-        let (outcome, output_path) = run_attempt(suite, attempt, output_directory)?;
+    for attempt in robot.attempts(output_directory) {
+        let (outcome, output_path) = run_attempt(
+            id,
+            environment,
+            session,
+            timeout,
+            attempt,
+            cancellation_token,
+            output_directory,
+        )?;
         let success = matches!(&outcome, &AttemptOutcome::AllTestsPassed);
         outcomes.push(outcome);
         if let Some(output_path) = output_path {
@@ -84,18 +109,22 @@ fn run_attempts_until_succesful(
 }
 
 fn run_attempt(
-    suite: &Suite,
+    id: &str,
+    environment: &Environment,
+    session: &Session,
+    timeout: u64,
     attempt: Attempt,
+    cancellation_token: &CancellationToken,
     output_directory: &Utf8Path,
 ) -> Result<(AttemptOutcome, Option<Utf8PathBuf>)> {
-    let log_message_start = format!("Suite {}, attempt {}", suite.id, attempt.index);
+    let log_message_start = format!("Suite {}, attempt {}", id, attempt.index);
 
-    let run_outcome = match suite.session.run(&RunSpec {
-        id: &format!("robotmk_suite_{}_attempt_{}", suite.id, attempt.index),
-        command_spec: &suite.environment.wrap(attempt.command_spec),
+    let run_outcome = match session.run(&RunSpec {
+        id: &format!("robotmk_suite_{}_attempt_{}", id, attempt.index),
+        command_spec: &environment.wrap(attempt.command_spec),
         base_path: &output_directory.join(attempt.index.to_string()),
-        timeout: suite.timeout,
-        cancellation_token: &suite.cancellation_token,
+        timeout,
+        cancellation_token,
     }) {
         Ok(run_outcome) => run_outcome,
         Err(error_) => {
@@ -123,7 +152,7 @@ fn run_attempt(
             ));
         }
     };
-    match suite.environment.create_result_code(exit_code) {
+    match environment.create_result_code(exit_code) {
         ResultCode::AllTestsPassed => {
             debug!("{log_message_start}: all tests passed");
             Ok((
