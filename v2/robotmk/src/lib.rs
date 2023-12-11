@@ -7,4 +7,5 @@ pub mod results;
 pub mod rf;
 pub mod section;
 pub mod sessions;
+pub mod suites;
 pub mod termination;
