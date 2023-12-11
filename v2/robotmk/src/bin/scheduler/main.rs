@@ -2,7 +2,6 @@ mod build;
 mod cli;
 mod internal_config;
 mod logging;
-mod results;
 mod rf;
 mod scheduling;
 mod sessions;
