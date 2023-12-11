@@ -1,7 +1,6 @@
 use super::session::RunOutcome;
-use crate::logging::log_and_return_error;
-use robotmk::command_spec::CommandSpec;
-use robotmk::termination::{kill_process_tree, waited, Outcome};
+use crate::command_spec::CommandSpec;
+use crate::termination::{kill_process_tree, waited, Outcome};
 
 use anyhow::{bail, Context, Result};
 use camino::{Utf8Path, Utf8PathBuf};
@@ -242,7 +241,7 @@ fn kill_and_delete_task(task_name: &str, paths: &Paths) {
 fn kill_task(paths: &Paths) {
     let _ = remove_file(&paths.run_flag)
         .context(format!("Failed to remove {}", paths.run_flag))
-        .map_err(log_and_return_error);
+        .map_err(|e| error!("{:?}", e));
     let _ = kill_task_via_pid(&paths.pid).map_err(|error| {
         warn!("{:?}", error);
         error
@@ -262,7 +261,7 @@ fn delete_task(task_name: &str) {
     debug!("Deleting task {task_name}");
     let _ = run_schtasks(["/delete", "/tn", task_name, "/f"])
         .context(format!("Failed to delete task {}", task_name))
-        .map_err(log_and_return_error);
+        .map_err(|e| error!("{:?}", e));
 }
 
 fn read_until_first_whitespace(path: &Utf8Path) -> Result<String> {
