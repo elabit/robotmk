@@ -44,7 +44,7 @@ impl WriteSection for BuildStates<'_> {
     }
 }
 
-#[derive(Serialize, Clone)]
+#[derive(PartialEq, Debug, Serialize, Clone)]
 pub enum BuildOutcome {
     NotNeeded,
     Success(i64),
