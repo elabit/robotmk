@@ -7,7 +7,7 @@ use log::{debug, error};
 use std::process::{ExitStatus, Stdio};
 use std::time::Duration;
 use sysinfo::{Pid, PidExt};
-use tokio::process::{Child, Command};
+use tokio::process::Command;
 use tokio_util::sync::CancellationToken;
 
 pub struct ChildProcessSupervisor<'a> {
@@ -22,12 +22,14 @@ pub struct StdioPaths {
     pub stderr: Utf8PathBuf,
 }
 
-fn wait_for_child(
+#[tokio::main]
+async fn wait_for_child(
     duration: Duration,
     flag: &CancellationToken,
-    child: &mut Child,
+    command: &mut Command,
 ) -> Result<ChildProcessOutcome> {
-    match waited(duration, flag, child.wait()) {
+    let child = &mut command.spawn().context("Failed to spawn subprocess")?;
+    match waited(duration, flag, child.wait()).await {
         Outcome::Timeout => {
             error!("Timed out");
             kill_child_tree(child);
@@ -65,7 +67,7 @@ impl ChildProcessSupervisor<'_> {
         wait_for_child(
             Duration::from_secs(self.timeout),
             self.cancellation_token,
-            &mut command.spawn().context("Failed to spawn subprocess")?,
+            &mut command,
         )
     }
 

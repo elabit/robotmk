@@ -14,10 +14,11 @@ use sysinfo::Pid;
 use tokio::task::yield_now;
 use tokio_util::sync::CancellationToken;
 
-fn wait_for_task_exit(task: &TaskSpec, paths: &Paths) -> Result<RunOutcome> {
+#[tokio::main]
+async fn wait_for_task_exit(task: &TaskSpec, paths: &Paths) -> Result<RunOutcome> {
     let duration = Duration::from_secs(task.timeout);
     let queried = query(task.task_name, &paths.exit_code);
-    match waited(duration, task.cancellation_token, queried) {
+    match waited(duration, task.cancellation_token, queried).await {
         Outcome::Cancel => {
             kill_and_delete_task(task.task_name, paths);
             Ok(RunOutcome::TimedOut)

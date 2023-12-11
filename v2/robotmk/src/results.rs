@@ -75,7 +75,7 @@ impl WritePiggybackSection for SuiteExecutionReport {
     }
 }
 
-#[derive(Serialize)]
+#[derive(Debug, Serialize)]
 pub enum AttemptOutcome {
     AllTestsPassed,
     TestFailures,
