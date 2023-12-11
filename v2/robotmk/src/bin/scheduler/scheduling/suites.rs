@@ -1,8 +1,8 @@
 use crate::internal_config::Suite;
-use crate::rf::{rebot::Rebot, robot::Attempt};
-use crate::sessions::session::{RunOutcome, RunSpec};
 use robotmk::environment::ResultCode;
 use robotmk::results::{AttemptOutcome, AttemptsConfig, SuiteExecutionReport};
+use robotmk::rf::{rebot::Rebot, robot::Attempt};
+use robotmk::sessions::session::{RunOutcome, RunSpec};
 
 use anyhow::{bail, Context, Result};
 use camino::{Utf8Path, Utf8PathBuf};

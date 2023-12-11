@@ -1,8 +1,8 @@
 use super::robot::PYTHON_EXECUTABLE;
-use robotmk::command_spec::CommandSpec;
-use robotmk::environment::Environment;
-use robotmk::environment::ResultCode;
-use robotmk::results::{RebotOutcome, RebotResult};
+use crate::command_spec::CommandSpec;
+use crate::environment::Environment;
+use crate::environment::ResultCode;
+use crate::results::{RebotOutcome, RebotResult};
 
 use anyhow::{Context, Result};
 use base64::{engine::general_purpose, Engine};
@@ -111,7 +111,7 @@ impl Rebot<'_> {
 #[cfg(test)]
 mod tests {
     use super::*;
-    use robotmk::config::EnvironmentConfig;
+    use crate::config::EnvironmentConfig;
 
     #[test]
     fn build_rebot_command() {
