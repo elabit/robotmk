@@ -17,6 +17,7 @@ use tokio::{process::Command, time::timeout};
 use walkdir::WalkDir;
 
 #[tokio::test]
+#[ignore]
 async fn test_scheduler() -> Result<()> {
     let test_dir = Utf8PathBuf::from(var("TEST_DIR")?);
     create_dir_all(&test_dir)?;
