@@ -31,6 +31,10 @@ jobs:
     if: always()
     uses: ./.github/workflows/tests.yaml
 
+  system_tests:
+    if: always()
+    uses: ./.github/workflows/system_tests.yaml
+
   build_robotmk:
     needs:
       - analyse_changes
@@ -48,6 +52,7 @@ jobs:
     runs-on: Ubuntu-latest
     needs:
     - tests
+    - system_tests
     - build_robotmk
     - rcc
     steps:
