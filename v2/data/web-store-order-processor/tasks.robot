@@ -7,8 +7,7 @@ Documentation       Swag order robot. Places orders at https://www.saucedemo.com
 Library             OperatingSystem
 Library             Orders
 Library             RPA.Browser.Playwright
-Library             RPA.HTTP
-Library             RPA.Robocorp.Vault
+# Library             RPA.Robocorp.Vault
 
 
 *** Variables ***
@@ -18,15 +17,22 @@ ${SWAG_LABS_URL}=       https://www.saucedemo.com
 
 
 *** Tasks ***
-Place orders
-    Process orders
+First Order
+    Process orders  1
 
+Second Order
+    Process orders  2
+
+Third Order
+    Process orders  3
+    
 
 *** Keywords ***
 Process orders
+    [Arguments]  ${file}
     Open Swag Labs
     Login    standard_user    secret_sauce
-    ${orders}=    Collect orders
+    ${orders}=    Collect orders  ${file}
     FOR    ${order}    IN    @{orders}
         Run Keyword And Continue On Failure    Process order    ${order}
     END
@@ -51,8 +57,9 @@ Assert logged in
     Get Url    ==    ${SWAG_LABS_URL}/inventory.html
 
 Collect orders
-    RPA.HTTP.Download    ${EXCEL_FILE_URL}    overwrite=True
-    ${orders}=    Get Orders    ${EXCEL_FILE_NAME}
+    [Arguments]  ${datafile}
+    #RPA.HTTP.Download    ${EXCEL_FILE_URL}    overwrite=True
+    ${orders}=    Get Orders    ${CURDIR}${/}Data${datafile}.xlsx
     RETURN    ${orders}
 
 Process order
