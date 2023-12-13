@@ -85,13 +85,13 @@ pub enum AttemptOutcome {
     OtherError(String),
 }
 
-#[derive(Serialize)]
+#[derive(Debug, Serialize)]
 pub enum RebotOutcome {
     Ok(RebotResult),
     Error(String),
 }
 
-#[derive(Serialize)]
+#[derive(Debug, Serialize)]
 pub struct RebotResult {
     pub xml: String,
     pub html_base64: String,
