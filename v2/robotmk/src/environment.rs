@@ -47,6 +47,13 @@ impl Environment {
         }
     }
 
+    pub fn build_instructions(&self) -> Option<BuildInstructions> {
+        match self {
+            Self::System(system_environment) => system_environment.build_instructions(),
+            Self::Rcc(rcc_environment) => rcc_environment.build_instructions(),
+        }
+    }
+
     pub fn wrap(&self, command_spec: CommandSpec) -> CommandSpec {
         match self {
             Self::System(system_environment) => system_environment.wrap(command_spec),
@@ -63,6 +70,10 @@ impl Environment {
 }
 
 impl SystemEnvironment {
+    fn build_instructions(&self) -> Option<BuildInstructions> {
+        None
+    }
+
     fn wrap(&self, command_spec: CommandSpec) -> CommandSpec {
         command_spec
     }
@@ -76,6 +87,25 @@ impl SystemEnvironment {
 }
 
 impl RCCEnvironment {
+    fn build_instructions(&self) -> Option<BuildInstructions> {
+        let mut command_spec = CommandSpec::new(&self.binary_path);
+        command_spec
+            .add_argument("holotree")
+            .add_argument("variables")
+            .add_argument("--json");
+        apply_current_settings(
+            &self.robot_yaml_path,
+            &self.controller,
+            &self.space,
+            self.env_json_path.as_deref(),
+            &mut command_spec,
+        );
+        Some(BuildInstructions {
+            command_spec,
+            timeout: self.build_timeout,
+        })
+    }
+
     fn wrap(&self, command_spec: CommandSpec) -> CommandSpec {
         let mut wrapped_spec = CommandSpec::new(&self.binary_path);
         wrapped_spec
@@ -105,6 +135,12 @@ impl RCCEnvironment {
     }
 }
 
+#[derive(Debug, PartialEq)]
+pub struct BuildInstructions {
+    pub command_spec: CommandSpec,
+    pub timeout: u64,
+}
+
 pub fn apply_current_settings(
     robot_yaml_path: &Utf8Path,
     controller: &str,
@@ -129,6 +165,38 @@ pub fn apply_current_settings(
 #[cfg(test)]
 mod tests {
     use super::*;
+
+    #[test]
+    fn rcc_build_instructions() {
+        let mut expected_command_spec = CommandSpec::new("/bin/rcc");
+        expected_command_spec
+            .add_argument("holotree")
+            .add_argument("variables")
+            .add_argument("--json")
+            .add_argument("--robot")
+            .add_argument("/a/b/c/robot.yaml")
+            .add_argument("--controller")
+            .add_argument("robotmk")
+            .add_argument("--space")
+            .add_argument("my_suite");
+
+        assert_eq!(
+            RCCEnvironment {
+                binary_path: Utf8PathBuf::from("/bin/rcc"),
+                robot_yaml_path: Utf8PathBuf::from("/a/b/c/robot.yaml"),
+                controller: String::from("robotmk"),
+                space: String::from("my_suite"),
+                build_timeout: 123,
+                env_json_path: None,
+            }
+            .build_instructions()
+            .unwrap(),
+            BuildInstructions {
+                command_spec: expected_command_spec,
+                timeout: 123,
+            }
+        )
+    }
 
     fn command_spec_for_wrap() -> CommandSpec {
         let mut command_spec = CommandSpec::new("C:\\x\\y\\z.exe");

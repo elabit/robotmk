@@ -1,8 +1,7 @@
 use super::internal_config::{GlobalConfig, Suite};
 use super::logging::log_and_return_error;
 use robotmk::child_process_supervisor::{ChildProcessOutcome, ChildProcessSupervisor, StdioPaths};
-use robotmk::command_spec::CommandSpec;
-use robotmk::environment::{apply_current_settings, Environment, RCCEnvironment};
+use robotmk::environment::Environment;
 use robotmk::results::{BuildOutcome, BuildStates, EnvironmentBuildStage};
 
 use robotmk::lock::Locker;
@@ -54,21 +53,20 @@ fn build_environment(
     build_stage_reporter: &mut BuildStageReporter,
     stdio_directory: &Utf8Path,
 ) -> Result<BuildOutcome> {
-    let Environment::Rcc(environment) = environment else {
+    let Some(build_instructions) = environment.build_instructions() else {
         let outcome = BuildOutcome::NotNeeded;
         debug!("Nothing to do for suite {}", id);
         build_stage_reporter.update(id, EnvironmentBuildStage::Complete(outcome.clone()))?;
         return Ok(outcome);
     };
     info!("Building environment for suite {}", id);
-    let command_spec = create_build_command(environment);
     let supervisor = ChildProcessSupervisor {
-        command_spec: &command_spec,
+        command_spec: &build_instructions.command_spec,
         stdio_paths: Some(StdioPaths {
             stdout: stdio_directory.join(format!("{}.stdout", id)),
             stderr: stdio_directory.join(format!("{}.stderr", id)),
         }),
-        timeout: environment.build_timeout,
+        timeout: build_instructions.timeout,
         cancellation_token,
     };
     let start_time = Utc::now();
@@ -79,22 +77,6 @@ fn build_environment(
     let outcome = run_build_command(supervisor, start_time)?;
     build_stage_reporter.update(id, EnvironmentBuildStage::Complete(outcome.clone()))?;
     Ok(outcome)
-}
-
-fn create_build_command(environment: &RCCEnvironment) -> CommandSpec {
-    let mut command_spec = CommandSpec::new(&environment.binary_path);
-    command_spec
-        .add_argument("holotree")
-        .add_argument("variables")
-        .add_argument("--json");
-    apply_current_settings(
-        &environment.robot_yaml_path,
-        &environment.controller,
-        &environment.space,
-        environment.env_json_path.as_deref(),
-        &mut command_spec,
-    );
-    command_spec
 }
 
 fn run_build_command(
@@ -156,37 +138,5 @@ impl<'a> BuildStageReporter<'a> {
     pub fn update(&mut self, suite_id: &str, build_status: EnvironmentBuildStage) -> Result<()> {
         self.build_states.insert(suite_id.into(), build_status);
         BuildStates(&self.build_states).write(&self.path, self.locker)
-    }
-}
-
-#[cfg(test)]
-mod tests {
-    use super::*;
-
-    #[test]
-    fn rcc_build_command() {
-        let mut expected = CommandSpec::new("/bin/rcc");
-        expected
-            .add_argument("holotree")
-            .add_argument("variables")
-            .add_argument("--json")
-            .add_argument("--robot")
-            .add_argument("/a/b/c/robot.yaml")
-            .add_argument("--controller")
-            .add_argument("robotmk")
-            .add_argument("--space")
-            .add_argument("my_suite");
-
-        assert_eq!(
-            create_build_command(&RCCEnvironment {
-                binary_path: Utf8PathBuf::from("/bin/rcc"),
-                robot_yaml_path: Utf8PathBuf::from("/a/b/c/robot.yaml"),
-                controller: String::from("robotmk"),
-                space: String::from("my_suite"),
-                build_timeout: 123,
-                env_json_path: None,
-            }),
-            expected
-        )
     }
 }
