@@ -93,13 +93,7 @@ impl RCCEnvironment {
             .add_argument("holotree")
             .add_argument("variables")
             .add_argument("--json");
-        apply_current_settings(
-            &self.robot_yaml_path,
-            &self.controller,
-            &self.space,
-            self.env_json_path.as_deref(),
-            &mut command_spec,
-        );
+        self.apply_current_settings(&mut command_spec);
         Some(BuildInstructions {
             command_spec,
             timeout: self.build_timeout,
@@ -112,13 +106,7 @@ impl RCCEnvironment {
             .add_argument("task")
             .add_argument("script")
             .add_argument("--no-build");
-        apply_current_settings(
-            &self.robot_yaml_path,
-            &self.controller,
-            &self.space,
-            self.env_json_path.as_deref(),
-            &mut wrapped_spec,
-        );
+        self.apply_current_settings(&mut wrapped_spec);
         wrapped_spec
             .add_argument("--")
             .add_argument(command_spec.executable)
@@ -133,33 +121,27 @@ impl RCCEnvironment {
             _ => ResultCode::EnvironmentFailed,
         }
     }
+
+    fn apply_current_settings(&self, command_spec: &mut CommandSpec) {
+        command_spec
+            .add_argument("--robot")
+            .add_argument(&self.robot_yaml_path)
+            .add_argument("--controller")
+            .add_argument(&self.controller)
+            .add_argument("--space")
+            .add_argument(&self.space);
+        if let Some(env_json_path) = &self.env_json_path {
+            command_spec
+                .add_argument("--environment")
+                .add_argument(env_json_path);
+        }
+    }
 }
 
 #[derive(Debug, PartialEq)]
 pub struct BuildInstructions {
     pub command_spec: CommandSpec,
     pub timeout: u64,
-}
-
-pub fn apply_current_settings(
-    robot_yaml_path: &Utf8Path,
-    controller: &str,
-    space: &str,
-    env_json_path: Option<&Utf8Path>,
-    command_spec: &mut CommandSpec,
-) {
-    command_spec
-        .add_argument("--robot")
-        .add_argument(robot_yaml_path)
-        .add_argument("--controller")
-        .add_argument(controller)
-        .add_argument("--space")
-        .add_argument(space);
-    if let Some(env_json_path) = &env_json_path {
-        command_spec
-            .add_argument("--environment")
-            .add_argument(env_json_path);
-    }
 }
 
 #[cfg(test)]
