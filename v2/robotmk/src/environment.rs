@@ -89,11 +89,12 @@ impl SystemEnvironment {
 impl RCCEnvironment {
     fn build_instructions(&self) -> Option<BuildInstructions> {
         let mut command_spec = CommandSpec::new(&self.binary_path);
-        command_spec
-            .add_argument("holotree")
-            .add_argument("variables")
-            .add_argument("--json");
+        command_spec.add_argument("task").add_argument("script");
         self.apply_current_settings(&mut command_spec);
+        command_spec
+            .add_argument("--")
+            .add_argument(&self.binary_path)
+            .add_argument("-v");
         Some(BuildInstructions {
             command_spec,
             timeout: self.build_timeout,
@@ -152,15 +153,17 @@ mod tests {
     fn rcc_build_instructions() {
         let mut expected_command_spec = CommandSpec::new("/bin/rcc");
         expected_command_spec
-            .add_argument("holotree")
-            .add_argument("variables")
-            .add_argument("--json")
+            .add_argument("task")
+            .add_argument("script")
             .add_argument("--robot")
             .add_argument("/a/b/c/robot.yaml")
             .add_argument("--controller")
             .add_argument("robotmk")
             .add_argument("--space")
-            .add_argument("my_suite");
+            .add_argument("my_suite")
+            .add_argument("--")
+            .add_argument("/bin/rcc")
+            .add_argument("-v");
 
         assert_eq!(
             RCCEnvironment {
