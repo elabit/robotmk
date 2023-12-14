@@ -64,6 +64,7 @@ pub enum EnvironmentBuildStage {
 #[derive(Serialize)]
 pub struct SuiteExecutionReport {
     pub suite_id: String,
+    pub timestamp: String,
     pub attempts: Vec<AttemptOutcome>,
     pub rebot: Option<RebotOutcome>,
     pub config: AttemptsConfig,

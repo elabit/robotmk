@@ -23,9 +23,8 @@ pub fn run_suite(suite: &Suite) -> Result<()> {
 }
 
 fn produce_suite_results(suite: &Suite) -> Result<SuiteExecutionReport> {
-    let output_directory = suite
-        .working_directory
-        .join(Utc::now().format("%Y-%m-%dT%H.%M.%S%.f%z").to_string());
+    let timestamp = Utc::now().format("%Y-%m-%dT%H.%M.%S%.f%z").to_string();
+    let output_directory = suite.working_directory.join(timestamp.clone());
 
     create_dir_all(&output_directory).context(format!(
         "Failed to create directory for suite run: {}",
@@ -44,6 +43,7 @@ fn produce_suite_results(suite: &Suite) -> Result<SuiteExecutionReport> {
 
     Ok(SuiteExecutionReport {
         suite_id: suite.id.clone(),
+        timestamp,
         attempts: attempt_outcomes,
         rebot,
         config: AttemptsConfig {
