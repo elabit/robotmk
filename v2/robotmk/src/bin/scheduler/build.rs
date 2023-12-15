@@ -1,11 +1,10 @@
 use super::internal_config::{GlobalConfig, Suite};
 use super::logging::log_and_return_error;
-use robotmk::child_process_supervisor::{ChildProcessOutcome, ChildProcessSupervisor, StdioPaths};
 use robotmk::environment::Environment;
-use robotmk::results::{BuildOutcome, BuildStates, EnvironmentBuildStage};
-
 use robotmk::lock::Locker;
+use robotmk::results::{BuildOutcome, BuildStates, EnvironmentBuildStage};
 use robotmk::section::WriteSection;
+use robotmk::sessions::session::{RunOutcome, RunSpec, Session};
 
 use anyhow::{bail, Result};
 use camino::{Utf8Path, Utf8PathBuf};
@@ -14,8 +13,8 @@ use log::{debug, error, info};
 use std::collections::HashMap;
 use tokio_util::sync::CancellationToken;
 
-pub fn environment_building_stdio_directory(working_directory: &Utf8Path) -> Utf8PathBuf {
-    working_directory.join("environment_building_stdio")
+pub fn environment_building_working_directory(working_directory: &Utf8Path) -> Utf8PathBuf {
+    working_directory.join("environment_building")
 }
 
 pub fn build_environments(global_config: &GlobalConfig, suites: Vec<Suite>) -> Result<Vec<Suite>> {
@@ -24,17 +23,18 @@ pub fn build_environments(global_config: &GlobalConfig, suites: Vec<Suite>) -> R
         &global_config.results_directory,
         &global_config.results_directory_locker,
     )?;
-    let env_building_stdio_directory =
-        environment_building_stdio_directory(&global_config.working_directory);
+    let working_directory =
+        environment_building_working_directory(&global_config.working_directory);
 
     let mut completed_suites = Vec::new();
     for suite in suites.into_iter() {
         let outcome = build_environment(
             &suite.id,
             &suite.environment,
+            &suite.session,
             &global_config.cancellation_token,
             &mut build_stage_reporter,
-            &env_building_stdio_directory,
+            &working_directory,
         )?;
         match outcome {
             BuildOutcome::NotNeeded => completed_suites.push(suite),
@@ -49,9 +49,10 @@ pub fn build_environments(global_config: &GlobalConfig, suites: Vec<Suite>) -> R
 fn build_environment(
     id: &str,
     environment: &Environment,
+    sesssion: &Session,
     cancellation_token: &CancellationToken,
     build_stage_reporter: &mut BuildStageReporter,
-    stdio_directory: &Utf8Path,
+    working_directory: &Utf8Path,
 ) -> Result<BuildOutcome> {
     let Some(build_instructions) = environment.build_instructions() else {
         let outcome = BuildOutcome::NotNeeded;
@@ -60,12 +61,10 @@ fn build_environment(
         return Ok(outcome);
     };
     info!("Building environment for suite {}", id);
-    let supervisor = ChildProcessSupervisor {
+    let run_spec = RunSpec {
+        id: &format!("robotmk_env_building_{id}"),
         command_spec: &build_instructions.command_spec,
-        stdio_paths: Some(StdioPaths {
-            stdout: stdio_directory.join(format!("{}.stdout", id)),
-            stderr: stdio_directory.join(format!("{}.stderr", id)),
-        }),
+        base_path: &working_directory.join(id),
         timeout: build_instructions.timeout,
         cancellation_token,
     };
@@ -74,17 +73,17 @@ fn build_environment(
         id,
         EnvironmentBuildStage::InProgress(start_time.timestamp()),
     )?;
-    let outcome = run_build_command(supervisor, start_time)?;
+    let outcome = run_build_command(&run_spec, sesssion, start_time)?;
     build_stage_reporter.update(id, EnvironmentBuildStage::Complete(outcome.clone()))?;
     Ok(outcome)
 }
 
 fn run_build_command(
-    build_process_supervisor: ChildProcessSupervisor,
+    run_spec: &RunSpec,
+    sesssion: &Session,
     reference_timestamp_for_duration: DateTime<Utc>,
 ) -> Result<BuildOutcome> {
-    let build_result = build_process_supervisor.run();
-    let child_process_outcome = match build_result {
+    let outcome = match sesssion.run(run_spec) {
         Ok(o) => o,
         Err(e) => {
             let e = e.context("Environment building failed, suite will be dropped");
@@ -93,21 +92,22 @@ fn run_build_command(
         }
     };
     let duration = (Utc::now() - reference_timestamp_for_duration).num_seconds();
-    match child_process_outcome {
-        ChildProcessOutcome::Exited(exit_status) => {
-            if exit_status.success() {
+    match outcome {
+        RunOutcome::Exited(exit_code) => match exit_code {
+            Some(0) => {
                 debug!("Environmenent building succeeded");
                 Ok(BuildOutcome::Success(duration))
-            } else {
+            }
+            _ => {
                 error!("Environment building not sucessful, suite will be dropped");
                 Ok(BuildOutcome::NonZeroExit)
             }
-        }
-        ChildProcessOutcome::TimedOut => {
+        },
+        RunOutcome::TimedOut => {
             error!("Environment building timed out, suite will be dropped");
             Ok(BuildOutcome::Timeout)
         }
-        ChildProcessOutcome::Terminated => Ok(BuildOutcome::Terminated),
+        RunOutcome::Terminated => Ok(BuildOutcome::Terminated),
     }
 }
 
