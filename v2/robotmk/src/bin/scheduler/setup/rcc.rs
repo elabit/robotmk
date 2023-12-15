@@ -9,7 +9,10 @@ use robotmk::sessions::session::{CurrentSession, RunOutcome, RunSpec, Session};
 use anyhow::{bail, Context, Result};
 use camino::{Utf8Path, Utf8PathBuf};
 use log::{debug, error};
-use robotmk::{config::RCCProfileConfig, section::WriteSection};
+use robotmk::{
+    config::{CustomRCCProfileConfig, RCCProfileConfig},
+    section::WriteSection,
+};
 use std::collections::HashMap;
 use std::fs::{create_dir_all, remove_dir_all};
 use std::vec;
@@ -20,8 +23,10 @@ pub fn setup(global_config: &GlobalConfig, suites: Vec<Suite>) -> Result<Vec<Sui
     clear_rcc_setup_working_directory(&rcc_setup_working_directory(
         &global_config.working_directory,
     ))?;
-    if let Some(rcc_profile_config) = &global_config.rcc_config.profile_config {
-        adjust_rcc_profile_permissions(&rcc_profile_config.path)
+    if let RCCProfileConfig::Custom(custom_rcc_profile_config) =
+        &global_config.rcc_config.profile_config
+    {
+        adjust_rcc_profile_permissions(&custom_rcc_profile_config.path)
             .context("Failed to adjust permissions of RCC profile")?;
     }
 
@@ -84,19 +89,16 @@ fn rcc_setup(global_config: &GlobalConfig, rcc_suites: Vec<Suite>) -> Result<Vec
         );
     }
 
-    if let Some(rcc_profile_config) = &global_config.rcc_config.profile_config {
-        debug!("Configuring RCC profile");
-        (sucessful_suites, failed_suites) =
-            configure_rcc_profile(rcc_profile_config, global_config, sucessful_suites)
-                .context("Configuring RCC profile failed")?;
-        rcc_setup_failures.profile_configuring =
-            failed_suites.into_iter().map(|suite| suite.id).collect();
-        if !rcc_setup_failures.profile_configuring.is_empty() {
-            error!(
-                "Dropping the following suites due to profile configuring failure: {}",
-                rcc_setup_failures.profile_configuring.join(", ")
-            );
-        }
+    debug!("Configuring RCC profile");
+    (sucessful_suites, failed_suites) = configure_rcc_profile(global_config, sucessful_suites)
+        .context("Configuring RCC profile failed")?;
+    rcc_setup_failures.profile_configuring =
+        failed_suites.into_iter().map(|suite| suite.id).collect();
+    if !rcc_setup_failures.profile_configuring.is_empty() {
+        error!(
+            "Dropping the following suites due to profile configuring failure: {}",
+            rcc_setup_failures.profile_configuring.join(", ")
+        );
     }
 
     debug!("Enabling support for long paths");
@@ -161,7 +163,38 @@ fn disable_rcc_telemetry(
 }
 
 fn configure_rcc_profile(
-    rcc_profile_config: &RCCProfileConfig,
+    global_config: &GlobalConfig,
+    suites: Vec<Suite>,
+) -> Result<(Vec<Suite>, Vec<Suite>)> {
+    match &global_config.rcc_config.profile_config {
+        RCCProfileConfig::Default => configure_default_rcc_profile(global_config, suites),
+        RCCProfileConfig::Custom(custom_rcc_profile_config) => {
+            configure_custom_rcc_profile(custom_rcc_profile_config, global_config, suites)
+        }
+    }
+}
+
+fn configure_default_rcc_profile(
+    global_config: &GlobalConfig,
+    suites: Vec<Suite>,
+) -> Result<(Vec<Suite>, Vec<Suite>)> {
+    run_command_spec_per_session(
+        global_config,
+        suites,
+        &CommandSpec {
+            executable: global_config.rcc_config.binary_path.to_string(),
+            arguments: vec![
+                "configuration".into(),
+                "switch".into(),
+                "--noprofile".into(),
+            ],
+        },
+        "default_profile_switch",
+    )
+}
+
+fn configure_custom_rcc_profile(
+    custom_rcc_profile_config: &CustomRCCProfileConfig,
     global_config: &GlobalConfig,
     suites: Vec<Suite>,
 ) -> Result<(Vec<Suite>, Vec<Suite>)> {
@@ -174,10 +207,10 @@ fn configure_rcc_profile(
                 "configuration".into(),
                 "import".into(),
                 "--filename".into(),
-                rcc_profile_config.path.to_string(),
+                custom_rcc_profile_config.path.to_string(),
             ],
         },
-        "profile_import",
+        "custom_profile_import",
     )?;
     let (sucessful_suites_switch, failed_suites_switch) = run_command_spec_per_session(
         global_config,
@@ -188,10 +221,10 @@ fn configure_rcc_profile(
                 "configuration".into(),
                 "switch".into(),
                 "--profile".into(),
-                rcc_profile_config.name.to_string(),
+                custom_rcc_profile_config.name.to_string(),
             ],
         },
-        "profile_switch",
+        "custom_profile_switch",
     )?;
     let mut failed_suites = vec![];
     failed_suites.extend(failed_suites_import);

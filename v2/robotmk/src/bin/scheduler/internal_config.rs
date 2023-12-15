@@ -90,8 +90,9 @@ pub fn sort_suites_by_id(suites: &mut [Suite]) {
 mod tests {
     use super::*;
     use robotmk::config::{
-        EnvironmentConfig, ExecutionConfig, RCCEnvironmentConfig, RCCProfileConfig, RetryStrategy,
-        RobotFrameworkConfig, SessionConfig, SuiteConfig, UserSessionConfig,
+        CustomRCCProfileConfig, EnvironmentConfig, ExecutionConfig, RCCEnvironmentConfig,
+        RCCProfileConfig, RetryStrategy, RobotFrameworkConfig, SessionConfig, SuiteConfig,
+        UserSessionConfig,
     };
     use robotmk::environment::{Environment, RCCEnvironment, SystemEnvironment};
     use robotmk::sessions::session::{CurrentSession, UserSession};
@@ -151,7 +152,7 @@ mod tests {
                 results_directory: Utf8PathBuf::from("/results"),
                 rcc_config: RCCConfig {
                     binary_path: Utf8PathBuf::from("/bin/rcc"),
-                    profile_config: Some(RCCProfileConfig {
+                    profile_config: RCCProfileConfig::Custom(CustomRCCProfileConfig {
                         name: "Robotmk".into(),
                         path: "/rcc_profile_robotmk.yaml".into(),
                     }),
@@ -170,7 +171,7 @@ mod tests {
             global_config.rcc_config,
             RCCConfig {
                 binary_path: Utf8PathBuf::from("/bin/rcc"),
-                profile_config: Some(RCCProfileConfig {
+                profile_config: RCCProfileConfig::Custom(CustomRCCProfileConfig {
                     name: "Robotmk".into(),
                     path: "/rcc_profile_robotmk.yaml".into(),
                 }),
