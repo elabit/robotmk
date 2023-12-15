@@ -1,4 +1,5 @@
 use crate::internal_config::Suite;
+use crate::logging::TIMESTAMP_FORMAT;
 use robotmk::results::{AttemptsConfig, SuiteExecutionReport};
 use robotmk::suites::run_attempts_with_rebot;
 
@@ -23,7 +24,7 @@ pub fn run_suite(suite: &Suite) -> Result<()> {
 }
 
 fn produce_suite_results(suite: &Suite) -> Result<SuiteExecutionReport> {
-    let timestamp = Utc::now().format("%Y-%m-%dT%H.%M.%S%.f%z").to_string();
+    let timestamp = Utc::now().format(TIMESTAMP_FORMAT).to_string();
     let output_directory = suite.working_directory.join(timestamp.clone());
 
     create_dir_all(&output_directory).context(format!(
