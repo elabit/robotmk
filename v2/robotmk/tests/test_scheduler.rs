@@ -190,7 +190,7 @@ async fn assert_working_directory(
     assert!(working_directory.is_dir());
     assert_eq!(
         directory_entries(working_directory, 1),
-        ["environment_building_stdio", "rcc_setup", "suites"]
+        ["environment_building", "rcc_setup", "suites"]
     );
     assert_eq!(
         directory_entries(working_directory.join("rcc_setup"), 1),
@@ -234,8 +234,12 @@ async fn assert_working_directory(
         ]
     );
     assert_eq!(
-        directory_entries(working_directory.join("environment_building_stdio"), 1),
+        directory_entries(working_directory.join("environment_building"), 1),
         [
+            "rcc_headed.bat",
+            "rcc_headed.exit_code",
+            "rcc_headed.pid",
+            "rcc_headed.run_flag",
             "rcc_headed.stderr",
             "rcc_headed.stdout",
             "rcc_headless.stderr",

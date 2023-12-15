@@ -1,5 +1,5 @@
 use super::icacls::run_icacls_command;
-use crate::build::environment_building_stdio_directory;
+use crate::build::environment_building_working_directory;
 use crate::internal_config::{GlobalConfig, Suite};
 use anyhow::{Context, Result};
 use camino::{Utf8Path, Utf8PathBuf};
@@ -21,8 +21,8 @@ fn setup_working_directories(working_directory: &Utf8Path, suites: &[Suite]) -> 
             suite.working_directory, suite.id
         ))?;
     }
-    create_dir_all(environment_building_stdio_directory(working_directory))
-        .context("Failed to create environment building stdio directory")?;
+    create_dir_all(environment_building_working_directory(working_directory))
+        .context("Failed to create environment building working directory")?;
     adjust_working_directory_permissions(working_directory)
         .context("Failed adjust working directory permissions")
 }

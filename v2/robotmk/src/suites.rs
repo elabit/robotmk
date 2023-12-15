@@ -44,7 +44,11 @@ pub fn run_attempts_with_rebot(
         return Ok((outcomes, None));
     }
     let rebot = Rebot {
+        suite_id: id,
         environment,
+        session,
+        working_directory: output_directory,
+        cancellation_token,
         input_paths: &output_paths,
         path_xml: &output_directory.join("rebot.xml"),
         path_html: &output_directory.join("rebot.html"),
