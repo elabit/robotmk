@@ -21,11 +21,17 @@ pub struct Config {
 #[derive(Clone, Debug, Deserialize, PartialEq, Serialize)]
 pub struct RCCConfig {
     pub binary_path: Utf8PathBuf,
-    pub profile_config: Option<RCCProfileConfig>,
+    pub profile_config: RCCProfileConfig,
 }
 
 #[derive(Clone, Debug, Deserialize, PartialEq, Serialize)]
-pub struct RCCProfileConfig {
+pub enum RCCProfileConfig {
+    Default,
+    Custom(CustomRCCProfileConfig),
+}
+
+#[derive(Clone, Debug, Deserialize, PartialEq, Serialize)]
+pub struct CustomRCCProfileConfig {
     pub name: String,
     pub path: Utf8PathBuf,
 }

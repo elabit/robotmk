@@ -2,9 +2,9 @@ use anyhow::Result;
 use assert_cmd::cargo::cargo_bin;
 use camino::{Utf8Path, Utf8PathBuf};
 use robotmk::config::{
-    Config, EnvironmentConfig, ExecutionConfig, RCCConfig, RCCEnvironmentConfig, RCCProfileConfig,
-    RetryStrategy, RobotFrameworkConfig, SessionConfig, SuiteConfig, UserSessionConfig,
-    WorkingDirectoryCleanupConfig,
+    Config, CustomRCCProfileConfig, EnvironmentConfig, ExecutionConfig, RCCConfig,
+    RCCEnvironmentConfig, RCCProfileConfig, RetryStrategy, RobotFrameworkConfig, SessionConfig,
+    SuiteConfig, UserSessionConfig, WorkingDirectoryCleanupConfig,
 };
 use robotmk::section::Host;
 use serde_json::to_string;
@@ -29,7 +29,7 @@ async fn test_scheduler() -> Result<()> {
             .join("minimal_suite"),
         RCCConfig {
             binary_path: var("RCC_BINARY_PATH")?.into(),
-            profile_config: Some(create_rcc_profile(&test_dir)?),
+            profile_config: RCCProfileConfig::Custom(create_custom_rcc_profile(&test_dir)?),
         },
         &current_user_name,
     );
@@ -43,7 +43,7 @@ async fn test_scheduler() -> Result<()> {
     Ok(())
 }
 
-fn create_rcc_profile(test_dir: &Utf8Path) -> Result<RCCProfileConfig> {
+fn create_custom_rcc_profile(test_dir: &Utf8Path) -> Result<CustomRCCProfileConfig> {
     let rcc_profile_path = test_dir.join("rcc_profile.yaml");
     write(
         &rcc_profile_path,
@@ -56,7 +56,7 @@ settings:
     source: Robotmk
 ",
     )?;
-    Ok(RCCProfileConfig {
+    Ok(CustomRCCProfileConfig {
         name: "Robotmk".into(),
         path: rcc_profile_path,
     })
@@ -195,6 +195,22 @@ async fn assert_working_directory(
     assert_eq!(
         directory_entries(working_directory.join("rcc_setup"), 1),
         [
+            "custom_profile_import_current_user.stderr",
+            "custom_profile_import_current_user.stdout",
+            &format!("custom_profile_import_user_{headed_user_name}.bat"),
+            &format!("custom_profile_import_user_{headed_user_name}.exit_code"),
+            &format!("custom_profile_import_user_{headed_user_name}.pid"),
+            &format!("custom_profile_import_user_{headed_user_name}.run_flag"),
+            &format!("custom_profile_import_user_{headed_user_name}.stderr"),
+            &format!("custom_profile_import_user_{headed_user_name}.stdout"),
+            "custom_profile_switch_current_user.stderr",
+            "custom_profile_switch_current_user.stdout",
+            &format!("custom_profile_switch_user_{headed_user_name}.bat"),
+            &format!("custom_profile_switch_user_{headed_user_name}.exit_code"),
+            &format!("custom_profile_switch_user_{headed_user_name}.pid"),
+            &format!("custom_profile_switch_user_{headed_user_name}.run_flag"),
+            &format!("custom_profile_switch_user_{headed_user_name}.stderr"),
+            &format!("custom_profile_switch_user_{headed_user_name}.stdout"),
             "holotree_initialization_current_user.stderr",
             "holotree_initialization_current_user.stdout",
             &format!("holotree_initialization_user_{headed_user_name}.bat"),
@@ -205,22 +221,6 @@ async fn assert_working_directory(
             &format!("holotree_initialization_user_{headed_user_name}.stdout"),
             "long_path_support_enabling.stderr",
             "long_path_support_enabling.stdout",
-            "profile_import_current_user.stderr",
-            "profile_import_current_user.stdout",
-            &format!("profile_import_user_{headed_user_name}.bat"),
-            &format!("profile_import_user_{headed_user_name}.exit_code"),
-            &format!("profile_import_user_{headed_user_name}.pid"),
-            &format!("profile_import_user_{headed_user_name}.run_flag"),
-            &format!("profile_import_user_{headed_user_name}.stderr"),
-            &format!("profile_import_user_{headed_user_name}.stdout"),
-            "profile_switch_current_user.stderr",
-            "profile_switch_current_user.stdout",
-            &format!("profile_switch_user_{headed_user_name}.bat"),
-            &format!("profile_switch_user_{headed_user_name}.exit_code"),
-            &format!("profile_switch_user_{headed_user_name}.pid"),
-            &format!("profile_switch_user_{headed_user_name}.run_flag"),
-            &format!("profile_switch_user_{headed_user_name}.stderr"),
-            &format!("profile_switch_user_{headed_user_name}.stdout"),
             "shared_holotree_init.stderr",
             "shared_holotree_init.stdout",
             "telemetry_disabling_current_user.stderr",
@@ -295,10 +295,10 @@ async fn assert_rcc(rcc_config: &RCCConfig) -> Result<()> {
 
 async fn assert_rcc_files_permissions(rcc_config: &RCCConfig) -> Result<()> {
     assert_permissions(&rcc_config.binary_path, "BUILTIN\\Users:(RX)").await?;
-    let Some(rcc_profile_config) = &rcc_config.profile_config else {
+    let RCCProfileConfig::Custom(custom_rcc_profile_config) = &rcc_config.profile_config else {
         return Ok(());
     };
-    assert_permissions(&rcc_profile_config.path, "BUILTIN\\Users:(R)").await
+    assert_permissions(&custom_rcc_profile_config.path, "BUILTIN\\Users:(R)").await
 }
 
 async fn assert_rcc_configuration(rcc_config: &RCCConfig) -> Result<()> {
@@ -310,10 +310,10 @@ async fn assert_rcc_configuration(rcc_config: &RCCConfig) -> Result<()> {
     assert!(stdout.contains("telemetry-enabled                     ...  \"false\""));
     assert!(stdout.contains("holotree-shared                       ...  \"true\""));
     assert!(stdout.contains("holotree-global-shared                ...  \"true\""));
-    if let Some(rcc_profile_config) = &rcc_config.profile_config {
+    if let RCCProfileConfig::Custom(custom_rcc_profile_config) = &rcc_config.profile_config {
         assert!(stdout.contains(&format!(
             "config-active-profile                 ...  \"{}\"",
-            rcc_profile_config.name
+            custom_rcc_profile_config.name
         )));
     }
     Ok(())
