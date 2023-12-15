@@ -1,7 +1,8 @@
 use anyhow::Error;
 use camino::Utf8PathBuf;
 use flexi_logger::{
-    DeferredNow, FileSpec, FlexiLoggerError, LogSpecification, Logger, LoggerHandle, Record,
+    Age, Cleanup, Criterion, DeferredNow, FileSpec, FlexiLoggerError, LogSpecification, Logger,
+    LoggerHandle, Naming, Record,
 };
 use log::error;
 
@@ -34,6 +35,11 @@ pub fn init(
         None => logger.log_to_stderr(),
     }
     .format(format)
+    .rotate(
+        Criterion::Age(Age::Day),
+        Naming::Numbers,
+        Cleanup::KeepLogFiles(14),
+    )
     .start()
 }
 
