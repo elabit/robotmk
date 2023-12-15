@@ -127,6 +127,22 @@ impl RCCEnvironment {
         command_spec
             .add_argument("--robot")
             .add_argument(&self.robot_yaml_path)
+            // According to the `rcc --help`:
+            // --controller string   internal, DO NOT USE (unless you know what you are doing)
+            //
+            // According to https://github.com/robocorp/rcc/blob/v16.5.0/docs/recipes.md#how-to-control-holotree-environments
+            // This is one of three ways to controller where holotree spaces are created [...] when
+            // applications are calling rcc, they should have their own "controller" identity, so
+            // that all spaces created for one application are groupped together by prefix of their
+            // "space" identity name.
+            //
+            // According to https://github.com/robocorp/rcc/blob/v16.5.0/docs/vocabulary.md#controller
+            // This is tool or context that is currently running rcc command.
+            //
+            // From the code we can see, that the controlle is included in UserAgent of HTTP
+            // requests for and the journaling (for example).
+            //
+            // In sum, ignoring the `DO NOT USE` seems correct.
             .add_argument("--controller")
             .add_argument(&self.controller)
             .add_argument("--space")
