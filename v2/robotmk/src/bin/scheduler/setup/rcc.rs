@@ -366,17 +366,16 @@ fn run_command_spec_in_session(session: &Session, run_spec: &RunSpec) -> Result<
     };
     match run_outcome {
         RunOutcome::Exited(exit_code) => match exit_code {
-            Some(exit_code) => {
-                if exit_code == 0 {
-                    debug!("{} for `{session}` successful", run_spec.command_spec);
-                    Ok(true)
-                } else {
-                    error!(
-                        "{} for `{session}` exited non-successfully",
-                        run_spec.command_spec
-                    );
-                    Ok(false)
-                }
+            Some(0) => {
+                debug!("{} for `{session}` successful", run_spec.command_spec);
+                Ok(true)
+            }
+            Some(_) => {
+                error!(
+                    "{} for `{session}` exited non-successfully",
+                    run_spec.command_spec
+                );
+                Ok(false)
             }
             None => {
                 error!(
