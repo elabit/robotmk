@@ -21,12 +21,12 @@ async fn wait_for_task_exit(task: &TaskSpec, paths: &Paths) -> Result<RunOutcome
     match waited(duration, task.cancellation_token, queried).await {
         Outcome::Cancel => {
             kill_and_delete_task(task.task_name, paths);
-            Ok(RunOutcome::TimedOut)
+            Ok(RunOutcome::Terminated)
         }
         Outcome::Timeout => {
             error!("Timeout");
             kill_and_delete_task(task.task_name, paths);
-            Ok(RunOutcome::Terminated)
+            Ok(RunOutcome::TimedOut)
         }
         Outcome::Completed(Err(e)) => {
             kill_and_delete_task(task.task_name, paths);
