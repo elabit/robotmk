@@ -25,7 +25,7 @@ impl Robot {
         &'a self,
         output_directory: &'a Utf8Path,
     ) -> impl Iterator<Item = Attempt> + 'a {
-        (0..self.n_attempts_max).map(move |i| self.attempt(output_directory, i))
+        (1..(self.n_attempts_max + 1)).map(move |i| self.attempt(output_directory, i))
     }
 
     fn attempt(&self, output_directory: &Utf8Path, index: usize) -> Attempt {
@@ -46,7 +46,7 @@ impl Robot {
         let mut command_spec = CommandSpec::new(PYTHON_EXECUTABLE);
         command_spec.add_argument("-m").add_argument("robot");
         command_spec.add_arguments(&self.command_line_args);
-        if matches!(self.retry_strategy, RetryStrategy::Incremental) && index > 0 {
+        if matches!(self.retry_strategy, RetryStrategy::Incremental) && index > 1 {
             command_spec
                 .add_argument("--rerunfailed")
                 .add_argument(output_directory.join(format!("{}.xml", index - 1)));
@@ -77,9 +77,9 @@ mod tests {
             .add_argument("--outputdir")
             .add_argument(output_directory)
             .add_argument("--output")
-            .add_argument(output_directory.join("0.xml"))
+            .add_argument(output_directory.join("1.xml"))
             .add_argument("--log")
-            .add_argument(output_directory.join("0.html"))
+            .add_argument(output_directory.join("1.html"))
             .add_argument("--report")
             .add_argument("NONE")
             .add_argument("~/suite/calculator.robot");
@@ -92,13 +92,13 @@ mod tests {
             .add_argument("-m")
             .add_argument("robot")
             .add_argument("--rerunfailed")
-            .add_argument(output_directory.join("0.xml"))
+            .add_argument(output_directory.join("1.xml"))
             .add_argument("--outputdir")
             .add_argument(output_directory)
             .add_argument("--output")
-            .add_argument(output_directory.join("1.xml"))
+            .add_argument(output_directory.join("2.xml"))
             .add_argument("--log")
-            .add_argument(output_directory.join("1.html"))
+            .add_argument(output_directory.join("2.html"))
             .add_argument("--report")
             .add_argument("NONE")
             .add_argument("~/suite/calculator.robot");
@@ -118,7 +118,7 @@ mod tests {
         let expected = expected_first_run(&output_directory);
         // Act
         let command_spec =
-            robot.command_spec(&output_directory, &output_directory.join("0.xml"), 0);
+            robot.command_spec(&output_directory, &output_directory.join("1.xml"), 1);
         // Assert
         assert_eq!(command_spec, expected);
     }
@@ -128,7 +128,7 @@ mod tests {
         // Assemble
         let robot = Robot {
             robot_target: "~/suite/calculator.robot".into(),
-            n_attempts_max: 1,
+            n_attempts_max: 2,
             command_line_args: vec![],
             retry_strategy: RetryStrategy::Incremental,
         };
@@ -136,7 +136,7 @@ mod tests {
         let expected = expected_first_run(&output_directory);
         // Act
         let command_spec =
-            robot.command_spec(&output_directory, &output_directory.join("0.xml"), 0);
+            robot.command_spec(&output_directory, &output_directory.join("1.xml"), 1);
         // Assert
         assert_eq!(command_spec, expected);
     }
@@ -146,7 +146,7 @@ mod tests {
         // Assemble
         let robot = Robot {
             robot_target: "~/suite/calculator.robot".into(),
-            n_attempts_max: 1,
+            n_attempts_max: 2,
             command_line_args: vec![],
             retry_strategy: RetryStrategy::Incremental,
         };
@@ -154,7 +154,7 @@ mod tests {
         let expected = expected_second_run(&output_directory);
         // Act
         let command_spec =
-            robot.command_spec(&output_directory, &output_directory.join("1.xml"), 1);
+            robot.command_spec(&output_directory, &output_directory.join("2.xml"), 2);
         // Assert
         assert_eq!(command_spec, expected)
     }
@@ -171,14 +171,14 @@ mod tests {
         let output_directory =
             Utf8PathBuf::from("/tmp/outputdir/suite_1/2023-08-29T12.23.44.419347+00.00");
         let first_attempt = Attempt {
-            index: 0,
+            index: 1,
             command_spec: expected_first_run(&output_directory),
-            output_xml_file: output_directory.join("0.xml"),
+            output_xml_file: output_directory.join("1.xml"),
         };
         let second_attempt = Attempt {
-            index: 1,
+            index: 2,
             command_spec: expected_second_run(&output_directory),
-            output_xml_file: output_directory.join("1.xml"),
+            output_xml_file: output_directory.join("2.xml"),
         };
         // Act
         let attempts: Vec<Attempt> = robot.attempts(&output_directory).collect();

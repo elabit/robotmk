@@ -65,7 +65,7 @@ pub enum EnvironmentBuildStage {
 pub struct SuiteExecutionReport {
     pub suite_id: String,
     pub timestamp: String,
-    pub attempts: Vec<AttemptOutcome>,
+    pub attempts: Vec<AttemptReport>,
     pub rebot: Option<RebotOutcome>,
     pub config: AttemptsConfig,
 }
@@ -74,6 +74,12 @@ impl WritePiggybackSection for SuiteExecutionReport {
     fn name() -> &'static str {
         "robotmk_suite_execution_report"
     }
+}
+
+#[derive(PartialEq, Debug, Serialize)]
+pub struct AttemptReport {
+    pub index: usize,
+    pub outcome: AttemptOutcome,
 }
 
 #[derive(PartialEq, Debug, Serialize)]

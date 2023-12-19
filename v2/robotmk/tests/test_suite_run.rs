@@ -2,7 +2,7 @@ use anyhow::Result;
 use camino::Utf8PathBuf;
 use robotmk::config::RetryStrategy;
 use robotmk::environment::{Environment, SystemEnvironment};
-use robotmk::results::AttemptOutcome;
+use robotmk::results::{AttemptOutcome, AttemptReport};
 use robotmk::rf::robot::Robot;
 use robotmk::sessions::session::{CurrentSession, Session};
 use robotmk::suites::run_attempts_with_rebot;
@@ -18,7 +18,7 @@ fn test_rebot_run() -> Result<()> {
         command_line_args: vec![],
         retry_strategy: RetryStrategy::Complete,
     };
-    let (attempt_outcomes, rebot) = run_attempts_with_rebot(
+    let (attempt_reports, rebot) = run_attempts_with_rebot(
         &robot,
         "test",
         &Environment::System(SystemEnvironment {}),
@@ -27,7 +27,13 @@ fn test_rebot_run() -> Result<()> {
         &CancellationToken::default(),
         &test_dir,
     )?;
-    assert_eq!(attempt_outcomes, &[AttemptOutcome::AllTestsPassed]);
+    assert_eq!(
+        attempt_reports,
+        &[AttemptReport {
+            index: 1,
+            outcome: AttemptOutcome::AllTestsPassed,
+        }]
+    );
     assert!(rebot.is_some());
     Ok(())
 }
@@ -41,7 +47,7 @@ fn test_timeout_process() -> Result<()> {
         command_line_args: vec![],
         retry_strategy: RetryStrategy::Complete,
     };
-    let (attempt_outcomes, rebot) = run_attempts_with_rebot(
+    let (attempt_reports, rebot) = run_attempts_with_rebot(
         &robot,
         "test",
         &Environment::System(SystemEnvironment {}),
@@ -51,6 +57,12 @@ fn test_timeout_process() -> Result<()> {
         &test_dir,
     )?;
     assert!(rebot.is_none());
-    assert_eq!(attempt_outcomes, &[AttemptOutcome::TimedOut]);
+    assert_eq!(
+        attempt_reports,
+        &[AttemptReport {
+            index: 1,
+            outcome: AttemptOutcome::TimedOut,
+        }]
+    );
     Ok(())
 }

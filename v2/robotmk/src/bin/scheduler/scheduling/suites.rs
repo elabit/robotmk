@@ -32,7 +32,7 @@ fn produce_suite_results(suite: &Suite) -> Result<SuiteExecutionReport> {
         output_directory
     ))?;
 
-    let (attempt_outcomes, rebot) = run_attempts_with_rebot(
+    let (attempt_reports, rebot) = run_attempts_with_rebot(
         &suite.robot,
         &suite.id,
         &suite.environment,
@@ -45,7 +45,7 @@ fn produce_suite_results(suite: &Suite) -> Result<SuiteExecutionReport> {
     Ok(SuiteExecutionReport {
         suite_id: suite.id.clone(),
         timestamp,
-        attempts: attempt_outcomes,
+        attempts: attempt_reports,
         rebot,
         config: AttemptsConfig {
             interval: suite.execution_interval_seconds,
