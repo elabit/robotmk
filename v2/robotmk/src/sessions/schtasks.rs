@@ -221,7 +221,10 @@ async fn query(task_name: &str, exit_path: &Utf8Path) -> Result<i32> {
         yield_now().await
     }
 
-    let raw_exit_code = read_until_first_whitespace(exit_path)?;
+    let raw_exit_code = read_until_first_whitespace(exit_path).context(
+        "Failed to read task exit code file. A probable cause is that the task was \
+        killed, which prevented it from writing this file.",
+    )?;
     let exit_code: i32 = raw_exit_code
         .parse()
         .context(format!("Failed to parse {} as i32", raw_exit_code))?;
@@ -250,8 +253,7 @@ fn kill_task(paths: &Paths) {
 }
 
 fn kill_task_via_pid(path_pid: &Utf8Path) -> Result<()> {
-    let raw_pid = read_until_first_whitespace(path_pid)
-        .context(format!("Failed to read PID from {path_pid}"))?;
+    let raw_pid = read_until_first_whitespace(path_pid).context("Failed to read PID file")?;
     kill_process_tree(
         &Pid::from_str(&raw_pid).context(format!("Failed to parse {} as PID", raw_pid))?,
     );
