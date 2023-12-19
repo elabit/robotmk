@@ -8,7 +8,7 @@ mod termination;
 
 use anyhow::{bail, Context, Result};
 use clap::Parser;
-use log::{debug, info};
+use log::info;
 use logging::log_and_return_error;
 use robotmk::lock::Locker;
 use robotmk::results::SchedulerPhase;
@@ -26,11 +26,11 @@ fn run() -> Result<()> {
 
     let external_config =
         robotmk::config::load(&args.config_path).context("Configuration loading failed")?;
-    debug!("Configuration loaded");
+    info!("Configuration loaded");
 
     let cancellation_token = termination::start_termination_control(args.run_flag)
         .context("Failed to set up termination control")?;
-    debug!("Termination control set up");
+    info!("Termination control set up");
 
     let (global_config, suites) = internal_config::from_external_config(
         external_config,
@@ -43,10 +43,10 @@ fn run() -> Result<()> {
     }
 
     setup::general::setup(&global_config, &suites).context("General setup failed")?;
-    debug!("General setup completed");
+    info!("General setup completed");
     write_phase(&SchedulerPhase::RCCSetup, &global_config)?;
     let suites = setup::rcc::setup(&global_config, suites).context("RCC-specific setup failed")?;
-    debug!("RCC-specific setup completed");
+    info!("RCC-specific setup completed");
 
     if global_config.cancellation_token.is_cancelled() {
         bail!("Terminated")

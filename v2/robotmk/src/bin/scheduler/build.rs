@@ -9,7 +9,7 @@ use robotmk::sessions::session::{RunOutcome, RunSpec, Session};
 use anyhow::{bail, Result};
 use camino::{Utf8Path, Utf8PathBuf};
 use chrono::{DateTime, Utc};
-use log::{debug, error, info};
+use log::{error, info};
 use std::collections::HashMap;
 use tokio_util::sync::CancellationToken;
 
@@ -56,7 +56,7 @@ fn build_environment(
 ) -> Result<BuildOutcome> {
     let Some(build_instructions) = environment.build_instructions() else {
         let outcome = BuildOutcome::NotNeeded;
-        debug!("Nothing to do for suite {}", id);
+        info!("Nothing to do for suite {}", id);
         build_stage_reporter.update(id, EnvironmentBuildStage::Complete(outcome.clone()))?;
         return Ok(outcome);
     };
@@ -95,7 +95,7 @@ fn run_build_command(
     match outcome {
         RunOutcome::Exited(exit_code) => match exit_code {
             Some(0) => {
-                debug!("Environmenent building succeeded");
+                info!("Environmenent building succeeded");
                 Ok(BuildOutcome::Success(duration))
             }
             _ => {

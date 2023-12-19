@@ -5,12 +5,12 @@ use robotmk::suites::run_attempts_with_rebot;
 
 use anyhow::{Context, Result};
 use chrono::Utc;
-use log::debug;
+use log::info;
 use robotmk::section::WritePiggybackSection;
 use std::fs::create_dir_all;
 
 pub fn run_suite(suite: &Suite) -> Result<()> {
-    debug!("Running suite {}", &suite.id);
+    info!("Running suite {}", &suite.id);
     produce_suite_results(suite)?
         .write(
             &suite.results_file,
@@ -18,7 +18,7 @@ pub fn run_suite(suite: &Suite) -> Result<()> {
             &suite.results_directory_locker,
         )
         .context("Reporting suite results failed")?;
-    debug!("Suite {} finished", &suite.id);
+    info!("Suite {} finished", &suite.id);
 
     Ok(())
 }

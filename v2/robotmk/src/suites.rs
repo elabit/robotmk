@@ -5,7 +5,7 @@ use crate::rf::robot::{Attempt, Robot};
 use crate::sessions::session::{RunOutcome, RunSpec, Session};
 use anyhow::{bail, Result};
 use camino::{Utf8Path, Utf8PathBuf};
-use log::{debug, error};
+use log::{error, info};
 use tokio_util::sync::CancellationToken;
 
 pub fn run_attempts_with_rebot(
@@ -21,6 +21,7 @@ pub fn run_attempts_with_rebot(
     let mut output_paths: Vec<Utf8PathBuf> = vec![];
 
     for attempt in robot.attempts(output_directory) {
+        info!("Suite {id}: running attempt {}", attempt.index);
         let (outcome, output_path) = run_attempt(
             id,
             environment,
@@ -43,6 +44,7 @@ pub fn run_attempts_with_rebot(
     if output_paths.is_empty() {
         return Ok((outcomes, None));
     }
+    info!("Suite {id}: Running rebot");
     let rebot = Rebot {
         suite_id: id,
         environment,
@@ -104,7 +106,7 @@ fn run_attempt(
     };
     match environment.create_result_code(exit_code) {
         ResultCode::AllTestsPassed => {
-            debug!("{log_message_start}: all tests passed");
+            info!("{log_message_start}: all tests passed");
             Ok((
                 AttemptOutcome::AllTestsPassed,
                 Some(attempt.output_xml_file),
@@ -116,7 +118,7 @@ fn run_attempt(
         }
         ResultCode::RobotCommandFailed => {
             if attempt.output_xml_file.exists() {
-                debug!("{log_message_start}: some tests failed");
+                info!("{log_message_start}: some tests failed");
                 Ok((AttemptOutcome::TestFailures, Some(attempt.output_xml_file)))
             } else {
                 error!("{log_message_start}: Robot Framework failure (no output)");
