@@ -258,12 +258,12 @@ async fn assert_working_directory(
     let entries_rcc_headed =
         directory_entries(working_directory.join("suites").join("rcc_headed"), 2).join("");
     assert!(entries_rcc_headed.contains("rebot.xml"));
-    assert!(entries_rcc_headed.contains("0.bat"));
+    assert!(entries_rcc_headed.contains("1.bat"));
 
     let entries_rcc_headless =
         directory_entries(working_directory.join("suites").join("rcc_headless"), 2).join("");
     assert!(entries_rcc_headless.contains("rebot.xml"));
-    assert!(!entries_rcc_headless.contains("0.bat"));
+    assert!(!entries_rcc_headless.contains("1.bat"));
 
     Ok(())
 }

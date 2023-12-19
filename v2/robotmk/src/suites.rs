@@ -1,5 +1,5 @@
 use crate::environment::{Environment, ResultCode};
-use crate::results::{AttemptOutcome, RebotOutcome};
+use crate::results::{AttemptOutcome, AttemptReport, RebotOutcome};
 use crate::rf::rebot::Rebot;
 use crate::rf::robot::{Attempt, Robot};
 use crate::sessions::session::{RunOutcome, RunSpec, Session};
@@ -16,12 +16,13 @@ pub fn run_attempts_with_rebot(
     timeout: u64,
     cancellation_token: &CancellationToken,
     output_directory: &Utf8Path,
-) -> Result<(Vec<AttemptOutcome>, Option<RebotOutcome>)> {
-    let mut outcomes = vec![];
+) -> Result<(Vec<AttemptReport>, Option<RebotOutcome>)> {
+    let mut attempt_reports = vec![];
     let mut output_paths: Vec<Utf8PathBuf> = vec![];
 
     for attempt in robot.attempts(output_directory) {
         info!("Suite {id}: running attempt {}", attempt.index);
+        let attempt_index = attempt.index;
         let (outcome, output_path) = run_attempt(
             id,
             environment,
@@ -32,7 +33,10 @@ pub fn run_attempts_with_rebot(
             output_directory,
         )?;
         let success = matches!(&outcome, &AttemptOutcome::AllTestsPassed);
-        outcomes.push(outcome);
+        attempt_reports.push(AttemptReport {
+            index: attempt_index,
+            outcome,
+        });
         if let Some(output_path) = output_path {
             output_paths.push(output_path);
         }
@@ -42,7 +46,7 @@ pub fn run_attempts_with_rebot(
     }
 
     if output_paths.is_empty() {
-        return Ok((outcomes, None));
+        return Ok((attempt_reports, None));
     }
     info!("Suite {id}: Running rebot");
     let rebot = Rebot {
@@ -57,7 +61,7 @@ pub fn run_attempts_with_rebot(
     }
     .rebot();
 
-    Ok((outcomes, Some(rebot)))
+    Ok((attempt_reports, Some(rebot)))
 }
 
 fn run_attempt(
