@@ -4,14 +4,14 @@ use robotmk::config::WorkingDirectoryCleanupConfig;
 
 use anyhow::{Context, Result};
 use camino::{Utf8DirEntry, Utf8Path};
-use log::debug;
+use log::{debug, info};
 use std::cmp::min;
 use std::fs::{remove_dir_all, remove_file};
 use std::time::{SystemTime, UNIX_EPOCH};
 
 pub fn cleanup_working_directories<'a>(suites: impl Iterator<Item = &'a Suite>) {
     for suite in suites {
-        debug!(
+        info!(
             "Cleaning up working directory {} of suite {}",
             suite.working_directory, suite.id
         );
