@@ -1,9 +1,9 @@
 use crate::command_spec::CommandSpec;
 use crate::termination::{kill_process_tree, waited, Outcome};
 
-use anyhow::{Context, Result};
+use anyhow::{Context, Result as AnyhowResult};
 use camino::Utf8PathBuf;
-use log::{debug, error};
+use log::debug;
 use std::process::{ExitStatus, Stdio};
 use std::time::Duration;
 use sysinfo::{Pid, PidExt};
@@ -22,33 +22,8 @@ pub struct StdioPaths {
     pub stderr: Utf8PathBuf,
 }
 
-#[tokio::main]
-async fn wait_for_child(
-    duration: Duration,
-    flag: &CancellationToken,
-    command: &mut Command,
-) -> Result<ChildProcessOutcome> {
-    let child = &mut command.spawn().context("Failed to spawn subprocess")?;
-    match waited(duration, flag, child.wait()).await {
-        Outcome::Timeout => {
-            error!("Timed out");
-            kill_child_tree(child);
-            Ok(ChildProcessOutcome::TimedOut)
-        }
-        Outcome::Cancel => {
-            kill_child_tree(child);
-            Ok(ChildProcessOutcome::Terminated)
-        }
-        Outcome::Completed(Err(e)) => {
-            kill_child_tree(child);
-            Err(e.into())
-        }
-        Outcome::Completed(Ok(o)) => Ok(ChildProcessOutcome::Exited(o)),
-    }
-}
-
 impl ChildProcessSupervisor<'_> {
-    pub fn run(&self) -> Result<ChildProcessOutcome> {
+    pub fn run(&self) -> AnyhowResult<Outcome<AnyhowResult<ExitStatus>>> {
         let mut command: Command = self.build_command()?;
 
         let (stdout_path, stderr_path) = if let Some(stdio_paths) = &self.stdio_paths {
@@ -71,7 +46,7 @@ impl ChildProcessSupervisor<'_> {
         )
     }
 
-    fn build_command(&self) -> Result<Command> {
+    fn build_command(&self) -> AnyhowResult<Command> {
         let mut command = Command::from(self.command_spec);
         if let Some(stdio_paths) = &self.stdio_paths {
             command
@@ -90,10 +65,31 @@ impl ChildProcessSupervisor<'_> {
     }
 }
 
-pub enum ChildProcessOutcome {
-    Exited(ExitStatus),
-    TimedOut,
-    Terminated,
+#[tokio::main]
+async fn wait_for_child(
+    duration: Duration,
+    flag: &CancellationToken,
+    command: &mut Command,
+) -> AnyhowResult<Outcome<AnyhowResult<ExitStatus>>> {
+    let child = &mut command.spawn().context("Failed to spawn subprocess")?;
+    match waited(duration, flag, child.wait()).await {
+        Outcome::Timeout => {
+            kill_child_tree(child);
+            Ok(Outcome::Timeout)
+        }
+        Outcome::Cancel => {
+            kill_child_tree(child);
+            Ok(Outcome::Cancel)
+        }
+        Outcome::Completed(result) => {
+            if result.is_err() {
+                kill_child_tree(child);
+            }
+            Ok(Outcome::Completed(
+                result.context("Failed to retrieve exit status of subprocess"),
+            ))
+        }
+    }
 }
 
 fn kill_child_tree(child: &tokio::process::Child) {

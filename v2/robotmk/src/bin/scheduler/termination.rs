@@ -1,11 +1,13 @@
-use anyhow::{Context, Result};
+use anyhow::{Context, Result as AnyhowResult};
 use camino::Utf8PathBuf;
 use log::debug;
 use std::thread::{sleep, spawn};
 use std::time::Duration;
 use tokio_util::sync::CancellationToken;
 
-pub fn start_termination_control(run_flag_file: Option<Utf8PathBuf>) -> Result<CancellationToken> {
+pub fn start_termination_control(
+    run_flag_file: Option<Utf8PathBuf>,
+) -> AnyhowResult<CancellationToken> {
     let token = CancellationToken::new();
     watch_ctrlc(token.clone()).context("Failed to register signal handler for CTRL+C")?;
     if let Some(run_flag_file) = run_flag_file {
@@ -35,7 +37,7 @@ mod tests {
     use tempfile::NamedTempFile;
 
     #[test]
-    fn run_flag_file() -> Result<()> {
+    fn run_flag_file() -> AnyhowResult<()> {
         let run_flag_temp_path = NamedTempFile::new()?.into_temp_path();
         let cancellation_token = start_termination_control(Some(Utf8PathBuf::try_from(
             run_flag_temp_path.to_path_buf(),

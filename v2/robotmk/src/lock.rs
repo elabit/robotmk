@@ -1,4 +1,4 @@
-use anyhow::{bail, Context, Result};
+use anyhow::{bail, Context, Result as AnyhowResult};
 use camino::{Utf8Path, Utf8PathBuf};
 use fs4::FileExt;
 use log::debug;
@@ -26,7 +26,7 @@ impl Locker {
         }
     }
 
-    pub fn wait_for_read_lock(&self) -> Result<Lock> {
+    pub fn wait_for_read_lock(&self) -> AnyhowResult<Lock> {
         debug!("Waiting for read lock");
         let file = self.file()?;
         let file = with_cancellation(
@@ -38,7 +38,7 @@ impl Locker {
         Ok(Lock(file))
     }
 
-    pub fn wait_for_write_lock(&self) -> Result<Lock> {
+    pub fn wait_for_write_lock(&self) -> AnyhowResult<Lock> {
         debug!("Waiting for write lock");
         let file = self.file()?;
         let file = with_cancellation(
@@ -50,7 +50,7 @@ impl Locker {
         Ok(Lock(file))
     }
 
-    fn file(&self) -> Result<File> {
+    fn file(&self) -> AnyhowResult<File> {
         File::open(&self.lock_path).context(format!(
             "Failed to open {} for creating lock",
             self.lock_path,
@@ -59,7 +59,7 @@ impl Locker {
 }
 
 #[tokio::main]
-async fn with_cancellation<F>(lock: F, cancellation_token: &CancellationToken) -> Result<File>
+async fn with_cancellation<F>(lock: F, cancellation_token: &CancellationToken) -> AnyhowResult<File>
 where
     F: FnOnce() -> io::Result<File> + Send + 'static,
 {
@@ -70,7 +70,7 @@ where
 }
 
 impl Lock {
-    pub fn release(self) -> Result<()> {
+    pub fn release(self) -> AnyhowResult<()> {
         self.0.unlock().context("Failed to release lock")
     }
 }

@@ -1,19 +1,19 @@
 use super::icacls::run_icacls_command;
 use crate::build::environment_building_working_directory;
 use crate::internal_config::{GlobalConfig, Suite};
-use anyhow::{Context, Result};
+use anyhow::{Context, Result as AnyhowResult};
 use camino::{Utf8Path, Utf8PathBuf};
 use log::debug;
 use robotmk::results::suite_results_directory;
 use std::collections::HashSet;
 use std::fs::{create_dir_all, remove_file};
 
-pub fn setup(global_config: &GlobalConfig, suites: &[Suite]) -> Result<()> {
+pub fn setup(global_config: &GlobalConfig, suites: &[Suite]) -> AnyhowResult<()> {
     setup_working_directories(&global_config.working_directory, suites)?;
     setup_results_directories(global_config, suites)
 }
 
-fn setup_working_directories(working_directory: &Utf8Path, suites: &[Suite]) -> Result<()> {
+fn setup_working_directories(working_directory: &Utf8Path, suites: &[Suite]) -> AnyhowResult<()> {
     create_dir_all(working_directory).context("Failed to create working directory")?;
     for suite in suites {
         create_dir_all(&suite.working_directory).context(format!(
@@ -27,7 +27,7 @@ fn setup_working_directories(working_directory: &Utf8Path, suites: &[Suite]) -> 
         .context("Failed adjust working directory permissions")
 }
 
-fn setup_results_directories(global_config: &GlobalConfig, suites: &[Suite]) -> Result<()> {
+fn setup_results_directories(global_config: &GlobalConfig, suites: &[Suite]) -> AnyhowResult<()> {
     create_dir_all(&global_config.results_directory)
         .context("Failed to create results directory")?;
     create_dir_all(suite_results_directory(&global_config.results_directory))
@@ -36,7 +36,10 @@ fn setup_results_directories(global_config: &GlobalConfig, suites: &[Suite]) -> 
         .context("Failed to clean up results directory")
 }
 
-fn clean_up_results_directory_atomic(global_config: &GlobalConfig, suites: &[Suite]) -> Result<()> {
+fn clean_up_results_directory_atomic(
+    global_config: &GlobalConfig,
+    suites: &[Suite],
+) -> AnyhowResult<()> {
     let results_directory_lock = global_config
         .results_directory_locker
         .wait_for_write_lock()?;
@@ -52,7 +55,9 @@ fn clean_up_results_directory_atomic(global_config: &GlobalConfig, suites: &[Sui
     results_directory_lock.release()
 }
 
-fn currently_present_result_files(suite_results_directory: &Utf8Path) -> Result<Vec<Utf8PathBuf>> {
+fn currently_present_result_files(
+    suite_results_directory: &Utf8Path,
+) -> AnyhowResult<Vec<Utf8PathBuf>> {
     let mut result_files = vec![];
 
     for dir_entry in suite_results_directory.read_dir_utf8().context(format!(
@@ -76,7 +81,7 @@ fn currently_present_result_files(suite_results_directory: &Utf8Path) -> Result<
     Ok(result_files)
 }
 
-fn adjust_working_directory_permissions(working_directory: &Utf8Path) -> Result<()> {
+fn adjust_working_directory_permissions(working_directory: &Utf8Path) -> AnyhowResult<()> {
     debug!("Granting group `Users` full access to {working_directory}");
     run_icacls_command(vec![
         working_directory.as_str(),

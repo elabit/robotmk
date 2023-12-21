@@ -1,4 +1,4 @@
-use anyhow::Result;
+use anyhow::Result as AnyhowResult;
 use camino::Utf8PathBuf;
 use robotmk::config::RetryStrategy;
 use robotmk::environment::{Environment, SystemEnvironment};
@@ -54,7 +54,7 @@ fn check_tree_size(system: &mut System, pid: Pid) -> usize {
     get_tree_size(processes, pid)
 }
 
-fn main() -> Result<()> {
+fn main() -> AnyhowResult<()> {
     let mut system = System::new();
     let current_pid = get_current_pid().unwrap();
     let cargo_manifest_dir = Utf8PathBuf::from(var("CARGO_MANIFEST_DIR")?);
@@ -91,7 +91,7 @@ fn main() -> Result<()> {
     match running.join().unwrap() {
         Err(error) => {
             let message = format!("{error:?}");
-            assert!(message.starts_with("Terminated"), "Message: {message}")
+            assert!(message.starts_with("Cancelled"), "Message: {message}")
         }
         ok => panic!("Cancellation failed: {ok:?}"),
     };

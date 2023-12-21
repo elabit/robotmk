@@ -1,4 +1,4 @@
-use anyhow::Result;
+use anyhow::Result as AnyhowResult;
 use camino::Utf8PathBuf;
 use robotmk::config::RetryStrategy;
 use robotmk::environment::{Environment, SystemEnvironment};
@@ -10,7 +10,7 @@ use tempfile::tempdir;
 use tokio_util::sync::CancellationToken;
 
 #[test]
-fn test_rebot_run() -> Result<()> {
+fn test_rebot_run() -> AnyhowResult<()> {
     let test_dir = Utf8PathBuf::from_path_buf(tempdir()?.into_path()).unwrap();
     let robot = Robot {
         robot_target: "tests/minimal_suite/tasks.robot".into(),
@@ -39,7 +39,7 @@ fn test_rebot_run() -> Result<()> {
 }
 
 #[test]
-fn test_timeout_process() -> Result<()> {
+fn test_timeout_process() -> AnyhowResult<()> {
     let test_dir = Utf8PathBuf::from_path_buf(tempdir()?.into_path()).unwrap();
     let robot = Robot {
         robot_target: "tests/timeout/tasks.robot".into(),

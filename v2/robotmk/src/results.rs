@@ -48,9 +48,7 @@ impl WriteSection for BuildStates<'_> {
 pub enum BuildOutcome {
     NotNeeded,
     Success(i64),
-    NonZeroExit,
     Timeout,
-    Terminated,
     Error(String),
 }
 

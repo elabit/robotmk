@@ -1,8 +1,7 @@
-use super::session::RunOutcome;
 use crate::command_spec::CommandSpec;
 use crate::termination::{kill_process_tree, waited, Outcome};
 
-use anyhow::{bail, Context, Result};
+use anyhow::{bail, Context, Result as AnyhowResult};
 use camino::{Utf8Path, Utf8PathBuf};
 use chrono::{Duration as ChronoDuration, Local};
 use log::{debug, error, warn};
@@ -14,33 +13,7 @@ use sysinfo::Pid;
 use tokio::task::yield_now;
 use tokio_util::sync::CancellationToken;
 
-#[tokio::main]
-async fn wait_for_task_exit(task: &TaskSpec, paths: &Paths) -> Result<RunOutcome> {
-    let duration = Duration::from_secs(task.timeout);
-    let queried = query(task.task_name, &paths.exit_code);
-    match waited(duration, task.cancellation_token, queried).await {
-        Outcome::Cancel => {
-            kill_and_delete_task(task.task_name, paths);
-            Ok(RunOutcome::Terminated)
-        }
-        Outcome::Timeout => {
-            error!("Timeout");
-            kill_and_delete_task(task.task_name, paths);
-            Ok(RunOutcome::TimedOut)
-        }
-        Outcome::Completed(Err(e)) => {
-            kill_and_delete_task(task.task_name, paths);
-            Err(e)
-        }
-        Outcome::Completed(Ok(code)) => {
-            debug!("Task {} completed", task.task_name);
-            delete_task(task.task_name);
-            Ok(RunOutcome::Exited(Some(code)))
-        }
-    }
-}
-
-pub fn run_task(task_spec: &TaskSpec) -> Result<RunOutcome> {
+pub fn run_task(task_spec: &TaskSpec) -> AnyhowResult<Outcome<AnyhowResult<i32>>> {
     debug!(
         "Running the following command as task {} for user {}:\n{}\n\nBase path: {}",
         task_spec.task_name, task_spec.user_name, task_spec.command_spec, task_spec.base_path
@@ -52,7 +25,7 @@ pub fn run_task(task_spec: &TaskSpec) -> Result<RunOutcome> {
         .context(format!("Failed to create task {}", task_spec.task_name))?;
     start_task(task_spec.task_name, &paths.run_flag)?;
 
-    wait_for_task_exit(task_spec, &paths)
+    Ok(wait_for_task_exit(task_spec, &paths))
 }
 
 pub struct TaskSpec<'a> {
@@ -89,7 +62,7 @@ impl From<&Utf8Path> for Paths {
     }
 }
 
-fn assert_session_is_active(user_name: &str) -> Result<()> {
+fn assert_session_is_active(user_name: &str) -> AnyhowResult<()> {
     let mut query_user_command = Command::new("query");
     query_user_command.arg("user");
     if check_if_user_has_active_session(
@@ -130,7 +103,7 @@ fn check_if_user_has_active_session(user_name: &str, query_user_stdout: &str) ->
     false
 }
 
-fn create_task(task_spec: &TaskSpec, paths: &Paths) -> Result<()> {
+fn create_task(task_spec: &TaskSpec, paths: &Paths) -> AnyhowResult<()> {
     write(
         &paths.script,
         build_task_script(task_spec.command_spec, paths),
@@ -183,7 +156,7 @@ fn build_task_script(command_spec: &CommandSpec, paths: &Paths) -> String {
     .join("\n")
 }
 
-fn run_schtasks<T>(arguments: impl IntoIterator<Item = T>) -> Result<String>
+fn run_schtasks<T>(arguments: impl IntoIterator<Item = T>) -> AnyhowResult<String>
 where
     T: AsRef<str>,
 {
@@ -205,7 +178,7 @@ where
     ))
 }
 
-fn start_task(task_name: &str, path_run_flag: &Utf8Path) -> Result<()> {
+fn start_task(task_name: &str, path_run_flag: &Utf8Path) -> AnyhowResult<()> {
     debug!("Starting task {task_name}");
     write(path_run_flag, "").context(format!("Failed to create run flag file {path_run_flag}"))?;
     run_schtasks(["/run", "/tn", task_name])
@@ -213,7 +186,18 @@ fn start_task(task_name: &str, path_run_flag: &Utf8Path) -> Result<()> {
     Ok(())
 }
 
-async fn query(task_name: &str, exit_path: &Utf8Path) -> Result<i32> {
+#[tokio::main]
+async fn wait_for_task_exit(task: &TaskSpec, paths: &Paths) -> Outcome<AnyhowResult<i32>> {
+    let duration = Duration::from_secs(task.timeout);
+    let queried = query(task.task_name, &paths.exit_code);
+    let outcome = waited(duration, task.cancellation_token, queried).await;
+    if !matches!(outcome, Outcome::Completed(Ok(_))) {
+        kill_and_delete_task(task.task_name, paths);
+    }
+    outcome
+}
+
+async fn query(task_name: &str, exit_path: &Utf8Path) -> AnyhowResult<i32> {
     debug!("Waiting for task {} to complete", task_name);
     while query_if_task_is_running(task_name)
         .context(format!("Failed to query if task {task_name} is running"))?
@@ -231,7 +215,7 @@ async fn query(task_name: &str, exit_path: &Utf8Path) -> Result<i32> {
     Ok(exit_code)
 }
 
-fn query_if_task_is_running(task_name: &str) -> Result<bool> {
+fn query_if_task_is_running(task_name: &str) -> AnyhowResult<bool> {
     let schtasks_stdout = run_schtasks(["/query", "/tn", task_name, "/fo", "CSV", "/nh"])?;
     Ok(schtasks_stdout.contains("Running"))
 }
@@ -252,7 +236,7 @@ fn kill_task(paths: &Paths) {
     });
 }
 
-fn kill_task_via_pid(path_pid: &Utf8Path) -> Result<()> {
+fn kill_task_via_pid(path_pid: &Utf8Path) -> AnyhowResult<()> {
     let raw_pid = read_until_first_whitespace(path_pid).context("Failed to read PID file")?;
     kill_process_tree(
         &Pid::from_str(&raw_pid).context(format!("Failed to parse {} as PID", raw_pid))?,
@@ -267,7 +251,7 @@ fn delete_task(task_name: &str) {
         .map_err(|e| error!("{:?}", e));
 }
 
-fn read_until_first_whitespace(path: &Utf8Path) -> Result<String> {
+fn read_until_first_whitespace(path: &Utf8Path) -> AnyhowResult<String> {
     let content = read_to_string(path).context(format!("Failed to read {path}"))?;
     Ok(content
         .split_whitespace()
@@ -350,7 +334,7 @@ echo %errorlevel% > C:\\working\\suites\\my_suite\\123\\0.exit_code"
     }
 
     #[test]
-    fn test_read_until_first_whitespace_ok() -> Result<()> {
+    fn test_read_until_first_whitespace_ok() -> AnyhowResult<()> {
         let temp_path = NamedTempFile::new()?.into_temp_path();
         write(&temp_path, "123\n456")?;
         assert_eq!(
@@ -361,7 +345,7 @@ echo %errorlevel% > C:\\working\\suites\\my_suite\\123\\0.exit_code"
     }
 
     #[test]
-    fn test_read_until_first_whitespace_empty() -> Result<()> {
+    fn test_read_until_first_whitespace_empty() -> AnyhowResult<()> {
         assert!(format!(
             "{:?}",
             read_until_first_whitespace(&Utf8PathBuf::try_from(

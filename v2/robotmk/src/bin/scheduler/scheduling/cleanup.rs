@@ -2,7 +2,7 @@ use crate::internal_config::Suite;
 use crate::log_and_return_error;
 use robotmk::config::WorkingDirectoryCleanupConfig;
 
-use anyhow::{Context, Result};
+use anyhow::{Context, Result as AnyhowResult};
 use camino::{Utf8DirEntry, Utf8Path};
 use log::{debug, info};
 use std::cmp::min;
@@ -30,7 +30,7 @@ pub fn cleanup_working_directories<'a>(suites: impl Iterator<Item = &'a Suite>) 
 fn cleanup_working_directory(
     directory: &Utf8Path,
     cleanup_config: &WorkingDirectoryCleanupConfig,
-) -> Result<()> {
+) -> AnyhowResult<()> {
     let dir_entries = directory
         .read_dir_utf8()?
         .filter_map(|dir_entry_result| {
@@ -73,7 +73,7 @@ fn is_dir_entry_too_old(
     dir_entry: &Utf8DirEntry,
     max_age_secs: u64,
     now: &SystemTime,
-) -> Result<bool> {
+) -> AnyhowResult<bool> {
     match now.duration_since(
         dir_entry
             .metadata()
@@ -151,7 +151,7 @@ fn split_vec<T>(mut vector: Vec<T>, at: usize) -> (Vec<T>, Vec<T>) {
     (vector, tail)
 }
 
-fn remove_dir_entry(dir_entry: &Utf8DirEntry) -> Result<()> {
+fn remove_dir_entry(dir_entry: &Utf8DirEntry) -> AnyhowResult<()> {
     debug!("Removing {}", dir_entry.path());
     (if dir_entry
         .file_type()

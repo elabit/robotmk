@@ -1,4 +1,4 @@
-use anyhow::Result;
+use anyhow::Result as AnyhowResult;
 use assert_cmd::cargo::cargo_bin;
 use camino::{Utf8Path, Utf8PathBuf};
 use robotmk::config::{
@@ -18,7 +18,7 @@ use walkdir::WalkDir;
 
 #[tokio::test]
 #[ignore]
-async fn test_scheduler() -> Result<()> {
+async fn test_scheduler() -> AnyhowResult<()> {
     let test_dir = Utf8PathBuf::from(var("TEST_DIR")?);
     create_dir_all(&test_dir)?;
     let current_user_name = var("UserName")?;
@@ -43,7 +43,7 @@ async fn test_scheduler() -> Result<()> {
     Ok(())
 }
 
-fn create_custom_rcc_profile(test_dir: &Utf8Path) -> Result<CustomRCCProfileConfig> {
+fn create_custom_rcc_profile(test_dir: &Utf8Path) -> AnyhowResult<CustomRCCProfileConfig> {
     let rcc_profile_path = test_dir.join("rcc_profile.yaml");
     write(
         &rcc_profile_path,
@@ -154,7 +154,11 @@ fn create_config(
     }
 }
 
-async fn run_scheduler(test_dir: &Utf8Path, config: &Config, n_seconds_run: u64) -> Result<()> {
+async fn run_scheduler(
+    test_dir: &Utf8Path,
+    config: &Config,
+    n_seconds_run: u64,
+) -> AnyhowResult<()> {
     let config_path = test_dir.join("config.json");
     write(&config_path, to_string(&config)?)?;
     let run_flag_path = test_dir.join("run_flag");
@@ -185,7 +189,7 @@ async fn run_scheduler(test_dir: &Utf8Path, config: &Config, n_seconds_run: u64)
 async fn assert_working_directory(
     working_directory: &Utf8Path,
     headed_user_name: &str,
-) -> Result<()> {
+) -> AnyhowResult<()> {
     assert_permissions(&working_directory, "BUILTIN\\Users:(OI)(CI)(F)").await?;
     assert!(working_directory.is_dir());
     assert_eq!(
@@ -268,7 +272,7 @@ async fn assert_working_directory(
     Ok(())
 }
 
-async fn assert_permissions(path: impl AsRef<OsStr>, permissions: &str) -> Result<()> {
+async fn assert_permissions(path: impl AsRef<OsStr>, permissions: &str) -> AnyhowResult<()> {
     let mut icacls_command = Command::new("icacls.exe");
     icacls_command.arg(path);
     assert!(String::from_utf8(icacls_command.output().await?.stdout)?.contains(permissions));
@@ -291,13 +295,13 @@ fn assert_results_directory(results_directory: &Utf8Path) {
     );
 }
 
-async fn assert_rcc(rcc_config: &RCCConfig) -> Result<()> {
+async fn assert_rcc(rcc_config: &RCCConfig) -> AnyhowResult<()> {
     assert_rcc_files_permissions(rcc_config).await?;
     assert_rcc_configuration(rcc_config).await?;
     assert_rcc_longpath_support_enabled(&rcc_config.binary_path).await
 }
 
-async fn assert_rcc_files_permissions(rcc_config: &RCCConfig) -> Result<()> {
+async fn assert_rcc_files_permissions(rcc_config: &RCCConfig) -> AnyhowResult<()> {
     assert_permissions(&rcc_config.binary_path, "BUILTIN\\Users:(RX)").await?;
     let RCCProfileConfig::Custom(custom_rcc_profile_config) = &rcc_config.profile_config else {
         return Ok(());
@@ -305,7 +309,7 @@ async fn assert_rcc_files_permissions(rcc_config: &RCCConfig) -> Result<()> {
     assert_permissions(&custom_rcc_profile_config.path, "BUILTIN\\Users:(R)").await
 }
 
-async fn assert_rcc_configuration(rcc_config: &RCCConfig) -> Result<()> {
+async fn assert_rcc_configuration(rcc_config: &RCCConfig) -> AnyhowResult<()> {
     let mut rcc_config_diag_command = Command::new(&rcc_config.binary_path);
     rcc_config_diag_command
         .arg("configuration")
@@ -323,7 +327,9 @@ async fn assert_rcc_configuration(rcc_config: &RCCConfig) -> Result<()> {
     Ok(())
 }
 
-async fn assert_rcc_longpath_support_enabled(rcc_binary_path: impl AsRef<OsStr>) -> Result<()> {
+async fn assert_rcc_longpath_support_enabled(
+    rcc_binary_path: impl AsRef<OsStr>,
+) -> AnyhowResult<()> {
     let mut rcc_config_diag_command = Command::new(rcc_binary_path);
     rcc_config_diag_command
         .arg("configuration")

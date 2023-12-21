@@ -1,12 +1,12 @@
 use crate::section::Host;
-use anyhow::Result;
+use anyhow::Result as AnyhowResult;
 use camino::{Utf8Path, Utf8PathBuf};
 use serde::{Deserialize, Serialize};
 use serde_json::from_str;
 use std::collections::HashMap;
 use std::fs::read_to_string;
 
-pub fn load(path: &Utf8Path) -> Result<Config> {
+pub fn load(path: &Utf8Path) -> AnyhowResult<Config> {
     Ok(from_str(&read_to_string(path)?)?)
 }
 

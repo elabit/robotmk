@@ -3,13 +3,13 @@ use crate::logging::TIMESTAMP_FORMAT;
 use robotmk::results::{AttemptsConfig, SuiteExecutionReport};
 use robotmk::suites::run_attempts_with_rebot;
 
-use anyhow::{Context, Result};
+use anyhow::{Context, Result as AnyhowResult};
 use chrono::Utc;
 use log::info;
 use robotmk::section::WritePiggybackSection;
 use std::fs::create_dir_all;
 
-pub fn run_suite(suite: &Suite) -> Result<()> {
+pub fn run_suite(suite: &Suite) -> AnyhowResult<()> {
     info!("Running suite {}", &suite.id);
     produce_suite_results(suite)?
         .write(
@@ -23,7 +23,7 @@ pub fn run_suite(suite: &Suite) -> Result<()> {
     Ok(())
 }
 
-fn produce_suite_results(suite: &Suite) -> Result<SuiteExecutionReport> {
+fn produce_suite_results(suite: &Suite) -> AnyhowResult<SuiteExecutionReport> {
     let timestamp = Utc::now().format(TIMESTAMP_FORMAT).to_string();
     let output_directory = suite.working_directory.join(timestamp.clone());
 
@@ -40,7 +40,8 @@ fn produce_suite_results(suite: &Suite) -> Result<SuiteExecutionReport> {
         suite.timeout,
         &suite.cancellation_token,
         &output_directory,
-    )?;
+    )
+    .context("Received termination signal while running suite")?;
 
     Ok(SuiteExecutionReport {
         suite_id: suite.id.clone(),
