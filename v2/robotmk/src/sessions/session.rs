@@ -1,9 +1,10 @@
 use super::schtasks::{run_task, TaskSpec};
-use crate::child_process_supervisor::{ChildProcessOutcome, ChildProcessSupervisor, StdioPaths};
+use crate::child_process_supervisor::{ChildProcessSupervisor, StdioPaths};
 use crate::command_spec::CommandSpec;
 use crate::config::SessionConfig;
+use crate::termination::Outcome;
 
-use anyhow::Result;
+use anyhow::{Context, Result as AnyhowResult};
 use camino::{Utf8Path, Utf8PathBuf};
 use std::fmt::{Display, Formatter, Result as FmtResult};
 use tokio_util::sync::CancellationToken;
@@ -24,7 +25,7 @@ impl Session {
         }
     }
 
-    pub fn run(&self, spec: &RunSpec) -> Result<RunOutcome> {
+    pub fn run(&self, spec: &RunSpec) -> AnyhowResult<Outcome<AnyhowResult<i32>>> {
         match self {
             Self::Current(current_session) => current_session.run(spec),
             Self::User(user_session) => user_session.run(spec),
@@ -69,14 +70,8 @@ pub struct RunSpec<'a> {
     pub cancellation_token: &'a CancellationToken,
 }
 
-pub enum RunOutcome {
-    Exited(Option<i32>),
-    TimedOut,
-    Terminated,
-}
-
 impl CurrentSession {
-    fn run(&self, spec: &RunSpec) -> Result<RunOutcome> {
+    fn run(&self, spec: &RunSpec) -> AnyhowResult<Outcome<AnyhowResult<i32>>> {
         match (ChildProcessSupervisor {
             command_spec: spec.command_spec,
             stdio_paths: Some(StdioPaths {
@@ -88,18 +83,22 @@ impl CurrentSession {
         }
         .run())?
         {
-            ChildProcessOutcome::Exited(exit_status) => match exit_status.code() {
-                Some(exit_code) => Ok(RunOutcome::Exited(Some(exit_code))),
-                None => Ok(RunOutcome::Exited(None)),
+            Outcome::Completed(exit_status) => match exit_status {
+                Ok(exit_status) => Ok(Outcome::Completed(
+                    exit_status
+                        .code()
+                        .context("Failed to retrieve exit code of subprocess"),
+                )),
+                Err(e) => Ok(Outcome::Completed(Err(e))),
             },
-            ChildProcessOutcome::TimedOut => Ok(RunOutcome::TimedOut),
-            ChildProcessOutcome::Terminated => Ok(RunOutcome::Terminated),
+            Outcome::Timeout => Ok(Outcome::Timeout),
+            Outcome::Cancel => Ok(Outcome::Cancel),
         }
     }
 }
 
 impl UserSession {
-    fn run(&self, spec: &RunSpec) -> Result<RunOutcome> {
+    fn run(&self, spec: &RunSpec) -> AnyhowResult<Outcome<AnyhowResult<i32>>> {
         run_task(&TaskSpec {
             task_name: spec.id,
             command_spec: spec.command_spec,

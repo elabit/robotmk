@@ -6,7 +6,7 @@ mod scheduling;
 mod setup;
 mod termination;
 
-use anyhow::{bail, Context, Result};
+use anyhow::{bail, Context, Result as AnyhowResult};
 use clap::Parser;
 use log::info;
 use logging::log_and_return_error;
@@ -14,12 +14,12 @@ use robotmk::lock::Locker;
 use robotmk::results::SchedulerPhase;
 use robotmk::section::WriteSection;
 
-fn main() -> Result<()> {
+fn main() -> AnyhowResult<()> {
     run().map_err(log_and_return_error)?;
     Ok(())
 }
 
-fn run() -> Result<()> {
+fn run() -> AnyhowResult<()> {
     let args = cli::Args::parse();
     logging::init(args.log_specification(), args.log_path)?;
     info!("Program started and logging set up");
@@ -63,13 +63,13 @@ fn run() -> Result<()> {
 
     info!("Starting suite scheduling");
     write_phase(&SchedulerPhase::Scheduling, &global_config)?;
-    scheduling::scheduler::run_suites_and_cleanup(&global_config, &suites)
+    scheduling::scheduler::run_suites_and_cleanup(&global_config, &suites).context("Terminated")
 }
 
 fn write_phase(
     phase: &SchedulerPhase,
     global_config: &internal_config::GlobalConfig,
-) -> Result<()> {
+) -> AnyhowResult<()> {
     phase.write(
         global_config.results_directory.join("scheduler_phase.json"),
         &global_config.results_directory_locker,

@@ -1,6 +1,6 @@
 use super::lock::Locker;
 
-use anyhow::{Context, Result};
+use anyhow::{Context, Result as AnyhowResult};
 use camino::Utf8Path;
 use serde::{Deserialize, Serialize};
 use std::fs::read_to_string;
@@ -22,7 +22,7 @@ pub struct Section {
     pub content: String,
 }
 
-fn write(section: &Section, path: impl AsRef<Utf8Path>, locker: &Locker) -> Result<()> {
+fn write(section: &Section, path: impl AsRef<Utf8Path>, locker: &Locker) -> AnyhowResult<()> {
     let path = path.as_ref();
     let section = serde_json::to_string(&section).unwrap();
     let mut file = NamedTempFile::new().context("Opening tempfile failed")?;
@@ -40,7 +40,7 @@ fn write(section: &Section, path: impl AsRef<Utf8Path>, locker: &Locker) -> Resu
 pub trait WriteSection {
     fn name() -> &'static str;
 
-    fn write(&self, path: impl AsRef<Utf8Path>, locker: &Locker) -> Result<()>
+    fn write(&self, path: impl AsRef<Utf8Path>, locker: &Locker) -> AnyhowResult<()>
     where
         Self: Serialize,
     {
@@ -56,7 +56,7 @@ pub trait WriteSection {
 pub trait WritePiggybackSection {
     fn name() -> &'static str;
 
-    fn write(&self, path: impl AsRef<Utf8Path>, host: Host, locker: &Locker) -> Result<()>
+    fn write(&self, path: impl AsRef<Utf8Path>, host: Host, locker: &Locker) -> AnyhowResult<()>
     where
         Self: Serialize,
     {
@@ -69,13 +69,13 @@ pub trait WritePiggybackSection {
     }
 }
 
-fn read_entry(entry: Result<DirEntry, Error>) -> Result<Section> {
+fn read_entry(entry: Result<DirEntry, Error>) -> AnyhowResult<Section> {
     let entry = entry?;
     let raw = read_to_string(entry.path())?;
     Ok(serde_json::from_str(&raw)?)
 }
 
-pub fn read(directory: impl AsRef<Path>, locker: &Locker) -> Result<Vec<Section>> {
+pub fn read(directory: impl AsRef<Path>, locker: &Locker) -> AnyhowResult<Vec<Section>> {
     // TODO: Test this function.
     let lock = locker.wait_for_read_lock()?;
     let sections = WalkDir::new(directory)

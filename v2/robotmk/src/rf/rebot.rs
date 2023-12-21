@@ -3,14 +3,13 @@ use crate::command_spec::CommandSpec;
 use crate::environment::Environment;
 use crate::environment::ResultCode;
 use crate::results::{RebotOutcome, RebotResult};
-use crate::sessions::session::{RunOutcome, RunSpec, Session};
+use crate::sessions::session::{RunSpec, Session};
+use crate::termination::{Cancelled, Outcome};
 
-use anyhow::bail;
-use anyhow::Result;
+use anyhow::Result as AnyhowResult;
 use base64::{engine::general_purpose, Engine};
 use camino::{Utf8Path, Utf8PathBuf};
 use chrono::Utc;
-use log::debug;
 use log::error;
 use std::fs::{read, read_to_string};
 use tokio_util::sync::CancellationToken;
@@ -27,56 +26,66 @@ pub struct Rebot<'a> {
 }
 
 impl Rebot<'_> {
-    pub fn rebot(&self) -> RebotOutcome {
+    pub fn rebot(&self) -> Result<RebotOutcome, Cancelled> {
         let timestamp = Utc::now().timestamp();
-        match self.run() {
-            Ok(exit_code) => match self.environment.create_result_code(exit_code) {
-                ResultCode::AllTestsPassed => self.process_successful_run(timestamp),
-                ResultCode::RobotCommandFailed => {
-                    if self.path_xml.exists() {
-                        self.process_successful_run(timestamp)
-                    } else {
-                        error!("Rebot run failed (no merged XML found)");
-                        RebotOutcome::Error("Rebot run failed (no merged XML found)".into())
-                    }
-                }
-                ResultCode::EnvironmentFailed => {
-                    error!("Environment failure when running rebot");
-                    RebotOutcome::Error("Environment failure when running rebot".into())
-                }
-            },
+        let outcome = match self.run() {
+            Ok(outcome) => outcome,
             Err(error) => {
                 error!("Calling rebot command failed: {error:?}");
-                RebotOutcome::Error(format!("{error:?}"))
+                return Ok(RebotOutcome::Error(format!(
+                    "Calling rebot command failed: {error:?}"
+                )));
+            }
+        };
+        let exit_code = match outcome {
+            Outcome::Completed(exit_code) => exit_code,
+            Outcome::Timeout => {
+                error!("Rebot run timed out");
+                return Ok(RebotOutcome::Error("Timeout".into()));
+            }
+            Outcome::Cancel => {
+                error!("Rebot run was cancelled");
+                return Err(Cancelled {});
+            }
+        };
+        let exit_code = match exit_code {
+            Ok(exit_code) => exit_code,
+            Err(error) => {
+                error!("Failed to retrieve exit code of rebot run: {error:?}");
+                return Ok(RebotOutcome::Error(format!(
+                    "Failed to retrieve exit code of rebot run: {error:?}"
+                )));
+            }
+        };
+        match self.environment.create_result_code(exit_code) {
+            ResultCode::AllTestsPassed => Ok(self.process_successful_run(timestamp)),
+            ResultCode::RobotCommandFailed => {
+                if self.path_xml.exists() {
+                    Ok(self.process_successful_run(timestamp))
+                } else {
+                    error!("Rebot run failed (no merged XML found)");
+                    Ok(RebotOutcome::Error(
+                        "Rebot run failed (no merged XML found), see stdio logs".into(),
+                    ))
+                }
+            }
+            ResultCode::EnvironmentFailed => {
+                error!("Environment failure when running rebot");
+                Ok(RebotOutcome::Error(
+                    "Environment failure when running rebot, see stdio logs".into(),
+                ))
             }
         }
     }
 
-    fn run(&self) -> Result<i32> {
-        let rebot_command_spec = self.environment.wrap(self.build_rebot_command_spec());
-        debug!("Calling rebot command: {rebot_command_spec}");
-        let run_spec = RunSpec {
+    fn run(&self) -> AnyhowResult<Outcome<AnyhowResult<i32>>> {
+        self.session.run(&RunSpec {
             id: &format!("robotmk_rebot_{}", self.suite_id),
-            command_spec: &rebot_command_spec,
+            command_spec: &self.environment.wrap(self.build_rebot_command_spec()),
             base_path: &self.working_directory.join("rebot"),
-            timeout: 600,
+            timeout: 120,
             cancellation_token: self.cancellation_token,
-        };
-        match self.session.run(&run_spec)? {
-            RunOutcome::Exited(exit_code) => {
-                if let Some(exit_code) = exit_code {
-                    Ok(exit_code)
-                } else {
-                    bail!("Failed to retrieve exit code of rebot command")
-                }
-            }
-            RunOutcome::TimedOut => {
-                bail!("Timed out")
-            }
-            RunOutcome::Terminated => {
-                bail!("Terminated")
-            }
-        }
+        })
     }
 
     fn build_rebot_command_spec(&self) -> CommandSpec {

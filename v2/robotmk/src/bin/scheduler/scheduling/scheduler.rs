@@ -2,8 +2,8 @@ use super::cleanup::cleanup_working_directories;
 use super::suites::run_suite;
 use crate::internal_config::{GlobalConfig, Suite};
 use crate::logging::log_and_return_error;
+use robotmk::termination::Cancelled;
 
-use anyhow::{bail, Result};
 use chrono::Utc;
 use log::error;
 use std::time::Duration;
@@ -12,7 +12,10 @@ use tokio::time::{interval_at, Instant};
 use tokio_util::sync::CancellationToken;
 
 #[tokio::main]
-pub async fn run_suites_and_cleanup(global_config: &GlobalConfig, suites: &[Suite]) -> Result<()> {
+pub async fn run_suites_and_cleanup(
+    global_config: &GlobalConfig,
+    suites: &[Suite],
+) -> Result<(), Cancelled> {
     let suites_for_scheduling: Vec<Suite> = suites.to_vec();
 
     let mut join_set = JoinSet::new();
@@ -32,7 +35,7 @@ pub async fn run_suites_and_cleanup(global_config: &GlobalConfig, suites: &[Suit
             error!("{error:?}");
         }
     }
-    bail!("Terminated");
+    return Err(Cancelled {});
 }
 
 async fn run_suite_scheduler(suite: Suite) {

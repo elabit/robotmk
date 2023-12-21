@@ -1,7 +1,7 @@
-use anyhow::{bail, Context, Result};
+use anyhow::{bail, Context, Result as AnyhowResult};
 use std::process::Command;
 
-pub fn run_icacls_command<'a>(arguments: impl IntoIterator<Item = &'a str>) -> Result<()> {
+pub fn run_icacls_command<'a>(arguments: impl IntoIterator<Item = &'a str>) -> AnyhowResult<()> {
     let mut command = Command::new("icacls.exe");
     command.args(arguments);
     let output = command

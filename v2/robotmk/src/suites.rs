@@ -2,8 +2,9 @@ use crate::environment::{Environment, ResultCode};
 use crate::results::{AttemptOutcome, AttemptReport, RebotOutcome};
 use crate::rf::rebot::Rebot;
 use crate::rf::robot::{Attempt, Robot};
-use crate::sessions::session::{RunOutcome, RunSpec, Session};
-use anyhow::{bail, Result};
+use crate::sessions::session::{RunSpec, Session};
+use crate::termination::{Cancelled, Outcome};
+use anyhow::Context;
 use camino::{Utf8Path, Utf8PathBuf};
 use log::{error, info};
 use tokio_util::sync::CancellationToken;
@@ -16,7 +17,7 @@ pub fn run_attempts_with_rebot(
     timeout: u64,
     cancellation_token: &CancellationToken,
     output_directory: &Utf8Path,
-) -> Result<(Vec<AttemptReport>, Option<RebotOutcome>)> {
+) -> Result<(Vec<AttemptReport>, Option<RebotOutcome>), Cancelled> {
     let mut attempt_reports = vec![];
     let mut output_paths: Vec<Utf8PathBuf> = vec![];
 
@@ -59,7 +60,7 @@ pub fn run_attempts_with_rebot(
         path_xml: &output_directory.join("rebot.xml"),
         path_html: &output_directory.join("rebot.html"),
     }
-    .rebot();
+    .rebot()?;
 
     Ok((attempt_reports, Some(rebot)))
 }
@@ -72,7 +73,7 @@ fn run_attempt(
     attempt: Attempt,
     cancellation_token: &CancellationToken,
     output_directory: &Utf8Path,
-) -> Result<(AttemptOutcome, Option<Utf8PathBuf>)> {
+) -> Result<(AttemptOutcome, Option<Utf8PathBuf>), Cancelled> {
     let log_message_start = format!("Suite {}, attempt {}", id, attempt.index);
 
     let run_outcome = match session.run(&RunSpec {
@@ -89,23 +90,21 @@ fn run_attempt(
         }
     };
     let exit_code = match run_outcome {
-        RunOutcome::Exited(exit_code) => exit_code,
-        RunOutcome::TimedOut => {
-            error!("{log_message_start}: timed out");
+        Outcome::Completed(exit_code) => exit_code,
+        Outcome::Timeout => {
+            error!("{log_message_start}: robot run timed out");
             return Ok((AttemptOutcome::TimedOut, None));
         }
-        RunOutcome::Terminated => bail!("Terminated"),
+        Outcome::Cancel => {
+            error!("{log_message_start}: robot run was cancelled");
+            return Err(Cancelled {});
+        }
     };
-    let exit_code = match exit_code {
-        Some(exit_code) => exit_code,
-        None => {
-            error!("{log_message_start}: failed to query exit code");
-            return Ok((
-                AttemptOutcome::OtherError(
-                    "Failed to query exit code of Robot Framework call".into(),
-                ),
-                None,
-            ));
+    let exit_code = match exit_code.context("Failed to retrieve exit code of robot run") {
+        Ok(exit_code) => exit_code,
+        Err(error) => {
+            error!("{log_message_start}: {error:?}");
+            return Ok((AttemptOutcome::OtherError(format!("{error:?}")), None));
         }
     };
     match environment.create_result_code(exit_code) {
@@ -125,7 +124,7 @@ fn run_attempt(
                 info!("{log_message_start}: some tests failed");
                 Ok((AttemptOutcome::TestFailures, Some(attempt.output_xml_file)))
             } else {
-                error!("{log_message_start}: Robot Framework failure (no output)");
+                error!("{log_message_start}: robot failure (no output)");
                 Ok((AttemptOutcome::RobotFrameworkFailure, None))
             }
         }
