@@ -3,8 +3,8 @@ use assert_cmd::cargo::cargo_bin;
 use camino::{Utf8Path, Utf8PathBuf};
 use robotmk::config::{
     Config, CustomRCCProfileConfig, EnvironmentConfig, ExecutionConfig, RCCConfig,
-    RCCEnvironmentConfig, RCCProfileConfig, RetryStrategy, RobotFrameworkConfig, SessionConfig,
-    SuiteConfig, UserSessionConfig, WorkingDirectoryCleanupConfig,
+    RCCEnvironmentConfig, RCCProfileConfig, RetryStrategy, RobotConfig, SessionConfig, SuiteConfig,
+    UserSessionConfig, WorkingDirectoryCleanupConfig,
 };
 use robotmk::section::Host;
 use serde_json::to_string;
@@ -76,7 +76,7 @@ fn create_config(
             (
                 String::from("rcc_headless"),
                 SuiteConfig {
-                    robot_framework_config: RobotFrameworkConfig {
+                    robot_config: RobotConfig {
                         robot_target: suite_dir.join("tasks.robot"),
                         command_line_args: vec![],
                     },
@@ -101,7 +101,7 @@ fn create_config(
             (
                 String::from("rcc_headed"),
                 SuiteConfig {
-                    robot_framework_config: RobotFrameworkConfig {
+                    robot_config: RobotConfig {
                         robot_target: suite_dir.join("tasks.robot"),
                         command_line_args: vec![],
                     },
@@ -131,7 +131,7 @@ fn create_config(
             (
                 String::from("no_rcc"),
                 SuiteConfig {
-                    robot_framework_config: RobotFrameworkConfig {
+                    robot_config: RobotConfig {
                         robot_target: suite_dir.join("tasks.robot"),
                         command_line_args: vec![],
                     },
