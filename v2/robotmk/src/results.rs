@@ -84,7 +84,7 @@ pub struct AttemptReport {
 pub enum AttemptOutcome {
     AllTestsPassed,
     TestFailures,
-    RobotFrameworkFailure,
+    RobotFailure,
     EnvironmentFailure,
     TimedOut,
     OtherError(String),
