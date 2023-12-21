@@ -38,7 +38,7 @@ pub struct CustomRCCProfileConfig {
 
 #[derive(Clone, Debug, Deserialize, PartialEq, Serialize)]
 pub struct SuiteConfig {
-    pub robot_framework_config: RobotFrameworkConfig,
+    pub robot_config: RobotConfig,
     pub execution_config: ExecutionConfig,
     pub environment_config: EnvironmentConfig,
     pub session_config: SessionConfig,
@@ -47,7 +47,7 @@ pub struct SuiteConfig {
 }
 
 #[derive(Clone, Debug, Deserialize, PartialEq, Serialize)]
-pub struct RobotFrameworkConfig {
+pub struct RobotConfig {
     pub robot_target: Utf8PathBuf,
     pub command_line_args: Vec<String>,
 }

@@ -52,8 +52,8 @@ pub fn from_external_config(
             execution_interval_seconds: suite_config.execution_config.execution_interval_seconds,
             timeout: suite_config.execution_config.timeout,
             robot: Robot {
-                robot_target: suite_config.robot_framework_config.robot_target,
-                command_line_args: suite_config.robot_framework_config.command_line_args,
+                robot_target: suite_config.robot_config.robot_target,
+                command_line_args: suite_config.robot_config.command_line_args,
                 n_attempts_max: suite_config.execution_config.n_attempts_max,
                 retry_strategy: suite_config.execution_config.retry_strategy,
             },
@@ -91,7 +91,7 @@ mod tests {
     use super::*;
     use robotmk::config::{
         CustomRCCProfileConfig, EnvironmentConfig, ExecutionConfig, RCCEnvironmentConfig,
-        RCCProfileConfig, RetryStrategy, RobotFrameworkConfig, SessionConfig, SuiteConfig,
+        RCCProfileConfig, RetryStrategy, RobotConfig, SessionConfig, SuiteConfig,
         UserSessionConfig,
     };
     use robotmk::environment::{Environment, RCCEnvironment, SystemEnvironment};
@@ -101,7 +101,7 @@ mod tests {
 
     fn system_suite_config() -> SuiteConfig {
         SuiteConfig {
-            robot_framework_config: RobotFrameworkConfig {
+            robot_config: RobotConfig {
                 robot_target: Utf8PathBuf::from("/suite/system/tasks.robot"),
                 command_line_args: vec![],
             },
@@ -120,7 +120,7 @@ mod tests {
 
     fn rcc_suite_config() -> SuiteConfig {
         SuiteConfig {
-            robot_framework_config: RobotFrameworkConfig {
+            robot_config: RobotConfig {
                 robot_target: Utf8PathBuf::from("/suite/rcc/tasks.robot"),
                 command_line_args: vec![],
             },
