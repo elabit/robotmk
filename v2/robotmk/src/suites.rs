@@ -125,7 +125,7 @@ fn run_attempt(
                 Ok((AttemptOutcome::TestFailures, Some(attempt.output_xml_file)))
             } else {
                 error!("{log_message_start}: robot failure (no output)");
-                Ok((AttemptOutcome::RobotFrameworkFailure, None))
+                Ok((AttemptOutcome::RobotFailure, None))
             }
         }
     }
