@@ -21,6 +21,12 @@ pub struct Args {
     /// level DEBUG.
     #[arg(short, long, action = ArgAction::Count)]
     verbose: u8,
+
+    /// Grace period. If specified, the program will sleep for this amount of seconds after
+    /// completing some general setup steps to give the system some time to prepare (eg. session
+    /// creation).
+    #[arg(long, name = "GRACE_PERIOD")]
+    pub grace_period: Option<u64>,
 }
 
 impl Args {
