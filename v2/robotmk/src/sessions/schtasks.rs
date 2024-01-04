@@ -192,8 +192,10 @@ async fn wait_for_task_exit(task: &TaskSpec, paths: &Paths) -> Outcome<AnyhowRes
     let queried = query(task.task_name, &paths.exit_code);
     let outcome = waited(duration, task.cancellation_token, queried).await;
     if !matches!(outcome, Outcome::Completed(Ok(_))) {
-        kill_and_delete_task(task.task_name, paths);
+        error!("Killing task {}", task.task_name);
+        kill_task(paths);
     }
+    delete_task(task.task_name);
     outcome
 }
 
@@ -218,12 +220,6 @@ async fn query(task_name: &str, exit_path: &Utf8Path) -> AnyhowResult<i32> {
 fn query_if_task_is_running(task_name: &str) -> AnyhowResult<bool> {
     let schtasks_stdout = run_schtasks(["/query", "/tn", task_name, "/fo", "CSV", "/nh"])?;
     Ok(schtasks_stdout.contains("Running"))
-}
-
-fn kill_and_delete_task(task_name: &str, paths: &Paths) {
-    error!("Killing and deleting task {task_name}");
-    kill_task(paths);
-    delete_task(task_name);
 }
 
 fn kill_task(paths: &Paths) {
