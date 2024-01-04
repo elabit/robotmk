@@ -13,6 +13,10 @@ use logging::log_and_return_error;
 use robotmk::lock::Locker;
 use robotmk::results::SchedulerPhase;
 use robotmk::section::WriteSection;
+use robotmk::termination::Cancelled;
+use std::time::Duration;
+use tokio::time::{timeout_at, Instant};
+use tokio_util::sync::CancellationToken;
 
 fn main() -> AnyhowResult<()> {
     run().map_err(log_and_return_error)?;
@@ -44,6 +48,15 @@ fn run() -> AnyhowResult<()> {
 
     setup::general::setup(&global_config, &suites).context("General setup failed")?;
     info!("General setup completed");
+
+    if let Some(grace_period) = args.grace_period {
+        info!("Grace period: Sleeping for {grace_period} seconds");
+        write_phase(&SchedulerPhase::GracePeriod(grace_period), &global_config)?;
+        if await_grace_period(grace_period, &cancellation_token).is_err() {
+            bail!("Terminated")
+        }
+    }
+
     write_phase(&SchedulerPhase::RCCSetup, &global_config)?;
     let suites = setup::rcc::setup(&global_config, suites).context("RCC-specific setup failed")?;
     info!("RCC-specific setup completed");
@@ -74,4 +87,21 @@ fn write_phase(
         global_config.results_directory.join("scheduler_phase.json"),
         &global_config.results_directory_locker,
     )
+}
+
+#[tokio::main]
+async fn await_grace_period(
+    grace_period: u64,
+    cancellation_token: &CancellationToken,
+) -> Result<(), Cancelled> {
+    if timeout_at(
+        Instant::now() + Duration::from_secs(grace_period),
+        cancellation_token.cancelled(),
+    )
+    .await
+    .is_err()
+    {
+        return Ok(());
+    }
+    return Err(Cancelled {});
 }

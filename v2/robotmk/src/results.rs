@@ -9,6 +9,7 @@ pub fn suite_results_directory(results_directory: &Utf8Path) -> Utf8PathBuf {
 
 #[derive(Serialize)]
 pub enum SchedulerPhase {
+    GracePeriod(u64),
     RCCSetup,
     EnvironmentBuilding,
     Scheduling,
