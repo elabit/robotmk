@@ -39,6 +39,7 @@ async fn test_scheduler() -> AnyhowResult<()> {
     assert_working_directory(&config.working_directory, &current_user_name).await?;
     assert_results_directory(&config.results_directory);
     assert_rcc(&config.rcc_config).await?;
+    assert_tasks().await?;
 
     Ok(())
 }
@@ -336,6 +337,15 @@ async fn assert_rcc_longpath_support_enabled(
         .arg("longpaths");
     let stderr = String::from_utf8(rcc_config_diag_command.output().await?.stderr)?;
     assert_eq!(stderr, "OK.\n");
+    Ok(())
+}
+
+async fn assert_tasks() -> AnyhowResult<()> {
+    let mut schtasks_cmd = Command::new("schtasks.exe");
+    schtasks_cmd.arg("/query");
+    let schtasks_output = schtasks_cmd.output().await?;
+    assert!(schtasks_output.status.success());
+    assert!(!String::from_utf8(schtasks_output.stdout)?.contains("robotmk"));
     Ok(())
 }
 
