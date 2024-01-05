@@ -3,7 +3,7 @@ use std::error::Error;
 use std::fmt;
 use std::future::Future;
 use std::time::Duration;
-use sysinfo::{Pid, Process, ProcessExt, System, SystemExt};
+use sysinfo::{Pid, Process, System};
 use tokio::time::sleep;
 use tokio_util::sync::CancellationToken;
 

@@ -6,7 +6,7 @@ use camino::Utf8PathBuf;
 use log::debug;
 use std::process::{ExitStatus, Stdio};
 use std::time::Duration;
-use sysinfo::{Pid, PidExt};
+use sysinfo::Pid;
 use tokio::process::Command;
 use tokio_util::sync::CancellationToken;
 
