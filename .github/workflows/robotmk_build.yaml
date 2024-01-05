@@ -16,11 +16,10 @@ jobs:
           target: x86_64-pc-windows-gnu
 
       - run: cargo build --target=x86_64-pc-windows-gnu --release
-        working-directory: ${{ github.workspace }}/v2/robotmk/
 
       - uses: actions/upload-artifact@v3
         with:
           path: |
-            ${{ github.workspace }}/v2/robotmk/target/x86_64-pc-windows-gnu/release/robotmk.exe
-            ${{ github.workspace }}/v2/robotmk/target/x86_64-pc-windows-gnu/release/robotmk_agent.exe
+            ${{ github.workspace }}/target/x86_64-pc-windows-gnu/release/robotmk.exe
+            ${{ github.workspace }}/target/x86_64-pc-windows-gnu/release/robotmk_agent.exe
           if-no-files-found: error

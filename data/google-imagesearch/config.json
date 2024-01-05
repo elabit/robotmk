@@ -5,7 +5,7 @@
 	"suites": {
 		"googleimagesearch": {
 			"robot_framework_config": {
-				"robot_target": "C:\\rmk\\v2\\data\\google-imagesearch\\tasks.robot",
+				"robot_target": "C:\\robotmk\\data\\google-imagesearch\\tasks.robot",
 				"command_line_args": []
 			},
 			"execution_config": {
@@ -16,7 +16,7 @@
 			},
 			"environment_config": {
 				"Rcc": {
-					"robot_yaml_path": "C:\\rmk\\v2\\data\\google-imagesearch\\robot.yaml",
+					"robot_yaml_path": "C:\\robotmk\\data\\google-imagesearch\\robot.yaml",
 					"build_timeout": 600,
 					"env_json_path": null
 				}
