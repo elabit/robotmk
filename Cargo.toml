@@ -27,9 +27,9 @@ walkdir = "2.4.0"
 assert_cmd = "2.0.12"
 
 [[bin]]
-name = "robotmk_agent"
-path = "src/bin/agent.rs"
+name = "robotmk_agent_plugin"
+path = "src/bin/agent_plugin.rs"
 
 [[bin]]
-name = "robotmk"
+name = "robotmk_scheduler"
 path = "src/bin/scheduler/main.rs"
