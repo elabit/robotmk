@@ -48,7 +48,7 @@ where
 // non-direct children further down the tree to our child. However, Windows offers no API for this
 // (there is no SIGTERM on Windows), so we instead kill the entire tree.
 pub fn kill_process_tree(top_pid: &Pid) {
-    let mut system = System::new_all();
+    let mut system = System::new();
     system.refresh_processes();
     let processes = system.processes();
 
