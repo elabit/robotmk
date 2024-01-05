@@ -3,26 +3,25 @@
 main() {
 	topdir="$(git rev-parse --show-toplevel)"
 	self="${topdir}/ci"
-	cargo_toml_path="${topdir}/v2/robotmk/Cargo.toml"
 	mode="${1}"
 	target="${2:-x86_64-unknown-linux-gnu}"
 	shift
 
 	case "${mode}" in
 	'cargo-fmt-check')
-		cargo fmt --manifest-path "${cargo_toml_path}" -- --check
+		cargo fmt -- --check
 		;;
 
 	'cargo-clippy')
-		cargo clippy --manifest-path "${cargo_toml_path}" --all-targets --target "${target}" -- --deny warnings
+		cargo clippy --all-targets --target "${target}" -- --deny warnings
 		;;
 
 	'cargo-test')
-		cargo test --manifest-path "${cargo_toml_path}" --all-targets --target "${target}"
+		cargo test --all-targets --target "${target}"
 		;;
 
 	'cargo-examples')
-		cargo run --manifest-path "${cargo_toml_path}" --example termination
+		cargo run --example termination
 		;;
 
 	'check-all')

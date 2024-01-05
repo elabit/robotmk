@@ -4,10 +4,10 @@
 	"suites": {
 		"test": {
 			"robot_framework_config": {
-				"robot_target": "C:\\robotmk\\v2\\data\\retry_suite\\tasks.robot",
+				"robot_target": "C:\\robotmk\\data\\retry_suite\\tasks.robot",
 				"command_line_args": [
 					"--variablefile",
-					"C:\\robotmk\\v2\\data\\retry_suite\\retry_variables.yaml"
+					"C:\\robotmk\\data\\retry_suite\\retry_variables.yaml"
 				]
 			},
 			"execution_config": {

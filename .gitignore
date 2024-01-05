@@ -1,6 +1,7 @@
 __pycache__
 .stignore
 .stversions
+target/
 
 # VSCode
 *.code-workspace

@@ -21,7 +21,6 @@ jobs:
         with:
           target: x86_64-pc-windows-gnu
       - run: cargo test --target=x86_64-pc-windows-gnu --test test_scheduler -- --nocapture --ignored
-        working-directory: ${{ github.workspace }}/v2/robotmk/
         env:
           TEST_DIR: C:\test_scheduler
           RCC_BINARY_PATH: C:\artifact\windows64\rcc.exe
