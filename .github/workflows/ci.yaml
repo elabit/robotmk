@@ -23,7 +23,7 @@ jobs:
         with:
           filters: |
             robotmk_yaml:
-              - '.github/workflows/robotmk.yaml'
+              - '.github/workflows/robotmk_build.yaml'
             rcc_yaml:
               - '.github/workflows/rcc.yaml'
 
