@@ -9,7 +9,7 @@ use std::collections::{HashMap, HashSet};
 use std::env::var;
 use std::thread;
 use std::time::Duration;
-use sysinfo::{get_current_pid, Pid, Process, ProcessExt, ProcessStatus, System, SystemExt};
+use sysinfo::{get_current_pid, Pid, Process, ProcessStatus, System};
 use tempfile::tempdir;
 use tokio_util::sync::CancellationToken;
 
