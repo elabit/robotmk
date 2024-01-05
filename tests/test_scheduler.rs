@@ -165,7 +165,7 @@ async fn run_scheduler(
     let run_flag_path = test_dir.join("run_flag");
     write(&run_flag_path, "")?;
 
-    let mut robotmk_cmd = Command::new(cargo_bin("robotmk"));
+    let mut robotmk_cmd = Command::new(cargo_bin("robotmk_scheduler"));
     robotmk_cmd
         .arg(config_path)
         .arg("-vv")
