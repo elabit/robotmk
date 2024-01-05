@@ -1,4 +1,4 @@
-use std::collections::{HashMap, HashSet};
+use std::collections::HashSet;
 use std::error::Error;
 use std::fmt;
 use std::future::Future;
@@ -57,35 +57,47 @@ pub fn kill_process_tree(top_pid: &Pid) {
         Some(top_process) => top_process.kill(),
     };
 
-    kill_all_children(top_pid, processes);
+    kill_all_children(top_pid, processes.iter());
 }
 
-fn kill_all_children<'a>(top_pid: &'a Pid, processes: &'a HashMap<Pid, Process>) {
+fn kill_all_children<'a>(
+    top_pid: &'a Pid,
+    processes: impl Iterator<Item = (&'a Pid, &'a Process)>,
+) {
+    let children: Vec<ChildProcess<'a>> = processes
+        .filter_map(|(pid, process)| {
+            process.parent().map(|parent_pid| ChildProcess {
+                pid,
+                process,
+                parent_pid,
+            })
+        })
+        .collect();
     let mut pids_in_tree = HashSet::from([top_pid]);
 
     loop {
         let current_tree_size = pids_in_tree.len();
-        add_and_kill_direct_children(&mut pids_in_tree, processes);
+        add_and_kill_children(&mut pids_in_tree, children.iter());
         if pids_in_tree.len() == current_tree_size {
             break;
         }
     }
 }
 
-fn add_and_kill_direct_children<'a>(
+fn add_and_kill_children<'a>(
     pids_in_tree: &mut HashSet<&'a Pid>,
-    processes: &'a HashMap<Pid, Process>,
+    children: impl Iterator<Item = &'a ChildProcess<'a>>,
 ) {
-    for (pid, parent_pid, process) in processes.iter().filter_map(|(pid, process)| {
-        process
-            .parent()
-            .map(|parent_pid| (pid, parent_pid, process))
-    }) {
-        {
-            if pids_in_tree.contains(&parent_pid) {
-                pids_in_tree.insert(pid);
-                process.kill();
-            }
+    for child in children {
+        if pids_in_tree.contains(&child.parent_pid) {
+            pids_in_tree.insert(child.pid);
+            child.process.kill();
         }
     }
+}
+
+struct ChildProcess<'a> {
+    pid: &'a Pid,
+    process: &'a Process,
+    parent_pid: Pid,
 }
