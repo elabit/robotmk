@@ -17,7 +17,8 @@ fn get_children(processes: &HashMap<Pid, Process>, pid: &Pid) -> HashSet<Pid> {
     processes
         .iter()
         .filter_map(|(child_pid, process)| {
-            (process.parent().as_ref() == Some(pid)).then_some(*child_pid)
+            ((process.parent().as_ref() == Some(pid)) && process.thread_kind().is_none())
+                .then_some(*child_pid)
         })
         .collect()
 }

@@ -72,6 +72,7 @@ fn kill_all_children<'a>(
                 parent_pid,
             })
         })
+        .filter(|child| child.process.thread_kind().is_none())
         .collect();
     let mut pids_in_tree = HashSet::from([top_pid]);
 
