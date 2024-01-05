@@ -1,11 +1,6 @@
-.vagrant
-vagrant/custom_settings.yaml
-hololib.zip
 __pycache__
 .stignore
 .stversions
-.venv
 
 # VSCode
 *.code-workspace
-.env
