@@ -19,4 +19,4 @@ available. Some basic sanity checks:
 
 In order to use the new release with `Checkmk`, the `omd` package `robotmk` needs to be updated. The
 earliest release of `Checkmk`, which contains this `omd` package is the daily `2023.11.14`. Note,
-the bakery plugin is enterprise-only.
+the bakery plugin is enterprise-only. Furthermore, in case the new release includes a change in the shipped RCC version, `omd/Licenses.csv` in the Checkmk repository needs to be updated accordingly when updating the `omd` package.
