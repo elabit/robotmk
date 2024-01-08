@@ -32,39 +32,46 @@ fn setup_results_directories(global_config: &GlobalConfig, suites: &[Suite]) -> 
         .context("Failed to create results directory")?;
     create_dir_all(suite_results_directory(&global_config.results_directory))
         .context("Failed to create suite results directory")?;
-    clean_up_results_directory_atomic(global_config, suites)
+    clean_up_results_directory(global_config, suites)
         .context("Failed to clean up results directory")
 }
 
-fn clean_up_results_directory_atomic(
-    global_config: &GlobalConfig,
-    suites: &[Suite],
-) -> AnyhowResult<()> {
+fn clean_up_results_directory(global_config: &GlobalConfig, suites: &[Suite]) -> AnyhowResult<()> {
     let results_directory_lock = global_config
         .results_directory_locker
         .wait_for_write_lock()?;
-    let suite_results_directory = suite_results_directory(&global_config.results_directory);
-    let result_files_to_keep =
-        HashSet::<Utf8PathBuf>::from_iter(suites.iter().map(|suite| suite.results_file.clone()));
-    let currently_present_result_files = HashSet::<Utf8PathBuf>::from_iter(
-        currently_present_result_files(&suite_results_directory)?,
-    );
-    for path in currently_present_result_files.difference(&result_files_to_keep) {
+    for path in top_level_files(&global_config.results_directory)? {
         remove_file(path)?;
     }
+    clean_up_suite_results_directory(
+        &suite_results_directory(&global_config.results_directory),
+        suites,
+    )?;
     results_directory_lock.release()
 }
 
-fn currently_present_result_files(
+fn clean_up_suite_results_directory(
     suite_results_directory: &Utf8Path,
-) -> AnyhowResult<Vec<Utf8PathBuf>> {
+    suites: &[Suite],
+) -> AnyhowResult<()> {
+    let result_files_to_keep =
+        HashSet::<Utf8PathBuf>::from_iter(suites.iter().map(|suite| suite.results_file.clone()));
+    let currently_present_result_files =
+        HashSet::<Utf8PathBuf>::from_iter(top_level_files(suite_results_directory)?);
+    for path in currently_present_result_files.difference(&result_files_to_keep) {
+        remove_file(path)?;
+    }
+    Ok(())
+}
+
+fn top_level_files(directory: &Utf8Path) -> AnyhowResult<Vec<Utf8PathBuf>> {
     let mut result_files = vec![];
 
-    for dir_entry in suite_results_directory.read_dir_utf8().context(format!(
-        "Failed to read entries of results directory {suite_results_directory}",
+    for dir_entry in directory.read_dir_utf8().context(format!(
+        "Failed to read entries of results directory {directory}",
     ))? {
         let dir_entry = dir_entry.context(format!(
-            "Failed to read entries of results directory {suite_results_directory}",
+            "Failed to read entries of results directory {directory}",
         ))?;
         if dir_entry
             .file_type()
