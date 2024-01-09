@@ -44,6 +44,7 @@ pub struct SuiteConfig {
     pub session_config: SessionConfig,
     pub working_directory_cleanup_config: WorkingDirectoryCleanupConfig,
     pub host: Host,
+    pub metadata: SuiteMetadata,
 }
 
 #[derive(Clone, Debug, Deserialize, PartialEq, Serialize)]
@@ -94,4 +95,9 @@ pub struct UserSessionConfig {
 pub enum WorkingDirectoryCleanupConfig {
     MaxAgeSecs(u64),
     MaxExecutions(usize),
+}
+
+#[derive(Clone, Debug, Deserialize, PartialEq, Serialize)]
+pub struct SuiteMetadata {
+    pub application: String,
 }

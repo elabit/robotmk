@@ -1,3 +1,4 @@
+use crate::config::SuiteMetadata;
 use crate::section::{WritePiggybackSection, WriteSection};
 use camino::{Utf8Path, Utf8PathBuf};
 use serde::Serialize;
@@ -67,6 +68,7 @@ pub struct SuiteExecutionReport {
     pub attempts: Vec<AttemptReport>,
     pub rebot: Option<RebotOutcome>,
     pub config: AttemptsConfig,
+    pub metadata: SuiteMetadata,
 }
 
 impl WritePiggybackSection for SuiteExecutionReport {

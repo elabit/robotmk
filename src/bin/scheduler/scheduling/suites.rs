@@ -53,5 +53,6 @@ fn produce_suite_results(suite: &Suite) -> AnyhowResult<SuiteExecutionReport> {
             timeout: suite.timeout,
             n_attempts_max: suite.robot.n_attempts_max,
         },
+        metadata: suite.metadata.clone(),
     })
 }

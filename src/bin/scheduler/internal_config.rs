@@ -1,4 +1,4 @@
-use robotmk::config::{Config, RCCConfig, WorkingDirectoryCleanupConfig};
+use robotmk::config::{Config, RCCConfig, SuiteMetadata, WorkingDirectoryCleanupConfig};
 use robotmk::environment::Environment;
 use robotmk::lock::Locker;
 use robotmk::results::suite_results_directory;
@@ -31,6 +31,7 @@ pub struct Suite {
     pub cancellation_token: CancellationToken,
     pub host: Host,
     pub results_directory_locker: Locker,
+    pub metadata: SuiteMetadata,
 }
 
 pub fn from_external_config(
@@ -67,6 +68,7 @@ pub fn from_external_config(
             cancellation_token: cancellation_token.clone(),
             host: suite_config.host,
             results_directory_locker: results_directory_locker.clone(),
+            metadata: suite_config.metadata,
         })
         .collect();
     sort_suites_by_id(&mut suites);
@@ -115,6 +117,9 @@ mod tests {
             session_config: SessionConfig::Current,
             working_directory_cleanup_config: WorkingDirectoryCleanupConfig::MaxAgeSecs(1209600),
             host: Host::Source,
+            metadata: SuiteMetadata {
+                application: "sys_app".into(),
+            },
         }
     }
 
@@ -140,6 +145,9 @@ mod tests {
             }),
             working_directory_cleanup_config: WorkingDirectoryCleanupConfig::MaxExecutions(50),
             host: Host::Source,
+            metadata: SuiteMetadata {
+                application: "rcc_app".into(),
+            },
         }
     }
 
@@ -213,6 +221,12 @@ mod tests {
             suites[0].working_directory_cleanup_config,
             WorkingDirectoryCleanupConfig::MaxExecutions(50),
         );
+        assert_eq!(
+            suites[0].metadata,
+            SuiteMetadata {
+                application: "rcc_app".into(),
+            },
+        );
         assert_eq!(suites[1].id, "system");
         assert_eq!(suites[1].working_directory, "/working/suites/system");
         assert_eq!(suites[1].results_file, "/results/suites/system.json");
@@ -235,6 +249,12 @@ mod tests {
         assert_eq!(
             suites[1].working_directory_cleanup_config,
             WorkingDirectoryCleanupConfig::MaxAgeSecs(1209600),
+        );
+        assert_eq!(
+            suites[1].metadata,
+            SuiteMetadata {
+                application: "sys_app".into(),
+            },
         );
     }
 }
