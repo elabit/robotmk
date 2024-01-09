@@ -4,7 +4,7 @@ use camino::{Utf8Path, Utf8PathBuf};
 use robotmk::config::{
     Config, CustomRCCProfileConfig, EnvironmentConfig, ExecutionConfig, RCCConfig,
     RCCEnvironmentConfig, RCCProfileConfig, RetryStrategy, RobotConfig, SessionConfig, SuiteConfig,
-    UserSessionConfig, WorkingDirectoryCleanupConfig,
+    SuiteMetadata, UserSessionConfig, WorkingDirectoryCleanupConfig,
 };
 use robotmk::section::Host;
 use serde_json::to_string;
@@ -97,6 +97,9 @@ fn create_config(
                         4,
                     ),
                     host: Host::Source,
+                    metadata: SuiteMetadata {
+                        application: "app1".into(),
+                    },
                 },
             ),
             (
@@ -124,6 +127,9 @@ fn create_config(
                         120,
                     ),
                     host: Host::Source,
+                    metadata: SuiteMetadata {
+                        application: "app2".into(),
+                    },
                 },
             ),
             // Note: For our test, it doesn't matter if the suite can be executed on the target
@@ -148,6 +154,9 @@ fn create_config(
                         4,
                     ),
                     host: Host::Piggyback("oink".into()),
+                    metadata: SuiteMetadata {
+                        application: "app3".into(),
+                    },
                 },
             ),
         ]
