@@ -8,4 +8,5 @@ pub mod rf;
 pub mod section;
 pub mod sessions;
 pub mod suites;
+pub mod tasks;
 pub mod termination;
