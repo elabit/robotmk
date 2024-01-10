@@ -31,9 +31,9 @@ impl Rebot<'_> {
         let outcome = match self.run() {
             Ok(outcome) => outcome,
             Err(error) => {
-                error!("Calling rebot command failed: {error:?}");
+                error!("Rebot execution failed: {error:?}");
                 return Ok(RebotOutcome::Error(format!(
-                    "Calling rebot command failed: {error:?}"
+                    "Rebot execution failed: {error:?}"
                 )));
             }
         };
@@ -46,15 +46,6 @@ impl Rebot<'_> {
             Outcome::Cancel => {
                 error!("Rebot run was cancelled");
                 return Err(Cancelled {});
-            }
-        };
-        let exit_code = match exit_code {
-            Ok(exit_code) => exit_code,
-            Err(error) => {
-                error!("Failed to retrieve exit code of rebot run: {error:?}");
-                return Ok(RebotOutcome::Error(format!(
-                    "Failed to retrieve exit code of rebot run: {error:?}"
-                )));
             }
         };
         match self.environment.create_result_code(exit_code) {
@@ -78,7 +69,7 @@ impl Rebot<'_> {
         }
     }
 
-    fn run(&self) -> AnyhowResult<Outcome<AnyhowResult<i32>>> {
+    fn run(&self) -> AnyhowResult<Outcome<i32>> {
         self.session.run(&RunSpec {
             id: &format!("robotmk_rebot_{}", self.suite_id),
             command_spec: &self.environment.wrap(self.build_rebot_command_spec()),

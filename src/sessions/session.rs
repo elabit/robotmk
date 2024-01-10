@@ -25,7 +25,7 @@ impl Session {
         }
     }
 
-    pub fn run(&self, spec: &RunSpec) -> AnyhowResult<Outcome<AnyhowResult<i32>>> {
+    pub fn run(&self, spec: &RunSpec) -> AnyhowResult<Outcome<i32>> {
         match self {
             Self::Current(current_session) => current_session.run(spec),
             Self::User(user_session) => user_session.run(spec),
@@ -71,7 +71,7 @@ pub struct RunSpec<'a> {
 }
 
 impl CurrentSession {
-    fn run(&self, spec: &RunSpec) -> AnyhowResult<Outcome<AnyhowResult<i32>>> {
+    fn run(&self, spec: &RunSpec) -> AnyhowResult<Outcome<i32>> {
         match (ChildProcessSupervisor {
             command_spec: spec.command_spec,
             stdio_paths: Some(StdioPaths {
@@ -83,14 +83,11 @@ impl CurrentSession {
         }
         .run())?
         {
-            Outcome::Completed(exit_status) => match exit_status {
-                Ok(exit_status) => Ok(Outcome::Completed(
-                    exit_status
-                        .code()
-                        .context("Failed to retrieve exit code of subprocess"),
-                )),
-                Err(e) => Ok(Outcome::Completed(Err(e))),
-            },
+            Outcome::Completed(exit_status) => Ok(Outcome::Completed(
+                exit_status
+                    .code()
+                    .context("Failed to retrieve exit code of subprocess")?,
+            )),
             Outcome::Timeout => Ok(Outcome::Timeout),
             Outcome::Cancel => Ok(Outcome::Cancel),
         }
@@ -98,7 +95,7 @@ impl CurrentSession {
 }
 
 impl UserSession {
-    fn run(&self, spec: &RunSpec) -> AnyhowResult<Outcome<AnyhowResult<i32>>> {
+    fn run(&self, spec: &RunSpec) -> AnyhowResult<Outcome<i32>> {
         run_task(&TaskSpec {
             task_name: spec.id,
             command_spec: spec.command_spec,

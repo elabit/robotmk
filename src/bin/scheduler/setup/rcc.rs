@@ -385,27 +385,17 @@ fn run_command_spec_in_session(
             return Err(Cancelled {});
         }
     };
-    match exit_code {
-        Ok(0) => {
-            debug!("{} for `{session}` successful", run_spec.command_spec);
-            Ok(None)
-        }
-        Ok(_) => {
-            error!(
-                "{} for `{session}` exited non-successfully",
-                run_spec.command_spec
-            );
-            Ok(Some(
-                "Non-zero exit code, see stdio logs for details".into(),
-            ))
-        }
-        Err(error) => {
-            error!(
-                "Failed to retreive exit code of {} for `{session}`: {error:?}",
-                run_spec.command_spec
-            );
-            Ok(Some(format!("Failed to retrieve exit code: {error:?}")))
-        }
+    if exit_code == 0 {
+        debug!("{} for `{session}` successful", run_spec.command_spec);
+        Ok(None)
+    } else {
+        error!(
+            "{} for `{session}` exited non-successfully",
+            run_spec.command_spec
+        );
+        Ok(Some(
+            "Non-zero exit code, see stdio logs for details".into(),
+        ))
     }
 }
 

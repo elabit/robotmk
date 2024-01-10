@@ -108,21 +108,14 @@ fn run_build_command(
             return Err(Cancelled {});
         }
     };
-    match exit_code.context("Failed to retrieve exit code of environment build process") {
-        Ok(0) => {
-            info!("Environmenent building succeeded");
-            Ok(BuildOutcome::Success(duration))
-        }
-        Ok(_) => {
-            error!("Environment building not sucessful, suite will be dropped");
-            Ok(BuildOutcome::Error(
-                "Environment building not sucessful, see stdio logs".into(),
-            ))
-        }
-        Err(error) => {
-            error!("Suite will be dropped: {error:?}");
-            Ok(BuildOutcome::Error(format!("{error:?}")))
-        }
+    if exit_code == 0 {
+        info!("Environmenent building succeeded");
+        Ok(BuildOutcome::Success(duration))
+    } else {
+        error!("Environment building not sucessful, suite will be dropped");
+        Ok(BuildOutcome::Error(
+            "Environment building not sucessful, see stdio logs".into(),
+        ))
     }
 }
 

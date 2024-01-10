@@ -23,7 +23,7 @@ pub struct StdioPaths {
 }
 
 impl ChildProcessSupervisor<'_> {
-    pub fn run(&self) -> AnyhowResult<Outcome<AnyhowResult<ExitStatus>>> {
+    pub fn run(&self) -> AnyhowResult<Outcome<ExitStatus>> {
         let mut command: Command = self.build_command()?;
 
         let (stdout_path, stderr_path) = if let Some(stdio_paths) = &self.stdio_paths {
@@ -70,7 +70,7 @@ async fn wait_for_child(
     duration: Duration,
     flag: &CancellationToken,
     command: &mut Command,
-) -> AnyhowResult<Outcome<AnyhowResult<ExitStatus>>> {
+) -> AnyhowResult<Outcome<ExitStatus>> {
     let child = &mut command.spawn().context("Failed to spawn subprocess")?;
     match waited(duration, flag, child.wait()).await {
         Outcome::Timeout => {
@@ -86,7 +86,7 @@ async fn wait_for_child(
                 kill_child_tree(child);
             }
             Ok(Outcome::Completed(
-                result.context("Failed to retrieve exit status of subprocess"),
+                result.context("Failed to retrieve exit status of subprocess")?,
             ))
         }
     }
