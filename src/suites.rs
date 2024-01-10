@@ -76,13 +76,16 @@ fn run_attempt(
 ) -> Result<(AttemptOutcome, Option<Utf8PathBuf>), Cancelled> {
     let log_message_start = format!("Suite {}, attempt {}", id, attempt.index);
 
-    let run_outcome = match session.run(&RunSpec {
-        id: &format!("robotmk_suite_{}_attempt_{}", id, attempt.index),
-        command_spec: &environment.wrap(attempt.command_spec),
-        base_path: &output_directory.join(attempt.index.to_string()),
-        timeout,
-        cancellation_token,
-    }) {
+    let run_outcome = match session
+        .run(&RunSpec {
+            id: &format!("robotmk_suite_{}_attempt_{}", id, attempt.index),
+            command_spec: &environment.wrap(attempt.command_spec),
+            base_path: &output_directory.join(attempt.index.to_string()),
+            timeout,
+            cancellation_token,
+        })
+        .context("Suite execution failed")
+    {
         Ok(run_outcome) => run_outcome,
         Err(error_) => {
             error!("{log_message_start}: {error_:?}");
@@ -98,13 +101,6 @@ fn run_attempt(
         Outcome::Cancel => {
             error!("{log_message_start}: robot run was cancelled");
             return Err(Cancelled {});
-        }
-    };
-    let exit_code = match exit_code.context("Failed to retrieve exit code of robot run") {
-        Ok(exit_code) => exit_code,
-        Err(error) => {
-            error!("{log_message_start}: {error:?}");
-            return Ok((AttemptOutcome::OtherError(format!("{error:?}")), None));
         }
     };
     match environment.create_result_code(exit_code) {

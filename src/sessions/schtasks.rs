@@ -13,7 +13,7 @@ use sysinfo::Pid;
 use tokio::task::yield_now;
 use tokio_util::sync::CancellationToken;
 
-pub fn run_task(task_spec: &TaskSpec) -> AnyhowResult<Outcome<AnyhowResult<i32>>> {
+pub fn run_task(task_spec: &TaskSpec) -> AnyhowResult<Outcome<i32>> {
     debug!(
         "Running the following command as task {} for user {}:\n{}\n\nBase path: {}",
         task_spec.task_name, task_spec.user_name, task_spec.command_spec, task_spec.base_path
@@ -25,7 +25,7 @@ pub fn run_task(task_spec: &TaskSpec) -> AnyhowResult<Outcome<AnyhowResult<i32>>
         .context(format!("Failed to create task {}", task_spec.task_name))?;
     start_task(task_spec.task_name, &paths.run_flag)?;
 
-    Ok(wait_for_task_exit(task_spec, &paths))
+    wait_for_task_exit(task_spec, &paths)
 }
 
 pub struct TaskSpec<'a> {
@@ -187,7 +187,7 @@ fn start_task(task_name: &str, path_run_flag: &Utf8Path) -> AnyhowResult<()> {
 }
 
 #[tokio::main]
-async fn wait_for_task_exit(task: &TaskSpec, paths: &Paths) -> Outcome<AnyhowResult<i32>> {
+async fn wait_for_task_exit(task: &TaskSpec, paths: &Paths) -> AnyhowResult<Outcome<i32>> {
     let duration = Duration::from_secs(task.timeout);
     let queried = query(task.task_name, &paths.exit_code);
     let outcome = waited(duration, task.cancellation_token, queried).await;
@@ -196,7 +196,11 @@ async fn wait_for_task_exit(task: &TaskSpec, paths: &Paths) -> Outcome<AnyhowRes
         kill_task(paths);
     }
     delete_task(task.task_name);
-    outcome
+    Ok(match outcome {
+        Outcome::Cancel => Outcome::Cancel,
+        Outcome::Timeout => Outcome::Timeout,
+        Outcome::Completed(exit_code) => Outcome::Completed(exit_code?),
+    })
 }
 
 async fn query(task_name: &str, exit_path: &Utf8Path) -> AnyhowResult<i32> {
