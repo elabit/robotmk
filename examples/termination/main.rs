@@ -3,7 +3,7 @@ use camino::Utf8PathBuf;
 use robotmk::config::RetryStrategy;
 use robotmk::environment::{Environment, SystemEnvironment};
 use robotmk::rf::robot::Robot;
-use robotmk::sessions::session::{CurrentSession, Session};
+use robotmk::session::{CurrentSession, Session};
 use robotmk::suites::run_attempts_with_rebot;
 use std::collections::{HashMap, HashSet};
 use std::env::var;

@@ -4,7 +4,7 @@ use robotmk::environment::Environment;
 use robotmk::lock::Locker;
 use robotmk::results::{BuildOutcome, BuildStates, EnvironmentBuildStage};
 use robotmk::section::WriteSection;
-use robotmk::sessions::session::{RunSpec, Session};
+use robotmk::session::{RunSpec, Session};
 use robotmk::termination::{Cancelled, Outcome};
 
 use anyhow::{Context, Result as AnyhowResult};
