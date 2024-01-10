@@ -2,7 +2,7 @@ use crate::environment::{Environment, ResultCode};
 use crate::results::{AttemptOutcome, AttemptReport, RebotOutcome};
 use crate::rf::rebot::Rebot;
 use crate::rf::robot::{Attempt, Robot};
-use crate::sessions::session::{RunSpec, Session};
+use crate::session::{RunSpec, Session};
 use crate::termination::{Cancelled, Outcome};
 use anyhow::Context;
 use camino::{Utf8Path, Utf8PathBuf};

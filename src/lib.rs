@@ -6,7 +6,7 @@ pub mod lock;
 pub mod results;
 pub mod rf;
 pub mod section;
-pub mod sessions;
+pub mod session;
 pub mod suites;
 pub mod tasks;
 pub mod termination;

@@ -3,7 +3,7 @@ use crate::command_spec::CommandSpec;
 use crate::environment::Environment;
 use crate::environment::ResultCode;
 use crate::results::{RebotOutcome, RebotResult};
-use crate::sessions::session::{RunSpec, Session};
+use crate::session::{RunSpec, Session};
 use crate::termination::{Cancelled, Outcome};
 
 use anyhow::Result as AnyhowResult;
@@ -127,7 +127,7 @@ impl Rebot<'_> {
 mod tests {
     use super::*;
     use crate::config::EnvironmentConfig;
-    use crate::sessions::session::CurrentSession;
+    use crate::session::CurrentSession;
 
     #[test]
     fn build_rebot_command() {

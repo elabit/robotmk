@@ -4,7 +4,7 @@ use robotmk::lock::Locker;
 use robotmk::results::suite_results_directory;
 use robotmk::rf::robot::Robot;
 use robotmk::section::Host;
-use robotmk::sessions::session::Session;
+use robotmk::session::Session;
 
 use camino::Utf8PathBuf;
 use tokio_util::sync::CancellationToken;
@@ -97,7 +97,7 @@ mod tests {
         UserSessionConfig,
     };
     use robotmk::environment::{Environment, RCCEnvironment, SystemEnvironment};
-    use robotmk::sessions::session::{CurrentSession, UserSession};
+    use robotmk::session::{CurrentSession, UserSession};
 
     use std::collections::HashMap;
 

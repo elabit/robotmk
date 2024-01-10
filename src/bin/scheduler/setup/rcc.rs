@@ -4,7 +4,7 @@ use crate::logging::log_and_return_error;
 use robotmk::command_spec::CommandSpec;
 use robotmk::environment::Environment;
 use robotmk::results::RCCSetupFailures;
-use robotmk::sessions::session::{CurrentSession, RunSpec, Session};
+use robotmk::session::{CurrentSession, RunSpec, Session};
 use robotmk::termination::{Cancelled, Outcome};
 
 use anyhow::{Context, Result as AnyhowResult};
