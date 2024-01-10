@@ -22,6 +22,16 @@ tempfile = "3.9.0"
 tokio = { version = "1.35.1", features = ["full"] }
 tokio-util = { version = "0.7.10", features = ["full"] }
 walkdir = "2.4.0"
+winsafe = { version = "0.0.19", features = [ "ole" ] }
+[dependencies.windows]
+version = "0.52.0"
+features = [
+    "Win32_System_Com",
+    "Win32_System_TaskScheduler",
+    "Win32_System_Ole",
+    "Win32_Foundation",
+    "Win32_System_Variant",
+]
 
 [dev-dependencies]
 assert_cmd = "2.0.12"
