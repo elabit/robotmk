@@ -1,3 +1,4 @@
+use super::all_configured_users;
 use super::icacls::run_icacls_command;
 use crate::build::environment_building_working_directory;
 use crate::internal_config::{GlobalConfig, Suite};
@@ -23,8 +24,12 @@ fn setup_working_directories(working_directory: &Utf8Path, suites: &[Suite]) -> 
     }
     create_dir_all(environment_building_working_directory(working_directory))
         .context("Failed to create environment building working directory")?;
-    adjust_working_directory_permissions(working_directory)
-        .context("Failed adjust working directory permissions")
+
+    for user_name in all_configured_users(suites.iter()) {
+        adjust_working_directory_permissions(working_directory, user_name)
+            .context("Failed adjust working directory permissions")?;
+    }
+    Ok(())
 }
 
 fn setup_results_directories(global_config: &GlobalConfig, suites: &[Suite]) -> AnyhowResult<()> {
@@ -88,15 +93,18 @@ fn top_level_files(directory: &Utf8Path) -> AnyhowResult<Vec<Utf8PathBuf>> {
     Ok(result_files)
 }
 
-fn adjust_working_directory_permissions(working_directory: &Utf8Path) -> AnyhowResult<()> {
-    debug!("Granting group `Users` full access to {working_directory}");
+fn adjust_working_directory_permissions(
+    working_directory: &Utf8Path,
+    user_name: &str,
+) -> AnyhowResult<()> {
+    debug!("Granting user `{user_name}` full access to {working_directory}");
     run_icacls_command(vec![
         working_directory.as_str(),
         "/grant",
-        "Users:(OI)(CI)F",
+        &format!("{user_name}:(OI)(CI)F"),
         "/T",
     ])
     .context(format!(
-        "Adjusting permissions of {working_directory} for group `Users` failed"
+        "Adjusting permissions of {working_directory} for user `{user_name}` failed"
     ))
 }
