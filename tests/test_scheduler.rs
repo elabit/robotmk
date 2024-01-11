@@ -38,7 +38,7 @@ async fn test_scheduler() -> AnyhowResult<()> {
 
     assert_working_directory(&config.working_directory, &current_user_name).await?;
     assert_results_directory(&config.results_directory);
-    assert_rcc(&config.rcc_config).await?;
+    assert_rcc(&config.rcc_config, &current_user_name).await?;
     assert_tasks().await?;
 
     Ok(())
@@ -200,7 +200,11 @@ async fn assert_working_directory(
     working_directory: &Utf8Path,
     headed_user_name: &str,
 ) -> AnyhowResult<()> {
-    assert_permissions(&working_directory, "BUILTIN\\Users:(OI)(CI)(F)").await?;
+    assert_permissions(
+        &working_directory,
+        &format!("{headed_user_name}:(OI)(CI)(F)"),
+    )
+    .await?;
     assert!(working_directory.is_dir());
     assert_eq!(
         directory_entries(working_directory, 1),
@@ -295,18 +299,25 @@ fn assert_results_directory(results_directory: &Utf8Path) {
     );
 }
 
-async fn assert_rcc(rcc_config: &RCCConfig) -> AnyhowResult<()> {
-    assert_rcc_files_permissions(rcc_config).await?;
+async fn assert_rcc(rcc_config: &RCCConfig, headed_user_name: &str) -> AnyhowResult<()> {
+    assert_rcc_files_permissions(rcc_config, headed_user_name).await?;
     assert_rcc_configuration(rcc_config).await?;
     assert_rcc_longpath_support_enabled(&rcc_config.binary_path).await
 }
 
-async fn assert_rcc_files_permissions(rcc_config: &RCCConfig) -> AnyhowResult<()> {
-    assert_permissions(&rcc_config.binary_path, "BUILTIN\\Users:(RX)").await?;
+async fn assert_rcc_files_permissions(
+    rcc_config: &RCCConfig,
+    headed_user_name: &str,
+) -> AnyhowResult<()> {
+    assert_permissions(&rcc_config.binary_path, &format!("{headed_user_name}:(RX)")).await?;
     let RCCProfileConfig::Custom(custom_rcc_profile_config) = &rcc_config.profile_config else {
         return Ok(());
     };
-    assert_permissions(&custom_rcc_profile_config.path, "BUILTIN\\Users:(R)").await
+    assert_permissions(
+        &custom_rcc_profile_config.path,
+        &format!("{headed_user_name}:(R)"),
+    )
+    .await
 }
 
 async fn assert_rcc_configuration(rcc_config: &RCCConfig) -> AnyhowResult<()> {

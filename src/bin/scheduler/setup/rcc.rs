@@ -1,3 +1,4 @@
+use super::all_configured_users;
 use super::icacls::run_icacls_command;
 use crate::internal_config::{sort_suites_by_id, GlobalConfig, Suite};
 use crate::logging::log_and_return_error;
@@ -19,30 +20,41 @@ use std::fs::{create_dir_all, remove_dir_all};
 use std::vec;
 
 pub fn setup(global_config: &GlobalConfig, suites: Vec<Suite>) -> AnyhowResult<Vec<Suite>> {
-    adjust_rcc_binary_permissions(&global_config.rcc_config.binary_path)
-        .context("Failed to adjust permissions of RCC binary")?;
+    let (rcc_suites, mut surviving_suites): (Vec<Suite>, Vec<Suite>) = suites
+        .into_iter()
+        .partition(|suite| matches!(suite.environment, Environment::Rcc(_)));
+    let all_configured_users_rcc = all_configured_users(rcc_suites.iter());
+
+    for user_name in &all_configured_users_rcc {
+        adjust_rcc_binary_permissions(&global_config.rcc_config.binary_path, user_name)
+            .context("Failed to adjust permissions of RCC binary")?;
+    }
     clear_rcc_setup_working_directory(&rcc_setup_working_directory(
         &global_config.working_directory,
     ))?;
     if let RCCProfileConfig::Custom(custom_rcc_profile_config) =
         &global_config.rcc_config.profile_config
     {
-        adjust_rcc_profile_permissions(&custom_rcc_profile_config.path)
-            .context("Failed to adjust permissions of RCC profile")?;
+        for user_name in &all_configured_users_rcc {
+            adjust_rcc_profile_permissions(&custom_rcc_profile_config.path, user_name)
+                .context("Failed to adjust permissions of RCC profile")?;
+        }
     }
 
-    let (rcc_suites, mut surviving_suites): (Vec<Suite>, Vec<Suite>) = suites
-        .into_iter()
-        .partition(|suite| matches!(suite.environment, Environment::Rcc(_)));
     surviving_suites.append(&mut rcc_setup(global_config, rcc_suites)?);
     sort_suites_by_id(&mut surviving_suites);
     Ok(surviving_suites)
 }
 
-fn adjust_rcc_binary_permissions(executable_path: &Utf8Path) -> AnyhowResult<()> {
-    debug!("Granting group `Users` read and execute access to {executable_path}");
-    run_icacls_command(vec![executable_path.as_str(), "/grant", "Users:(RX)"]).context(format!(
-        "Adjusting permissions of {executable_path} for group `Users` failed",
+fn adjust_rcc_binary_permissions(executable_path: &Utf8Path, user_name: &str) -> AnyhowResult<()> {
+    debug!("Granting user `{user_name}` read and execute access to {executable_path}");
+    run_icacls_command(vec![
+        executable_path.as_str(),
+        "/grant",
+        &format!("{user_name}:(RX)"),
+    ])
+    .context(format!(
+        "Adjusting permissions of {executable_path} for user `{user_name}` failed",
     ))
 }
 
@@ -61,10 +73,15 @@ fn rcc_setup_working_directory(working_directory: &Utf8Path) -> Utf8PathBuf {
     working_directory.join("rcc_setup")
 }
 
-fn adjust_rcc_profile_permissions(profile_path: &Utf8Path) -> AnyhowResult<()> {
-    debug!("Granting group `Users` read access to {profile_path}");
-    run_icacls_command(vec![profile_path.as_str(), "/grant", "Users:(R)"]).context(format!(
-        "Adjusting permissions of {profile_path} for group `Users` failed",
+fn adjust_rcc_profile_permissions(profile_path: &Utf8Path, user_name: &str) -> AnyhowResult<()> {
+    debug!("Granting user `{user_name}` read access to {profile_path}");
+    run_icacls_command(vec![
+        profile_path.as_str(),
+        "/grant",
+        &format!("{user_name}:(R)"),
+    ])
+    .context(format!(
+        "Adjusting permissions of {profile_path} for user `{user_name}` failed",
     ))
 }
 
