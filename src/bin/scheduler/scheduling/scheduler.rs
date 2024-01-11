@@ -6,6 +6,7 @@ use robotmk::termination::Cancelled;
 
 use chrono::Utc;
 use log::error;
+use std::collections::HashMap;
 use std::time::Duration;
 use tokio::task::{spawn_blocking, JoinSet};
 use tokio::time::{interval_at, Instant};
@@ -16,11 +17,25 @@ pub async fn run_suites_and_cleanup(
     global_config: &GlobalConfig,
     suites: &[Suite],
 ) -> Result<(), Cancelled> {
-    let suites_for_scheduling: Vec<Suite> = suites.to_vec();
+    let mut suites_by_exec_group = HashMap::new();
+    for suite in suites {
+        suites_by_exec_group
+            .entry((
+                suite.group_affiliation.group_index,
+                suite.group_affiliation.execution_interval,
+            ))
+            .or_insert(vec![])
+            .push(suite.clone());
+    }
 
     let mut join_set = JoinSet::new();
-    for suite in suites_for_scheduling {
-        join_set.spawn(run_suite_scheduler(suite));
+    for ((_, execution_interval), mut suites) in suites_by_exec_group {
+        suites.sort_by_key(|suite| suite.group_affiliation.position_in_group);
+        join_set.spawn(run_sequential_suite_group_scheduler(
+            execution_interval,
+            suites,
+            global_config.cancellation_token.clone(),
+        ));
     }
 
     join_set.spawn(run_cleanup_job(
@@ -38,7 +53,11 @@ pub async fn run_suites_and_cleanup(
     return Err(Cancelled {});
 }
 
-async fn run_suite_scheduler(suite: Suite) {
+async fn run_sequential_suite_group_scheduler(
+    interval: u64,
+    suites: Vec<Suite>,
+    cancellation_token: CancellationToken,
+) {
     // It is debatable whether MissedTickBehavior::Burst (the default) is correct. In practice, as
     // long as timeout * number of attempts is shorter than the execution interval, it shouldn't
     // make a difference anyway.  However, in case we consider changing this, note that using
@@ -46,17 +65,15 @@ async fn run_suite_scheduler(suite: Suite) {
     // to the scheduling interval). See also:
     // https://www.reddit.com/r/rust/comments/13yymkh/weird_tokiotimeinterval_tick_behavior/
     // https://github.com/tokio-rs/tokio/issues/5021
-    let mut clock = interval_at(
-        compute_start_time(suite.execution_interval_seconds),
-        Duration::from_secs(suite.execution_interval_seconds),
-    );
+    let mut clock = interval_at(compute_start_time(interval), Duration::from_secs(interval));
     loop {
-        let suite = suite.clone();
         tokio::select! {
             _ = clock.tick() => { }
-            _ = suite.cancellation_token.cancelled() => { return }
+            _ = cancellation_token.cancelled() => { return }
         };
-        spawn_blocking(move || run_suite(&suite).map_err(log_and_return_error));
+        for suite in suites.clone() {
+            let _ = spawn_blocking(move || run_suite(&suite).map_err(log_and_return_error)).await;
+        }
     }
 }
 

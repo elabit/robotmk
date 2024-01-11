@@ -22,7 +22,6 @@ pub struct Suite {
     pub id: String,
     pub working_directory: Utf8PathBuf,
     pub results_file: Utf8PathBuf,
-    pub execution_interval_seconds: u64,
     pub timeout: u64,
     pub robot: Robot,
     pub environment: Environment,
@@ -32,6 +31,14 @@ pub struct Suite {
     pub host: Host,
     pub results_directory_locker: Locker,
     pub metadata: SuiteMetadata,
+    pub group_affiliation: GroupAffiliation,
+}
+
+#[derive(Clone, PartialEq, Debug)]
+pub struct GroupAffiliation {
+    pub group_index: usize,
+    pub position_in_group: usize,
+    pub execution_interval: u64,
 }
 
 pub fn from_external_config(
@@ -42,7 +49,8 @@ pub fn from_external_config(
     let mut suites: Vec<Suite> = external_config
         .suites
         .into_iter()
-        .map(|(suite_id, suite_config)| Suite {
+        .enumerate()
+        .map(|(suite_index, (suite_id, suite_config))| Suite {
             id: suite_id.clone(),
             working_directory: external_config
                 .working_directory
@@ -50,7 +58,6 @@ pub fn from_external_config(
                 .join(&suite_id),
             results_file: suite_results_directory(&external_config.results_directory)
                 .join(format!("{}.json", suite_id)),
-            execution_interval_seconds: suite_config.execution_config.execution_interval_seconds,
             timeout: suite_config.execution_config.timeout,
             robot: Robot {
                 robot_target: suite_config.robot_config.robot_target,
@@ -69,6 +76,11 @@ pub fn from_external_config(
             host: suite_config.host,
             results_directory_locker: results_directory_locker.clone(),
             metadata: suite_config.metadata,
+            group_affiliation: GroupAffiliation {
+                group_index: suite_index,
+                position_in_group: 0,
+                execution_interval: suite_config.execution_config.execution_interval_seconds,
+            },
         })
         .collect();
     sort_suites_by_id(&mut suites);
@@ -97,8 +109,6 @@ mod tests {
         UserSessionConfig,
     };
     use robotmk::environment::{Environment, RCCEnvironment, SystemEnvironment};
-    use robotmk::session::{CurrentSession, UserSession};
-
     use std::collections::HashMap;
 
     fn system_suite_config() -> SuiteConfig {
@@ -189,7 +199,6 @@ mod tests {
         assert_eq!(suites[0].id, "rcc");
         assert_eq!(suites[0].working_directory, "/working/suites/rcc");
         assert_eq!(suites[0].results_file, "/results/suites/rcc.json");
-        assert_eq!(suites[0].execution_interval_seconds, 300);
         assert_eq!(suites[0].timeout, 60);
         assert_eq!(
             suites[0].robot,
@@ -212,12 +221,6 @@ mod tests {
             })
         );
         assert_eq!(
-            suites[0].session,
-            Session::User(UserSession {
-                user_name: "user".into()
-            })
-        );
-        assert_eq!(
             suites[0].working_directory_cleanup_config,
             WorkingDirectoryCleanupConfig::MaxExecutions(50),
         );
@@ -227,10 +230,17 @@ mod tests {
                 application: "rcc_app".into(),
             },
         );
+        assert_eq!(
+            suites[0].group_affiliation,
+            GroupAffiliation {
+                group_index: 1,
+                position_in_group: 0,
+                execution_interval: 300,
+            }
+        );
         assert_eq!(suites[1].id, "system");
         assert_eq!(suites[1].working_directory, "/working/suites/system");
         assert_eq!(suites[1].results_file, "/results/suites/system.json");
-        assert_eq!(suites[1].execution_interval_seconds, 300);
         assert_eq!(suites[1].timeout, 60);
         assert_eq!(
             suites[1].robot,
@@ -245,7 +255,6 @@ mod tests {
             suites[1].environment,
             Environment::System(SystemEnvironment {})
         );
-        assert_eq!(suites[1].session, Session::Current(CurrentSession {}));
         assert_eq!(
             suites[1].working_directory_cleanup_config,
             WorkingDirectoryCleanupConfig::MaxAgeSecs(1209600),
@@ -255,6 +264,14 @@ mod tests {
             SuiteMetadata {
                 application: "sys_app".into(),
             },
+        );
+        assert_eq!(
+            suites[1].group_affiliation,
+            GroupAffiliation {
+                group_index: 0,
+                position_in_group: 0,
+                execution_interval: 300,
+            }
         );
     }
 }
