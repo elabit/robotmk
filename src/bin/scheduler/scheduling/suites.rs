@@ -51,7 +51,7 @@ fn produce_suite_results(suite: &Suite) -> AnyhowResult<SuiteExecutionReport> {
         attempts: attempt_reports,
         rebot,
         config: AttemptsConfig {
-            interval: suite.execution_interval_seconds,
+            interval: suite.group_affiliation.execution_interval,
             timeout: suite.timeout,
             n_attempts_max: suite.robot.n_attempts_max,
         },
