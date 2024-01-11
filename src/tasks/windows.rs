@@ -18,7 +18,7 @@ pub fn run_task(task_spec: &TaskSpec) -> AnyhowResult<Outcome<i32>> {
         "Running the following command as task {} for user {}:\n{}\n\nBase path: {}",
         task_spec.task_name, task_spec.user_name, task_spec.command_spec, task_spec.base_path
     );
-    assert_session_is_active(task_spec.user_name)?;
+    assert_session_is_present(task_spec.user_name)?;
 
     let paths = Paths::from(task_spec.base_path);
     let task_manager = TaskManager::new().context("Failed to create new TaskManager")?;
@@ -56,40 +56,34 @@ pub fn run_task(task_spec: &TaskSpec) -> AnyhowResult<Outcome<i32>> {
     Ok(Outcome::Completed(read_exit_code(&paths.exit_code)?))
 }
 
-fn assert_session_is_active(user_name: &str) -> AnyhowResult<()> {
+fn assert_session_is_present(user_name: &str) -> AnyhowResult<()> {
     let mut query_user_command = std::process::Command::new("query");
     query_user_command.arg("user");
-    if check_if_user_has_active_session(
+    if check_if_user_has_session(
         user_name,
         &String::from_utf8_lossy(
             &query_user_command
                 .output()
-                .context(format!(
-                    "Failed to query if user {user_name} has an active session"
-                ))?
+                .context("Failed to query user sessions (`query user`)")?
                 .stdout,
         ),
     ) {
         return Ok(());
     }
-    bail!("No active session for user {user_name} found")
+    bail!("No session for user {user_name} found")
 }
 
-fn check_if_user_has_active_session(user_name: &str, query_user_stdout: &str) -> bool {
+fn check_if_user_has_session(user_name: &str, query_user_stdout: &str) -> bool {
     for line in query_user_stdout.lines().skip(1) {
         let words: Vec<&str> = line.split_whitespace().collect();
         let Some(user_name_of_session) = words.first() else {
             continue;
         };
-        let Some(session_state) = words.get(3) else {
-            continue;
-        };
-        if (&user_name == user_name_of_session
+        if &user_name == user_name_of_session
             || &format!(
                 // `>` marks the current session
                 ">{user_name}"
-            ) == user_name_of_session)
-            && session_state == &"Active"
+            ) == user_name_of_session
         {
             return true;
         }
@@ -255,8 +249,8 @@ fn build_task_script(command_spec: &CommandSpec, paths: &Paths) -> String {
 
 fn read_exit_code(path: &Utf8Path) -> AnyhowResult<i32> {
     let content = fs::read_to_string(path).context(format!(
-        "Failed to task exit code file {path}. A probable cause is that the task was killed, which \
-        prevented it from writing this file."
+        "Failed to read task exit code file {path}. Probable causes: task was killed or session is \
+        inactive."
     ))?;
     let content_until_first_whitespace = content
         .split_whitespace()
@@ -289,8 +283,8 @@ mod tests {
     }
 
     #[test]
-    fn check_if_user_has_active_session_ok() {
-        assert!(check_if_user_has_active_session(
+    fn check_if_user_has_session_ok() {
+        assert!(check_if_user_has_session(
             "vagrant",
             " USERNAME              SESSIONNAME        ID  STATE   IDLE TIME  LOGON TIME
 >vagrant               console             1  Active      none   12/4/2023 9:35 AM
@@ -299,8 +293,8 @@ mod tests {
     }
 
     #[test]
-    fn check_if_user_has_active_session_disconnected() {
-        assert!(!check_if_user_has_active_session(
+    fn check_if_user_has_session_disconnected() {
+        assert!(check_if_user_has_session(
             "vagrant2",
             " USERNAME              SESSIONNAME        ID  STATE   IDLE TIME  LOGON TIME
 >vagrant               console             1  Active      none   12/4/2023 9:35 AM
@@ -309,8 +303,8 @@ mod tests {
     }
 
     #[test]
-    fn check_if_user_has_active_session_no_session() {
-        assert!(!check_if_user_has_active_session(
+    fn check_if_user_has_session_no_session() {
+        assert!(!check_if_user_has_session(
             "vagrant2",
             " USERNAME              SESSIONNAME        ID  STATE   IDLE TIME  LOGON TIME
 >vagrant               console             1  Active      none   12/4/2023 9:35 AM"
