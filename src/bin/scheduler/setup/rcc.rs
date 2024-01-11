@@ -1,6 +1,6 @@
 use super::all_configured_users;
 use super::icacls::run_icacls_command;
-use crate::internal_config::{sort_suites_by_id, GlobalConfig, Suite};
+use crate::internal_config::{sort_suites_by_grouping, GlobalConfig, Suite};
 use crate::logging::log_and_return_error;
 use robotmk::command_spec::CommandSpec;
 use robotmk::environment::Environment;
@@ -42,7 +42,7 @@ pub fn setup(global_config: &GlobalConfig, suites: Vec<Suite>) -> AnyhowResult<V
     }
 
     surviving_suites.append(&mut rcc_setup(global_config, rcc_suites)?);
-    sort_suites_by_id(&mut surviving_suites);
+    sort_suites_by_grouping(&mut surviving_suites);
     Ok(surviving_suites)
 }
 

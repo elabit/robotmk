@@ -46,44 +46,44 @@ pub fn from_external_config(
     cancellation_token: CancellationToken,
     results_directory_locker: Locker,
 ) -> (GlobalConfig, Vec<Suite>) {
-    let mut suites: Vec<Suite> = external_config
-        .suites
-        .into_iter()
-        .enumerate()
-        .map(|(suite_index, (suite_id, suite_config))| Suite {
-            id: suite_id.clone(),
-            working_directory: external_config
-                .working_directory
-                .join("suites")
-                .join(&suite_id),
-            results_file: suite_results_directory(&external_config.results_directory)
-                .join(format!("{}.json", suite_id)),
-            timeout: suite_config.execution_config.timeout,
-            robot: Robot {
-                robot_target: suite_config.robot_config.robot_target,
-                command_line_args: suite_config.robot_config.command_line_args,
-                n_attempts_max: suite_config.execution_config.n_attempts_max,
-                retry_strategy: suite_config.execution_config.retry_strategy,
-            },
-            environment: Environment::new(
-                &suite_id,
-                &external_config.rcc_config.binary_path,
-                &suite_config.environment_config,
-            ),
-            session: Session::new(&suite_config.session_config),
-            working_directory_cleanup_config: suite_config.working_directory_cleanup_config,
-            cancellation_token: cancellation_token.clone(),
-            host: suite_config.host,
-            results_directory_locker: results_directory_locker.clone(),
-            metadata: suite_config.metadata,
-            group_affiliation: GroupAffiliation {
-                group_index: suite_index,
-                position_in_group: 0,
-                execution_interval: suite_config.execution_config.execution_interval_seconds,
-            },
-        })
-        .collect();
-    sort_suites_by_id(&mut suites);
+    let mut suites = vec![];
+
+    for (group_index, sequential_group) in external_config.suite_groups.into_iter().enumerate() {
+        for (suite_index, suite_config) in sequential_group.suites.into_iter().enumerate() {
+            suites.push(Suite {
+                id: suite_config.id.clone(),
+                working_directory: external_config
+                    .working_directory
+                    .join("suites")
+                    .join(&suite_config.id),
+                results_file: suite_results_directory(&external_config.results_directory)
+                    .join(format!("{}.json", suite_config.id)),
+                timeout: suite_config.execution_config.timeout,
+                robot: Robot {
+                    robot_target: suite_config.robot_config.robot_target,
+                    command_line_args: suite_config.robot_config.command_line_args,
+                    n_attempts_max: suite_config.execution_config.n_attempts_max,
+                    retry_strategy: suite_config.execution_config.retry_strategy,
+                },
+                environment: Environment::new(
+                    &suite_config.id,
+                    &external_config.rcc_config.binary_path,
+                    &suite_config.environment_config,
+                ),
+                session: Session::new(&suite_config.session_config),
+                working_directory_cleanup_config: suite_config.working_directory_cleanup_config,
+                cancellation_token: cancellation_token.clone(),
+                host: suite_config.host,
+                results_directory_locker: results_directory_locker.clone(),
+                metadata: suite_config.metadata,
+                group_affiliation: GroupAffiliation {
+                    group_index,
+                    position_in_group: suite_index,
+                    execution_interval: sequential_group.execution_interval,
+                },
+            });
+        }
+    }
     (
         GlobalConfig {
             working_directory: external_config.working_directory,
@@ -96,8 +96,13 @@ pub fn from_external_config(
     )
 }
 
-pub fn sort_suites_by_id(suites: &mut [Suite]) {
-    suites.sort_by_key(|suite| suite.id.to_string());
+pub fn sort_suites_by_grouping(suites: &mut [Suite]) {
+    suites.sort_by_key(|suite| {
+        (
+            suite.group_affiliation.group_index,
+            suite.group_affiliation.position_in_group,
+        )
+    });
 }
 
 #[cfg(test)]
@@ -105,14 +110,14 @@ mod tests {
     use super::*;
     use robotmk::config::{
         CustomRCCProfileConfig, EnvironmentConfig, ExecutionConfig, RCCEnvironmentConfig,
-        RCCProfileConfig, RetryStrategy, RobotConfig, SessionConfig, SuiteConfig,
-        UserSessionConfig,
+        RCCProfileConfig, RetryStrategy, RobotConfig, SequentialSuiteGroup, SessionConfig,
+        SuiteConfig, UserSessionConfig,
     };
     use robotmk::environment::{Environment, RCCEnvironment, SystemEnvironment};
-    use std::collections::HashMap;
 
     fn system_suite_config() -> SuiteConfig {
         SuiteConfig {
+            id: "system".into(),
             robot_config: RobotConfig {
                 robot_target: Utf8PathBuf::from("/suite/system/tasks.robot"),
                 command_line_args: vec![],
@@ -120,7 +125,6 @@ mod tests {
             execution_config: ExecutionConfig {
                 n_attempts_max: 1,
                 retry_strategy: RetryStrategy::Incremental,
-                execution_interval_seconds: 300,
                 timeout: 60,
             },
             environment_config: EnvironmentConfig::System,
@@ -135,6 +139,7 @@ mod tests {
 
     fn rcc_suite_config() -> SuiteConfig {
         SuiteConfig {
+            id: "rcc".into(),
             robot_config: RobotConfig {
                 robot_target: Utf8PathBuf::from("/suite/rcc/tasks.robot"),
                 command_line_args: vec![],
@@ -142,7 +147,6 @@ mod tests {
             execution_config: ExecutionConfig {
                 n_attempts_max: 1,
                 retry_strategy: RetryStrategy::Complete,
-                execution_interval_seconds: 300,
                 timeout: 60,
             },
             environment_config: EnvironmentConfig::Rcc(RCCEnvironmentConfig {
@@ -175,10 +179,16 @@ mod tests {
                         path: "/rcc_profile_robotmk.yaml".into(),
                     }),
                 },
-                suites: HashMap::from([
-                    (String::from("system"), system_suite_config()),
-                    (String::from("rcc"), rcc_suite_config()),
-                ]),
+                suite_groups: vec![
+                    SequentialSuiteGroup {
+                        suites: vec![rcc_suite_config()],
+                        execution_interval: 300,
+                    },
+                    SequentialSuiteGroup {
+                        suites: vec![system_suite_config()],
+                        execution_interval: 300,
+                    },
+                ],
             },
             cancellation_token.clone(),
             Locker::new("/config.json", Some(&cancellation_token)),
@@ -233,7 +243,7 @@ mod tests {
         assert_eq!(
             suites[0].group_affiliation,
             GroupAffiliation {
-                group_index: 1,
+                group_index: 0,
                 position_in_group: 0,
                 execution_interval: 300,
             }
@@ -268,7 +278,7 @@ mod tests {
         assert_eq!(
             suites[1].group_affiliation,
             GroupAffiliation {
-                group_index: 0,
+                group_index: 1,
                 position_in_group: 0,
                 execution_interval: 300,
             }

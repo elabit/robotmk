@@ -3,8 +3,8 @@ use assert_cmd::cargo::cargo_bin;
 use camino::{Utf8Path, Utf8PathBuf};
 use robotmk::config::{
     Config, CustomRCCProfileConfig, EnvironmentConfig, ExecutionConfig, RCCConfig,
-    RCCEnvironmentConfig, RCCProfileConfig, RetryStrategy, RobotConfig, SessionConfig, SuiteConfig,
-    SuiteMetadata, UserSessionConfig, WorkingDirectoryCleanupConfig,
+    RCCEnvironmentConfig, RCCProfileConfig, RetryStrategy, RobotConfig, SequentialSuiteGroup,
+    SessionConfig, SuiteConfig, SuiteMetadata, UserSessionConfig, WorkingDirectoryCleanupConfig,
 };
 use robotmk::section::Host;
 use serde_json::to_string;
@@ -73,71 +73,69 @@ fn create_config(
         working_directory: test_dir.join("working"),
         results_directory: test_dir.join("results"),
         rcc_config,
-        suites: [
-            (
-                String::from("rcc_headless"),
-                SuiteConfig {
-                    robot_config: RobotConfig {
-                        robot_target: suite_dir.join("tasks.robot"),
-                        command_line_args: vec![],
+        suite_groups: vec![
+            SequentialSuiteGroup {
+                suites: vec![
+                    SuiteConfig {
+                        id: "rcc_headless".into(),
+                        robot_config: RobotConfig {
+                            robot_target: suite_dir.join("tasks.robot"),
+                            command_line_args: vec![],
+                        },
+                        execution_config: ExecutionConfig {
+                            n_attempts_max: 1,
+                            retry_strategy: RetryStrategy::Complete,
+                            timeout: 10,
+                        },
+                        environment_config: EnvironmentConfig::Rcc(RCCEnvironmentConfig {
+                            robot_yaml_path: suite_dir.join("robot.yaml"),
+                            build_timeout: 1200,
+                            env_json_path: None,
+                        }),
+                        session_config: SessionConfig::Current,
+                        working_directory_cleanup_config:
+                            WorkingDirectoryCleanupConfig::MaxExecutions(4),
+                        host: Host::Source,
+                        metadata: SuiteMetadata {
+                            application: "app1".into(),
+                        },
                     },
-                    execution_config: ExecutionConfig {
-                        n_attempts_max: 1,
-                        retry_strategy: RetryStrategy::Complete,
-                        execution_interval_seconds: 30,
-                        timeout: 10,
+                    SuiteConfig {
+                        id: "rcc_headed".into(),
+                        robot_config: RobotConfig {
+                            robot_target: suite_dir.join("tasks.robot"),
+                            command_line_args: vec![],
+                        },
+                        execution_config: ExecutionConfig {
+                            n_attempts_max: 1,
+                            retry_strategy: RetryStrategy::Complete,
+                            timeout: 15,
+                        },
+                        environment_config: EnvironmentConfig::Rcc(RCCEnvironmentConfig {
+                            robot_yaml_path: suite_dir.join("robot.yaml"),
+                            build_timeout: 1200,
+                            env_json_path: None,
+                        }),
+                        session_config: SessionConfig::SpecificUser(UserSessionConfig {
+                            user_name: user_name_headed.into(),
+                        }),
+                        working_directory_cleanup_config: WorkingDirectoryCleanupConfig::MaxAgeSecs(
+                            120,
+                        ),
+                        host: Host::Source,
+                        metadata: SuiteMetadata {
+                            application: "app2".into(),
+                        },
                     },
-                    environment_config: EnvironmentConfig::Rcc(RCCEnvironmentConfig {
-                        robot_yaml_path: suite_dir.join("robot.yaml"),
-                        build_timeout: 1200,
-                        env_json_path: None,
-                    }),
-                    session_config: SessionConfig::Current,
-                    working_directory_cleanup_config: WorkingDirectoryCleanupConfig::MaxExecutions(
-                        4,
-                    ),
-                    host: Host::Source,
-                    metadata: SuiteMetadata {
-                        application: "app1".into(),
-                    },
-                },
-            ),
-            (
-                String::from("rcc_headed"),
-                SuiteConfig {
-                    robot_config: RobotConfig {
-                        robot_target: suite_dir.join("tasks.robot"),
-                        command_line_args: vec![],
-                    },
-                    execution_config: ExecutionConfig {
-                        n_attempts_max: 1,
-                        retry_strategy: RetryStrategy::Complete,
-                        execution_interval_seconds: 45,
-                        timeout: 15,
-                    },
-                    environment_config: EnvironmentConfig::Rcc(RCCEnvironmentConfig {
-                        robot_yaml_path: suite_dir.join("robot.yaml"),
-                        build_timeout: 1200,
-                        env_json_path: None,
-                    }),
-                    session_config: SessionConfig::SpecificUser(UserSessionConfig {
-                        user_name: user_name_headed.into(),
-                    }),
-                    working_directory_cleanup_config: WorkingDirectoryCleanupConfig::MaxAgeSecs(
-                        120,
-                    ),
-                    host: Host::Source,
-                    metadata: SuiteMetadata {
-                        application: "app2".into(),
-                    },
-                },
-            ),
+                ],
+                execution_interval: 30,
+            },
             // Note: For our test, it doesn't matter if the suite can be executed on the target
             // system. We are not checking for success. So even on systems with no Python, the test
             // will succeed.
-            (
-                String::from("no_rcc"),
-                SuiteConfig {
+            SequentialSuiteGroup {
+                suites: vec![SuiteConfig {
+                    id: "no_rcc".into(),
                     robot_config: RobotConfig {
                         robot_target: suite_dir.join("tasks.robot"),
                         command_line_args: vec![],
@@ -145,7 +143,6 @@ fn create_config(
                     execution_config: ExecutionConfig {
                         n_attempts_max: 1,
                         retry_strategy: RetryStrategy::Complete,
-                        execution_interval_seconds: 37,
                         timeout: 17,
                     },
                     environment_config: EnvironmentConfig::System,
@@ -157,10 +154,10 @@ fn create_config(
                     metadata: SuiteMetadata {
                         application: "app3".into(),
                     },
-                },
-            ),
-        ]
-        .into(),
+                }],
+                execution_interval: 37,
+            },
+        ],
     }
 }
 
