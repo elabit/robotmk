@@ -3,7 +3,6 @@ use anyhow::Result as AnyhowResult;
 use camino::{Utf8Path, Utf8PathBuf};
 use serde::{Deserialize, Serialize};
 use serde_json::from_str;
-use std::collections::HashMap;
 use std::fs::read_to_string;
 
 pub fn load(path: &Utf8Path) -> AnyhowResult<Config> {
@@ -15,7 +14,7 @@ pub struct Config {
     pub working_directory: Utf8PathBuf,
     pub results_directory: Utf8PathBuf,
     pub rcc_config: RCCConfig,
-    pub suites: HashMap<String, SuiteConfig>,
+    pub suite_groups: Vec<SequentialSuiteGroup>,
 }
 
 #[derive(Clone, Debug, Deserialize, PartialEq, Serialize)]
@@ -37,7 +36,14 @@ pub struct CustomRCCProfileConfig {
 }
 
 #[derive(Clone, Debug, Deserialize, PartialEq, Serialize)]
+pub struct SequentialSuiteGroup {
+    pub suites: Vec<SuiteConfig>,
+    pub execution_interval: u64,
+}
+
+#[derive(Clone, Debug, Deserialize, PartialEq, Serialize)]
 pub struct SuiteConfig {
+    pub id: String,
     pub robot_config: RobotConfig,
     pub execution_config: ExecutionConfig,
     pub environment_config: EnvironmentConfig,
@@ -57,7 +63,6 @@ pub struct RobotConfig {
 pub struct ExecutionConfig {
     pub n_attempts_max: usize,
     pub retry_strategy: RetryStrategy,
-    pub execution_interval_seconds: u64,
     pub timeout: u64,
 }
 
