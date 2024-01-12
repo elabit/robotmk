@@ -25,7 +25,7 @@ pub fn run_task(task_spec: &TaskSpec) -> AnyhowResult<Outcome<i32>> {
 
     fs::write(
         &paths.script,
-        build_task_script(task_spec.command_spec, &paths),
+        build_task_script(task_spec.task_name, task_spec.command_spec, &paths),
     )
     .context(format!(
         "Failed to write script for task {} to {}",
@@ -238,9 +238,10 @@ impl TaskManager {
     }
 }
 
-fn build_task_script(command_spec: &CommandSpec, paths: &Paths) -> String {
+fn build_task_script(task_name: &str, command_spec: &CommandSpec, paths: &Paths) -> String {
     [
         String::from("@echo off"),
+        format!("echo Robotmk: running task {task_name}. Please do not close this window."),
         format!("{command_spec} > {} 2> {}", paths.stdout, paths.stderr),
         format!("echo %errorlevel% > {}", paths.exit_code),
     ]
@@ -321,10 +322,12 @@ mod tests {
             .add_argument("some-value");
         assert_eq!(
             build_task_script(
+                "robotmk_task",
                 &command_spec,
                 &Paths::from(Utf8PathBuf::from("C:\\working\\suites\\my_suite\\123\\0").as_ref())
             ),
             "@echo off
+echo Robotmk: running task robotmk_task. Please do not close this window.
 \"C:\\\\somewhere\\\\rcc.exe\" \"mandatory\" \"--some-flag\" \"--some-option\" \"some-value\" \
 > C:\\working\\suites\\my_suite\\123\\0.stdout 2> C:\\working\\suites\\my_suite\\123\\0.stderr
 echo %errorlevel% > C:\\working\\suites\\my_suite\\123\\0.exit_code"
