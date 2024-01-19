@@ -9,7 +9,7 @@ use std::fs;
 use std::time::Duration;
 use tokio::task::yield_now;
 use tokio_util::sync::CancellationToken;
-use windows::core::{ComInterface, Result as WinApiResult, BSTR};
+use windows::core::{ComInterface, Result as WinApiResult, BSTR, HRESULT};
 use windows::Win32::Foundation::VARIANT_FALSE;
 use windows::Win32::System::{Com, TaskScheduler, Variant::VARIANT};
 
@@ -189,10 +189,11 @@ impl TaskManager {
             debug!("Starting task {}", name);
             (name, task.Run(VARIANT::default())?)
         };
+        debug!("Waiting for task {name} to complete");
         let outcome = waited(
             Duration::from_secs(timeout),
             cancellation_token,
-            self.await_task_completion(task),
+            self.await_task_completion(&running_task),
         )
         .await;
         if !matches!(outcome, Outcome::Completed(Ok(_))) {
@@ -210,22 +211,19 @@ impl TaskManager {
         }
     }
 
-    // Note: We explicitly don't use IRunningTask to check if the task is still running. This object
-    // produces an error once the task is not running anymore:
-    // Error { code: HRESULT(0x8004130B), message: "There is no running instance of the task." }
-    // This means that we cannot distinguish between an actual error and an error because the task
-    // completed.
     async fn await_task_completion(
         &self,
-        task: &TaskScheduler::IRegisteredTask,
+        running_task: &TaskScheduler::IRunningTask,
     ) -> WinApiResult<()> {
-        unsafe {
-            debug!("Waiting for task {} to complete", task.Name()?);
-            while task.GetInstances(0)?.Count()? > 0 {
-                yield_now().await
+        loop {
+            let refresh = unsafe { running_task.Refresh() };
+            match refresh {
+                Ok(()) => yield_now().await,
+                // Error { code: HRESULT(0x8004130B), message: "There is no running instance of the task." }
+                Err(e) if e.code() == HRESULT::from_win32(0x8004130Bu32) => return Ok(()),
+                e => return e,
             }
         }
-        Ok(())
     }
 
     fn kill_task(&self, running_task: &TaskScheduler::IRunningTask) -> WinApiResult<()> {
