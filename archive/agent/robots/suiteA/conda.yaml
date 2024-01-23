@@ -1,7 +1,0 @@
-channels:
-- conda-forge
-dependencies:
-- python=3.9.13
-- pip=22.1.2
-- pip:
-  - robotmk==0.0.126
