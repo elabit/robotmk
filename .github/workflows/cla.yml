@@ -19,7 +19,7 @@ jobs:
           PERSONAL_ACCESS_TOKEN: ${{ secrets.PERSONAL_ACCESS_TOKEN }}
         with:
           path-to-signatures: "version1/cla.json"
-          path-to-document: "https://github.com/elabit/robotmk/blob/main/licenses/cla.md" # e.g. a CLA or a DCO document
+          path-to-document: "https://github.com/elabit/robotmk/blob/main/cla/cla.md" # e.g. a CLA or a DCO document
           # branch should not be protected
           branch: "cla"
           allowlist: simonmeggle,SoloJacobs,racicLuka,jherbel
@@ -29,7 +29,7 @@ jobs:
           #remote-repository-name:  enter the  remote repository name where the signatures should be stored (Default is storing the signatures in the same repository)
           #create-file-commit-message: 'For example: Creating file for storing CLA Signatures'
           #signed-commit-message: 'For example: $contributorName has signed the CLA in #$pullRequestNo'
-          custom-notsigned-prcomment: '<br/>Thank you for your Pull Request, we really appreciate it!<br/>We kindly ask that you to agree to our CLA (https://github.com/elabit/robotmk/blob/main/licenses/cla.md) before we can accept your contribution.<br/>To accept/sign the CLA, copy the line between the two following lines ("I have read..."), and add the copied line as a new comment to the pull request. The CLA-bot will add you to the list of accepted contributors.<br/>'
+          custom-notsigned-prcomment: '<br/>Thank you for your Pull Request, we really appreciate it!<br/>We kindly ask that you to agree to our CLA (https://github.com/elabit/robotmk/blob/main/cla/cla.md) before we can accept your contribution.<br/>To accept/sign the CLA, copy the line between the two following lines ("I have read..."), and add the copied line as a new comment to the pull request. The CLA-bot will add you to the list of accepted contributors.<br/>'
           #custom-pr-sign-comment: 'The signature to be committed in order to sign the CLA'
           #custom-allsigned-prcomment: 'pull request comment when all contributors has signed, defaults to **CLA Assistant Lite bot** All Contributors have signed the CLA.'
           #lock-pullrequest-aftermerge: false - if you don't want this bot to automatically lock the pull request after merging (default - true)

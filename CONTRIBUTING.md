@@ -1,6 +1,6 @@
 # How to contribute
 
-This project is open source and licensed under the GPLv2. If you want to contribute code, you must first agree to our [CLA (Contributor License Agreement)](./licenses/cla.md) .
+This project is open source and licensed under the GPLv2. If you want to contribute code, you must first agree to our [CLA (Contributor License Agreement)](./cla/cla.md) .
 By doing so, you give us the possibility to develop Robotmk and its tools tailor-made for Checkmk; parts of Robotmk will be available under the name "Synthetic Monitoring for Checkmk" as an enterprise product for Checkmk. Your agreement to the CLA allows us to use program lines contributed by you in the Enterprise part.
 
 # What are the consequences of agreeing to the cla?
