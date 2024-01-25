@@ -42,7 +42,7 @@ jobs:
       - uses: ncipollo/release-action@v1.13.0
         with:
           allowUpdates: false
-          artifacts: "executables.zip"
+          artifacts: "executables.zip,assets/robotmk_core-1.0.0.mkp"
           replacesArtifacts: true
           removeArtifacts: true
           prerelease: true
