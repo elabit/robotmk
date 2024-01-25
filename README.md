@@ -1,6 +1,6 @@
 # Robotmk
 
-![](./img/robotmk_banner.png)
+![](./assets/robotmk_banner.png)
 
 Welcome to Robotmk!
 
