@@ -7,7 +7,6 @@ settings = YAML::load_file(settings_file)
 
 Vagrant.configure("2") do |config|
   config.vm.box = "gusztavvargadr/windows-11-22h2-enterprise"
-  config.vm.box_version = "2202.0.2306"
 
   config.vm.provider "virtualbox" do |vb|
     vb.name = settings["config_vm_provider_virtualbox_name"]
