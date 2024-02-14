@@ -1,7 +1,7 @@
 # Dependencies for creating Virtual machine as a Linux host
 
 - VirtualBox
-- Vagrant
+- Vagrant (ensure that your version is at least 2.3.8 or above)
 
 For provisioning the machine only:
 
@@ -9,6 +9,10 @@ For provisioning the machine only:
 - Checkmk Ansible collection found here https://galaxy.ansible.com/checkmk/general
   ```
   ansible-galaxy collection install checkmk.general
+  ```
+  This setup was tested with `checkmk.general 4.2.0`, you can check your collection version with
+  ```
+  ansible-galaxy collection list
   ```
 
 For running f12.sh only:
