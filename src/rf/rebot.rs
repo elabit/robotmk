@@ -90,6 +90,7 @@ impl Rebot<'_> {
             .add_argument(self.path_html)
             .add_argument("--report")
             .add_argument("NONE")
+            .add_argument("--merge")
             .add_arguments(self.input_paths);
         rebot_command_spec
     }
@@ -159,6 +160,7 @@ mod tests {
             .add_argument("/working/my_suite/rebot.html")
             .add_argument("--report")
             .add_argument("NONE")
+            .add_argument("--merge")
             .add_argument("/working/my_suite/0.xml")
             .add_argument("/working/my_suite/1.xml");
         assert_eq!(rebot_command_spec, expected)
