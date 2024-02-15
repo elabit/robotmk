@@ -1,2 +1,3 @@
 .vagrant/
 custom_settings.yaml
+ssh-config
