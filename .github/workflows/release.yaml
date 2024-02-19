@@ -24,6 +24,6 @@ jobs:
         # release. For setting a different ref, all `needs` jobs need to be
         # adjusted. Currently, everything uses the default branch.
 
-      - uses: actions/download-artifact@v3
+      - uses: actions/download-artifact@v4
 
       - run: zip -r executables.zip artifact

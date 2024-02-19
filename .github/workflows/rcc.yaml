@@ -60,7 +60,8 @@ jobs:
           path: build
           key: rcc-${{ env.RCC_TAG }}-${{ env.GO_VERSION }}-${{ env.RUBY_VERSION }}
           fail-on-cache-miss: true
-      - uses: actions/upload-artifact@v3
+      - uses: actions/upload-artifact@v4
         with:
           path: build
           if-no-files-found: error
+          overwrite: true

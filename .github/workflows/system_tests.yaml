@@ -13,7 +13,7 @@ jobs:
     needs:
       - rcc
     steps:
-      - uses: actions/download-artifact@v3
+      - uses: actions/download-artifact@v4
         with:
           path: C:\
       - uses: actions/checkout@v4
@@ -25,6 +25,7 @@ jobs:
           TEST_DIR: C:\test_scheduler
           RCC_BINARY_PATH: C:\artifact\windows64\rcc.exe
           RUN_FOR: 240
-      - uses: actions/upload-artifact@v3
+      - uses: actions/upload-artifact@v4
         with:
           path: C:\test_scheduler
+          overwrite: true
