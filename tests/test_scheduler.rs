@@ -98,6 +98,7 @@ fn create_config(
                         host: Host::Source,
                         metadata: SuiteMetadata {
                             application: "app1".into(),
+                            variant: "variant".into(),
                         },
                     },
                     SuiteConfig {
@@ -125,6 +126,7 @@ fn create_config(
                         host: Host::Source,
                         metadata: SuiteMetadata {
                             application: "app2".into(),
+                            variant: "variant".into(),
                         },
                     },
                 ],
@@ -153,6 +155,7 @@ fn create_config(
                     host: Host::Piggyback("oink".into()),
                     metadata: SuiteMetadata {
                         application: "app3".into(),
+                        variant: "variant".into(),
                     },
                 }],
                 execution_interval: 37,
