@@ -133,6 +133,7 @@ mod tests {
             host: Host::Source,
             metadata: SuiteMetadata {
                 application: "sys_app".into(),
+                variant: "".into(),
             },
         }
     }
@@ -161,6 +162,7 @@ mod tests {
             host: Host::Source,
             metadata: SuiteMetadata {
                 application: "rcc_app".into(),
+                variant: "".into(),
             },
         }
     }
@@ -238,6 +240,7 @@ mod tests {
             suites[0].metadata,
             SuiteMetadata {
                 application: "rcc_app".into(),
+                variant: "".into(),
             },
         );
         assert_eq!(
@@ -273,6 +276,7 @@ mod tests {
             suites[1].metadata,
             SuiteMetadata {
                 application: "sys_app".into(),
+                variant: "".into(),
             },
         );
         assert_eq!(
