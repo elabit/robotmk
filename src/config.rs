@@ -105,6 +105,8 @@ pub enum WorkingDirectoryCleanupConfig {
 #[derive(Clone, Debug, Deserialize, PartialEq, Serialize)]
 pub struct SuiteMetadata {
     pub application: String,
+    // Note: the suite name is NOT the name from rebot. It's the name of the file or folder from
+    // config. We need the suite name here in order to be unique.
     pub suite_name: String,
     pub variant: String,
 }
