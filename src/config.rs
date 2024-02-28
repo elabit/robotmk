@@ -105,5 +105,6 @@ pub enum WorkingDirectoryCleanupConfig {
 #[derive(Clone, Debug, Deserialize, PartialEq, Serialize)]
 pub struct SuiteMetadata {
     pub application: String,
+    pub suite_name: String,
     pub variant: String,
 }

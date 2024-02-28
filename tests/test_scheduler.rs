@@ -77,7 +77,7 @@ fn create_config(
             SequentialSuiteGroup {
                 suites: vec![
                     SuiteConfig {
-                        id: "rcc_headless".into(),
+                        id: "app1_tasks.robot_variant".into(),
                         robot_config: RobotConfig {
                             robot_target: suite_dir.join("tasks.robot"),
                             command_line_args: vec![],
@@ -98,11 +98,12 @@ fn create_config(
                         host: Host::Source,
                         metadata: SuiteMetadata {
                             application: "app1".into(),
+                            suite_name: "tasks.robot".into(),
                             variant: "variant".into(),
                         },
                     },
                     SuiteConfig {
-                        id: "rcc_headed".into(),
+                        id: "app2_tasts.robot_variant".into(),
                         robot_config: RobotConfig {
                             robot_target: suite_dir.join("tasks.robot"),
                             command_line_args: vec![],
@@ -126,6 +127,7 @@ fn create_config(
                         host: Host::Source,
                         metadata: SuiteMetadata {
                             application: "app2".into(),
+                            suite_name: "tasks.robot".into(),
                             variant: "variant".into(),
                         },
                     },
@@ -137,7 +139,7 @@ fn create_config(
             // will succeed.
             SequentialSuiteGroup {
                 suites: vec![SuiteConfig {
-                    id: "no_rcc".into(),
+                    id: "app_tasks.robot_variant".into(),
                     robot_config: RobotConfig {
                         robot_target: suite_dir.join("tasks.robot"),
                         command_line_args: vec![],
@@ -155,6 +157,7 @@ fn create_config(
                     host: Host::Piggyback("oink".into()),
                     metadata: SuiteMetadata {
                         application: "app3".into(),
+                        suite_name: "tasks.robot".into(),
                         variant: "variant".into(),
                     },
                 }],

@@ -117,7 +117,7 @@ mod tests {
 
     fn system_suite_config() -> SuiteConfig {
         SuiteConfig {
-            id: "system".into(),
+            id: "system_tasks.robot_variant".into(),
             robot_config: RobotConfig {
                 robot_target: Utf8PathBuf::from("/suite/system/tasks.robot"),
                 command_line_args: vec![],
@@ -132,7 +132,8 @@ mod tests {
             working_directory_cleanup_config: WorkingDirectoryCleanupConfig::MaxAgeSecs(1209600),
             host: Host::Source,
             metadata: SuiteMetadata {
-                application: "sys_app".into(),
+                application: "system".into(),
+                suite_name: "tasks.robot".into(),
                 variant: "variant".into(),
             },
         }
@@ -140,7 +141,7 @@ mod tests {
 
     fn rcc_suite_config() -> SuiteConfig {
         SuiteConfig {
-            id: "rcc".into(),
+            id: "rcc_tasks.robot_variant".into(),
             robot_config: RobotConfig {
                 robot_target: Utf8PathBuf::from("/suite/rcc/tasks.robot"),
                 command_line_args: vec![],
@@ -161,7 +162,8 @@ mod tests {
             working_directory_cleanup_config: WorkingDirectoryCleanupConfig::MaxExecutions(50),
             host: Host::Source,
             metadata: SuiteMetadata {
-                application: "rcc_app".into(),
+                application: "rcc".into(),
+                suite_name: "tasks.robot".into(),
                 variant: "variant".into(),
             },
         }
@@ -239,7 +241,8 @@ mod tests {
         assert_eq!(
             suites[0].metadata,
             SuiteMetadata {
-                application: "rcc_app".into(),
+                application: "rcc".into(),
+                suite_name: "tasks.robot".into(),
                 variant: "variant".into(),
             },
         );
@@ -275,7 +278,8 @@ mod tests {
         assert_eq!(
             suites[1].metadata,
             SuiteMetadata {
-                application: "sys_app".into(),
+                application: "system".into(),
+                suite_name: "tasks.robot".into(),
                 variant: "variant".into(),
             },
         );
