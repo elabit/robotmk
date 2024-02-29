@@ -2,7 +2,7 @@ use anyhow::Result as AnyhowResult;
 use camino::Utf8PathBuf;
 use robotmk::config::RetryStrategy;
 use robotmk::environment::{Environment, SystemEnvironment};
-use robotmk::results::{AttemptOutcome, AttemptReport};
+use robotmk::results::AttemptOutcome;
 use robotmk::rf::robot::Robot;
 use robotmk::session::{CurrentSession, Session};
 use robotmk::suites::run_attempts_with_rebot;
@@ -27,13 +27,10 @@ fn test_rebot_run() -> AnyhowResult<()> {
         &CancellationToken::default(),
         &test_dir,
     )?;
-    assert_eq!(
-        attempt_reports,
-        &[AttemptReport {
-            index: 1,
-            outcome: AttemptOutcome::AllTestsPassed,
-        }]
-    );
+    assert_eq!(attempt_reports.len(), 1);
+    let attempt_report = &attempt_reports[0];
+    assert_eq!(attempt_report.index, 1);
+    assert_eq!(attempt_report.outcome, AttemptOutcome::AllTestsPassed);
     assert!(rebot.is_some());
     Ok(())
 }
@@ -56,13 +53,10 @@ fn test_timeout_process() -> AnyhowResult<()> {
         &CancellationToken::default(),
         &test_dir,
     )?;
+    assert_eq!(attempt_reports.len(), 1);
+    let attempt_report = &attempt_reports[0];
+    assert_eq!(attempt_report.index, 1);
+    assert_eq!(attempt_report.outcome, AttemptOutcome::TimedOut);
     assert!(rebot.is_none());
-    assert_eq!(
-        attempt_reports,
-        &[AttemptReport {
-            index: 1,
-            outcome: AttemptOutcome::TimedOut,
-        }]
-    );
     Ok(())
 }
