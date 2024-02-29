@@ -81,6 +81,7 @@ impl WritePiggybackSection for SuiteExecutionReport {
 pub struct AttemptReport {
     pub index: usize,
     pub outcome: AttemptOutcome,
+    pub runtime: i64,
 }
 
 #[derive(PartialEq, Debug, Serialize)]

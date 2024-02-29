@@ -6,6 +6,7 @@ use crate::session::{RunSpec, Session};
 use crate::termination::{Cancelled, Outcome};
 use anyhow::Context;
 use camino::{Utf8Path, Utf8PathBuf};
+use chrono::Utc;
 use log::{error, info};
 use tokio_util::sync::CancellationToken;
 
@@ -24,6 +25,7 @@ pub fn run_attempts_with_rebot(
     for attempt in robot.attempts(output_directory) {
         info!("Suite {id}: running attempt {}", attempt.index);
         let attempt_index = attempt.index;
+        let starttime = Utc::now();
         let (outcome, output_path) = run_attempt(
             id,
             environment,
@@ -33,10 +35,12 @@ pub fn run_attempts_with_rebot(
             cancellation_token,
             output_directory,
         )?;
+        let endtime = Utc::now();
         let success = matches!(&outcome, &AttemptOutcome::AllTestsPassed);
         attempt_reports.push(AttemptReport {
             index: attempt_index,
             outcome,
+            runtime: (endtime - starttime).num_seconds(),
         });
         if let Some(output_path) = output_path {
             output_paths.push(output_path);
