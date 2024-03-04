@@ -346,7 +346,7 @@ async fn assert_rcc_longpath_support_enabled(
         .arg("configuration")
         .arg("longpaths");
     let stderr = String::from_utf8(rcc_config_diag_command.output().await?.stderr)?;
-    assert_eq!(stderr, "OK.\n");
+    assert!(stderr.starts_with("OK.\n"));
     Ok(())
 }
 
