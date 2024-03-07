@@ -12,17 +12,13 @@ on:
         type: string
 
 jobs:
-  tests:
-    uses: ./.github/workflows/tests.yaml
-  system_tests:
-      uses: ./.github/workflows/system_tests.yaml
   build_rcc:
     uses: ./.github/workflows/rcc.yaml
   build_robotmk:
     uses: ./.github/workflows/robotmk_build.yaml
   release:
     runs-on: ubuntu-latest
-    needs: [tests, system_tests, build_rcc, build_robotmk]
+    needs: [build_rcc, build_robotmk]
     steps:
       - uses: actions/checkout@v4 # Determines the ref, which is used for the
         # release. For setting a different ref, all `needs` jobs need to be
@@ -31,24 +27,3 @@ jobs:
       - uses: actions/download-artifact@v3
 
       - run: zip -r executables.zip artifact
-
-      - name: "Push release tag"
-        # This is publicly visible and needs to be manually fixed if any
-        # consecutive step fails.
-        run: |
-          git tag ${{ inputs.tag }}  # Fails, if tag exists.
-          git push origin ${{ inputs.tag }}
-
-      - uses: ncipollo/release-action@v1.13.0
-        with:
-          allowUpdates: false
-          artifacts: "executables.zip,assets/robotmk_core-1.0.0.mkp"
-          replacesArtifacts: true
-          removeArtifacts: true
-          prerelease: true
-          draft: true
-          body: ""
-          artifactErrorsFailBuild: true
-          updateOnlyUnreleased: true
-          makeLatest: false
-          tag: ${{ inputs.tag }}
