@@ -2,8 +2,7 @@
 name: "RCC"
 
 on:
-  workflow_call:
-    {}
+  workflow_call: {}
 
 env:
   RCC_TAG: "b18cdacf4cd9dbc1c921b2c0acc1ab9e7d02dae9"  # Update omd/Licenses.csv in the Checkmk repo when changing this.
@@ -60,7 +59,8 @@ jobs:
           path: build
           key: rcc-${{ env.RCC_TAG }}-${{ env.GO_VERSION }}-${{ env.RUBY_VERSION }}
           fail-on-cache-miss: true
-      - uses: actions/upload-artifact@v3
+      - uses: actions/upload-artifact@v4
         with:
-          path: build
+          name: rcc
+          path: build/
           if-no-files-found: error
