@@ -9,9 +9,6 @@
 
 [![MD TOC](https://github.com/elabit/robotmk/actions/workflows/markdown-toc.yml/badge.svg)](https://github.com/elabit/robotmk/actions/workflows/markdown-toc.yml) [![MKP-Release](https://github.com/elabit/robotmk/actions/workflows/mkp-release.yml/badge.svg)](https://github.com/elabit/robotmk/actions/workflows/mkp-release.yml)
 
-![desc](img/robocon2023.png)
-
-=> Book your seat for the workshop [Robotmk: monitor your tests with Checkmk!](https://robocon.io/#robotmk-monitor-your-tests-with-checkmk)
 
 ![desc](img/robotmk_banner.png)
 
@@ -31,7 +28,6 @@
   - [Talks](#talks)
   - [Professional Support](#professional-support)
   - [Next developments](#next-developments)
-  - [Contributing](#contributing)
   - [License](#license)
   - [Credits/Thanks](#creditsthanks)
     - [Supporters](#supporters)
@@ -219,31 +215,9 @@ No matter at which stage you are with Robot Framework and Robotmk: there are [ex
 
 ## Next developments
 
-See the [Github Issues](https://github.com/elabit/robotmk/issues) page for a complete list of feature requests, known bugs etc.
-
-As announced at the Checkmk Conference #8 in 2022, Robotmk will become an integral part of Checkmk. The roadmap was presented in detail in this talk ([Robotmk - The future of Synthetic Monitoring with Checkmk](https://www.youtube.com/watch?v=p9G75YCqkOc)) and we are already developing the first features. 
-
-* automatic no-code Robot genration which will extend Checkmk's montoring capabilities 
-* low-code suite development (Automation Studio)
-* parallel suite execution
-* automated test deployment (integration of Robocorp's great [RCC](https://github.com/robocorp/rcc/))
-* detailled reporting and result aggregation
-* Synthetic monitoring dashboards
-* orchestrated Robot execution in:
-  * [Robocorp](https://robocorp.com) 
-  * Dedicated Kubernetes infrastructure 
-  * Docker Swarm
-
-
-## Contributing
-
-If you want to help Robotmk to get better, you're warmly welcomed!  
-See [DEVELOPMENT.md](./DEVELOPMENT.md) for instructions about the environment preconditions. 
-
-* Fork this project
-* Create a feature branch with a name containing the issue number (or submit a new issue first), from the current `develop` branch. 
-* Always and often rebase your feature branch from `develop` 
-* Pull requests are welcome if they can be merged and solve a problem. See the [CONTRIBUTING](./CONTRIBUTING.md) guide for information about the workflow.
+This version of Robotmk will be supported for Checkmk versions <= 2.3.
+In this Checkmk version, Robotmk v2 is integrated as "Synthetic Monitoring". 
+It is highly recommended to switch to Robotmk v2. 
 
 ## License
 

@@ -288,7 +288,7 @@ def _item_spec_robotmk():
             "Matches the service names generated from <u>Robot suites</u>. By default this is always the <i>topmost</i> suite (level 0) which results in <i>one service</i>.<br> "
             "Robot suites can be nested; to define a lower level CMK should "
             "generate services from, use the service discovery rule "
-            "<i>Robot Framework Service Discovery</i>.<br>"
+            "<i>Robotmk v1 Service Discovery</i>.<br>"
         ),
     )
 
@@ -300,6 +300,6 @@ rulespec_registry.register(
         group=RulespecGroupCheckParametersApplications,
         item_spec=_item_spec_robotmk,
         parameter_valuespec=_parameter_valuespec_robotmk,
-        title=lambda: _("Robot Framework"),
+        title=lambda: _("Robotmk v1 Monitoring"),
     )
 )

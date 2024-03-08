@@ -34,7 +34,7 @@ import socket
 
 local_tz = datetime.utcnow().astimezone().tzinfo
 
-ROBOTMK_VERSION = 'v1.4.2'
+ROBOTMK_VERSION = '1.4.3'
 
 
 class RMKConfig:

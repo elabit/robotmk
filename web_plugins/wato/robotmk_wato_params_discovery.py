@@ -93,7 +93,7 @@ def back(data):
 
 def _valuespec_inventory_robotmk_rules():
     return Dictionary(
-        title=_("Robot Framework Service Discovery"),
+        title=_("Robotmk v1 Service Discovery"),
         # optional_keys=['robot_discovery_settings','robot_service_prefix','robotmk_service_name'],
         elements=[
             (

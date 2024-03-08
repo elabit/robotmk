@@ -95,6 +95,6 @@ jobs:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
 
       #  Uncomment this to debug
-      - name: Setup tmate session
-        uses: mxschmitt/action-tmate@v3        
+      #- name: Setup tmate session
+      #  uses: mxschmitt/action-tmate@v3        
 

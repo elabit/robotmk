@@ -15,9 +15,9 @@
             "command": "bash .devcontainer/devcontainer_img_build.sh"
         },
         {
-            "displayName": "▶︎ Set devcontainer to CMK 2.1.0p16",
-            "command": "bash .devcontainer/devcontainer_gen.sh 2.1.0p16"
-        },        
+            "displayName": "▶︎ Set devcontainer to CMK 2.3.0b1",
+            "command": "bash .devcontainer/devcontainer_gen.sh 2.3.0b1"
+        },
         {
             "displayName": "▶︎ Create dummyhost",
             "command": "bash /workspaces/robotmk/.devcontainer/create_dummyhost.sh"
