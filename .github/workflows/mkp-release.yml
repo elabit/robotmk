@@ -3,7 +3,7 @@ name: MKP-Release
 on:
   push:
     tags:
-    - 'v*'
+    - '*'
 
 jobs:
 
@@ -11,7 +11,7 @@ jobs:
     name: Build Robotmk MKP
     runs-on: ubuntu-latest
     container:
-      image: checkmk/check-mk-raw:2.0.0-latest
+      image: checkmk/check-mk-raw:2.3.0-latest
 
     env:
       OMD_ROOT: /omd/sites/cmk
