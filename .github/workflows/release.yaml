@@ -31,7 +31,13 @@ jobs:
 
       - uses: actions/download-artifact@v4
         with:
-          path: artifact/
+          name: rcc
+          path: artifact/rcc/
+
+      - uses: actions/download-artifact@v4
+        with:
+          name: rmk_windows64
+          path: artifact/rmk_windows64/
 
       - run: zip -r executables.zip artifact
 
