@@ -3,6 +3,10 @@
 # SPDX-License-Identifier: GPL-3.0-or-later
 # This file is part of the Robotmk project (https://www.robotmk.org)
 
+
+devbranch="v1/dev"
+masterbranch="v1/stable"
+
 function main (){
     MODE=$1
     TAG=$2
@@ -27,7 +31,7 @@ function main (){
         exit 1
     fi    
     export TAG
-    export VTAG="v$TAG"
+    export VTAG="$TAG"
     export preVTAG="pre-$VTAG"
     if [ $MODE == 'release' ]; then 
         release
@@ -40,7 +44,7 @@ function main (){
 function release() {
     assert_gh_login
     assert_tag_unique $VTAG
-    assert_branch "develop"
+    assert_branch $devbranch
     assert_notdirty
 
     header "Setting pre-release tag $preVTAG ..."
@@ -57,30 +61,30 @@ function release() {
     git add . && git commit -m "Version bump: $VTAG"
     echo "Workflow result and artifacts are on https://github.com/elabit/robotmk/actions/workflows/mkp-artifact.yml!"
 
-    header "Merging develop into master..."
-    git checkout master
-    git merge develop --no-ff --no-edit --strategy-option theirs
+    header "Merging $devbranch into $masterbranch..."
+    git checkout $masterbranch
+    git merge $devbranch --no-ff --no-edit --strategy-option theirs
     header "Create annotated git tag from Changelog entry ..."
     chag tag --addv
     header "Pushing ..."
-    git push origin master
+    git push origin $masterbranch
     git push origin $VTAG
-    git checkout develop
+    git checkout $devbranch
 }
 
 function unrelease() {
     assert_gh_login
-    assert_branch "develop"
+    assert_branch $devbranch
     # assert_notdirty
-    header "Changing to develop branch ..."
-    git checkout develop
+    header "Changing to $devbranch branch ..."
+    git checkout $devbranch
     header "Removing the release with tag $VTAG ..."
     gh release delete $VTAG -y
     header "Removing tags ..."
     git push origin :refs/tags/$VTAG 
     header "Removing tags ..."
     git tag -d $VTAG
-    #header "Resetting the 'develop' branch to the tag $preVTAG ..."
+    #header "Resetting the '$devbranch' branch to the tag $preVTAG ..."
     #git reset --hard $preVTAG
     #git tag -d $preVTAG 
 }
