@@ -866,7 +866,7 @@ _dropdown_robotmk_execution_choices = CascadingDropdown(
 
 def _valuespec_agent_config_robotmk():
     return Alternative(
-        title=_("Robotmk (Linux, Windows)"),
+        title=_("Robotmk v1 Agent Plugin (Linux, Windows)"),
         help=_(
             "Robotmk integrates the results of <b>Robot Framework</b> tests into Checkmk. This rule will deploy the <b>Robotmk agent plugin</b> and a generated YML control file (<tt>robotmk.yml</tt>) to the remote host."
         ),
