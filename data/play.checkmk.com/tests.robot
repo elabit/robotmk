@@ -66,14 +66,12 @@ Linux Hosts
     Click    text="Monitor"
     Wait For Elements State    text="Linux hosts"
     Click    text="Linux hosts"
-    Sleep    3
     Take A Screenshot    iframe[name="main"] >>> div#dashboard
 
 Windows Hosts
     Click    text="Monitor"
     Wait For Elements State    text="Windows hosts"
     Click    text="Windows hosts"
-    Sleep    3
     Take A Screenshot    iframe[name="main"] >>> div#dashboard
 
 All Services Of Host
@@ -86,4 +84,5 @@ All Services Of Host
 
 Take A Screenshot
     [Arguments]    ${selector}
+    Wait For Load State    networkidle
     Browser.Take Screenshot    EMBED    selector=${selector}    fileType=jpeg    quality=50
