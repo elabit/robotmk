@@ -16,7 +16,7 @@ jobs:
       cache_hit: ${{ steps.restore-from-cache.outputs.cache-hit }}
     steps:
       - id: restore-from-cache
-        uses: actions/cache/restore@v3
+        uses: actions/cache/restore@v4
         with:
           key: rcc-${{ env.RCC_TAG }}-${{ env.GO_VERSION }}-${{ env.RUBY_VERSION }}
           path: build
@@ -40,7 +40,7 @@ jobs:
             ruby-version: ${{ env.RUBY_VERSION }}
       - run: rake build
       - run: rake test
-      - uses: actions/cache/save@v3
+      - uses: actions/cache/save@v4
         with:
           key: rcc-${{ env.RCC_TAG }}-${{ env.GO_VERSION }}-${{ env.RUBY_VERSION }}
           path: build
@@ -54,7 +54,7 @@ jobs:
       always() &&
       (needs.build_and_cache.result == 'success' || needs.build_and_cache.result == 'skipped')
     steps:
-      - uses: actions/cache/restore@v3
+      - uses: actions/cache/restore@v4
         with:
           path: build
           key: rcc-${{ env.RCC_TAG }}-${{ env.GO_VERSION }}-${{ env.RUBY_VERSION }}
