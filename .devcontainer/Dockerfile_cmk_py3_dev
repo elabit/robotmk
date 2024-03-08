@@ -1,5 +1,5 @@
 ARG VARIANT
-FROM checkmk/check-mk-free:$VARIANT
+FROM checkmk/check-mk-cloud:$VARIANT
 
 # install python3 on the container
 RUN apt update && apt upgrade -y

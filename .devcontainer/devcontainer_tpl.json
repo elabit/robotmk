@@ -11,17 +11,19 @@
 		"CMK_PASSWORD": "cmk"
 	},
 	"appPort": 5000,
-	"settings": {
-		"terminal.integrated.shell.linux": "/bin/bash",
-		"extensions.autoUpdate": false,
-		"python.pythonPath": "/omd/sites/cmk/bin/python3"
+	"customizations": {
+		"settings": {
+			"terminal.integrated.shell.linux": "/bin/bash",
+			"extensions.autoUpdate": false,
+			"python.pythonPath": "/omd/sites/cmk/bin/python3"
+		},
+		"extensions": [
+			"ms-python.python",
+			"littlefoxteam.vscode-python-test-adapter",
+			"jeremyfa.tasks-chooser",
+			"Gruntfuggly.todo-tree"
+		]
 	},
-	"extensions": [
-		"ms-python.python",
-		"littlefoxteam.vscode-python-test-adapter",
-		"jeremyfa.tasks-chooser",
-		"Gruntfuggly.todo-tree"
-	],
 	"forwardPorts": [
 		5000
 	],
