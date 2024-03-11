@@ -26,7 +26,6 @@ pub struct RCCConfig {
 #[derive(Clone, Debug, Deserialize, PartialEq, Serialize)]
 pub enum RCCProfileConfig {
     Default,
-    CoreMode,
     Custom(CustomRCCProfileConfig),
 }
 
