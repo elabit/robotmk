@@ -31,7 +31,8 @@ PKGDIR=$OMD_ROOT/var/check_mk/packages_local
 # Ownership can look dubious for git, fix this.
 git config --global --add safe.directory $WORKSPACE
 # get the current tag (Release) or commit hash (Artifact)
-export RMK_VERSION=$(git describe --tags `git rev-list --tags --max-count=1`)
+#export RMK_VERSION=$(git describe --tags `git rev-list --tags --max-count=1`)
+export RMK_VERSION="1.4.3"
 
 echo "▹ Removing old packages..."
 rm -f $OMD_ROOT/var/check_mk/packages/*
