@@ -83,7 +83,7 @@ jobs:
         uses: softprops/action-gh-release@v1
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-          RELEASE_NAME: ${GITHUB_REF##*/}
+          RELEASE_NAME: ${GITHUB_REF_NAME##*/}
         with:
           name: Release ${{ steps.tag.outputs.VERSION }}
           body_path: RELEASE_CHANGELOG.md
