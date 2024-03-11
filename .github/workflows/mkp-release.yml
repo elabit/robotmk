@@ -1,9 +1,10 @@
 name: MKP-Release
 
 on:
+  workflow_dispatch: 
   push:
-    tags:
-    - '*'
+    branches: 
+      - 'v1/stable'
 
 jobs:
 
@@ -86,6 +87,7 @@ jobs:
         with:
           name: Release ${{ steps.tag.outputs.VERSION }}
           body_path: RELEASE_CHANGELOG.md
+          tag_name: ${{ steps.tag.outputs.VERSION }}
           draft: false
           prerelease: false
       # -m "" means: Leave the Release mesage body as it is, do not modify
