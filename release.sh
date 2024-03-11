@@ -65,7 +65,7 @@ function release() {
     git checkout $masterbranch
     git merge $devbranch --no-ff --no-edit --strategy-option theirs
     header "Create annotated git tag from Changelog entry ..."
-    chag tag --addv
+    chag tag
     header "Pushing ..."
     git push origin $masterbranch
     git push origin $VTAG
