@@ -76,20 +76,23 @@ jobs:
       - name: chag
         run: bash chag contents > RELEASE_CHANGELOG.md
 
-      - name: Get Tag
-        id: tag
-        run: echo ::set-output name=VERSION::${GITHUB_REF##*/}
+#      - name: Get Tag
+#        id: tag
+#        run: echo ::set-output name=VERSION::${GITHUB_REF##*/}
+      - name: Get Version
+        id: version
+        run: echo ::set-output name=VERSION::${GITHUB_REF#refs/tags/}
       # (The Release text will be taken from the annotated tag, created with "chag")
       - name: Create Release
         id: create_release
         uses: softprops/action-gh-release@v1
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-          RELEASE_NAME: ${{ steps.tag.outputs.VERSION }}
+          RELEASE_NAME: ${{ steps.version.outputs.VERSION }}
         with:
-          name: Release ${{ steps.tag.outputs.VERSION }}
+          name: Release ${{ steps.version.outputs.VERSION }}
           body_path: RELEASE_CHANGELOG.md
-          tag_name: ${{ steps.tag.outputs.VERSION }}
+          tag_name: ${{ steps.version.outputs.VERSION }}
           draft: false
           prerelease: false
       # -m "" means: Leave the Release mesage body as it is, do not modify
