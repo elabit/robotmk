@@ -1,9 +1,10 @@
 name: MKP-Release
 
 on:
+  workflow_dispatch: 
   push:
-    tags:
-    - '*'
+    branches: 
+      - 'v1/stable'
 
 jobs:
 
