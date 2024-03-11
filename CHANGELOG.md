@@ -8,10 +8,10 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## 1.4.3 - 2024-03-11
 
-Compatibility patch for Checkmk V2.3
+Compatibility version for Checkmk V2.3
 
 This will be the last version of Robotmk v1. 
-It is highly recommended to use Robotmk v2 which comes integrated in Checkmk v2.3 (aka "Synthetic Monitoring").
+Robotmk will be continued as an integration in Checkmk v2.3 (aka "Synthetic Monitoring").
 
 ## 1.4.2 - 2023-05-16
 
