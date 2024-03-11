@@ -183,11 +183,6 @@ fn configure_rcc_profile(
 ) -> Result<(Vec<Suite>, HashMap<String, String>), Cancelled> {
     match &global_config.rcc_config.profile_config {
         RCCProfileConfig::Default => configure_default_rcc_profile(global_config, suites),
-        RCCProfileConfig::CoreMode => {
-            error!("The scheduler tried to configure the RCC profile even though the Robotmk Core mode is active.");
-            error!("This should never happen. Please open a GitHub issue!");
-            Err(Cancelled {})
-        }
         RCCProfileConfig::Custom(custom_rcc_profile_config) => {
             configure_custom_rcc_profile(custom_rcc_profile_config, global_config, suites)
         }
