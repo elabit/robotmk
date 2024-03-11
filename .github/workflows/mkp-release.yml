@@ -1,9 +1,10 @@
 name: MKP-Release
 
 on:
+  workflow_dispatch: 
   push:
-    tags:
-    - '*'
+    branches: 
+      - 'v1/stable'
 
 jobs:
 
@@ -21,7 +22,7 @@ jobs:
 
     steps:
       - name: Install tools
-        run: apt update && apt-get -y install sudo jq tree
+        run: apt update && apt-get -y install sudo jq tree hub
       - name: Create Checkmk Site
         run: /docker-entrypoint.sh /bin/true
       - name: Checkout Robotmk repository
@@ -82,10 +83,11 @@ jobs:
         uses: softprops/action-gh-release@v1
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-          RELEASE_NAME: ${GITHUB_REF##*/}
+          RELEASE_NAME: ${{ steps.tag.outputs.VERSION }}
         with:
           name: Release ${{ steps.tag.outputs.VERSION }}
           body_path: RELEASE_CHANGELOG.md
+          tag_name: ${{ steps.tag.outputs.VERSION }}
           draft: false
           prerelease: false
       # -m "" means: Leave the Release mesage body as it is, do not modify
