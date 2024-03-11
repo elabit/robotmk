@@ -6,11 +6,16 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
 
-## 1.4.3 - 2024-03-08
+## Unreleased
+
+Compatibility patch for Checkmk V2.3
+
+This will be the last version of Robotmk v1. 
+It is highly recommended to use Robotmk v2 which comes integrated in Checkmk v2.3 (aka "Synthetic Monitoring").
 
 ## 1.4.2 - 2023-05-16
 
-Compatibility patch for Checkmk V2.3
+Compatibility patch for Checkmk V2.2
 
 ### Changed
 
