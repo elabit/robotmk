@@ -26,18 +26,21 @@ set -u
 MVERSION="2"
 NAME="robotmk"
 PACKAGEFILE=$OMD_ROOT/var/check_mk/packages/$NAME
+PKGDIR=$OMD_ROOT/var/check_mk/packages_local
 
 # Ownership can look dubious for git, fix this.
 git config --global --add safe.directory $WORKSPACE
 # get the current tag (Release) or commit hash (Artifact)
-export RMK_VERSION=$(git describe --exact-match --tags 2>/dev/null || git rev-parse --short HEAD)
+#export RMK_VERSION=$(git describe --tags `git rev-list --tags --max-count=1`)
+# dirty hack - won't spent more time into this...
+export RMK_VERSION="1.4.3"
 
 echo "▹ Removing old packages..."
 rm -f $OMD_ROOT/var/check_mk/packages/*
 
 echo "---------------------------------------------"
 echo "▹ Generating package infofile ..."
-jq '. += {version:env.RMK_VERSION}' $WORKSPACE/pkginfo >$PACKAGEFILE
+jq --arg omdversion "$(omd version | rev | cut -d" " -f 1 | rev)" '. += {version:env.RMK_VERSION, "version.packaged":$omdversion}' $WORKSPACE/pkginfo >$PACKAGEFILE
 
 echo "---------------------------------------------"
 echo "$PACKAGEFILE:"
@@ -45,9 +48,8 @@ cat $PACKAGEFILE
 echo "---------------------------------------------"
 echo "▹ Building the MKP '$NAME' on $RMK_VERSION ..."
 # set -x
-ls -la $PACKAGEFILE
-mkp -v pack $NAME
-FILE=$(ls -rt1 *.mkp | tail -1)
+mkp -v package $PACKAGEFILE
+FILE=$(ls -rt1 $PKGDIR/*.mkp | tail -1)
 # robotmk.cmk2-v1.1.0.mkp
 NEWFILENAME=$NAME.$RMK_VERSION-cmk$MVERSION.mkp
 mv $FILE $NEWFILENAME
@@ -61,7 +63,8 @@ if [ -n "${GITHUB_WORKSPACE-}" ]; then
     echo "▹ Set Outputs for GitHub Workflow steps"
     echo "::set-output name=pkgfile::$NEWFILENAME"
     # echo "::set-output name=pkgname::${NAME}"
-    VERSION=$(jq -r '.version' $PACKAGEFILE)
+    # dirty hack - won't spent more time into this...
+    VERSION="1.4.3"
     # echo "::set-output name=pkgversion::$RMK_VERSION"
     # echo "::set-output name=cmkmversion::$MVERSION"
     echo "::set-output name=artifactname::$NEWFILENAME"
