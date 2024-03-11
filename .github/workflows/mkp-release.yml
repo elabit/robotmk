@@ -56,6 +56,8 @@ jobs:
     env:
       WORKSPACE: ${{ github.workspace }}
     steps:
+      - name: Install tools
+        run: apt update && apt-get -y install hub    
       - name: Checkout Robotmk repository 
         uses: actions/checkout@v2     
       - name: Download CMK1/2 artifact
