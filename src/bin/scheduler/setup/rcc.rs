@@ -23,6 +23,18 @@ pub fn setup(global_config: &GlobalConfig, suites: Vec<Suite>) -> AnyhowResult<V
     let (rcc_suites, mut surviving_suites): (Vec<Suite>, Vec<Suite>) = suites
         .into_iter()
         .partition(|suite| matches!(suite.environment, Environment::Rcc(_)));
+
+    let rcc_profile_config = match &global_config.rcc_config.profile_config {
+        None => {
+            sort_suites_by_grouping(&mut surviving_suites);
+            debug!(
+                "Skipping RCC profile configuration because Robotmk Core MKP has been installed."
+            );
+            return Ok(surviving_suites);
+        }
+        Some(profile_config) => profile_config,
+    };
+
     let all_configured_users_rcc = all_configured_users(rcc_suites.iter());
 
     for user_name in &all_configured_users_rcc {
@@ -32,7 +44,7 @@ pub fn setup(global_config: &GlobalConfig, suites: Vec<Suite>) -> AnyhowResult<V
     clear_rcc_setup_working_directory(&rcc_setup_working_directory(
         &global_config.working_directory,
     ))?;
-    if let RCCProfileConfig::Custom(custom_rcc_profile_config) =
+    if let Some(RCCProfileConfig::Custom(custom_rcc_profile_config)) =
         &global_config.rcc_config.profile_config
     {
         for user_name in &all_configured_users_rcc {
@@ -41,7 +53,11 @@ pub fn setup(global_config: &GlobalConfig, suites: Vec<Suite>) -> AnyhowResult<V
         }
     }
 
-    surviving_suites.append(&mut rcc_setup(global_config, rcc_suites)?);
+    surviving_suites.append(&mut rcc_setup(
+        rcc_profile_config,
+        global_config,
+        rcc_suites,
+    )?);
     sort_suites_by_grouping(&mut surviving_suites);
     Ok(surviving_suites)
 }
@@ -85,7 +101,11 @@ fn adjust_rcc_profile_permissions(profile_path: &Utf8Path, user_name: &str) -> A
     ))
 }
 
-fn rcc_setup(global_config: &GlobalConfig, rcc_suites: Vec<Suite>) -> AnyhowResult<Vec<Suite>> {
+fn rcc_setup(
+    rcc_pofile_config: &RCCProfileConfig,
+    global_config: &GlobalConfig,
+    rcc_suites: Vec<Suite>,
+) -> AnyhowResult<Vec<Suite>> {
     let mut sucessful_suites: Vec<Suite>;
     let mut rcc_setup_failures = RCCSetupFailures {
         telemetry_disabling: HashMap::new(),
@@ -108,7 +128,7 @@ fn rcc_setup(global_config: &GlobalConfig, rcc_suites: Vec<Suite>) -> AnyhowResu
 
     debug!("Configuring RCC profile");
     (sucessful_suites, rcc_setup_failures.profile_configuring) =
-        configure_rcc_profile(global_config, sucessful_suites)
+        configure_rcc_profile(rcc_pofile_config, global_config, sucessful_suites)
             .context("Received termination signal while configuring RCC profile")?;
     if !rcc_setup_failures.profile_configuring.is_empty() {
         error!(
@@ -178,10 +198,11 @@ fn disable_rcc_telemetry(
 }
 
 fn configure_rcc_profile(
+    rcc_pofile_config: &RCCProfileConfig,
     global_config: &GlobalConfig,
     suites: Vec<Suite>,
 ) -> Result<(Vec<Suite>, HashMap<String, String>), Cancelled> {
-    match &global_config.rcc_config.profile_config {
+    match &rcc_pofile_config {
         RCCProfileConfig::Default => configure_default_rcc_profile(global_config, suites),
         RCCProfileConfig::Custom(custom_rcc_profile_config) => {
             configure_custom_rcc_profile(custom_rcc_profile_config, global_config, suites)
