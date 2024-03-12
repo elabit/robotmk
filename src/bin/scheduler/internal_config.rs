@@ -176,10 +176,10 @@ mod tests {
                 results_directory: Utf8PathBuf::from("/results"),
                 rcc_config: RCCConfig {
                     binary_path: Utf8PathBuf::from("/bin/rcc"),
-                    profile_config: RCCProfileConfig::Custom(CustomRCCProfileConfig {
+                    profile_config: Some(RCCProfileConfig::Custom(CustomRCCProfileConfig {
                         name: "Robotmk".into(),
                         path: "/rcc_profile_robotmk.yaml".into(),
-                    }),
+                    })),
                 },
                 suite_groups: vec![
                     SequentialSuiteGroup {
@@ -201,10 +201,10 @@ mod tests {
             global_config.rcc_config,
             RCCConfig {
                 binary_path: Utf8PathBuf::from("/bin/rcc"),
-                profile_config: RCCProfileConfig::Custom(CustomRCCProfileConfig {
+                profile_config: Some(RCCProfileConfig::Custom(CustomRCCProfileConfig {
                     name: "Robotmk".into(),
                     path: "/rcc_profile_robotmk.yaml".into(),
-                }),
+                })),
             }
         );
         assert_eq!(suites.len(), 2);
