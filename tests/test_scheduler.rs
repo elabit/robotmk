@@ -380,3 +380,30 @@ fn directory_entries(directory: impl AsRef<Path>, max_depth: usize) -> Vec<Strin
         .filter(|entry: &String| !entry.is_empty())
         .collect()
 }
+
+#[tokio::test]
+#[ignore]
+async fn test_core_mode_scheduler() -> AnyhowResult<()> {
+    let test_dir = Utf8PathBuf::from(var("TEST_DIR")?);
+    create_dir_all(&test_dir)?;
+    let current_user_name = var("UserName")?;
+    let config = create_config(
+        &test_dir,
+        &Utf8PathBuf::from(var("CARGO_MANIFEST_DIR")?)
+            .join("tests")
+            .join("minimal_suite"),
+        RCCConfig {
+            binary_path: "does_not_exit.exe".into(),
+            profile_config: None,
+        },
+        &current_user_name,
+    );
+
+    run_scheduler(&test_dir, &config, var("RUN_FOR")?.parse::<u64>()?).await?;
+
+    assert_working_directory(&config.working_directory, &current_user_name).await?;
+    assert_results_directory(&config.results_directory);
+    assert_tasks().await?;
+
+    Ok(())
+}
