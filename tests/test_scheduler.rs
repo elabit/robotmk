@@ -20,10 +20,11 @@ use walkdir::WalkDir;
 #[ignore]
 async fn test_scheduler() -> AnyhowResult<()> {
     let test_dir = Utf8PathBuf::from(var("TEST_DIR")?);
-    create_dir_all(&test_dir)?;
+    let base_dir = test_dir.join("core");
+    create_dir_all(&base_dir)?;
     let current_user_name = var("UserName")?;
     let config = create_config(
-        &test_dir,
+        &base_dir,
         &Utf8PathBuf::from(var("CARGO_MANIFEST_DIR")?)
             .join("tests")
             .join("minimal_suite"),
@@ -66,14 +67,14 @@ settings:
 }
 
 fn create_config(
-    test_dir: &Utf8Path,
+    base_dir: &Utf8Path,
     suite_dir: &Utf8Path,
     rcc_config: RCCConfig,
     user_name_headed: &str,
 ) -> Config {
     Config {
-        working_directory: test_dir.join("working"),
-        results_directory: test_dir.join("results"),
+        working_directory: base_dir.join("working"),
+        results_directory: base_dir.join("results"),
         rcc_config,
         suite_groups: vec![
             SequentialSuiteGroup {
@@ -385,10 +386,11 @@ fn directory_entries(directory: impl AsRef<Path>, max_depth: usize) -> Vec<Strin
 #[ignore]
 async fn test_core_mode_scheduler() -> AnyhowResult<()> {
     let test_dir = Utf8PathBuf::from(var("TEST_DIR")?);
-    create_dir_all(&test_dir)?;
+    let base_dir = test_dir.join("core");
+    create_dir_all(&base_dir)?;
     let current_user_name = var("UserName")?;
     let config = create_config(
-        &test_dir,
+        &base_dir,
         &Utf8PathBuf::from(var("CARGO_MANIFEST_DIR")?)
             .join("tests")
             .join("minimal_suite"),

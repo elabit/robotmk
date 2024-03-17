@@ -16,7 +16,7 @@ jobs:
       - uses: actions-rust-lang/setup-rust-toolchain@v1.5.0
         with:
           target: x86_64-pc-windows-gnu
-      - run: cargo test --target=x86_64-pc-windows-gnu --test test_scheduler -- --nocapture --ignored
+      - run: cargo test --target=x86_64-pc-windows-gnu --test test_scheduler -- --nocapture --ignored --test-threads 1
         env:
           TEST_DIR: C:\test_scheduler
           RCC_BINARY_PATH: C:\windows64\rcc.exe
