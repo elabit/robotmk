@@ -403,9 +403,47 @@ async fn test_core_mode_scheduler() -> AnyhowResult<()> {
 
     run_scheduler(&test_dir, &config, var("RUN_FOR")?.parse::<u64>()?).await?;
 
-    assert_working_directory(&config.working_directory, &current_user_name).await?;
+    assert_core_working_directory(&config.working_directory, &current_user_name).await?;
     assert_results_directory(&config.results_directory);
     assert_tasks().await?;
+
+    Ok(())
+}
+
+async fn assert_core_working_directory(
+    working_directory: &Utf8Path,
+    headed_user_name: &str,
+) -> AnyhowResult<()> {
+    assert_permissions(
+        &working_directory,
+        &format!("{headed_user_name}:(OI)(CI)(F)"),
+    )
+    .await?;
+    assert!(working_directory.is_dir());
+    assert_eq!(
+        directory_entries(working_directory, 1),
+        ["environment_building", "rcc_setup", "suites"]
+    );
+    assert!(directory_entries(working_directory.join("rcc_setup"), 1).is_empty());
+    assert!(directory_entries(working_directory.join("environment_building"), 1).is_empty());
+    assert_eq!(
+        directory_entries(working_directory.join("suites"), 1),
+        ["no_rcc", "rcc_headed", "rcc_headless"]
+    );
+
+    // We expliclitly don't check for the rebot files in the case without RCC, since this must also
+    // work on systems that don't have the necessary Python environment.
+    assert!(!directory_entries(working_directory.join("suites").join("no_rcc"), 1).is_empty());
+
+    let entries_rcc_headed =
+        directory_entries(working_directory.join("suites").join("rcc_headed"), 2).join("");
+    assert!(entries_rcc_headed.contains("rebot.xml"));
+    assert!(entries_rcc_headed.contains("1.bat"));
+
+    let entries_rcc_headless =
+        directory_entries(working_directory.join("suites").join("rcc_headless"), 2).join("");
+    assert!(entries_rcc_headless.contains("rebot.xml"));
+    assert!(!entries_rcc_headless.contains("1.bat"));
 
     Ok(())
 }
