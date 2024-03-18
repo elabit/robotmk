@@ -23,14 +23,20 @@ fn get_children(processes: &HashMap<Pid, Process>, pid: &Pid) -> HashSet<Pid> {
         .collect()
 }
 
-fn print_process_tree(depth: usize, processes: &HashMap<Pid, Process>, pid: Pid) {
+fn print_process_tree(depth: usize, processes: &HashMap<Pid, Process>, pid: Pid, max_depth: usize) {
+    let process = processes.get(&pid).unwrap();
     println!(
-        "{}{pid} {:?}",
+        "{}{pid} {:?} {:?} {:?}",
         "-".repeat(depth),
-        processes.get(&pid).unwrap().status()
+        process.status(),
+        process.name(),
+        process.exe(),
     );
+    if depth >= max_depth {
+        return;
+    }
     for child in get_children(processes, &pid) {
-        print_process_tree(depth + 1, processes, child);
+        print_process_tree(depth + 1, processes, child, max_depth);
     }
 }
 
@@ -51,7 +57,7 @@ fn check_tree_size(system: &mut System, pid: Pid) -> usize {
     system.refresh_processes();
     let processes = system.processes();
     println!("Process tree");
-    print_process_tree(0, processes, pid);
+    print_process_tree(0, processes, pid, 5);
     get_tree_size(processes, pid)
 }
 
