@@ -18,6 +18,7 @@ use robotmk::{
 use std::collections::HashMap;
 use std::fs::{create_dir_all, remove_dir_all};
 use std::vec;
+use tokio_util::sync::CancellationToken;
 
 pub fn setup(global_config: &GlobalConfig, suites: Vec<Suite>) -> AnyhowResult<Vec<Suite>> {
     let (rcc_suites, mut surviving_suites): (Vec<Suite>, Vec<Suite>) = suites
@@ -57,6 +58,7 @@ pub fn setup(global_config: &GlobalConfig, suites: Vec<Suite>) -> AnyhowResult<V
         rcc_profile_config,
         rcc_binary_path,
         working_directory,
+        &global_config.cancellation_token,
         global_config,
         rcc_suites,
     )?);
@@ -107,6 +109,7 @@ fn rcc_setup(
     rcc_pofile_config: &RCCProfileConfig,
     rcc_binary_path: &Utf8PathBuf,
     working_directory: &Utf8Path,
+    cancellation_token: &CancellationToken,
     global_config: &GlobalConfig,
     rcc_suites: Vec<Suite>,
 ) -> AnyhowResult<Vec<Suite>> {
@@ -121,9 +124,9 @@ fn rcc_setup(
 
     debug!("Disabling RCC telemetry");
     (sucessful_suites, rcc_setup_failures.telemetry_disabling) = disable_rcc_telemetry(
-        global_config,
         rcc_binary_path,
         working_directory,
+        cancellation_token,
         rcc_suites,
     )
     .context("Received termination signal while disabling RCC telemetry")?;
@@ -139,7 +142,7 @@ fn rcc_setup(
         rcc_pofile_config,
         rcc_binary_path,
         working_directory,
-        global_config,
+        cancellation_token,
         sucessful_suites,
     )
     .context("Received termination signal while configuring RCC profile")?;
@@ -152,9 +155,9 @@ fn rcc_setup(
 
     debug!("Enabling support for long paths");
     (sucessful_suites, rcc_setup_failures.long_path_support) = enable_long_path_support(
-        global_config,
         rcc_binary_path,
         working_directory,
+        cancellation_token,
         sucessful_suites,
     )
     .context("Received termination signal while enabling support for long paths")?;
@@ -167,9 +170,9 @@ fn rcc_setup(
 
     debug!("Initializing shared holotree");
     (sucessful_suites, rcc_setup_failures.shared_holotree) = shared_holotree_init(
-        global_config,
         rcc_binary_path,
         working_directory,
+        cancellation_token,
         sucessful_suites,
     )
     .context("Received termination signal while initializing shared holotree")?;
@@ -182,9 +185,9 @@ fn rcc_setup(
 
     debug!("Initializing holotree");
     (sucessful_suites, rcc_setup_failures.holotree_init) = holotree_init(
-        global_config,
         rcc_binary_path,
         working_directory,
+        cancellation_token,
         sucessful_suites,
     )
     .context("Received termination signal while initializing holotree")?;
@@ -204,14 +207,14 @@ fn rcc_setup(
 }
 
 fn disable_rcc_telemetry(
-    global_config: &GlobalConfig,
     rcc_binary_path: &Utf8PathBuf,
     working_directory: &Utf8Path,
+    cancellation_token: &CancellationToken,
     suites: Vec<Suite>,
 ) -> Result<(Vec<Suite>, HashMap<String, String>), Cancelled> {
     run_command_spec_per_session(
         working_directory,
-        global_config,
+        cancellation_token,
         suites,
         &CommandSpec {
             executable: rcc_binary_path.to_string(),
@@ -229,33 +232,35 @@ fn configure_rcc_profile(
     rcc_pofile_config: &RCCProfileConfig,
     rcc_binary_path: &Utf8PathBuf,
     working_directory: &Utf8Path,
-    global_config: &GlobalConfig,
+    cancellation_token: &CancellationToken,
     suites: Vec<Suite>,
 ) -> Result<(Vec<Suite>, HashMap<String, String>), Cancelled> {
     match &rcc_pofile_config {
-        RCCProfileConfig::Default => {
-            configure_default_rcc_profile(global_config, rcc_binary_path, working_directory, suites)
-        }
+        RCCProfileConfig::Default => configure_default_rcc_profile(
+            rcc_binary_path,
+            working_directory,
+            cancellation_token,
+            suites,
+        ),
         RCCProfileConfig::Custom(custom_rcc_profile_config) => configure_custom_rcc_profile(
             custom_rcc_profile_config,
             rcc_binary_path,
             working_directory,
-            global_config,
+            cancellation_token,
             suites,
         ),
     }
 }
 
 fn configure_default_rcc_profile(
-    global_config: &GlobalConfig,
     rcc_binary_path: &Utf8PathBuf,
     working_directory: &Utf8Path,
-
+    cancellation_token: &CancellationToken,
     suites: Vec<Suite>,
 ) -> Result<(Vec<Suite>, HashMap<String, String>), Cancelled> {
     run_command_spec_per_session(
         working_directory,
-        global_config,
+        cancellation_token,
         suites,
         &CommandSpec {
             executable: rcc_binary_path.to_string(),
@@ -273,12 +278,12 @@ fn configure_custom_rcc_profile(
     custom_rcc_profile_config: &CustomRCCProfileConfig,
     rcc_binary_path: &Utf8PathBuf,
     working_directory: &Utf8Path,
-    global_config: &GlobalConfig,
+    cancellation_token: &CancellationToken,
     suites: Vec<Suite>,
 ) -> Result<(Vec<Suite>, HashMap<String, String>), Cancelled> {
     let (sucessful_suites_import, failed_suites_import) = run_command_spec_per_session(
         working_directory,
-        global_config,
+        cancellation_token,
         suites,
         &CommandSpec {
             executable: rcc_binary_path.to_string(),
@@ -293,7 +298,7 @@ fn configure_custom_rcc_profile(
     )?;
     let (sucessful_suites_switch, failed_suites_switch) = run_command_spec_per_session(
         working_directory,
-        global_config,
+        cancellation_token,
         sucessful_suites_import,
         &CommandSpec {
             executable: rcc_binary_path.to_string(),
@@ -313,14 +318,14 @@ fn configure_custom_rcc_profile(
 }
 
 fn enable_long_path_support(
-    global_config: &GlobalConfig,
     rcc_binary_path: &Utf8PathBuf,
     working_directory: &Utf8Path,
+    cancellation_token: &CancellationToken,
     suites: Vec<Suite>,
 ) -> Result<(Vec<Suite>, HashMap<String, String>), Cancelled> {
     run_command_spec_once_in_current_session(
         working_directory,
-        global_config,
+        cancellation_token,
         suites,
         &CommandSpec {
             executable: rcc_binary_path.to_string(),
@@ -331,14 +336,14 @@ fn enable_long_path_support(
 }
 
 fn shared_holotree_init(
-    global_config: &GlobalConfig,
     rcc_binary_path: &Utf8PathBuf,
     working_directory: &Utf8Path,
+    cancellation_token: &CancellationToken,
     suites: Vec<Suite>,
 ) -> Result<(Vec<Suite>, HashMap<String, String>), Cancelled> {
     run_command_spec_once_in_current_session(
         working_directory,
-        global_config,
+        cancellation_token,
         suites,
         &CommandSpec {
             executable: rcc_binary_path.to_string(),
@@ -354,14 +359,14 @@ fn shared_holotree_init(
 }
 
 fn holotree_init(
-    global_config: &GlobalConfig,
     rcc_binary_path: &Utf8PathBuf,
     working_directory: &Utf8Path,
+    cancellation_token: &CancellationToken,
     suites: Vec<Suite>,
 ) -> Result<(Vec<Suite>, HashMap<String, String>), Cancelled> {
     run_command_spec_per_session(
         working_directory,
-        global_config,
+        cancellation_token,
         suites,
         &CommandSpec {
             executable: rcc_binary_path.to_string(),
@@ -373,7 +378,7 @@ fn holotree_init(
 
 fn run_command_spec_once_in_current_session(
     working_directory: &Utf8Path,
-    global_config: &GlobalConfig,
+    cancellation_token: &CancellationToken,
     suites: Vec<Suite>,
     command_spec: &CommandSpec,
     id: &str,
@@ -386,7 +391,7 @@ fn run_command_spec_once_in_current_session(
                 command_spec,
                 base_path: &rcc_setup_working_directory(working_directory).join(id),
                 timeout: 120,
-                cancellation_token: &global_config.cancellation_token,
+                cancellation_token,
             },
         )? {
             None => (suites, HashMap::new()),
@@ -404,7 +409,7 @@ fn run_command_spec_once_in_current_session(
 
 fn run_command_spec_per_session(
     working_directory: &Utf8Path,
-    global_config: &GlobalConfig,
+    cancellation_token: &CancellationToken,
     suites: Vec<Suite>,
     command_spec: &CommandSpec,
     id: &str,
@@ -437,7 +442,7 @@ fn run_command_spec_per_session(
                 command_spec,
                 base_path: &rcc_setup_working_directory(working_directory).join(session_id),
                 timeout: 120,
-                cancellation_token: &global_config.cancellation_token,
+                cancellation_token,
             },
         )? {
             Some(error_msg) => {
