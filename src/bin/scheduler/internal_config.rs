@@ -12,7 +12,7 @@ use tokio_util::sync::CancellationToken;
 pub struct GlobalConfig {
     pub working_directory: Utf8PathBuf,
     pub results_directory: Utf8PathBuf,
-    pub rcc_config: RCCConfig,
+    pub rcc_config: Option<RCCConfig>,
     pub cancellation_token: CancellationToken,
     pub results_directory_locker: Locker,
 }
@@ -88,7 +88,7 @@ pub fn from_external_config(
         GlobalConfig {
             working_directory: external_config.working_directory,
             results_directory: external_config.results_directory,
-            rcc_config: external_config.rcc_config,
+            rcc_config: Some(external_config.rcc_config),
             cancellation_token,
             results_directory_locker,
         },

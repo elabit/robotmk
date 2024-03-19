@@ -36,7 +36,7 @@ fn run() -> AnyhowResult<()> {
         .context("Failed to set up termination control")?;
     info!("Termination control set up");
 
-    let (global_config, suites) = internal_config::from_external_config(
+    let (global_config, mut suites) = internal_config::from_external_config(
         external_config,
         cancellation_token.clone(),
         Locker::new(&args.config_path, Some(&cancellation_token)),
@@ -57,9 +57,12 @@ fn run() -> AnyhowResult<()> {
         }
     }
 
-    write_phase(&SchedulerPhase::RCCSetup, &global_config)?;
-    let suites = setup::rcc::setup(&global_config, suites).context("RCC-specific setup failed")?;
-    info!("RCC-specific setup completed");
+    if let Some(rcc_config) = &global_config.rcc_config {
+        write_phase(&SchedulerPhase::RCCSetup, &global_config)?;
+        suites = setup::rcc::setup(&global_config, rcc_config, suites)
+            .context("RCC-specific setup failed")?;
+        info!("RCC-specific setup completed");
+    }
 
     if global_config.cancellation_token.is_cancelled() {
         bail!("Terminated")
@@ -67,7 +70,7 @@ fn run() -> AnyhowResult<()> {
 
     info!("Starting environment building");
     write_phase(&SchedulerPhase::EnvironmentBuilding, &global_config)?;
-    let suites = build::build_environments(&global_config, suites)?;
+    suites = build::build_environments(&global_config, suites)?;
     info!("Environment building finished");
 
     if global_config.cancellation_token.is_cancelled() {
