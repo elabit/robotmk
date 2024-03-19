@@ -13,8 +13,19 @@ pub fn load(path: &Utf8Path) -> AnyhowResult<Config> {
 pub struct Config {
     pub working_directory: Utf8PathBuf,
     pub results_directory: Utf8PathBuf,
+    pub suite_groups: SequentialSuiteGroups,
+}
+
+#[derive(Clone, Debug, Deserialize, PartialEq, Serialize)]
+pub enum SequentialSuiteGroups {
+    EnterpriseMode(EnterpriseSequentialSuiteGroups),
+    CoreMode(Vec<CoreSequentialSuiteGroup>),
+}
+
+#[derive(Clone, Debug, Deserialize, PartialEq, Serialize)]
+pub struct EnterpriseSequentialSuiteGroups {
     pub rcc_config: RCCConfig,
-    pub suite_groups: Vec<SequentialSuiteGroup>,
+    pub suite_groups: Vec<EnterpriseSequentialSuiteGroup>,
 }
 
 #[derive(Clone, Debug, Deserialize, PartialEq, Serialize)]
@@ -36,17 +47,28 @@ pub struct CustomRCCProfileConfig {
 }
 
 #[derive(Clone, Debug, Deserialize, PartialEq, Serialize)]
-pub struct SequentialSuiteGroup {
-    pub suites: Vec<SuiteConfig>,
+pub struct EnterpriseSequentialSuiteGroup {
+    pub suites: Vec<EnterpriseSuiteConfig>,
     pub execution_interval: u64,
 }
 
 #[derive(Clone, Debug, Deserialize, PartialEq, Serialize)]
-pub struct SuiteConfig {
+pub struct EnterpriseSuiteConfig {
+    pub core_config: CoreSuiteConfig,
+    pub environment_config: EnvironmentConfig,
+}
+
+#[derive(Clone, Debug, Deserialize, PartialEq, Serialize)]
+pub struct CoreSequentialSuiteGroup {
+    pub suites: Vec<CoreSuiteConfig>,
+    pub execution_interval: u64,
+}
+
+#[derive(Clone, Debug, Deserialize, PartialEq, Serialize)]
+pub struct CoreSuiteConfig {
     pub id: String,
     pub robot_config: RobotConfig,
     pub execution_config: ExecutionConfig,
-    pub environment_config: EnvironmentConfig,
     pub session_config: SessionConfig,
     pub working_directory_cleanup_config: WorkingDirectoryCleanupConfig,
     pub host: Host,
