@@ -29,9 +29,7 @@ async fn test_scheduler() -> AnyhowResult<()> {
             .join("minimal_suite"),
         RCCConfig {
             binary_path: var("RCC_BINARY_PATH")?.into(),
-            profile_config: Some(RCCProfileConfig::Custom(create_custom_rcc_profile(
-                &test_dir,
-            )?)),
+            profile_config: RCCProfileConfig::Custom(create_custom_rcc_profile(&test_dir)?),
         },
         &current_user_name,
     );
@@ -312,8 +310,7 @@ async fn assert_rcc_files_permissions(
     headed_user_name: &str,
 ) -> AnyhowResult<()> {
     assert_permissions(&rcc_config.binary_path, &format!("{headed_user_name}:(RX)")).await?;
-    let Some(RCCProfileConfig::Custom(custom_rcc_profile_config)) = &rcc_config.profile_config
-    else {
+    let RCCProfileConfig::Custom(custom_rcc_profile_config) = &rcc_config.profile_config else {
         return Ok(());
     };
     assert_permissions(
@@ -332,7 +329,7 @@ async fn assert_rcc_configuration(rcc_config: &RCCConfig) -> AnyhowResult<()> {
     assert!(stdout.contains("telemetry-enabled                     ...  \"false\""));
     assert!(stdout.contains("holotree-shared                       ...  \"true\""));
     assert!(stdout.contains("holotree-global-shared                ...  \"true\""));
-    if let Some(RCCProfileConfig::Custom(custom_rcc_profile_config)) = &rcc_config.profile_config {
+    if let RCCProfileConfig::Custom(custom_rcc_profile_config) = &rcc_config.profile_config {
         assert!(stdout.contains(&format!(
             "config-active-profile                 ...  \"{}\"",
             custom_rcc_profile_config.name
