@@ -23,6 +23,12 @@ pub fn setup(global_config: &GlobalConfig, suites: Vec<Suite>) -> AnyhowResult<V
     let (rcc_suites, mut surviving_suites): (Vec<Suite>, Vec<Suite>) = suites
         .into_iter()
         .partition(|suite| matches!(suite.environment, Environment::Rcc(_)));
+
+    if rcc_suites.is_empty() {
+        sort_suites_by_grouping(&mut surviving_suites);
+        return Ok(surviving_suites);
+    }
+
     let all_configured_users_rcc = all_configured_users(rcc_suites.iter());
 
     for user_name in &all_configured_users_rcc {
