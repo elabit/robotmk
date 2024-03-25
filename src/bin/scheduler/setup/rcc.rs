@@ -424,7 +424,7 @@ fn run_command_spec_in_session(
 
 fn rcc_setup_failures_human_readable<'a>(failures: impl Iterator<Item = &'a String>) -> String {
     failures
-        .map(|suite_id| suite_id.as_str())
+        .map(|rmk_id| rmk_id.as_str())
         .collect::<Vec<&str>>()
         .join(", ")
 }
