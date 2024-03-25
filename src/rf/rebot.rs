@@ -15,7 +15,7 @@ use std::fs::{read, read_to_string};
 use tokio_util::sync::CancellationToken;
 
 pub struct Rebot<'a> {
-    pub suite_id: &'a str,
+    pub rmk_id: &'a str,
     pub environment: &'a Environment,
     pub session: &'a Session,
     pub working_directory: &'a Utf8Path,
@@ -71,7 +71,7 @@ impl Rebot<'_> {
 
     fn run(&self) -> AnyhowResult<Outcome<i32>> {
         self.session.run(&RunSpec {
-            id: &format!("robotmk_rebot_{}", self.suite_id),
+            id: &format!("robotmk_rebot_{}", self.rmk_id),
             command_spec: &self.environment.wrap(self.build_rebot_command_spec()),
             base_path: &self.working_directory.join("rebot"),
             timeout: 120,
@@ -133,7 +133,7 @@ mod tests {
     #[test]
     fn build_rebot_command() {
         let rebot_command_spec = Rebot {
-            suite_id: "my_suite",
+            rmk_id: "my_suite",
             environment: &Environment::new(
                 "my_suite",
                 "/bin/rcc".into(),

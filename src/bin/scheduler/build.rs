@@ -145,10 +145,10 @@ impl<'a> BuildStageReporter<'a> {
 
     pub fn update(
         &mut self,
-        suite_id: &str,
+        rmk_id: &str,
         build_status: EnvironmentBuildStage,
     ) -> AnyhowResult<()> {
-        self.build_states.insert(suite_id.into(), build_status);
+        self.build_states.insert(rmk_id.into(), build_status);
         BuildStates(&self.build_states).write(&self.path, self.locker)
     }
 }

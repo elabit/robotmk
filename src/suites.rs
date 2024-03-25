@@ -55,7 +55,7 @@ pub fn run_attempts_with_rebot(
     }
     info!("Suite {id}: Running rebot");
     let rebot = Rebot {
-        suite_id: id,
+        rmk_id: id,
         environment,
         session,
         working_directory: output_directory,
