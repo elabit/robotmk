@@ -530,27 +530,23 @@ class RMKSuite(RMKState):
             rc = self.env_strategy.run()
             self._runner.loginfo(f" < RC: {rc}")
 
-            if max_exec == 1 or (max_exec > 1 and rc == 0):
-                # get out of here if
-                # - re-execution is not enabled  OR
-                # - first attempt was successful
-                break
-            else:
-                # re-execution possible, check if we should
-                if rc == 0:
-                    # retry was OK, get out here
-                    self.reexecution_strategy.finalize_results()
-                    break
+            if max_exec == 1: 
+                break # no re-execution strategy needed
+            
+            if rc == 0:
+                # retry was OK, get out here
+                self.reexecution_strategy.finalize_results()
+                break    
+            else: 
+                # retry was not OK, try again
+                if attempt < max_exec:
+                    self.reexecution_strategy.reparametrize_robot()
                 else:
-                    if attempt < max_exec:
-                        # Chance for next try: set reexecution params according to strategy
-                        self.reexecution_strategy.reparametrize_robot()
-                    else:
-                        # ...GAME OVER! => MERGE
-                        self._runner.loginfo(
-                            "   Even the last attempt was unsuccessful!"
-                        )
-                        self.reexecution_strategy.finalize_results()
+                    # ...GAME OVER! => MERGE
+                    self._runner.loginfo(
+                        "   Even the last attempt was unsuccessful!"
+                    )
+                    self.reexecution_strategy.finalize_results()
 
         self.set_statevars(
             [
@@ -602,7 +598,7 @@ class RMKSuite(RMKState):
     @property
     def is_disabled_by_flagfile(self):
         # if disabled flag file exists, return True
-        return self.path.joinpath("DISABLED").exists()
+        return self.pathdir.joinpath("DISABLED").exists()
 
     @property
     def get_disabled_reason(self):
@@ -610,7 +606,7 @@ class RMKSuite(RMKState):
         # Otherwise return default message.
         if self.is_disabled_by_flagfile:
             try:
-                with open(self.path.joinpath("DISABLED"), "r") as f:
+                with open(self.pathdir.joinpath("DISABLED"), "r") as f:
                     reason = f.read()
                     if len(reason) > 0:
                         return "Reason: " + reason
@@ -630,7 +626,7 @@ class RMKSuite(RMKState):
     def pathdir(self):
         """The absolute path of the Robot test directory,
         built from the robotdir and the DIRECTORY of the path given in WATO"""
-        if self.path.is_dir:
+        if self.path.is_dir():
             return self.path
         else:
             return self.path.parent
@@ -890,7 +886,14 @@ class EnvStrategyOS(EnvStrategy):
         cli_args = self.prepare_rf_args()
         cli_args.append(str(self._suite.path))
         self._suite.logger.debug(f"Robot arguments: {' '.join(cli_args)}")
+        # Change to the suite root directory so that relative imports work
+        curdir = os.getcwd()
+        suite_rootdir =  Path(self._suite.global_dict['robotdir']) / Path(self._suite.suite_dict["path"]).parts[0]
+        self._suite.logger.debug(f"Chdir to: {suite_rootdir}")
+        os.chdir(suite_rootdir)
         rc = robot.run_cli(cli_args, exit=False)
+        self._suite.logger.debug(f"Chdir to: {curdir}")
+        os.chdir(curdir)
         return rc
 
 
@@ -1217,16 +1220,15 @@ class RMKrunner(RMKState, RMKPlugin):
             ]
         )
         runtime_robotmk = runtime_total - runtime_suites
-
-        self.set_statevars(
-            [
+        runtimes = [
                 ("runtime_total", runtime_total),
                 ("runtime_suites", runtime_suites),
                 ("runtime_robotmk", runtime_robotmk),
                 # ('suites', suites),
                 ("selective_run", self.selective_run),
             ]
-        )
+        self.loginfo("runtimes: " + str(runtimes))
+        self.set_statevars(runtimes)
         if self.execution_mode == "agent_serial":
             self.set_statevars(
                 [

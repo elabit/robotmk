@@ -5,6 +5,14 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## Unreleased
+
+### Fixed
+
+* Relative library/resource imports did not work properly in past versions, because the Robot Framework suite wasn't executed in the suite base directory.
+* Disabling suite execution by placing a `DISABLED` file did not work when a .robot file was executed instead of a directory.
+* Fixed a bug in pathdir function.
+* Incremental re-execution strategy did not merge results when suite finally ended OK.
 
 ## 1.4.3 - 2024-03-11
 
