@@ -82,7 +82,6 @@ pub enum EnvironmentConfig {
 pub struct RCCEnvironmentConfig {
     pub robot_yaml_path: Utf8PathBuf,
     pub build_timeout: u64,
-    pub env_json_path: Option<Utf8PathBuf>,
 }
 
 #[derive(Clone, Debug, Deserialize, PartialEq, Serialize)]

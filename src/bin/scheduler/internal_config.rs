@@ -153,7 +153,6 @@ mod tests {
             environment_config: EnvironmentConfig::Rcc(RCCEnvironmentConfig {
                 robot_yaml_path: Utf8PathBuf::from("/suite/rcc/robot.yaml"),
                 build_timeout: 300,
-                env_json_path: None,
             }),
             session_config: SessionConfig::SpecificUser(UserSessionConfig {
                 user_name: "user".into(),
@@ -229,7 +228,6 @@ mod tests {
                 controller: "robotmk".into(),
                 space: "rcc".into(),
                 build_timeout: 300,
-                env_json_path: None,
             })
         );
         assert_eq!(
