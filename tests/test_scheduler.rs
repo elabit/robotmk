@@ -90,7 +90,6 @@ fn create_config(
                         environment_config: EnvironmentConfig::Rcc(RCCEnvironmentConfig {
                             robot_yaml_path: suite_dir.join("robot.yaml"),
                             build_timeout: 1200,
-                            env_json_path: None,
                         }),
                         session_config: SessionConfig::Current,
                         working_directory_cleanup_config:
@@ -115,7 +114,6 @@ fn create_config(
                         environment_config: EnvironmentConfig::Rcc(RCCEnvironmentConfig {
                             robot_yaml_path: suite_dir.join("robot.yaml"),
                             build_timeout: 1200,
-                            env_json_path: None,
                         }),
                         session_config: SessionConfig::SpecificUser(UserSessionConfig {
                             user_name: user_name_headed.into(),
