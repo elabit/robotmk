@@ -119,7 +119,7 @@ During this step, all relevant files for Robotmk get symlinked into the version 
 
 **Don't try to install the Robotmk MKP into this container! All files are already there!**
 
-The devcontainer is ready now. Open the Checmk login page on <http://127.0.0.1:5000>.
+The devcontainer is ready now. Open the Checmk login page on <http://127.0.0.1:4999>.
 
 ### Select Python Interpreter in VS Code
 

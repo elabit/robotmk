@@ -10,7 +10,9 @@
 		"CMK_SITE_ID": "cmk",
 		"CMK_PASSWORD": "cmk"
 	},
-	"appPort": 5000,
+	"appPort": [
+		"4999:5000"
+	],
 	"customizations": {
 		"settings": {
 			"terminal.integrated.shell.linux": "/bin/bash",
@@ -24,9 +26,6 @@
 			"Gruntfuggly.todo-tree"
 		]
 	},
-	"forwardPorts": [
-		5000
-	],
 	"postCreateCommand": ".devcontainer/postCreateCommand.sh",
 	"remoteUser": "cmk",
 	"remoteEnv": {
