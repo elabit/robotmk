@@ -46,7 +46,7 @@ fn produce_suite_results(suite: &Suite) -> AnyhowResult<SuiteExecutionReport> {
     .context("Received termination signal while running suite")?;
 
     Ok(SuiteExecutionReport {
-        rmk_id: suite.id.clone(),
+        plan_id: suite.id.clone(),
         timestamp: timestamp.timestamp(),
         attempts: attempt_reports,
         rebot,
