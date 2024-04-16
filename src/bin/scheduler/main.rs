@@ -46,7 +46,7 @@ fn run() -> AnyhowResult<()> {
         bail!("Terminated")
     }
 
-    setup::general::setup(&global_config, &plans).context("General setup failed")?;
+    let plans = setup::general::setup(&global_config, plans).context("General setup failed")?;
     info!("General setup completed");
 
     if let Some(grace_period) = args.grace_period {

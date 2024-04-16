@@ -22,6 +22,17 @@ impl WriteSection for SchedulerPhase {
     }
 }
 
+#[derive(Default, Serialize)]
+pub struct GeneralSetupFailures {
+    pub working_directory_permissions: HashMap<String, String>,
+}
+
+impl WriteSection for GeneralSetupFailures {
+    fn name() -> &'static str {
+        "robotmk_general_setup_failures"
+    }
+}
+
 #[derive(Serialize)]
 pub struct RCCSetupFailures {
     pub telemetry_disabling: HashMap<String, String>,
