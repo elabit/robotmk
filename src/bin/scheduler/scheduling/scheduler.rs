@@ -1,5 +1,5 @@
 use super::cleanup::cleanup_working_directories;
-use super::suites::run_plan;
+use super::plans::run_plan;
 use crate::internal_config::{GlobalConfig, Plan};
 use crate::logging::log_and_return_error;
 use robotmk::termination::Cancelled;

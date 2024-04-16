@@ -2,10 +2,10 @@ use anyhow::Result as AnyhowResult;
 use camino::Utf8PathBuf;
 use robotmk::config::RetryStrategy;
 use robotmk::environment::{Environment, SystemEnvironment};
+use robotmk::plans::run_attempts_with_rebot;
 use robotmk::results::AttemptOutcome;
 use robotmk::rf::robot::Robot;
 use robotmk::session::{CurrentSession, Session};
-use robotmk::suites::run_attempts_with_rebot;
 use tempfile::tempdir;
 use tokio_util::sync::CancellationToken;
 
