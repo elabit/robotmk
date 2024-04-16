@@ -287,6 +287,7 @@ fn assert_results_directory(results_directory: &Utf8Path) {
         directory_entries(results_directory, 2),
         [
             "environment_build_states.json",
+            "general_setup_failures.json",
             "plans",
             "plans\\no_rcc.json",
             "plans\\rcc_headed.json",

@@ -1,5 +1,5 @@
-use super::all_configured_users;
 use super::icacls::run_icacls_command;
+use super::{all_configured_users, failed_plan_ids_human_readable, plans_by_sessions};
 use crate::internal_config::{sort_plans_by_grouping, GlobalConfig, Plan};
 use crate::logging::log_and_return_error;
 use robotmk::command_spec::CommandSpec;
@@ -108,7 +108,7 @@ fn rcc_setup(global_config: &GlobalConfig, rcc_plans: Vec<Plan>) -> AnyhowResult
     if !rcc_setup_failures.telemetry_disabling.is_empty() {
         error!(
             "Dropping the following plans due to RCC telemetry disabling failure: {}",
-            rcc_setup_failures_human_readable(rcc_setup_failures.telemetry_disabling.keys())
+            failed_plan_ids_human_readable(rcc_setup_failures.telemetry_disabling.keys())
         );
     }
 
@@ -119,7 +119,7 @@ fn rcc_setup(global_config: &GlobalConfig, rcc_plans: Vec<Plan>) -> AnyhowResult
     if !rcc_setup_failures.profile_configuring.is_empty() {
         error!(
             "Dropping the following plans due to profile configuring failure: {}",
-            rcc_setup_failures_human_readable(rcc_setup_failures.profile_configuring.keys())
+            failed_plan_ids_human_readable(rcc_setup_failures.profile_configuring.keys())
         );
     }
 
@@ -130,7 +130,7 @@ fn rcc_setup(global_config: &GlobalConfig, rcc_plans: Vec<Plan>) -> AnyhowResult
     if !rcc_setup_failures.long_path_support.is_empty() {
         error!(
             "Dropping the following plans due to long path support enabling failure: {}",
-            rcc_setup_failures_human_readable(rcc_setup_failures.long_path_support.keys())
+            failed_plan_ids_human_readable(rcc_setup_failures.long_path_support.keys())
         );
     }
 
@@ -141,7 +141,7 @@ fn rcc_setup(global_config: &GlobalConfig, rcc_plans: Vec<Plan>) -> AnyhowResult
     if !rcc_setup_failures.shared_holotree.is_empty() {
         error!(
             "Dropping the following plans due to shared holotree initialization failure: {}",
-            rcc_setup_failures_human_readable(rcc_setup_failures.shared_holotree.keys())
+            failed_plan_ids_human_readable(rcc_setup_failures.shared_holotree.keys())
         );
     }
 
@@ -152,7 +152,7 @@ fn rcc_setup(global_config: &GlobalConfig, rcc_plans: Vec<Plan>) -> AnyhowResult
     if !rcc_setup_failures.holotree_init.is_empty() {
         error!(
             "Dropping the following plans due to holotree initialization failure: {}",
-            rcc_setup_failures_human_readable(rcc_setup_failures.holotree_init.keys())
+            failed_plan_ids_human_readable(rcc_setup_failures.holotree_init.keys())
         );
     }
 
@@ -335,17 +335,10 @@ fn run_command_spec_per_session(
     command_spec: &CommandSpec,
     id: &str,
 ) -> Result<(Vec<Plan>, HashMap<String, String>), Cancelled> {
-    let mut plans_by_session = HashMap::new();
-    for plan in plans {
-        plans_by_session
-            .entry(plan.session.clone())
-            .or_insert(vec![])
-            .push(plan);
-    }
     let mut succesful_plans = vec![];
     let mut failed_plans: HashMap<String, String> = HashMap::new();
 
-    for (session, plans) in plans_by_session {
+    for (session, plans) in plans_by_sessions(plans) {
         let session_id = format!(
             "{}_{}",
             id,
@@ -416,11 +409,4 @@ fn run_command_spec_in_session(
             "Non-zero exit code, see stdio logs for details".into(),
         ))
     }
-}
-
-fn rcc_setup_failures_human_readable<'a>(failures: impl Iterator<Item = &'a String>) -> String {
-    failures
-        .map(|plan_id| plan_id.as_str())
-        .collect::<Vec<&str>>()
-        .join(", ")
 }

@@ -1,17 +1,34 @@
-use super::all_configured_users;
-use super::icacls::run_icacls_command;
+use super::{failed_plan_ids_human_readable, grant_permissions_to_all_plan_users};
 use crate::build::environment_building_working_directory;
-use crate::internal_config::{GlobalConfig, Plan};
+use crate::internal_config::{sort_plans_by_grouping, GlobalConfig, Plan};
 use anyhow::{Context, Result as AnyhowResult};
 use camino::{Utf8Path, Utf8PathBuf};
-use log::debug;
-use robotmk::results::plan_results_directory;
-use std::collections::HashSet;
+use log::{debug, error};
+use robotmk::results::{plan_results_directory, GeneralSetupFailures};
+use robotmk::section::WriteSection;
+use std::collections::{HashMap, HashSet};
 use std::fs::{create_dir_all, remove_file};
 
-pub fn setup(global_config: &GlobalConfig, plans: &[Plan]) -> AnyhowResult<()> {
-    setup_working_directories(&global_config.working_directory, plans)?;
-    setup_results_directories(global_config, plans)
+pub fn setup(global_config: &GlobalConfig, plans: Vec<Plan>) -> AnyhowResult<Vec<Plan>> {
+    setup_working_directories(&global_config.working_directory, &plans)?;
+    setup_results_directories(global_config, &plans)?;
+
+    let mut surviving_plans: Vec<Plan>;
+    let mut general_setup_failures = GeneralSetupFailures::default();
+    (
+        surviving_plans,
+        general_setup_failures.working_directory_permissions,
+    ) = adjust_working_directory_permissions(global_config, plans);
+
+    general_setup_failures.write(
+        global_config
+            .results_directory
+            .join("general_setup_failures.json"),
+        &global_config.results_directory_locker,
+    )?;
+
+    sort_plans_by_grouping(&mut surviving_plans);
+    Ok(surviving_plans)
 }
 
 fn setup_working_directories(working_directory: &Utf8Path, plans: &[Plan]) -> AnyhowResult<()> {
@@ -23,13 +40,7 @@ fn setup_working_directories(working_directory: &Utf8Path, plans: &[Plan]) -> An
         ))?;
     }
     create_dir_all(environment_building_working_directory(working_directory))
-        .context("Failed to create environment building working directory")?;
-
-    for user_name in all_configured_users(plans.iter()) {
-        adjust_working_directory_permissions(working_directory, user_name)
-            .context("Failed adjust working directory permissions")?;
-    }
-    Ok(())
+        .context("Failed to create environment building working directory")
 }
 
 fn setup_results_directories(global_config: &GlobalConfig, plans: &[Plan]) -> AnyhowResult<()> {
@@ -38,6 +49,31 @@ fn setup_results_directories(global_config: &GlobalConfig, plans: &[Plan]) -> An
     create_dir_all(plan_results_directory(&global_config.results_directory))
         .context("Failed to create plan results directory")?;
     clean_up_results_directory(global_config, plans).context("Failed to clean up results directory")
+}
+
+fn adjust_working_directory_permissions(
+    global_config: &GlobalConfig,
+    plans: Vec<Plan>,
+) -> (Vec<Plan>, HashMap<String, String>) {
+    debug!(
+        "Granting all plan users full access to {}",
+        global_config.working_directory
+    );
+    let (surviving_plans, failures_by_plan_id) = grant_permissions_to_all_plan_users(
+        &global_config.working_directory,
+        plans,
+        "(OI)(CI)F",
+        &["/T"],
+    );
+
+    if !failures_by_plan_id.is_empty() {
+        error!(
+            "Dropping the following plans due to failure to adjust working directory permissions: {}",
+            failed_plan_ids_human_readable(failures_by_plan_id.keys())
+        );
+    }
+
+    (surviving_plans, failures_by_plan_id)
 }
 
 fn clean_up_results_directory(global_config: &GlobalConfig, plans: &[Plan]) -> AnyhowResult<()> {
@@ -90,20 +126,4 @@ fn top_level_files(directory: &Utf8Path) -> AnyhowResult<Vec<Utf8PathBuf>> {
     }
 
     Ok(result_files)
-}
-
-fn adjust_working_directory_permissions(
-    working_directory: &Utf8Path,
-    user_name: &str,
-) -> AnyhowResult<()> {
-    debug!("Granting user `{user_name}` full access to {working_directory}");
-    run_icacls_command(vec![
-        working_directory.as_str(),
-        "/grant",
-        &format!("{user_name}:(OI)(CI)F"),
-        "/T",
-    ])
-    .context(format!(
-        "Adjusting permissions of {working_directory} for user `{user_name}` failed"
-    ))
 }
