@@ -14,7 +14,7 @@ pub struct Config {
     pub working_directory: Utf8PathBuf,
     pub results_directory: Utf8PathBuf,
     pub rcc_config: RCCConfig,
-    pub suite_groups: Vec<SequentialSuiteGroup>,
+    pub plan_groups: Vec<SequentialPlanGroup>,
 }
 
 #[derive(Clone, Debug, Deserialize, PartialEq, Serialize)]
@@ -36,13 +36,13 @@ pub struct CustomRCCProfileConfig {
 }
 
 #[derive(Clone, Debug, Deserialize, PartialEq, Serialize)]
-pub struct SequentialSuiteGroup {
-    pub suites: Vec<SuiteConfig>,
+pub struct SequentialPlanGroup {
+    pub plans: Vec<PlanConfig>,
     pub execution_interval: u64,
 }
 
 #[derive(Clone, Debug, Deserialize, PartialEq, Serialize)]
-pub struct SuiteConfig {
+pub struct PlanConfig {
     pub id: String,
     pub robot_config: RobotConfig,
     pub execution_config: ExecutionConfig,
@@ -50,7 +50,7 @@ pub struct SuiteConfig {
     pub session_config: SessionConfig,
     pub working_directory_cleanup_config: WorkingDirectoryCleanupConfig,
     pub host: Host,
-    pub metadata: SuiteMetadata,
+    pub metadata: PlanMetadata,
 }
 
 #[derive(Clone, Debug, Deserialize, PartialEq, Serialize)]
@@ -102,7 +102,7 @@ pub enum WorkingDirectoryCleanupConfig {
 }
 
 #[derive(Clone, Debug, Deserialize, PartialEq, Serialize)]
-pub struct SuiteMetadata {
+pub struct PlanMetadata {
     pub application: String,
     pub variant: String,
 }

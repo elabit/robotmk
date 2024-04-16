@@ -1,4 +1,4 @@
-use super::internal_config::{GlobalConfig, Suite};
+use super::internal_config::{GlobalConfig, Plan};
 use super::logging::log_and_return_error;
 use robotmk::environment::Environment;
 use robotmk::lock::Locker;
@@ -20,33 +20,33 @@ pub fn environment_building_working_directory(working_directory: &Utf8Path) -> U
 
 pub fn build_environments(
     global_config: &GlobalConfig,
-    suites: Vec<Suite>,
-) -> AnyhowResult<Vec<Suite>> {
+    plans: Vec<Plan>,
+) -> AnyhowResult<Vec<Plan>> {
     let mut build_stage_reporter = BuildStageReporter::new(
-        suites.iter().map(|suite| suite.id.as_ref()),
+        plans.iter().map(|plan| plan.id.as_ref()),
         &global_config.results_directory,
         &global_config.results_directory_locker,
     )?;
     let working_directory =
         environment_building_working_directory(&global_config.working_directory);
 
-    let mut completed_suites = Vec::new();
-    for suite in suites.into_iter() {
+    let mut completed_plans = Vec::new();
+    for plan in plans.into_iter() {
         let outcome = build_environment(
-            &suite.id,
-            &suite.environment,
-            &suite.session,
+            &plan.id,
+            &plan.environment,
+            &plan.session,
             &global_config.cancellation_token,
             &mut build_stage_reporter,
             &working_directory,
         )?;
         match outcome {
-            BuildOutcome::NotNeeded => completed_suites.push(suite),
-            BuildOutcome::Success(_) => completed_suites.push(suite),
+            BuildOutcome::NotNeeded => completed_plans.push(plan),
+            BuildOutcome::Success(_) => completed_plans.push(plan),
             _ => {}
         }
     }
-    Ok(completed_suites)
+    Ok(completed_plans)
 }
 
 fn build_environment(
@@ -59,11 +59,11 @@ fn build_environment(
 ) -> AnyhowResult<BuildOutcome> {
     let Some(build_instructions) = environment.build_instructions() else {
         let outcome = BuildOutcome::NotNeeded;
-        info!("Nothing to do for suite {id}");
+        info!("Nothing to do for plan {id}");
         build_stage_reporter.update(id, EnvironmentBuildStage::Complete(outcome.clone()))?;
         return Ok(outcome);
     };
-    info!("Building environment for suite {id}");
+    info!("Building environment for plan {id}");
     let run_spec = RunSpec {
         id: &format!("robotmk_env_building_{id}"),
         command_spec: &build_instructions.command_spec,
@@ -77,7 +77,7 @@ fn build_environment(
         EnvironmentBuildStage::InProgress(start_time.timestamp()),
     )?;
     let outcome = run_build_command(&run_spec, sesssion, start_time).context(format!(
-        "Received termination signal while building environment for suite {id}"
+        "Received termination signal while building environment for plan {id}"
     ))?;
     build_stage_reporter.update(id, EnvironmentBuildStage::Complete(outcome.clone()))?;
     Ok(outcome)
@@ -91,7 +91,7 @@ fn run_build_command(
     let outcome = match sesssion.run(run_spec) {
         Ok(o) => o,
         Err(e) => {
-            let e = e.context("Environment building failed, suite will be dropped");
+            let e = e.context("Environment building failed, plan will be dropped");
             let e = log_and_return_error(e);
             return Ok(BuildOutcome::Error(format!("{e:?}")));
         }
@@ -100,7 +100,7 @@ fn run_build_command(
     let exit_code = match outcome {
         Outcome::Completed(exit_code) => exit_code,
         Outcome::Timeout => {
-            error!("Environment building timed out, suite will be dropped");
+            error!("Environment building timed out, plan will be dropped");
             return Ok(BuildOutcome::Timeout);
         }
         Outcome::Cancel => {
@@ -112,7 +112,7 @@ fn run_build_command(
         info!("Environmenent building succeeded");
         Ok(BuildOutcome::Success(duration))
     } else {
-        error!("Environment building not sucessful, suite will be dropped");
+        error!("Environment building not sucessful, plan will be dropped");
         Ok(BuildOutcome::Error(
             "Environment building not sucessful, see stdio logs".into(),
         ))

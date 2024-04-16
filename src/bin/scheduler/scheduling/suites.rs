@@ -1,6 +1,6 @@
-use crate::internal_config::Suite;
+use crate::internal_config::Plan;
 use crate::logging::TIMESTAMP_FORMAT;
-use robotmk::results::{AttemptsConfig, SuiteExecutionReport};
+use robotmk::results::{AttemptsConfig, PlanExecutionReport};
 use robotmk::suites::run_attempts_with_rebot;
 
 use anyhow::{Context, Result as AnyhowResult};
@@ -9,52 +9,52 @@ use log::info;
 use robotmk::section::WritePiggybackSection;
 use std::fs::create_dir_all;
 
-pub fn run_suite(suite: &Suite) -> AnyhowResult<()> {
-    info!("Running suite {}", &suite.id);
-    produce_suite_results(suite)?
+pub fn run_plan(plan: &Plan) -> AnyhowResult<()> {
+    info!("Running plan {}", &plan.id);
+    produce_plan_results(plan)?
         .write(
-            &suite.results_file,
-            suite.host.clone(),
-            &suite.results_directory_locker,
+            &plan.results_file,
+            plan.host.clone(),
+            &plan.results_directory_locker,
         )
-        .context("Reporting suite results failed")?;
-    info!("Suite {} finished", &suite.id);
+        .context("Reporting plan results failed")?;
+    info!("Plan {} finished", &plan.id);
 
     Ok(())
 }
 
-fn produce_suite_results(suite: &Suite) -> AnyhowResult<SuiteExecutionReport> {
+fn produce_plan_results(plan: &Plan) -> AnyhowResult<PlanExecutionReport> {
     let timestamp = Utc::now();
-    let output_directory = suite
+    let output_directory = plan
         .working_directory
         .join(timestamp.format(TIMESTAMP_FORMAT).to_string());
 
     create_dir_all(&output_directory).context(format!(
-        "Failed to create directory for suite run: {}",
+        "Failed to create directory for plan run: {}",
         output_directory
     ))?;
 
     let (attempt_reports, rebot) = run_attempts_with_rebot(
-        &suite.robot,
-        &suite.id,
-        &suite.environment,
-        &suite.session,
-        suite.timeout,
-        &suite.cancellation_token,
+        &plan.robot,
+        &plan.id,
+        &plan.environment,
+        &plan.session,
+        plan.timeout,
+        &plan.cancellation_token,
         &output_directory,
     )
-    .context("Received termination signal while running suite")?;
+    .context("Received termination signal while running plan")?;
 
-    Ok(SuiteExecutionReport {
-        plan_id: suite.id.clone(),
+    Ok(PlanExecutionReport {
+        plan_id: plan.id.clone(),
         timestamp: timestamp.timestamp(),
         attempts: attempt_reports,
         rebot,
         config: AttemptsConfig {
-            interval: suite.group_affiliation.execution_interval,
-            timeout: suite.timeout,
-            n_attempts_max: suite.robot.n_attempts_max,
+            interval: plan.group_affiliation.execution_interval,
+            timeout: plan.timeout,
+            n_attempts_max: plan.robot.n_attempts_max,
         },
-        metadata: suite.metadata.clone(),
+        metadata: plan.metadata.clone(),
     })
 }

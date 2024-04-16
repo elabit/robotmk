@@ -3,7 +3,7 @@ use clap::{ArgAction, Parser};
 use flexi_logger::LogSpecification;
 
 #[derive(Parser)]
-#[command(about = "Robotmk suite scheduler.")]
+#[command(about = "Robotmk scheduler.")]
 pub struct Args {
     /// Configuration file path.
     #[arg(name = "CONFIG_PATH")]

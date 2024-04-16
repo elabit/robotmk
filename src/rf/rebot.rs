@@ -133,21 +133,21 @@ mod tests {
     #[test]
     fn build_rebot_command() {
         let rebot_command_spec = Rebot {
-            plan_id: "my_suite",
+            plan_id: "my_plan",
             environment: &Environment::new(
-                "my_suite",
+                "my_plan",
                 "/bin/rcc".into(),
                 &EnvironmentConfig::System,
             ),
             session: &Session::Current(CurrentSession {}),
-            working_directory: &Utf8PathBuf::from("/working/my_suite"),
+            working_directory: &Utf8PathBuf::from("/working/my_plan"),
             cancellation_token: &CancellationToken::default(),
             input_paths: &[
-                Utf8PathBuf::from("/working/my_suite/0.xml"),
-                Utf8PathBuf::from("/working/my_suite/1.xml"),
+                Utf8PathBuf::from("/working/my_plan/0.xml"),
+                Utf8PathBuf::from("/working/my_plan/1.xml"),
             ],
-            path_xml: &Utf8PathBuf::from("/working/my_suite/rebot.xml"),
-            path_html: &Utf8PathBuf::from("/working/my_suite/rebot.html"),
+            path_xml: &Utf8PathBuf::from("/working/my_plan/rebot.xml"),
+            path_html: &Utf8PathBuf::from("/working/my_plan/rebot.html"),
         }
         .build_rebot_command_spec();
         let mut expected = CommandSpec::new("python");
@@ -155,14 +155,14 @@ mod tests {
             .add_argument("-m")
             .add_argument("robot.rebot")
             .add_argument("--output")
-            .add_argument("/working/my_suite/rebot.xml")
+            .add_argument("/working/my_plan/rebot.xml")
             .add_argument("--log")
-            .add_argument("/working/my_suite/rebot.html")
+            .add_argument("/working/my_plan/rebot.html")
             .add_argument("--report")
             .add_argument("NONE")
             .add_argument("--merge")
-            .add_argument("/working/my_suite/0.xml")
-            .add_argument("/working/my_suite/1.xml");
+            .add_argument("/working/my_plan/0.xml")
+            .add_argument("/working/my_plan/1.xml");
         assert_eq!(rebot_command_spec, expected)
     }
 }

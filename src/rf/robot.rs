@@ -82,7 +82,7 @@ mod tests {
             .add_argument(output_directory.join("1.html"))
             .add_argument("--report")
             .add_argument("NONE")
-            .add_argument("~/suite/calculator.robot");
+            .add_argument("~/calculator_test/calculator.robot");
         expected
     }
 
@@ -101,7 +101,7 @@ mod tests {
             .add_argument(output_directory.join("2.html"))
             .add_argument("--report")
             .add_argument("NONE")
-            .add_argument("~/suite/calculator.robot");
+            .add_argument("~/calculator_test/calculator.robot");
         expected
     }
 
@@ -109,12 +109,13 @@ mod tests {
     fn create_complete_command_spec() {
         // Assemble
         let robot = Robot {
-            robot_target: "~/suite/calculator.robot".into(),
+            robot_target: "~/calculator_test/calculator.robot".into(),
             n_attempts_max: 1,
             command_line_args: vec![],
             retry_strategy: RetryStrategy::Complete,
         };
-        let output_directory = Utf8PathBuf::from("/tmp/my_suite/2023-08-29T12.23.44.419347+00.00");
+        let output_directory =
+            Utf8PathBuf::from("/tmp/calculator_plan/2023-08-29T12.23.44.419347+00.00");
         let expected = expected_first_run(&output_directory);
         // Act
         let command_spec =
@@ -127,12 +128,13 @@ mod tests {
     fn create_incremental_command_first() {
         // Assemble
         let robot = Robot {
-            robot_target: "~/suite/calculator.robot".into(),
+            robot_target: "~/calculator_test/calculator.robot".into(),
             n_attempts_max: 2,
             command_line_args: vec![],
             retry_strategy: RetryStrategy::Incremental,
         };
-        let output_directory = Utf8PathBuf::from("/tmp/my_suite/2023-08-29T12.23.44.419347+00.00");
+        let output_directory =
+            Utf8PathBuf::from("/tmp/calculator_plan/2023-08-29T12.23.44.419347+00.00");
         let expected = expected_first_run(&output_directory);
         // Act
         let command_spec =
@@ -145,12 +147,13 @@ mod tests {
     fn create_incremental_command_second() {
         // Assemble
         let robot = Robot {
-            robot_target: "~/suite/calculator.robot".into(),
+            robot_target: "~/calculator_test/calculator.robot".into(),
             n_attempts_max: 2,
             command_line_args: vec![],
             retry_strategy: RetryStrategy::Incremental,
         };
-        let output_directory = Utf8PathBuf::from("/tmp/my_suite/2023-08-29T12.23.44.419347+00.00");
+        let output_directory =
+            Utf8PathBuf::from("/tmp/calculator_plan/2023-08-29T12.23.44.419347+00.00");
         let expected = expected_second_run(&output_directory);
         // Act
         let command_spec =
@@ -163,13 +166,13 @@ mod tests {
     fn create_two_attempts() {
         // Assemble
         let robot = Robot {
-            robot_target: "~/suite/calculator.robot".into(),
+            robot_target: "~/calculator_test/calculator.robot".into(),
             n_attempts_max: 2,
             command_line_args: vec![],
             retry_strategy: RetryStrategy::Incremental,
         };
         let output_directory =
-            Utf8PathBuf::from("/tmp/outputdir/suite_1/2023-08-29T12.23.44.419347+00.00");
+            Utf8PathBuf::from("/tmp/outputdir/plan_1/2023-08-29T12.23.44.419347+00.00");
         let first_attempt = Attempt {
             index: 1,
             command_spec: expected_first_run(&output_directory),

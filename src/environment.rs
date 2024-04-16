@@ -169,7 +169,7 @@ mod tests {
             .add_argument("--controller")
             .add_argument("robotmk")
             .add_argument("--space")
-            .add_argument("my_suite")
+            .add_argument("my_plan")
             .add_argument("--")
             .add_argument("/bin/rcc")
             .add_argument("-v");
@@ -179,7 +179,7 @@ mod tests {
                 binary_path: Utf8PathBuf::from("/bin/rcc"),
                 robot_yaml_path: Utf8PathBuf::from("/a/b/c/robot.yaml"),
                 controller: String::from("robotmk"),
-                space: String::from("my_suite"),
+                space: String::from("my_plan"),
                 build_timeout: 123,
             }
             .build_instructions()
@@ -217,11 +217,11 @@ mod tests {
             .add_argument("script")
             .add_argument("--no-build")
             .add_argument("--robot")
-            .add_argument("C:\\my_suite\\robot.yaml")
+            .add_argument("C:\\some_synthetic_test\\robot.yaml")
             .add_argument("--controller")
             .add_argument("robotmk")
             .add_argument("--space")
-            .add_argument("my_suite")
+            .add_argument("my_plan")
             .add_argument("--")
             .add_argument("C:\\x\\y\\z.exe")
             .add_argument("arg1")
@@ -231,9 +231,9 @@ mod tests {
         assert_eq!(
             RCCEnvironment {
                 binary_path: Utf8PathBuf::from("C:\\bin\\z.exe"),
-                robot_yaml_path: Utf8PathBuf::from("C:\\my_suite\\robot.yaml"),
+                robot_yaml_path: Utf8PathBuf::from("C:\\some_synthetic_test\\robot.yaml"),
                 controller: String::from("robotmk"),
-                space: String::from("my_suite"),
+                space: String::from("my_plan"),
                 build_timeout: 600,
             }
             .wrap(command_spec_for_wrap()),

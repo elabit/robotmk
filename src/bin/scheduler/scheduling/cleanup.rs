@@ -1,4 +1,4 @@
-use crate::internal_config::Suite;
+use crate::internal_config::Plan;
 use crate::log_and_return_error;
 use robotmk::config::WorkingDirectoryCleanupConfig;
 
@@ -9,19 +9,19 @@ use std::cmp::min;
 use std::fs::{remove_dir_all, remove_file};
 use std::time::{SystemTime, UNIX_EPOCH};
 
-pub fn cleanup_working_directories<'a>(suites: impl Iterator<Item = &'a Suite>) {
-    for suite in suites {
+pub fn cleanup_working_directories<'a>(plans: impl Iterator<Item = &'a Plan>) {
+    for plan in plans {
         info!(
-            "Cleaning up working directory {} of suite {}",
-            suite.working_directory, suite.id
+            "Cleaning up working directory {} of plan {}",
+            plan.working_directory, plan.id
         );
         let _ = cleanup_working_directory(
-            &suite.working_directory,
-            &suite.working_directory_cleanup_config,
+            &plan.working_directory,
+            &plan.working_directory_cleanup_config,
         )
         .context(format!(
-            "Error while cleaning up working directory of suite {}",
-            suite.id
+            "Error while cleaning up working directory of plan {}",
+            plan.id
         ))
         .map_err(log_and_return_error);
     }

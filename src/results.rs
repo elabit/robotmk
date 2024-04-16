@@ -1,11 +1,11 @@
-use crate::config::SuiteMetadata;
+use crate::config::PlanMetadata;
 use crate::section::{WritePiggybackSection, WriteSection};
 use camino::{Utf8Path, Utf8PathBuf};
 use serde::Serialize;
 use std::collections::HashMap;
 
-pub fn suite_results_directory(results_directory: &Utf8Path) -> Utf8PathBuf {
-    results_directory.join("suites")
+pub fn plan_results_directory(results_directory: &Utf8Path) -> Utf8PathBuf {
+    results_directory.join("plans")
 }
 
 #[derive(Serialize)]
@@ -62,18 +62,18 @@ pub enum EnvironmentBuildStage {
 }
 
 #[derive(Serialize)]
-pub struct SuiteExecutionReport {
+pub struct PlanExecutionReport {
     pub plan_id: String,
     pub timestamp: i64,
     pub attempts: Vec<AttemptReport>,
     pub rebot: Option<RebotOutcome>,
     pub config: AttemptsConfig,
-    pub metadata: SuiteMetadata,
+    pub metadata: PlanMetadata,
 }
 
-impl WritePiggybackSection for SuiteExecutionReport {
+impl WritePiggybackSection for PlanExecutionReport {
     fn name() -> &'static str {
-        "robotmk_suite_execution_report"
+        "robotmk_plan_execution_report"
     }
 }
 
