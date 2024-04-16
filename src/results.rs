@@ -33,8 +33,10 @@ impl WriteSection for GeneralSetupFailures {
     }
 }
 
-#[derive(Serialize)]
+#[derive(Default, Serialize)]
 pub struct RCCSetupFailures {
+    pub binary_permissions: HashMap<String, String>,
+    pub profile_permissions: HashMap<String, String>,
     pub telemetry_disabling: HashMap<String, String>,
     pub profile_configuring: HashMap<String, String>,
     pub long_path_support: HashMap<String, String>,
