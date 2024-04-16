@@ -1,5 +1,6 @@
-use super::icacls::run_icacls_command;
-use super::{all_configured_users, failed_plan_ids_human_readable, plans_by_sessions};
+use super::{
+    failed_plan_ids_human_readable, grant_permissions_to_all_plan_users, plans_by_sessions,
+};
 use crate::internal_config::{sort_plans_by_grouping, GlobalConfig, Plan};
 use crate::logging::log_and_return_error;
 use robotmk::command_spec::CommandSpec;
@@ -12,7 +13,7 @@ use anyhow::{Context, Result as AnyhowResult};
 use camino::{Utf8Path, Utf8PathBuf};
 use log::{debug, error};
 use robotmk::{
-    config::{CustomRCCProfileConfig, RCCProfileConfig},
+    config::{CustomRCCProfileConfig, RCCConfig, RCCProfileConfig},
     section::WriteSection,
 };
 use std::collections::HashMap;
@@ -20,48 +21,40 @@ use std::fs::{create_dir_all, remove_dir_all};
 use std::vec;
 
 pub fn setup(global_config: &GlobalConfig, plans: Vec<Plan>) -> AnyhowResult<Vec<Plan>> {
-    let (rcc_plans, mut surviving_plans): (Vec<Plan>, Vec<Plan>) = plans
+    let (rcc_plans, mut system_plans): (Vec<Plan>, Vec<Plan>) = plans
         .into_iter()
         .partition(|plan| matches!(plan.environment, Environment::Rcc(_)));
 
     if rcc_plans.is_empty() {
-        sort_plans_by_grouping(&mut surviving_plans);
-        return Ok(surviving_plans);
+        sort_plans_by_grouping(&mut system_plans);
+        return Ok(system_plans);
     }
 
-    let all_configured_users_rcc = all_configured_users(rcc_plans.iter());
-
-    for user_name in &all_configured_users_rcc {
-        adjust_rcc_binary_permissions(&global_config.rcc_config.binary_path, user_name)
-            .context("Failed to adjust permissions of RCC binary")?;
-    }
     clear_rcc_setup_working_directory(&rcc_setup_working_directory(
         &global_config.working_directory,
     ))?;
-    if let RCCProfileConfig::Custom(custom_rcc_profile_config) =
-        &global_config.rcc_config.profile_config
-    {
-        for user_name in &all_configured_users_rcc {
-            adjust_rcc_profile_permissions(&custom_rcc_profile_config.path, user_name)
-                .context("Failed to adjust permissions of RCC profile")?;
-        }
-    }
 
-    surviving_plans.append(&mut rcc_setup(global_config, rcc_plans)?);
+    let mut rcc_setup_failures = RCCSetupFailures::default();
+    let surviving_rcc_plans = adjust_rcc_file_permissions(
+        &global_config.rcc_config,
+        rcc_plans,
+        &mut rcc_setup_failures,
+    );
+    let surviving_rcc_plans =
+        rcc_setup(global_config, surviving_rcc_plans, &mut rcc_setup_failures)?;
+
+    rcc_setup_failures.write(
+        global_config
+            .results_directory
+            .join("rcc_setup_failures.json"),
+        &global_config.results_directory_locker,
+    )?;
+
+    let mut surviving_plans = vec![];
+    surviving_plans.extend(surviving_rcc_plans);
+    surviving_plans.extend(system_plans);
     sort_plans_by_grouping(&mut surviving_plans);
     Ok(surviving_plans)
-}
-
-fn adjust_rcc_binary_permissions(executable_path: &Utf8Path, user_name: &str) -> AnyhowResult<()> {
-    debug!("Granting user `{user_name}` read and execute access to {executable_path}");
-    run_icacls_command(vec![
-        executable_path.as_str(),
-        "/grant",
-        &format!("{user_name}:(RX)"),
-    ])
-    .context(format!(
-        "Adjusting permissions of {executable_path} for user `{user_name}` failed",
-    ))
 }
 
 fn clear_rcc_setup_working_directory(working_directory: &Utf8Path) -> AnyhowResult<()> {
@@ -79,27 +72,55 @@ fn rcc_setup_working_directory(working_directory: &Utf8Path) -> Utf8PathBuf {
     working_directory.join("rcc_setup")
 }
 
-fn adjust_rcc_profile_permissions(profile_path: &Utf8Path, user_name: &str) -> AnyhowResult<()> {
-    debug!("Granting user `{user_name}` read access to {profile_path}");
-    run_icacls_command(vec![
-        profile_path.as_str(),
-        "/grant",
-        &format!("{user_name}:(R)"),
-    ])
-    .context(format!(
-        "Adjusting permissions of {profile_path} for user `{user_name}` failed",
-    ))
+fn adjust_rcc_file_permissions(
+    rcc_config: &RCCConfig,
+    rcc_plans: Vec<Plan>,
+    rcc_setup_failures: &mut RCCSetupFailures,
+) -> Vec<Plan> {
+    let mut surviving_rcc_plans: Vec<Plan>;
+
+    debug!(
+        "Granting all plan users read and execute access to {}",
+        rcc_config.binary_path
+    );
+    (surviving_rcc_plans, rcc_setup_failures.binary_permissions) =
+        grant_permissions_to_all_plan_users(&rcc_config.binary_path, rcc_plans, "(RX)", &[]);
+    if !rcc_setup_failures.binary_permissions.is_empty() {
+        error!(
+            "Dropping the following plans due to failure to adjust RCC binary permissions: {}",
+            failed_plan_ids_human_readable(rcc_setup_failures.binary_permissions.keys())
+        );
+    }
+
+    if let RCCProfileConfig::Custom(custom_rcc_profile_config) = &rcc_config.profile_config {
+        debug!(
+            "Granting all plan users read access to {}",
+            custom_rcc_profile_config.path
+        );
+        (surviving_rcc_plans, rcc_setup_failures.profile_permissions) =
+            grant_permissions_to_all_plan_users(
+                &custom_rcc_profile_config.path,
+                surviving_rcc_plans,
+                "(R)",
+                &[],
+            );
+        if !rcc_setup_failures.profile_permissions.is_empty() {
+            error!(
+                "Dropping the following plans due to failure to adjust RCC profile permissions: {}",
+                failed_plan_ids_human_readable(rcc_setup_failures.profile_permissions.keys())
+            );
+        }
+    }
+
+    surviving_rcc_plans
 }
 
-fn rcc_setup(global_config: &GlobalConfig, rcc_plans: Vec<Plan>) -> AnyhowResult<Vec<Plan>> {
+fn rcc_setup(
+    global_config: &GlobalConfig,
+    rcc_plans: Vec<Plan>,
+    rcc_setup_failures: &mut RCCSetupFailures,
+) -> AnyhowResult<Vec<Plan>> {
     let mut sucessful_plans: Vec<Plan>;
-    let mut rcc_setup_failures = RCCSetupFailures {
-        telemetry_disabling: HashMap::new(),
-        profile_configuring: HashMap::new(),
-        long_path_support: HashMap::new(),
-        shared_holotree: HashMap::new(),
-        holotree_init: HashMap::new(),
-    };
 
     debug!("Disabling RCC telemetry");
     (sucessful_plans, rcc_setup_failures.telemetry_disabling) =
@@ -155,11 +176,6 @@ fn rcc_setup(global_config: &GlobalConfig, rcc_plans: Vec<Plan>) -> AnyhowResult
             failed_plan_ids_human_readable(rcc_setup_failures.holotree_init.keys())
         );
     }
-
-    let path = global_config
-        .results_directory
-        .join("rcc_setup_failures.json");
-    rcc_setup_failures.write(path, &global_config.results_directory_locker)?;
 
     Ok(sucessful_plans)
 }

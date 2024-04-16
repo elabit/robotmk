@@ -8,18 +8,7 @@ use anyhow::Context;
 use camino::Utf8Path;
 use icacls::run_icacls_command;
 use robotmk::session::Session;
-use std::collections::{HashMap, HashSet};
-
-fn all_configured_users<'a>(plans: impl Iterator<Item = &'a Plan>) -> Vec<&'a str> {
-    let all_users_unique: HashSet<&str> =
-        HashSet::from_iter(plans.filter_map(|plan| match &plan.session {
-            Session::Current(_) => None,
-            Session::User(user_session) => Some(user_session.user_name.as_str()),
-        }));
-    let mut all_users_sorted: Vec<&str> = all_users_unique.into_iter().collect();
-    all_users_sorted.sort();
-    all_users_sorted
-}
+use std::collections::HashMap;
 
 fn plans_by_sessions(plans: Vec<Plan>) -> HashMap<Session, Vec<Plan>> {
     let mut plans_by_session = HashMap::new();
