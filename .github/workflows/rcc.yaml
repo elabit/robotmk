@@ -5,7 +5,7 @@ on:
   workflow_call: {}
 
 env:
-  RCC_TAG: "b18cdacf4cd9dbc1c921b2c0acc1ab9e7d02dae9"  # Update omd/Licenses.csv in the Checkmk repo when changing this.
+  RCC_TAG: "v17.18.0"  # Update omd/Licenses.csv in the Checkmk repo when changing this.
   GO_VERSION: "1.20.x"
   RUBY_VERSION: "2.7"
 
