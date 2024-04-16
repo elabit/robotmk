@@ -2,9 +2,9 @@ use anyhow::Result as AnyhowResult;
 use assert_cmd::cargo::cargo_bin;
 use camino::{Utf8Path, Utf8PathBuf};
 use robotmk::config::{
-    Config, CustomRCCProfileConfig, EnvironmentConfig, ExecutionConfig, RCCConfig,
-    RCCEnvironmentConfig, RCCProfileConfig, RetryStrategy, RobotConfig, SequentialSuiteGroup,
-    SessionConfig, SuiteConfig, SuiteMetadata, UserSessionConfig, WorkingDirectoryCleanupConfig,
+    Config, CustomRCCProfileConfig, EnvironmentConfig, ExecutionConfig, PlanConfig, PlanMetadata,
+    RCCConfig, RCCEnvironmentConfig, RCCProfileConfig, RetryStrategy, RobotConfig,
+    SequentialPlanGroup, SessionConfig, UserSessionConfig, WorkingDirectoryCleanupConfig,
 };
 use robotmk::section::Host;
 use serde_json::to_string;
@@ -73,10 +73,10 @@ fn create_config(
         working_directory: test_dir.join("working"),
         results_directory: test_dir.join("results"),
         rcc_config,
-        suite_groups: vec![
-            SequentialSuiteGroup {
-                suites: vec![
-                    SuiteConfig {
+        plan_groups: vec![
+            SequentialPlanGroup {
+                plans: vec![
+                    PlanConfig {
                         id: "rcc_headless".into(),
                         robot_config: RobotConfig {
                             robot_target: suite_dir.join("tasks.robot"),
@@ -95,12 +95,12 @@ fn create_config(
                         working_directory_cleanup_config:
                             WorkingDirectoryCleanupConfig::MaxExecutions(4),
                         host: Host::Source,
-                        metadata: SuiteMetadata {
+                        metadata: PlanMetadata {
                             application: "app1".into(),
                             variant: "".into(),
                         },
                     },
-                    SuiteConfig {
+                    PlanConfig {
                         id: "rcc_headed".into(),
                         robot_config: RobotConfig {
                             robot_target: suite_dir.join("tasks.robot"),
@@ -122,7 +122,7 @@ fn create_config(
                             120,
                         ),
                         host: Host::Source,
-                        metadata: SuiteMetadata {
+                        metadata: PlanMetadata {
                             application: "app2".into(),
                             variant: "".into(),
                         },
@@ -133,8 +133,8 @@ fn create_config(
             // Note: For our test, it doesn't matter if the suite can be executed on the target
             // system. We are not checking for success. So even on systems with no Python, the test
             // will succeed.
-            SequentialSuiteGroup {
-                suites: vec![SuiteConfig {
+            SequentialPlanGroup {
+                plans: vec![PlanConfig {
                     id: "no_rcc".into(),
                     robot_config: RobotConfig {
                         robot_target: suite_dir.join("tasks.robot"),
@@ -151,7 +151,7 @@ fn create_config(
                         4,
                     ),
                     host: Host::Piggyback("oink".into()),
-                    metadata: SuiteMetadata {
+                    metadata: PlanMetadata {
                         application: "app3".into(),
                         variant: "".into(),
                     },
@@ -206,7 +206,7 @@ async fn assert_working_directory(
     assert!(working_directory.is_dir());
     assert_eq!(
         directory_entries(working_directory, 1),
-        ["environment_building", "rcc_setup", "suites"]
+        ["environment_building", "plans", "rcc_setup"]
     );
     assert_eq!(
         directory_entries(working_directory.join("rcc_setup"), 1),
@@ -253,21 +253,21 @@ async fn assert_working_directory(
         ]
     );
     assert_eq!(
-        directory_entries(working_directory.join("suites"), 1),
+        directory_entries(working_directory.join("plans"), 1),
         ["no_rcc", "rcc_headed", "rcc_headless"]
     );
 
     // We expliclitly don't check for the rebot files in the case without RCC, since this must also
     // work on systems that don't have the necessary Python environment.
-    assert!(!directory_entries(working_directory.join("suites").join("no_rcc"), 1).is_empty());
+    assert!(!directory_entries(working_directory.join("plans").join("no_rcc"), 1).is_empty());
 
     let entries_rcc_headed =
-        directory_entries(working_directory.join("suites").join("rcc_headed"), 2).join("");
+        directory_entries(working_directory.join("plans").join("rcc_headed"), 2).join("");
     assert!(entries_rcc_headed.contains("rebot.xml"));
     assert!(entries_rcc_headed.contains("1.bat"));
 
     let entries_rcc_headless =
-        directory_entries(working_directory.join("suites").join("rcc_headless"), 2).join("");
+        directory_entries(working_directory.join("plans").join("rcc_headless"), 2).join("");
     assert!(entries_rcc_headless.contains("rebot.xml"));
     assert!(!entries_rcc_headless.contains("1.bat"));
 
@@ -287,12 +287,12 @@ fn assert_results_directory(results_directory: &Utf8Path) {
         directory_entries(results_directory, 2),
         [
             "environment_build_states.json",
+            "plans",
+            "plans\\no_rcc.json",
+            "plans\\rcc_headed.json",
+            "plans\\rcc_headless.json",
             "rcc_setup_failures.json",
             "scheduler_phase.json",
-            "suites",
-            "suites\\no_rcc.json",
-            "suites\\rcc_headed.json",
-            "suites\\rcc_headless.json"
         ]
     );
 }

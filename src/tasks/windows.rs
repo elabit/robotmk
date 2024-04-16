@@ -271,12 +271,12 @@ mod tests {
     #[test]
     fn paths_from_base_path() {
         assert_eq!(
-            Paths::from(Utf8PathBuf::from("C:\\working\\suites\\my_suite\\123\\0").as_ref()),
+            Paths::from(Utf8PathBuf::from("C:\\working\\plans\\my_plan\\123\\0").as_ref()),
             Paths {
-                script: Utf8PathBuf::from("C:\\working\\suites\\my_suite\\123\\0.bat"),
-                stdout: Utf8PathBuf::from("C:\\working\\suites\\my_suite\\123\\0.stdout"),
-                stderr: Utf8PathBuf::from("C:\\working\\suites\\my_suite\\123\\0.stderr"),
-                exit_code: Utf8PathBuf::from("C:\\working\\suites\\my_suite\\123\\0.exit_code"),
+                script: Utf8PathBuf::from("C:\\working\\plans\\my_plan\\123\\0.bat"),
+                stdout: Utf8PathBuf::from("C:\\working\\plans\\my_plan\\123\\0.stdout"),
+                stderr: Utf8PathBuf::from("C:\\working\\plans\\my_plan\\123\\0.stderr"),
+                exit_code: Utf8PathBuf::from("C:\\working\\plans\\my_plan\\123\\0.exit_code"),
             }
         )
     }
@@ -322,13 +322,13 @@ mod tests {
             build_task_script(
                 "robotmk_task",
                 &command_spec,
-                &Paths::from(Utf8PathBuf::from("C:\\working\\suites\\my_suite\\123\\0").as_ref())
+                &Paths::from(Utf8PathBuf::from("C:\\working\\plans\\my_plan\\123\\0").as_ref())
             ),
             "@echo off
 echo Robotmk: running task robotmk_task. Please do not close this window.
 \"C:\\\\somewhere\\\\rcc.exe\" \"mandatory\" \"--some-flag\" \"--some-option\" \"some-value\" \
-> C:\\working\\suites\\my_suite\\123\\0.stdout 2> C:\\working\\suites\\my_suite\\123\\0.stderr
-echo %errorlevel% > C:\\working\\suites\\my_suite\\123\\0.exit_code"
+> C:\\working\\plans\\my_plan\\123\\0.stdout 2> C:\\working\\plans\\my_plan\\123\\0.stderr
+echo %errorlevel% > C:\\working\\plans\\my_plan\\123\\0.exit_code"
         )
     }
 

@@ -36,7 +36,7 @@ fn run() -> AnyhowResult<()> {
         .context("Failed to set up termination control")?;
     info!("Termination control set up");
 
-    let (global_config, suites) = internal_config::from_external_config(
+    let (global_config, plans) = internal_config::from_external_config(
         external_config,
         cancellation_token.clone(),
         Locker::new(&args.config_path, Some(&cancellation_token)),
@@ -46,7 +46,7 @@ fn run() -> AnyhowResult<()> {
         bail!("Terminated")
     }
 
-    setup::general::setup(&global_config, &suites).context("General setup failed")?;
+    setup::general::setup(&global_config, &plans).context("General setup failed")?;
     info!("General setup completed");
 
     if let Some(grace_period) = args.grace_period {
@@ -58,7 +58,7 @@ fn run() -> AnyhowResult<()> {
     }
 
     write_phase(&SchedulerPhase::RCCSetup, &global_config)?;
-    let suites = setup::rcc::setup(&global_config, suites).context("RCC-specific setup failed")?;
+    let plans = setup::rcc::setup(&global_config, plans).context("RCC-specific setup failed")?;
     info!("RCC-specific setup completed");
 
     if global_config.cancellation_token.is_cancelled() {
@@ -67,16 +67,16 @@ fn run() -> AnyhowResult<()> {
 
     info!("Starting environment building");
     write_phase(&SchedulerPhase::EnvironmentBuilding, &global_config)?;
-    let suites = build::build_environments(&global_config, suites)?;
+    let plans = build::build_environments(&global_config, plans)?;
     info!("Environment building finished");
 
     if global_config.cancellation_token.is_cancelled() {
         bail!("Terminated")
     }
 
-    info!("Starting suite scheduling");
+    info!("Starting plan scheduling");
     write_phase(&SchedulerPhase::Scheduling, &global_config)?;
-    scheduling::scheduler::run_suites_and_cleanup(&global_config, &suites).context("Terminated")
+    scheduling::scheduler::run_plans_and_cleanup(&global_config, &plans).context("Terminated")
 }
 
 fn write_phase(

@@ -1,7 +1,7 @@
-use robotmk::config::{Config, RCCConfig, SuiteMetadata, WorkingDirectoryCleanupConfig};
+use robotmk::config::{Config, PlanMetadata, RCCConfig, WorkingDirectoryCleanupConfig};
 use robotmk::environment::Environment;
 use robotmk::lock::Locker;
-use robotmk::results::suite_results_directory;
+use robotmk::results::plan_results_directory;
 use robotmk::rf::robot::Robot;
 use robotmk::section::Host;
 use robotmk::session::Session;
@@ -18,7 +18,7 @@ pub struct GlobalConfig {
 }
 
 #[derive(Clone)]
-pub struct Suite {
+pub struct Plan {
     pub id: String,
     pub working_directory: Utf8PathBuf,
     pub results_file: Utf8PathBuf,
@@ -30,7 +30,7 @@ pub struct Suite {
     pub cancellation_token: CancellationToken,
     pub host: Host,
     pub results_directory_locker: Locker,
-    pub metadata: SuiteMetadata,
+    pub metadata: PlanMetadata,
     pub group_affiliation: GroupAffiliation,
 }
 
@@ -45,40 +45,40 @@ pub fn from_external_config(
     external_config: Config,
     cancellation_token: CancellationToken,
     results_directory_locker: Locker,
-) -> (GlobalConfig, Vec<Suite>) {
-    let mut suites = vec![];
+) -> (GlobalConfig, Vec<Plan>) {
+    let mut plans = vec![];
 
-    for (group_index, sequential_group) in external_config.suite_groups.into_iter().enumerate() {
-        for (suite_index, suite_config) in sequential_group.suites.into_iter().enumerate() {
-            suites.push(Suite {
-                id: suite_config.id.clone(),
+    for (group_index, sequential_group) in external_config.plan_groups.into_iter().enumerate() {
+        for (plan_index, plan_config) in sequential_group.plans.into_iter().enumerate() {
+            plans.push(Plan {
+                id: plan_config.id.clone(),
                 working_directory: external_config
                     .working_directory
-                    .join("suites")
-                    .join(&suite_config.id),
-                results_file: suite_results_directory(&external_config.results_directory)
-                    .join(format!("{}.json", suite_config.id)),
-                timeout: suite_config.execution_config.timeout,
+                    .join("plans")
+                    .join(&plan_config.id),
+                results_file: plan_results_directory(&external_config.results_directory)
+                    .join(format!("{}.json", plan_config.id)),
+                timeout: plan_config.execution_config.timeout,
                 robot: Robot {
-                    robot_target: suite_config.robot_config.robot_target,
-                    command_line_args: suite_config.robot_config.command_line_args,
-                    n_attempts_max: suite_config.execution_config.n_attempts_max,
-                    retry_strategy: suite_config.execution_config.retry_strategy,
+                    robot_target: plan_config.robot_config.robot_target,
+                    command_line_args: plan_config.robot_config.command_line_args,
+                    n_attempts_max: plan_config.execution_config.n_attempts_max,
+                    retry_strategy: plan_config.execution_config.retry_strategy,
                 },
                 environment: Environment::new(
-                    &suite_config.id,
+                    &plan_config.id,
                     &external_config.rcc_config.binary_path,
-                    &suite_config.environment_config,
+                    &plan_config.environment_config,
                 ),
-                session: Session::new(&suite_config.session_config),
-                working_directory_cleanup_config: suite_config.working_directory_cleanup_config,
+                session: Session::new(&plan_config.session_config),
+                working_directory_cleanup_config: plan_config.working_directory_cleanup_config,
                 cancellation_token: cancellation_token.clone(),
-                host: suite_config.host,
+                host: plan_config.host,
                 results_directory_locker: results_directory_locker.clone(),
-                metadata: suite_config.metadata,
+                metadata: plan_config.metadata,
                 group_affiliation: GroupAffiliation {
                     group_index,
-                    position_in_group: suite_index,
+                    position_in_group: plan_index,
                     execution_interval: sequential_group.execution_interval,
                 },
             });
@@ -92,15 +92,15 @@ pub fn from_external_config(
             cancellation_token,
             results_directory_locker,
         },
-        suites,
+        plans,
     )
 }
 
-pub fn sort_suites_by_grouping(suites: &mut [Suite]) {
-    suites.sort_by_key(|suite| {
+pub fn sort_plans_by_grouping(plans: &mut [Plan]) {
+    plans.sort_by_key(|plan| {
         (
-            suite.group_affiliation.group_index,
-            suite.group_affiliation.position_in_group,
+            plan.group_affiliation.group_index,
+            plan.group_affiliation.position_in_group,
         )
     });
 }
@@ -109,17 +109,17 @@ pub fn sort_suites_by_grouping(suites: &mut [Suite]) {
 mod tests {
     use super::*;
     use robotmk::config::{
-        CustomRCCProfileConfig, EnvironmentConfig, ExecutionConfig, RCCEnvironmentConfig,
-        RCCProfileConfig, RetryStrategy, RobotConfig, SequentialSuiteGroup, SessionConfig,
-        SuiteConfig, UserSessionConfig,
+        CustomRCCProfileConfig, EnvironmentConfig, ExecutionConfig, PlanConfig,
+        RCCEnvironmentConfig, RCCProfileConfig, RetryStrategy, RobotConfig, SequentialPlanGroup,
+        SessionConfig, UserSessionConfig,
     };
     use robotmk::environment::{Environment, RCCEnvironment, SystemEnvironment};
 
-    fn system_suite_config() -> SuiteConfig {
-        SuiteConfig {
+    fn system_plan_config() -> PlanConfig {
+        PlanConfig {
             id: "system".into(),
             robot_config: RobotConfig {
-                robot_target: Utf8PathBuf::from("/suite/system/tasks.robot"),
+                robot_target: Utf8PathBuf::from("/synthetic_tests/system/tasks.robot"),
                 command_line_args: vec![],
             },
             execution_config: ExecutionConfig {
@@ -131,18 +131,18 @@ mod tests {
             session_config: SessionConfig::Current,
             working_directory_cleanup_config: WorkingDirectoryCleanupConfig::MaxAgeSecs(1209600),
             host: Host::Source,
-            metadata: SuiteMetadata {
+            metadata: PlanMetadata {
                 application: "sys_app".into(),
                 variant: "".into(),
             },
         }
     }
 
-    fn rcc_suite_config() -> SuiteConfig {
-        SuiteConfig {
+    fn rcc_plan_config() -> PlanConfig {
+        PlanConfig {
             id: "rcc".into(),
             robot_config: RobotConfig {
-                robot_target: Utf8PathBuf::from("/suite/rcc/tasks.robot"),
+                robot_target: Utf8PathBuf::from("/synthetic_tests/rcc/tasks.robot"),
                 command_line_args: vec![],
             },
             execution_config: ExecutionConfig {
@@ -151,7 +151,7 @@ mod tests {
                 timeout: 60,
             },
             environment_config: EnvironmentConfig::Rcc(RCCEnvironmentConfig {
-                robot_yaml_path: Utf8PathBuf::from("/suite/rcc/robot.yaml"),
+                robot_yaml_path: Utf8PathBuf::from("/synthetic_tests/rcc/robot.yaml"),
                 build_timeout: 300,
             }),
             session_config: SessionConfig::SpecificUser(UserSessionConfig {
@@ -159,7 +159,7 @@ mod tests {
             }),
             working_directory_cleanup_config: WorkingDirectoryCleanupConfig::MaxExecutions(50),
             host: Host::Source,
-            metadata: SuiteMetadata {
+            metadata: PlanMetadata {
                 application: "rcc_app".into(),
                 variant: "".into(),
             },
@@ -169,7 +169,7 @@ mod tests {
     #[test]
     fn test_from_external_config() {
         let cancellation_token = CancellationToken::new();
-        let (global_config, suites) = from_external_config(
+        let (global_config, plans) = from_external_config(
             Config {
                 working_directory: Utf8PathBuf::from("/working"),
                 results_directory: Utf8PathBuf::from("/results"),
@@ -180,13 +180,13 @@ mod tests {
                         path: "/rcc_profile_robotmk.yaml".into(),
                     }),
                 },
-                suite_groups: vec![
-                    SequentialSuiteGroup {
-                        suites: vec![rcc_suite_config()],
+                plan_groups: vec![
+                    SequentialPlanGroup {
+                        plans: vec![rcc_plan_config()],
                         execution_interval: 300,
                     },
-                    SequentialSuiteGroup {
-                        suites: vec![system_suite_config()],
+                    SequentialPlanGroup {
+                        plans: vec![system_plan_config()],
                         execution_interval: 300,
                     },
                 ],
@@ -206,79 +206,79 @@ mod tests {
                 }),
             }
         );
-        assert_eq!(suites.len(), 2);
-        assert_eq!(suites[0].id, "rcc");
-        assert_eq!(suites[0].working_directory, "/working/suites/rcc");
-        assert_eq!(suites[0].results_file, "/results/suites/rcc.json");
-        assert_eq!(suites[0].timeout, 60);
+        assert_eq!(plans.len(), 2);
+        assert_eq!(plans[0].id, "rcc");
+        assert_eq!(plans[0].working_directory, "/working/plans/rcc");
+        assert_eq!(plans[0].results_file, "/results/plans/rcc.json");
+        assert_eq!(plans[0].timeout, 60);
         assert_eq!(
-            suites[0].robot,
+            plans[0].robot,
             Robot {
-                robot_target: Utf8PathBuf::from("/suite/rcc/tasks.robot"),
+                robot_target: Utf8PathBuf::from("/synthetic_tests/rcc/tasks.robot"),
                 command_line_args: vec![],
                 n_attempts_max: 1,
                 retry_strategy: RetryStrategy::Complete,
             }
         );
         assert_eq!(
-            suites[0].environment,
+            plans[0].environment,
             Environment::Rcc(RCCEnvironment {
                 binary_path: Utf8PathBuf::from("/bin/rcc"),
-                robot_yaml_path: Utf8PathBuf::from("/suite/rcc/robot.yaml"),
+                robot_yaml_path: Utf8PathBuf::from("/synthetic_tests/rcc/robot.yaml"),
                 controller: "robotmk".into(),
                 space: "rcc".into(),
                 build_timeout: 300,
             })
         );
         assert_eq!(
-            suites[0].working_directory_cleanup_config,
+            plans[0].working_directory_cleanup_config,
             WorkingDirectoryCleanupConfig::MaxExecutions(50),
         );
         assert_eq!(
-            suites[0].metadata,
-            SuiteMetadata {
+            plans[0].metadata,
+            PlanMetadata {
                 application: "rcc_app".into(),
                 variant: "".into(),
             },
         );
         assert_eq!(
-            suites[0].group_affiliation,
+            plans[0].group_affiliation,
             GroupAffiliation {
                 group_index: 0,
                 position_in_group: 0,
                 execution_interval: 300,
             }
         );
-        assert_eq!(suites[1].id, "system");
-        assert_eq!(suites[1].working_directory, "/working/suites/system");
-        assert_eq!(suites[1].results_file, "/results/suites/system.json");
-        assert_eq!(suites[1].timeout, 60);
+        assert_eq!(plans[1].id, "system");
+        assert_eq!(plans[1].working_directory, "/working/plans/system");
+        assert_eq!(plans[1].results_file, "/results/plans/system.json");
+        assert_eq!(plans[1].timeout, 60);
         assert_eq!(
-            suites[1].robot,
+            plans[1].robot,
             Robot {
-                robot_target: Utf8PathBuf::from("/suite/system/tasks.robot"),
+                robot_target: Utf8PathBuf::from("/synthetic_tests/system/tasks.robot"),
                 command_line_args: vec![],
                 n_attempts_max: 1,
                 retry_strategy: RetryStrategy::Incremental,
             }
         );
         assert_eq!(
-            suites[1].environment,
+            plans[1].environment,
             Environment::System(SystemEnvironment {})
         );
         assert_eq!(
-            suites[1].working_directory_cleanup_config,
+            plans[1].working_directory_cleanup_config,
             WorkingDirectoryCleanupConfig::MaxAgeSecs(1209600),
         );
         assert_eq!(
-            suites[1].metadata,
-            SuiteMetadata {
+            plans[1].metadata,
+            PlanMetadata {
                 application: "sys_app".into(),
                 variant: "".into(),
             },
         );
         assert_eq!(
-            suites[1].group_affiliation,
+            plans[1].group_affiliation,
             GroupAffiliation {
                 group_index: 1,
                 position_in_group: 0,

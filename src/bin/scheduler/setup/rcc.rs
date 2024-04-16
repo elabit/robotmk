@@ -1,6 +1,6 @@
 use super::all_configured_users;
 use super::icacls::run_icacls_command;
-use crate::internal_config::{sort_suites_by_grouping, GlobalConfig, Suite};
+use crate::internal_config::{sort_plans_by_grouping, GlobalConfig, Plan};
 use crate::logging::log_and_return_error;
 use robotmk::command_spec::CommandSpec;
 use robotmk::environment::Environment;
@@ -19,17 +19,17 @@ use std::collections::HashMap;
 use std::fs::{create_dir_all, remove_dir_all};
 use std::vec;
 
-pub fn setup(global_config: &GlobalConfig, suites: Vec<Suite>) -> AnyhowResult<Vec<Suite>> {
-    let (rcc_suites, mut surviving_suites): (Vec<Suite>, Vec<Suite>) = suites
+pub fn setup(global_config: &GlobalConfig, plans: Vec<Plan>) -> AnyhowResult<Vec<Plan>> {
+    let (rcc_plans, mut surviving_plans): (Vec<Plan>, Vec<Plan>) = plans
         .into_iter()
-        .partition(|suite| matches!(suite.environment, Environment::Rcc(_)));
+        .partition(|plan| matches!(plan.environment, Environment::Rcc(_)));
 
-    if rcc_suites.is_empty() {
-        sort_suites_by_grouping(&mut surviving_suites);
-        return Ok(surviving_suites);
+    if rcc_plans.is_empty() {
+        sort_plans_by_grouping(&mut surviving_plans);
+        return Ok(surviving_plans);
     }
 
-    let all_configured_users_rcc = all_configured_users(rcc_suites.iter());
+    let all_configured_users_rcc = all_configured_users(rcc_plans.iter());
 
     for user_name in &all_configured_users_rcc {
         adjust_rcc_binary_permissions(&global_config.rcc_config.binary_path, user_name)
@@ -47,9 +47,9 @@ pub fn setup(global_config: &GlobalConfig, suites: Vec<Suite>) -> AnyhowResult<V
         }
     }
 
-    surviving_suites.append(&mut rcc_setup(global_config, rcc_suites)?);
-    sort_suites_by_grouping(&mut surviving_suites);
-    Ok(surviving_suites)
+    surviving_plans.append(&mut rcc_setup(global_config, rcc_plans)?);
+    sort_plans_by_grouping(&mut surviving_plans);
+    Ok(surviving_plans)
 }
 
 fn adjust_rcc_binary_permissions(executable_path: &Utf8Path, user_name: &str) -> AnyhowResult<()> {
@@ -91,8 +91,8 @@ fn adjust_rcc_profile_permissions(profile_path: &Utf8Path, user_name: &str) -> A
     ))
 }
 
-fn rcc_setup(global_config: &GlobalConfig, rcc_suites: Vec<Suite>) -> AnyhowResult<Vec<Suite>> {
-    let mut sucessful_suites: Vec<Suite>;
+fn rcc_setup(global_config: &GlobalConfig, rcc_plans: Vec<Plan>) -> AnyhowResult<Vec<Plan>> {
+    let mut sucessful_plans: Vec<Plan>;
     let mut rcc_setup_failures = RCCSetupFailures {
         telemetry_disabling: HashMap::new(),
         profile_configuring: HashMap::new(),
@@ -102,56 +102,56 @@ fn rcc_setup(global_config: &GlobalConfig, rcc_suites: Vec<Suite>) -> AnyhowResu
     };
 
     debug!("Disabling RCC telemetry");
-    (sucessful_suites, rcc_setup_failures.telemetry_disabling) =
-        disable_rcc_telemetry(global_config, rcc_suites)
+    (sucessful_plans, rcc_setup_failures.telemetry_disabling) =
+        disable_rcc_telemetry(global_config, rcc_plans)
             .context("Received termination signal while disabling RCC telemetry")?;
     if !rcc_setup_failures.telemetry_disabling.is_empty() {
         error!(
-            "Dropping the following suites due to RCC telemetry disabling failure: {}",
+            "Dropping the following plans due to RCC telemetry disabling failure: {}",
             rcc_setup_failures_human_readable(rcc_setup_failures.telemetry_disabling.keys())
         );
     }
 
     debug!("Configuring RCC profile");
-    (sucessful_suites, rcc_setup_failures.profile_configuring) =
-        configure_rcc_profile(global_config, sucessful_suites)
+    (sucessful_plans, rcc_setup_failures.profile_configuring) =
+        configure_rcc_profile(global_config, sucessful_plans)
             .context("Received termination signal while configuring RCC profile")?;
     if !rcc_setup_failures.profile_configuring.is_empty() {
         error!(
-            "Dropping the following suites due to profile configuring failure: {}",
+            "Dropping the following plans due to profile configuring failure: {}",
             rcc_setup_failures_human_readable(rcc_setup_failures.profile_configuring.keys())
         );
     }
 
     debug!("Enabling support for long paths");
-    (sucessful_suites, rcc_setup_failures.long_path_support) =
-        enable_long_path_support(global_config, sucessful_suites)
+    (sucessful_plans, rcc_setup_failures.long_path_support) =
+        enable_long_path_support(global_config, sucessful_plans)
             .context("Received termination signal while enabling support for long paths")?;
     if !rcc_setup_failures.long_path_support.is_empty() {
         error!(
-            "Dropping the following suites due to long path support enabling failure: {}",
+            "Dropping the following plans due to long path support enabling failure: {}",
             rcc_setup_failures_human_readable(rcc_setup_failures.long_path_support.keys())
         );
     }
 
     debug!("Initializing shared holotree");
-    (sucessful_suites, rcc_setup_failures.shared_holotree) =
-        shared_holotree_init(global_config, sucessful_suites)
+    (sucessful_plans, rcc_setup_failures.shared_holotree) =
+        shared_holotree_init(global_config, sucessful_plans)
             .context("Received termination signal while initializing shared holotree")?;
     if !rcc_setup_failures.shared_holotree.is_empty() {
         error!(
-            "Dropping the following suites due to shared holotree initialization failure: {}",
+            "Dropping the following plans due to shared holotree initialization failure: {}",
             rcc_setup_failures_human_readable(rcc_setup_failures.shared_holotree.keys())
         );
     }
 
     debug!("Initializing holotree");
-    (sucessful_suites, rcc_setup_failures.holotree_init) =
-        holotree_init(global_config, sucessful_suites)
+    (sucessful_plans, rcc_setup_failures.holotree_init) =
+        holotree_init(global_config, sucessful_plans)
             .context("Received termination signal while initializing holotree")?;
     if !rcc_setup_failures.holotree_init.is_empty() {
         error!(
-            "Dropping the following suites due to holotree initialization failure: {}",
+            "Dropping the following plans due to holotree initialization failure: {}",
             rcc_setup_failures_human_readable(rcc_setup_failures.holotree_init.keys())
         );
     }
@@ -161,16 +161,16 @@ fn rcc_setup(global_config: &GlobalConfig, rcc_suites: Vec<Suite>) -> AnyhowResu
         .join("rcc_setup_failures.json");
     rcc_setup_failures.write(path, &global_config.results_directory_locker)?;
 
-    Ok(sucessful_suites)
+    Ok(sucessful_plans)
 }
 
 fn disable_rcc_telemetry(
     global_config: &GlobalConfig,
-    suites: Vec<Suite>,
-) -> Result<(Vec<Suite>, HashMap<String, String>), Cancelled> {
+    plans: Vec<Plan>,
+) -> Result<(Vec<Plan>, HashMap<String, String>), Cancelled> {
     run_command_spec_per_session(
         global_config,
-        suites,
+        plans,
         &CommandSpec {
             executable: global_config.rcc_config.binary_path.to_string(),
             arguments: vec![
@@ -185,23 +185,23 @@ fn disable_rcc_telemetry(
 
 fn configure_rcc_profile(
     global_config: &GlobalConfig,
-    suites: Vec<Suite>,
-) -> Result<(Vec<Suite>, HashMap<String, String>), Cancelled> {
+    plans: Vec<Plan>,
+) -> Result<(Vec<Plan>, HashMap<String, String>), Cancelled> {
     match &global_config.rcc_config.profile_config {
-        RCCProfileConfig::Default => configure_default_rcc_profile(global_config, suites),
+        RCCProfileConfig::Default => configure_default_rcc_profile(global_config, plans),
         RCCProfileConfig::Custom(custom_rcc_profile_config) => {
-            configure_custom_rcc_profile(custom_rcc_profile_config, global_config, suites)
+            configure_custom_rcc_profile(custom_rcc_profile_config, global_config, plans)
         }
     }
 }
 
 fn configure_default_rcc_profile(
     global_config: &GlobalConfig,
-    suites: Vec<Suite>,
-) -> Result<(Vec<Suite>, HashMap<String, String>), Cancelled> {
+    plans: Vec<Plan>,
+) -> Result<(Vec<Plan>, HashMap<String, String>), Cancelled> {
     run_command_spec_per_session(
         global_config,
-        suites,
+        plans,
         &CommandSpec {
             executable: global_config.rcc_config.binary_path.to_string(),
             arguments: vec![
@@ -217,11 +217,11 @@ fn configure_default_rcc_profile(
 fn configure_custom_rcc_profile(
     custom_rcc_profile_config: &CustomRCCProfileConfig,
     global_config: &GlobalConfig,
-    suites: Vec<Suite>,
-) -> Result<(Vec<Suite>, HashMap<String, String>), Cancelled> {
-    let (sucessful_suites_import, failed_suites_import) = run_command_spec_per_session(
+    plans: Vec<Plan>,
+) -> Result<(Vec<Plan>, HashMap<String, String>), Cancelled> {
+    let (sucessful_plans_import, failed_plans_import) = run_command_spec_per_session(
         global_config,
-        suites,
+        plans,
         &CommandSpec {
             executable: global_config.rcc_config.binary_path.to_string(),
             arguments: vec![
@@ -233,9 +233,9 @@ fn configure_custom_rcc_profile(
         },
         "custom_profile_import",
     )?;
-    let (sucessful_suites_switch, failed_suites_switch) = run_command_spec_per_session(
+    let (sucessful_plans_switch, failed_plans_switch) = run_command_spec_per_session(
         global_config,
-        sucessful_suites_import,
+        sucessful_plans_import,
         &CommandSpec {
             executable: global_config.rcc_config.binary_path.to_string(),
             arguments: vec![
@@ -247,19 +247,19 @@ fn configure_custom_rcc_profile(
         },
         "custom_profile_switch",
     )?;
-    let mut failed_suites = HashMap::new();
-    failed_suites.extend(failed_suites_import);
-    failed_suites.extend(failed_suites_switch);
-    Ok((sucessful_suites_switch, failed_suites))
+    let mut failed_plans = HashMap::new();
+    failed_plans.extend(failed_plans_import);
+    failed_plans.extend(failed_plans_switch);
+    Ok((sucessful_plans_switch, failed_plans))
 }
 
 fn enable_long_path_support(
     global_config: &GlobalConfig,
-    suites: Vec<Suite>,
-) -> Result<(Vec<Suite>, HashMap<String, String>), Cancelled> {
+    plans: Vec<Plan>,
+) -> Result<(Vec<Plan>, HashMap<String, String>), Cancelled> {
     run_command_spec_once_in_current_session(
         global_config,
-        suites,
+        plans,
         &CommandSpec {
             executable: global_config.rcc_config.binary_path.to_string(),
             arguments: vec!["configure".into(), "longpaths".into(), "--enable".into()],
@@ -270,11 +270,11 @@ fn enable_long_path_support(
 
 fn shared_holotree_init(
     global_config: &GlobalConfig,
-    suites: Vec<Suite>,
-) -> Result<(Vec<Suite>, HashMap<String, String>), Cancelled> {
+    plans: Vec<Plan>,
+) -> Result<(Vec<Plan>, HashMap<String, String>), Cancelled> {
     run_command_spec_once_in_current_session(
         global_config,
-        suites,
+        plans,
         &CommandSpec {
             executable: global_config.rcc_config.binary_path.to_string(),
             arguments: vec![
@@ -290,11 +290,11 @@ fn shared_holotree_init(
 
 fn holotree_init(
     global_config: &GlobalConfig,
-    suites: Vec<Suite>,
-) -> Result<(Vec<Suite>, HashMap<String, String>), Cancelled> {
+    plans: Vec<Plan>,
+) -> Result<(Vec<Plan>, HashMap<String, String>), Cancelled> {
     run_command_spec_per_session(
         global_config,
-        suites,
+        plans,
         &CommandSpec {
             executable: global_config.rcc_config.binary_path.to_string(),
             arguments: vec!["holotree".into(), "init".into()],
@@ -305,10 +305,10 @@ fn holotree_init(
 
 fn run_command_spec_once_in_current_session(
     global_config: &GlobalConfig,
-    suites: Vec<Suite>,
+    plans: Vec<Plan>,
     command_spec: &CommandSpec,
     id: &str,
-) -> Result<(Vec<Suite>, HashMap<String, String>), Cancelled> {
+) -> Result<(Vec<Plan>, HashMap<String, String>), Cancelled> {
     Ok(
         match run_command_spec_in_session(
             &Session::Current(CurrentSession {}),
@@ -320,14 +320,10 @@ fn run_command_spec_once_in_current_session(
                 cancellation_token: &global_config.cancellation_token,
             },
         )? {
-            None => (suites, HashMap::new()),
+            None => (plans, HashMap::new()),
             Some(error_msg) => (
                 vec![],
-                HashMap::from_iter(
-                    suites
-                        .into_iter()
-                        .map(|suite| (suite.id, error_msg.clone())),
-                ),
+                HashMap::from_iter(plans.into_iter().map(|plan| (plan.id, error_msg.clone()))),
             ),
         },
     )
@@ -335,21 +331,21 @@ fn run_command_spec_once_in_current_session(
 
 fn run_command_spec_per_session(
     global_config: &GlobalConfig,
-    suites: Vec<Suite>,
+    plans: Vec<Plan>,
     command_spec: &CommandSpec,
     id: &str,
-) -> Result<(Vec<Suite>, HashMap<String, String>), Cancelled> {
-    let mut suites_by_session = HashMap::new();
-    for suite in suites {
-        suites_by_session
-            .entry(suite.session.clone())
+) -> Result<(Vec<Plan>, HashMap<String, String>), Cancelled> {
+    let mut plans_by_session = HashMap::new();
+    for plan in plans {
+        plans_by_session
+            .entry(plan.session.clone())
             .or_insert(vec![])
-            .push(suite);
+            .push(plan);
     }
-    let mut succesful_suites = vec![];
-    let mut failed_suites = HashMap::new();
+    let mut succesful_plans = vec![];
+    let mut failed_plans: HashMap<String, String> = HashMap::new();
 
-    for (session, suites) in suites_by_session {
+    for (session, plans) in plans_by_session {
         let session_id = format!(
             "{}_{}",
             id,
@@ -372,15 +368,15 @@ fn run_command_spec_per_session(
             },
         )? {
             Some(error_msg) => {
-                for suite in suites {
-                    failed_suites.insert(suite.id, error_msg.clone());
+                for plan in plans {
+                    failed_plans.insert(plan.id, error_msg.clone());
                 }
             }
-            None => succesful_suites.extend(suites),
+            None => succesful_plans.extend(plans),
         }
     }
 
-    Ok((succesful_suites, failed_suites))
+    Ok((succesful_plans, failed_plans))
 }
 
 fn run_command_spec_in_session(

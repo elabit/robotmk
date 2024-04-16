@@ -23,7 +23,7 @@ pub fn run_attempts_with_rebot(
     let mut output_paths: Vec<Utf8PathBuf> = vec![];
 
     for attempt in robot.attempts(output_directory) {
-        info!("Suite {id}: running attempt {}", attempt.index);
+        info!("Plan {id}: running attempt {}", attempt.index);
         let attempt_index = attempt.index;
         let starttime = Utc::now();
         let (outcome, output_path) = run_attempt(
@@ -53,7 +53,7 @@ pub fn run_attempts_with_rebot(
     if output_paths.is_empty() {
         return Ok((attempt_reports, None));
     }
-    info!("Suite {id}: Running rebot");
+    info!("Plan {id}: Running rebot");
     let rebot = Rebot {
         plan_id: id,
         environment,
@@ -78,17 +78,17 @@ fn run_attempt(
     cancellation_token: &CancellationToken,
     output_directory: &Utf8Path,
 ) -> Result<(AttemptOutcome, Option<Utf8PathBuf>), Cancelled> {
-    let log_message_start = format!("Suite {}, attempt {}", id, attempt.index);
+    let log_message_start = format!("Plan {}, attempt {}", id, attempt.index);
 
     let run_outcome = match session
         .run(&RunSpec {
-            id: &format!("robotmk_suite_{}_attempt_{}", id, attempt.index),
+            id: &format!("robotmk_plan_{}_attempt_{}", id, attempt.index),
             command_spec: &environment.wrap(attempt.command_spec),
             base_path: &output_directory.join(attempt.index.to_string()),
             timeout,
             cancellation_token,
         })
-        .context("Suite execution failed")
+        .context("Plan execution failed")
     {
         Ok(run_outcome) => run_outcome,
         Err(error_) => {

@@ -1,6 +1,6 @@
 use super::cleanup::cleanup_working_directories;
-use super::suites::run_suite;
-use crate::internal_config::{GlobalConfig, Suite};
+use super::suites::run_plan;
+use crate::internal_config::{GlobalConfig, Plan};
 use crate::logging::log_and_return_error;
 use robotmk::termination::Cancelled;
 
@@ -13,38 +13,38 @@ use tokio::time::{interval_at, Instant};
 use tokio_util::sync::CancellationToken;
 
 #[tokio::main]
-pub async fn run_suites_and_cleanup(
+pub async fn run_plans_and_cleanup(
     global_config: &GlobalConfig,
-    suites: &[Suite],
+    plans: &[Plan],
 ) -> Result<(), Cancelled> {
-    let mut suites_by_exec_group = HashMap::new();
-    for suite in suites {
-        suites_by_exec_group
+    let mut plans_by_exec_group = HashMap::new();
+    for plan in plans {
+        plans_by_exec_group
             .entry((
-                suite.group_affiliation.group_index,
-                suite.group_affiliation.execution_interval,
+                plan.group_affiliation.group_index,
+                plan.group_affiliation.execution_interval,
             ))
             .or_insert(vec![])
-            .push(suite.clone());
+            .push(plan.clone());
     }
 
     let mut join_set = JoinSet::new();
-    for ((_, execution_interval), mut suites) in suites_by_exec_group {
-        suites.sort_by_key(|suite| suite.group_affiliation.position_in_group);
-        join_set.spawn(run_sequential_suite_group_scheduler(
+    for ((_, execution_interval), mut plans) in plans_by_exec_group {
+        plans.sort_by_key(|plan| plan.group_affiliation.position_in_group);
+        join_set.spawn(run_sequential_plan_group_scheduler(
             execution_interval,
-            suites,
+            plans,
             global_config.cancellation_token.clone(),
         ));
     }
 
     join_set.spawn(run_cleanup_job(
         global_config.cancellation_token.clone(),
-        suites.to_vec(),
+        plans.to_vec(),
     ));
 
     global_config.cancellation_token.cancelled().await;
-    error!("Received termination signal while scheduling, waiting for suites to terminate");
+    error!("Received termination signal while scheduling, waiting for plans to terminate");
     while let Some(outcome) = join_set.join_next().await {
         if let Err(error) = outcome {
             error!("{error:?}");
@@ -53,9 +53,9 @@ pub async fn run_suites_and_cleanup(
     return Err(Cancelled {});
 }
 
-async fn run_sequential_suite_group_scheduler(
+async fn run_sequential_plan_group_scheduler(
     interval: u64,
-    suites: Vec<Suite>,
+    plans: Vec<Plan>,
     cancellation_token: CancellationToken,
 ) {
     // It is debatable whether MissedTickBehavior::Burst (the default) is correct. In practice, as
@@ -71,21 +71,21 @@ async fn run_sequential_suite_group_scheduler(
             _ = clock.tick() => { }
             _ = cancellation_token.cancelled() => { return }
         };
-        for suite in suites.clone() {
-            let _ = spawn_blocking(move || run_suite(&suite).map_err(log_and_return_error)).await;
+        for plan in plans.clone() {
+            let _ = spawn_blocking(move || run_plan(&plan).map_err(log_and_return_error)).await;
         }
     }
 }
 
-async fn run_cleanup_job(cancellation_token: CancellationToken, suites: Vec<Suite>) {
+async fn run_cleanup_job(cancellation_token: CancellationToken, plans: Vec<Plan>) {
     let mut clock = interval_at(compute_start_time(300), Duration::from_secs(300));
     loop {
-        let suites = suites.clone();
+        let plans = plans.clone();
         tokio::select! {
             _ = clock.tick() => { }
             _ = cancellation_token.cancelled() => { return }
         };
-        spawn_blocking(move || cleanup_working_directories(suites.iter()));
+        spawn_blocking(move || cleanup_working_directories(plans.iter()));
     }
 }
 
