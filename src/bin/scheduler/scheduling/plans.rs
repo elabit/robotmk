@@ -1,7 +1,7 @@
 use crate::internal_config::Plan;
 use crate::logging::TIMESTAMP_FORMAT;
+use robotmk::plans::run_attempts_with_rebot;
 use robotmk::results::{AttemptsConfig, PlanExecutionReport};
-use robotmk::suites::run_attempts_with_rebot;
 
 use anyhow::{Context, Result as AnyhowResult};
 use chrono::Utc;
