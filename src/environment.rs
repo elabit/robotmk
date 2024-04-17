@@ -85,22 +85,35 @@ impl SystemEnvironment {
 }
 
 impl RCCEnvironment {
-    fn build_instructions(&self) -> Option<BuildInstructions> {
-        let mut command_spec = CommandSpec::new(&self.binary_path);
-        command_spec.add_argument("task").add_argument("script");
-        self.apply_current_settings(&mut command_spec);
+    pub fn bundled_command_spec(binary_path: &Utf8Path) -> CommandSpec {
+        let mut command_spec = CommandSpec::new(binary_path);
+        command_spec.add_argument("--bundled");
         command_spec
+    }
+
+    fn build_instructions(&self) -> Option<BuildInstructions> {
+        let mut build_command_spec = Self::bundled_command_spec(&self.binary_path);
+        build_command_spec
+            .add_argument("task")
+            .add_argument("script");
+        self.apply_current_settings(&mut build_command_spec);
+
+        let mut version_command_spec = Self::bundled_command_spec(&self.binary_path);
+        version_command_spec.add_argument("-v");
+
+        build_command_spec
             .add_argument("--")
-            .add_argument(&self.binary_path)
-            .add_argument("-v");
+            .add_argument(version_command_spec.executable)
+            .add_arguments(version_command_spec.arguments);
+
         Some(BuildInstructions {
-            command_spec,
+            command_spec: build_command_spec,
             timeout: self.build_timeout,
         })
     }
 
     fn wrap(&self, command_spec: CommandSpec) -> CommandSpec {
-        let mut wrapped_spec = CommandSpec::new(&self.binary_path);
+        let mut wrapped_spec = Self::bundled_command_spec(&self.binary_path);
         wrapped_spec
             .add_argument("task")
             .add_argument("script")
@@ -162,6 +175,7 @@ mod tests {
     fn rcc_build_instructions() {
         let mut expected_command_spec = CommandSpec::new("/bin/rcc");
         expected_command_spec
+            .add_argument("--bundled")
             .add_argument("task")
             .add_argument("script")
             .add_argument("--robot")
@@ -172,6 +186,7 @@ mod tests {
             .add_argument("my_plan")
             .add_argument("--")
             .add_argument("/bin/rcc")
+            .add_argument("--bundled")
             .add_argument("-v");
 
         assert_eq!(
@@ -213,6 +228,7 @@ mod tests {
     fn test_rcc_wrap() {
         let mut expected = CommandSpec::new("C:\\bin\\z.exe");
         expected
+            .add_argument("--bundled")
             .add_argument("task")
             .add_argument("script")
             .add_argument("--no-build")
