@@ -32,7 +32,7 @@ fn config_path_from_env() -> Result<Utf8PathBuf, String> {
     let config_path = match var("MK_CONFDIR") {
         Ok(path) => path,
         Err(VarError::NotPresent) => "C:\\ProgramData\\checkmk\\agent\\config".into(),
-        Err(VarError::NotUnicode(_path)) => return Err("CONFIG_PATH is not utf-8.".into()),
+        Err(VarError::NotUnicode(path)) => return Err(format!("Path {path:?} is not utf-8.")),
     };
     Ok(Utf8PathBuf::from(config_path).join("robotmk.json"))
 }
@@ -67,14 +67,16 @@ fn main() {
     let raw = match read_to_string(&config_path) {
         Ok(raw) => raw,
         Err(e) => {
-            report_config_section(&ConfigSection::ReadingError(e.to_string()));
+            let message = format!("Error while reading {config_path}: {e}");
+            report_config_section(&ConfigSection::ReadingError(message));
             return;
         }
     };
     let config: Config = match serde_json::from_str(&raw) {
         Ok(config) => config,
         Err(e) => {
-            report_config_section(&ConfigSection::ReadingError(e.to_string()));
+            let message = format!("Error while reading {config_path}: {e}");
+            report_config_section(&ConfigSection::ReadingError(message));
             return;
         }
     };
