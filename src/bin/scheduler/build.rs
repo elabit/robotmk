@@ -1,5 +1,4 @@
 use super::internal_config::{GlobalConfig, Plan};
-use super::logging::log_and_return_error;
 use robotmk::environment::Environment;
 use robotmk::lock::Locker;
 use robotmk::results::{BuildOutcome, BuildStates, EnvironmentBuildStage};
@@ -7,7 +6,7 @@ use robotmk::section::WriteSection;
 use robotmk::session::{RunSpec, Session};
 use robotmk::termination::{Cancelled, Outcome};
 
-use anyhow::{Context, Result as AnyhowResult};
+use anyhow::{anyhow, Context, Result as AnyhowResult};
 use camino::{Utf8Path, Utf8PathBuf};
 use chrono::{DateTime, Utc};
 use log::{error, info};
@@ -76,7 +75,7 @@ fn build_environment(
         id,
         EnvironmentBuildStage::InProgress(start_time.timestamp()),
     )?;
-    let outcome = run_build_command(&run_spec, sesssion, start_time).context(format!(
+    let outcome = run_build_command(id, &run_spec, sesssion, start_time).context(format!(
         "Received termination signal while building environment for plan {id}"
     ))?;
     build_stage_reporter.update(id, EnvironmentBuildStage::Complete(outcome.clone()))?;
@@ -84,6 +83,7 @@ fn build_environment(
 }
 
 fn run_build_command(
+    id: &str,
     run_spec: &RunSpec,
     sesssion: &Session,
     reference_timestamp_for_duration: DateTime<Utc>,
@@ -91,30 +91,32 @@ fn run_build_command(
     let outcome = match sesssion.run(run_spec) {
         Ok(o) => o,
         Err(e) => {
-            let e = e.context("Environment building failed, plan will be dropped");
-            let e = log_and_return_error(e);
-            return Ok(BuildOutcome::Error(format!("{e:?}")));
+            let log_error = e.context(anyhow!(
+                "Environment building failed, plan {id} will be dropped"
+            ));
+            error!("{log_error:?}");
+            return Ok(BuildOutcome::Error(format!("{log_error:?}")));
         }
     };
     let duration = (Utc::now() - reference_timestamp_for_duration).num_seconds();
     let exit_code = match outcome {
         Outcome::Completed(exit_code) => exit_code,
         Outcome::Timeout => {
-            error!("Environment building timed out, plan will be dropped");
+            error!("Environment building timed out, plan {id} will be dropped");
             return Ok(BuildOutcome::Timeout);
         }
         Outcome::Cancel => {
-            error!("Environment building cancelled");
+            error!("Environment building cancelled, plan {id} will be dropped");
             return Err(Cancelled {});
         }
     };
     if exit_code == 0 {
-        info!("Environmenent building succeeded");
+        info!("Environment building succeeded for plan {id}");
         Ok(BuildOutcome::Success(duration))
     } else {
-        error!("Environment building not sucessful, plan will be dropped");
+        error!("Environment building not successful, plan {id} will be dropped");
         Ok(BuildOutcome::Error(
-            "Environment building not sucessful, see stdio logs".into(),
+            "Environment building not successful, see stdio logs".into(),
         ))
     }
 }
