@@ -326,7 +326,7 @@ fn run_command_spec_once_in_current_session(
     id: &str,
 ) -> Result<(Vec<Plan>, HashMap<String, String>), Cancelled> {
     Ok(
-        match run_command_spec_in_session(
+        match execute_run_spec_in_session(
             &Session::Current(CurrentSession {}),
             &RunSpec {
                 id: &format!("robotmk_{id}"),
@@ -365,7 +365,7 @@ fn run_command_spec_per_session(
         );
 
         debug!("Running {} for `{}`", command_spec, &session);
-        match run_command_spec_in_session(
+        match execute_run_spec_in_session(
             &session,
             &RunSpec {
                 id: &format!("robotmk_{session_id}"),
@@ -388,7 +388,7 @@ fn run_command_spec_per_session(
     Ok((succesful_plans, failed_plans))
 }
 
-fn run_command_spec_in_session(
+fn execute_run_spec_in_session(
     session: &Session,
     run_spec: &RunSpec,
 ) -> Result<Option<String>, Cancelled> {
