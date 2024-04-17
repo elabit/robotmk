@@ -4,7 +4,7 @@ use super::{
 use crate::internal_config::{sort_plans_by_grouping, GlobalConfig, Plan};
 use crate::logging::log_and_return_error;
 use robotmk::command_spec::CommandSpec;
-use robotmk::environment::Environment;
+use robotmk::environment::{Environment, RCCEnvironment};
 use robotmk::results::RCCSetupFailures;
 use robotmk::session::{CurrentSession, RunSpec, Session};
 use robotmk::termination::{Cancelled, Outcome};
@@ -184,19 +184,10 @@ fn disable_rcc_telemetry(
     global_config: &GlobalConfig,
     plans: Vec<Plan>,
 ) -> Result<(Vec<Plan>, HashMap<String, String>), Cancelled> {
-    run_command_spec_per_session(
-        global_config,
-        plans,
-        &CommandSpec {
-            executable: global_config.rcc_config.binary_path.to_string(),
-            arguments: vec![
-                "configure".into(),
-                "identity".into(),
-                "--do-not-track".into(),
-            ],
-        },
-        "telemetry_disabling",
-    )
+    let mut command_spec =
+        RCCEnvironment::bundled_command_spec(&global_config.rcc_config.binary_path);
+    command_spec.add_arguments(["configure", "identity", "--do-not-track"]);
+    run_command_spec_per_session(global_config, plans, &command_spec, "telemetry_disabling")
 }
 
 fn configure_rcc_profile(
@@ -215,17 +206,13 @@ fn configure_default_rcc_profile(
     global_config: &GlobalConfig,
     plans: Vec<Plan>,
 ) -> Result<(Vec<Plan>, HashMap<String, String>), Cancelled> {
+    let mut command_spec =
+        RCCEnvironment::bundled_command_spec(&global_config.rcc_config.binary_path);
+    command_spec.add_arguments(["configuration", "switch", "--noprofile"]);
     run_command_spec_per_session(
         global_config,
         plans,
-        &CommandSpec {
-            executable: global_config.rcc_config.binary_path.to_string(),
-            arguments: vec![
-                "configuration".into(),
-                "switch".into(),
-                "--noprofile".into(),
-            ],
-        },
+        &command_spec,
         "default_profile_switch",
     )
 }
@@ -235,32 +222,32 @@ fn configure_custom_rcc_profile(
     global_config: &GlobalConfig,
     plans: Vec<Plan>,
 ) -> Result<(Vec<Plan>, HashMap<String, String>), Cancelled> {
+    let mut command_spec_import =
+        RCCEnvironment::bundled_command_spec(&global_config.rcc_config.binary_path);
+    command_spec_import.add_arguments([
+        "configuration",
+        "import",
+        "--filename",
+        custom_rcc_profile_config.path.as_str(),
+    ]);
     let (sucessful_plans_import, failed_plans_import) = run_command_spec_per_session(
         global_config,
         plans,
-        &CommandSpec {
-            executable: global_config.rcc_config.binary_path.to_string(),
-            arguments: vec![
-                "configuration".into(),
-                "import".into(),
-                "--filename".into(),
-                custom_rcc_profile_config.path.to_string(),
-            ],
-        },
+        &command_spec_import,
         "custom_profile_import",
     )?;
+    let mut command_spec_switch =
+        RCCEnvironment::bundled_command_spec(&global_config.rcc_config.binary_path);
+    command_spec_switch.add_arguments([
+        "configuration",
+        "switch",
+        "--profile",
+        custom_rcc_profile_config.name.as_str(),
+    ]);
     let (sucessful_plans_switch, failed_plans_switch) = run_command_spec_per_session(
         global_config,
         sucessful_plans_import,
-        &CommandSpec {
-            executable: global_config.rcc_config.binary_path.to_string(),
-            arguments: vec![
-                "configuration".into(),
-                "switch".into(),
-                "--profile".into(),
-                custom_rcc_profile_config.name.to_string(),
-            ],
-        },
+        &command_spec_switch,
         "custom_profile_switch",
     )?;
     let mut failed_plans = HashMap::new();
@@ -273,13 +260,13 @@ fn enable_long_path_support(
     global_config: &GlobalConfig,
     plans: Vec<Plan>,
 ) -> Result<(Vec<Plan>, HashMap<String, String>), Cancelled> {
+    let mut command_spec =
+        RCCEnvironment::bundled_command_spec(&global_config.rcc_config.binary_path);
+    command_spec.add_arguments(["configure", "longpaths", "--enable"]);
     run_command_spec_once_in_current_session(
         global_config,
         plans,
-        &CommandSpec {
-            executable: global_config.rcc_config.binary_path.to_string(),
-            arguments: vec!["configure".into(), "longpaths".into(), "--enable".into()],
-        },
+        &command_spec,
         "long_path_support_enabling",
     )
 }
@@ -288,18 +275,13 @@ fn shared_holotree_init(
     global_config: &GlobalConfig,
     plans: Vec<Plan>,
 ) -> Result<(Vec<Plan>, HashMap<String, String>), Cancelled> {
+    let mut command_spec =
+        RCCEnvironment::bundled_command_spec(&global_config.rcc_config.binary_path);
+    command_spec.add_arguments(["holotree", "shared", "--enable", "--once"]);
     run_command_spec_once_in_current_session(
         global_config,
         plans,
-        &CommandSpec {
-            executable: global_config.rcc_config.binary_path.to_string(),
-            arguments: vec![
-                "holotree".into(),
-                "shared".into(),
-                "--enable".into(),
-                "--once".into(),
-            ],
-        },
+        &command_spec,
         "shared_holotree_init",
     )
 }
@@ -308,13 +290,13 @@ fn holotree_init(
     global_config: &GlobalConfig,
     plans: Vec<Plan>,
 ) -> Result<(Vec<Plan>, HashMap<String, String>), Cancelled> {
+    let mut command_spec =
+        RCCEnvironment::bundled_command_spec(&global_config.rcc_config.binary_path);
+    command_spec.add_arguments(["holotree", "init"]);
     run_command_spec_per_session(
         global_config,
         plans,
-        &CommandSpec {
-            executable: global_config.rcc_config.binary_path.to_string(),
-            arguments: vec!["holotree".into(), "init".into()],
-        },
+        &command_spec,
         "holotree_initialization",
     )
 }
