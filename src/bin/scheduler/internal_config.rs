@@ -133,6 +133,7 @@ mod tests {
             host: Host::Source,
             metadata: PlanMetadata {
                 application: "sys_app".into(),
+                suite_name: "my_first_suite".into(),
                 variant: "".into(),
             },
         }
@@ -161,6 +162,7 @@ mod tests {
             host: Host::Source,
             metadata: PlanMetadata {
                 application: "rcc_app".into(),
+                suite_name: "my_second_suite".into(),
                 variant: "".into(),
             },
         }
@@ -238,6 +240,7 @@ mod tests {
             plans[0].metadata,
             PlanMetadata {
                 application: "rcc_app".into(),
+                suite_name: "my_second_suite".into(),
                 variant: "".into(),
             },
         );
@@ -274,6 +277,7 @@ mod tests {
             plans[1].metadata,
             PlanMetadata {
                 application: "sys_app".into(),
+                suite_name: "my_first_suite".into(),
                 variant: "".into(),
             },
         );
