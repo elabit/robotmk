@@ -97,6 +97,7 @@ fn create_config(
                         host: Host::Source,
                         metadata: PlanMetadata {
                             application: "app1".into(),
+                            suite_name: "minimal_suite".into(),
                             variant: "".into(),
                         },
                     },
@@ -124,6 +125,7 @@ fn create_config(
                         host: Host::Source,
                         metadata: PlanMetadata {
                             application: "app2".into(),
+                            suite_name: "minimal_suite".into(),
                             variant: "".into(),
                         },
                     },
@@ -153,6 +155,7 @@ fn create_config(
                     host: Host::Piggyback("oink".into()),
                     metadata: PlanMetadata {
                         application: "app3".into(),
+                        suite_name: "minimal_suite".into(),
                         variant: "".into(),
                     },
                 }],
