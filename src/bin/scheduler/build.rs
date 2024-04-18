@@ -92,7 +92,8 @@ fn run_build_command(
         Ok(o) => o,
         Err(e) => {
             let log_error = e.context(anyhow!(
-                "Environment building failed, plan {id} will be dropped"
+                "Environment building failed, plan {id} will be dropped. See {} for stdio logs",
+                run_spec.base_path,
             ));
             error!("{log_error:?}");
             return Ok(BuildOutcome::Error(format!("{log_error:?}")));
@@ -115,9 +116,10 @@ fn run_build_command(
         Ok(BuildOutcome::Success(duration))
     } else {
         error!("Environment building not successful, plan {id} will be dropped");
-        Ok(BuildOutcome::Error(
-            "Environment building not successful, see stdio logs".into(),
-        ))
+        Ok(BuildOutcome::Error(format!(
+            "Environment building not successful, see {} for stdio logs",
+            run_spec.base_path
+        )))
     }
 }
 

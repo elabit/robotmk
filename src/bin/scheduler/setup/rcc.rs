@@ -403,8 +403,9 @@ fn execute_run_spec_in_session(
             "{} for `{session}` exited non-successfully",
             run_spec.command_spec
         );
-        Ok(Some(
-            "Non-zero exit code, see stdio logs for details".into(),
-        ))
+        Ok(Some(format!(
+            "Non-zero exit code, see {} for stdio logs",
+            run_spec.base_path
+        )))
     }
 }
