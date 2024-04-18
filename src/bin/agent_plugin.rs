@@ -40,7 +40,7 @@ fn config_path_from_env() -> Result<Utf8PathBuf, String> {
 fn report_config_section(section: &ConfigSection) {
     let section_serialized =
         serde_json::to_string(section).expect("Unexpected serialization error: ConfigSection");
-    println!("<<<robotmk_config:sep(0)>>>");
+    println!("<<<robotmk_config_v2:sep(0)>>>");
     println!("{section_serialized}");
 }
 
