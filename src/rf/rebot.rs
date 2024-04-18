@@ -18,7 +18,7 @@ pub struct Rebot<'a> {
     pub plan_id: &'a str,
     pub environment: &'a Environment,
     pub session: &'a Session,
-    pub working_directory: &'a Utf8Path,
+    pub base_path: Utf8PathBuf,
     pub cancellation_token: &'a CancellationToken,
     pub input_paths: &'a [Utf8PathBuf],
     pub path_xml: &'a Utf8Path,
@@ -55,16 +55,18 @@ impl Rebot<'_> {
                     Ok(self.process_successful_run(timestamp))
                 } else {
                     error!("Rebot run failed (no merged XML found)");
-                    Ok(RebotOutcome::Error(
-                        "Rebot run failed (no merged XML found), see stdio logs".into(),
-                    ))
+                    Ok(RebotOutcome::Error(format!(
+                        "Rebot run failed (no merged XML found), see {} for stdio logs",
+                        self.base_path
+                    )))
                 }
             }
             ResultCode::EnvironmentFailed => {
                 error!("Environment failure when running rebot");
-                Ok(RebotOutcome::Error(
-                    "Environment failure when running rebot, see stdio logs".into(),
-                ))
+                Ok(RebotOutcome::Error(format!(
+                    "Environment failure when running rebot, see {} for stdio logs",
+                    self.base_path,
+                )))
             }
         }
     }
@@ -73,7 +75,7 @@ impl Rebot<'_> {
         self.session.run(&RunSpec {
             id: &format!("robotmk_rebot_{}", self.plan_id),
             command_spec: &self.environment.wrap(self.build_rebot_command_spec()),
-            base_path: &self.working_directory.join("rebot"),
+            base_path: &self.base_path,
             timeout: 120,
             cancellation_token: self.cancellation_token,
         })
@@ -140,7 +142,7 @@ mod tests {
                 &EnvironmentConfig::System,
             ),
             session: &Session::Current(CurrentSession {}),
-            working_directory: &Utf8PathBuf::from("/working/my_plan"),
+            base_path: Utf8PathBuf::from("/working/my_plan/rebot"),
             cancellation_token: &CancellationToken::default(),
             input_paths: &[
                 Utf8PathBuf::from("/working/my_plan/0.xml"),
