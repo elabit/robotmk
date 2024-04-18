@@ -85,10 +85,10 @@ fn build_environment(
 fn run_build_command(
     id: &str,
     run_spec: &RunSpec,
-    sesssion: &Session,
+    session: &Session,
     reference_timestamp_for_duration: DateTime<Utc>,
 ) -> Result<BuildOutcome, Cancelled> {
-    let outcome = match sesssion.run(run_spec) {
+    let outcome = match session.run(run_spec) {
         Ok(o) => o,
         Err(e) => {
             let log_error = e.context(anyhow!(
