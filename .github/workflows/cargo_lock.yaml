@@ -13,18 +13,14 @@ jobs:
         id: branch_name
       - run: git checkout -b ${{ steps.branch_name.outputs.BRANCH_NAME }}
       - run: cargo update
-      # We should create an automation user here.
-      - run: git config --global user.email "solomon.jacobs@checkmk.com"
-      - run: git config --global user.name "Solomon Jacobs"
+      - run: git config --global user.email "simon.meggle+cmkrmk@elabit.de"
+      - run: git config --global user.name "cmkrmk"
       - run: git add .
       # This git commit may be empty, in which case this step will fail. However, since this action
       # runs only once a week, this should not affect us. Any error is likely worth investigating.
       - run: git commit -m "Update Cargo.lock" -m "Created automatically." -o Cargo.lock
       - run: git push origin HEAD
       - name: "Create pull request"
-      # This command does not trigger any workflow. We can fix this by creating an automation
-      # user with a Personal Access Token. See discussion here:
-      # https://github.com/peter-evans/create-pull-request/issues/48
-        run: gh pr create -B main -H ${{ steps.branch_name.outputs.BRANCH_NAME }} -f
+        run: gh pr create -B main -H ${{ steps.branch_name.outputs.BRANCH_NAME }} --title "Update Cargo.lock" --body "Created automatically."
         env:
-            GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+            GITHUB_TOKEN: ${{ secrets.CMKRMK_PAT }}
