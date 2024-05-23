@@ -72,12 +72,14 @@ fn create_config(
     Config {
         working_directory: test_dir.join("working"),
         results_directory: test_dir.join("results"),
+        managed_directory: test_dir.join("managed_robots"),
         rcc_config,
         plan_groups: vec![
             SequentialPlanGroup {
                 plans: vec![
                     PlanConfig {
                         id: "rcc_headless".into(),
+                        zip_file: None,
                         robot_config: RobotConfig {
                             robot_target: suite_dir.join("tasks.robot"),
                             command_line_args: vec![],
@@ -103,6 +105,7 @@ fn create_config(
                     },
                     PlanConfig {
                         id: "rcc_headed".into(),
+                        zip_file: None,
                         robot_config: RobotConfig {
                             robot_target: suite_dir.join("tasks.robot"),
                             command_line_args: vec![],
@@ -138,6 +141,7 @@ fn create_config(
             SequentialPlanGroup {
                 plans: vec![PlanConfig {
                     id: "no_rcc".into(),
+                    zip_file: None,
                     robot_config: RobotConfig {
                         robot_target: suite_dir.join("tasks.robot"),
                         command_line_args: vec![],

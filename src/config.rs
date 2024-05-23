@@ -13,6 +13,7 @@ pub fn load(path: &Utf8Path) -> AnyhowResult<Config> {
 pub struct Config {
     pub working_directory: Utf8PathBuf,
     pub results_directory: Utf8PathBuf,
+    pub managed_directory: Utf8PathBuf,
     pub rcc_config: RCCConfig,
     pub plan_groups: Vec<SequentialPlanGroup>,
 }
@@ -44,6 +45,7 @@ pub struct SequentialPlanGroup {
 #[derive(Clone, Debug, Deserialize, PartialEq, Serialize)]
 pub struct PlanConfig {
     pub id: String,
+    pub zip_file: Option<Utf8PathBuf>,
     pub robot_config: RobotConfig,
     pub execution_config: ExecutionConfig,
     pub environment_config: EnvironmentConfig,

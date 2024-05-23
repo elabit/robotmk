@@ -1,6 +1,7 @@
 pub mod general;
 mod icacls;
 pub mod rcc;
+pub mod zip;
 use log::error;
 
 use crate::internal_config::Plan;
