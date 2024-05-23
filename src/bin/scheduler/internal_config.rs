@@ -12,6 +12,7 @@ use tokio_util::sync::CancellationToken;
 pub struct GlobalConfig {
     pub working_directory: Utf8PathBuf,
     pub results_directory: Utf8PathBuf,
+    pub managed_directory: Utf8PathBuf, // Absolute path
     pub rcc_config: RCCConfig,
     pub cancellation_token: CancellationToken,
     pub results_directory_locker: Locker,
@@ -22,6 +23,8 @@ pub struct Plan {
     pub id: String,
     pub working_directory: Utf8PathBuf,
     pub results_file: Utf8PathBuf,
+    pub managed_directory: Utf8PathBuf,
+    pub zip_file: Option<Utf8PathBuf>,
     pub timeout: u64,
     pub robot: Robot,
     pub environment: Environment,
@@ -58,6 +61,8 @@ pub fn from_external_config(
                     .join(&plan_config.id),
                 results_file: plan_results_directory(&external_config.results_directory)
                     .join(format!("{}.json", plan_config.id)),
+                managed_directory: external_config.managed_directory.join(&plan_config.id),
+                zip_file: plan_config.zip_file,
                 timeout: plan_config.execution_config.timeout,
                 robot: Robot {
                     robot_target: plan_config.robot_config.robot_target,
@@ -88,6 +93,7 @@ pub fn from_external_config(
         GlobalConfig {
             working_directory: external_config.working_directory,
             results_directory: external_config.results_directory,
+            managed_directory: external_config.managed_directory,
             rcc_config: external_config.rcc_config,
             cancellation_token,
             results_directory_locker,
@@ -118,6 +124,7 @@ mod tests {
     fn system_plan_config() -> PlanConfig {
         PlanConfig {
             id: "system".into(),
+            zip_file: None,
             robot_config: RobotConfig {
                 robot_target: Utf8PathBuf::from("/synthetic_tests/system/tasks.robot"),
                 command_line_args: vec![],
@@ -142,6 +149,7 @@ mod tests {
     fn rcc_plan_config() -> PlanConfig {
         PlanConfig {
             id: "rcc".into(),
+            zip_file: None,
             robot_config: RobotConfig {
                 robot_target: Utf8PathBuf::from("/synthetic_tests/rcc/tasks.robot"),
                 command_line_args: vec![],
@@ -175,6 +183,7 @@ mod tests {
             Config {
                 working_directory: Utf8PathBuf::from("/working"),
                 results_directory: Utf8PathBuf::from("/results"),
+                managed_directory: Utf8PathBuf::from("/managed_robots"),
                 rcc_config: RCCConfig {
                     binary_path: Utf8PathBuf::from("/bin/rcc"),
                     profile_config: RCCProfileConfig::Custom(CustomRCCProfileConfig {

@@ -49,6 +49,10 @@ fn run() -> AnyhowResult<()> {
     let plans = setup::general::setup(&global_config, plans).context("General setup failed")?;
     info!("General setup completed");
 
+    write_phase(&SchedulerPhase::ManagedRobots, &global_config)?;
+    let plans = setup::zip::setup(plans);
+    info!("Managed robot setup completed");
+
     if let Some(grace_period) = args.grace_period {
         info!("Grace period: Sleeping for {grace_period} seconds");
         write_phase(&SchedulerPhase::GracePeriod(grace_period), &global_config)?;

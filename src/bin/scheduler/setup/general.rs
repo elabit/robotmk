@@ -1,17 +1,18 @@
 use super::{failed_plan_ids_human_readable, grant_permissions_to_all_plan_users};
 use crate::build::environment_building_working_directory;
 use crate::internal_config::{sort_plans_by_grouping, GlobalConfig, Plan};
-use anyhow::{Context, Result as AnyhowResult};
+use anyhow::{anyhow, Context, Result as AnyhowResult};
 use camino::{Utf8Path, Utf8PathBuf};
 use log::{debug, error};
 use robotmk::results::{plan_results_directory, GeneralSetupFailures};
 use robotmk::section::WriteSection;
 use std::collections::{HashMap, HashSet};
-use std::fs::{create_dir_all, remove_file};
+use std::fs::{create_dir_all, remove_dir_all, remove_file};
 
 pub fn setup(global_config: &GlobalConfig, plans: Vec<Plan>) -> AnyhowResult<Vec<Plan>> {
     setup_working_directories(&global_config.working_directory, &plans)?;
     setup_results_directories(global_config, &plans)?;
+    setup_managed_directories(&global_config.managed_directory, &plans)?;
 
     let mut surviving_plans: Vec<Plan>;
     let mut general_setup_failures = GeneralSetupFailures::default();
@@ -49,6 +50,21 @@ fn setup_results_directories(global_config: &GlobalConfig, plans: &[Plan]) -> An
     create_dir_all(plan_results_directory(&global_config.results_directory))
         .context("Failed to create plan results directory")?;
     clean_up_results_directory(global_config, plans).context("Failed to clean up results directory")
+}
+
+fn setup_managed_directories(managed_directory: &Utf8Path, plans: &[Plan]) -> AnyhowResult<()> {
+    if managed_directory.exists() {
+        remove_dir_all(managed_directory).context("Failed to remove managed directory")?;
+    }
+    create_dir_all(managed_directory).context("Failed to create managed directory")?;
+    for plan in plans {
+        create_dir_all(&plan.managed_directory).context(anyhow!(
+            "Failed to create managed directory {} for plan {}",
+            &plan.managed_directory,
+            plan.id
+        ))?;
+    }
+    Ok(())
 }
 
 fn adjust_working_directory_permissions(
