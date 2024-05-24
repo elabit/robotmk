@@ -13,6 +13,10 @@ jobs:
           name: rcc
           path: C:\
       - uses: actions/checkout@v4
+      - run: mkdir C:\managed_robots
+      - run: cd data\retry_rcc\
+      - run: tar -c -a -f C:\managed_robots\retry_rcc_defN.zip .
+      - run: cd ..\..
       - uses: actions-rust-lang/setup-rust-toolchain@v1.5.0
         with:
           target: x86_64-pc-windows-gnu
