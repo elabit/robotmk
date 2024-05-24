@@ -132,6 +132,37 @@ fn create_config(
                             variant: "".into(),
                         },
                     },
+                    PlanConfig {
+                        id: "managed_robot_zip".into(),
+                        zip_file: Some("C:\\zips\\restry_rcc_defN.zip".into()),
+                        robot_config: RobotConfig {
+                            robot_target: test_dir
+                                .join("managed_robots\\managed_robot_zip\\tasks.robot"),
+                            command_line_args: vec![],
+                        },
+                        execution_config: ExecutionConfig {
+                            n_attempts_max: 1,
+                            retry_strategy: RetryStrategy::Complete,
+                            timeout: 15,
+                        },
+                        environment_config: EnvironmentConfig::Rcc(RCCEnvironmentConfig {
+                            robot_yaml_path: test_dir
+                                .join("managed_robots\\managed_robot_zip\\tasks.robot"),
+                            build_timeout: 1200,
+                        }),
+                        session_config: SessionConfig::SpecificUser(UserSessionConfig {
+                            user_name: user_name_headed.into(),
+                        }),
+                        working_directory_cleanup_config: WorkingDirectoryCleanupConfig::MaxAgeSecs(
+                            120,
+                        ),
+                        host: Host::Source,
+                        metadata: PlanMetadata {
+                            application: "managed".into(),
+                            suite_name: "robot_zip".into(),
+                            variant: "".into(),
+                        },
+                    },
                 ],
                 execution_interval: 30,
             },
@@ -261,7 +292,7 @@ async fn assert_working_directory(
     );
     assert_eq!(
         directory_entries(working_directory.join("plans"), 1),
-        ["no_rcc", "rcc_headed", "rcc_headless"]
+        ["managed_robot_zip", "no_rcc", "rcc_headed", "rcc_headless"]
     );
 
     // We expliclitly don't check for the rebot files in the case without RCC, since this must also
