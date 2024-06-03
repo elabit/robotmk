@@ -1,8 +1,12 @@
 use crate::internal_config::{Plan, Source};
 use crate::setup::run_icacls_command;
 use camino::Utf8Path;
-use log::{error, info};
+use log::info;
+use robotmk::lock::Locker;
+use robotmk::results::ManagementFailues;
+use robotmk::section::WriteSection;
 use robotmk::session::Session;
+use std::collections::HashMap;
 use std::fs;
 use std::io;
 
@@ -39,19 +43,21 @@ fn unzip_into(zip_file: &Utf8Path, target_path: &Utf8Path) -> anyhow::Result<()>
     Ok(())
 }
 
-fn zip_setup(plans: Vec<Plan>) -> Vec<Plan> {
+fn zip_setup(plans: Vec<Plan>) -> (Vec<Plan>, HashMap<String, String>) {
     let mut surviving_plans = Vec::new();
+    let mut failures = HashMap::new();
     for plan in plans.into_iter() {
         if let Source::Managed { zip_file, target } = &plan.source {
             if let Err(error) = unzip_into(zip_file, target) {
-                error!("{error:#}");
+                info!("{error:#}");
+                failures.insert(plan.id.clone(), format!("{error:#}"));
                 continue;
             }
             info!("Unzipped {} into `{}`.", zip_file, target);
         }
         surviving_plans.push(plan);
     }
-    surviving_plans
+    (surviving_plans, failures)
 }
 
 fn grant_full_access(user: &str, target_path: &Utf8Path) -> anyhow::Result<()> {
@@ -67,13 +73,15 @@ fn grant_full_access(user: &str, target_path: &Utf8Path) -> anyhow::Result<()> {
     })
 }
 
-fn permission_setup(plans: Vec<Plan>) -> Vec<Plan> {
+fn permission_setup(plans: Vec<Plan>) -> (Vec<Plan>, HashMap<String, String>) {
     let mut surviving_plans = Vec::new();
+    let mut failures = HashMap::new();
     for plan in plans.into_iter() {
         if let Session::User(user_session) = &plan.session {
             if let Source::Managed { target, .. } = &plan.source {
                 if let Err(error) = grant_full_access(&user_session.user_name, target) {
-                    error!("{error:#}");
+                    info!("{error:#}");
+                    failures.insert(plan.id.clone(), format!("{error:#}"));
                     continue;
                 }
                 info!(
@@ -84,9 +92,25 @@ fn permission_setup(plans: Vec<Plan>) -> Vec<Plan> {
         }
         surviving_plans.push(plan);
     }
-    surviving_plans
+    (surviving_plans, failures)
 }
 
-pub fn setup(plans: Vec<Plan>) -> Vec<Plan> {
-    permission_setup(zip_setup(plans))
+pub fn setup(
+    results_directory: &Utf8Path,
+    results_directory_locker: &Locker,
+    plans: Vec<Plan>,
+) -> anyhow::Result<Vec<Plan>> {
+    let (surviving_plans, zip_failures) = zip_setup(plans);
+    let (surviving_plans, permission_failures) = permission_setup(surviving_plans);
+    ManagementFailues(
+        zip_failures
+            .into_iter()
+            .chain(permission_failures.into_iter())
+            .collect(),
+    )
+    .write(
+        results_directory.join("management_failures.json"),
+        results_directory_locker,
+    )?;
+    anyhow::Ok(surviving_plans)
 }

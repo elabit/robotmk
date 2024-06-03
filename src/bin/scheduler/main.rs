@@ -50,7 +50,12 @@ fn run() -> AnyhowResult<()> {
     info!("General setup completed");
 
     write_phase(&SchedulerPhase::ManagedRobots, &global_config)?;
-    let plans = setup::zip::setup(plans);
+    let plans = setup::zip::setup(
+        &global_config.results_directory,
+        &global_config.results_directory_locker,
+        plans,
+    )
+    .context("Writing robotmk_management_errors section failed")?;
     info!("Managed robot setup completed");
 
     if let Some(grace_period) = args.grace_period {

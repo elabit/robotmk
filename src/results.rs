@@ -51,6 +51,15 @@ impl WriteSection for RCCSetupFailures {
     }
 }
 
+#[derive(Default, Serialize)]
+pub struct ManagementFailues(pub HashMap<String, String>);
+
+impl WriteSection for ManagementFailues {
+    fn name() -> &'static str {
+        "robotmk_management_failures"
+    }
+}
+
 #[derive(Serialize)]
 pub struct BuildStates<'a>(pub &'a HashMap<String, EnvironmentBuildStage>);
 
