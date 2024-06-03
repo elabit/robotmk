@@ -4,7 +4,7 @@ use camino::{Utf8Path, Utf8PathBuf};
 use robotmk::config::{
     Config, CustomRCCProfileConfig, EnvironmentConfig, ExecutionConfig, PlanConfig, PlanMetadata,
     RCCConfig, RCCEnvironmentConfig, RCCProfileConfig, RetryStrategy, RobotConfig,
-    SequentialPlanGroup, SessionConfig, UserSessionConfig, WorkingDirectoryCleanupConfig,
+    SequentialPlanGroup, SessionConfig, Source, UserSessionConfig, WorkingDirectoryCleanupConfig,
 };
 use robotmk::section::Host;
 use serde_json::to_string;
@@ -79,9 +79,13 @@ fn create_config(
                 plans: vec![
                     PlanConfig {
                         id: "rcc_headless".into(),
-                        zip_file: None,
+                        source: Source::Manual {
+                            base_dir: suite_dir.into(),
+                        },
                         robot_config: RobotConfig {
-                            robot_target: suite_dir.join("tasks.robot"),
+                            robot_target: "tasks.robot".into(),
+                            variable_files: vec![],
+                            argument_files: vec![],
                             command_line_args: vec![],
                         },
                         execution_config: ExecutionConfig {
@@ -90,7 +94,7 @@ fn create_config(
                             timeout: 10,
                         },
                         environment_config: EnvironmentConfig::Rcc(RCCEnvironmentConfig {
-                            robot_yaml_path: suite_dir.join("robot.yaml"),
+                            robot_yaml_path: "robot.yaml".into(),
                             build_timeout: 1200,
                         }),
                         session_config: SessionConfig::Current,
@@ -105,9 +109,13 @@ fn create_config(
                     },
                     PlanConfig {
                         id: "rcc_headed".into(),
-                        zip_file: None,
+                        source: Source::Manual {
+                            base_dir: suite_dir.into(),
+                        },
                         robot_config: RobotConfig {
-                            robot_target: suite_dir.join("tasks.robot"),
+                            robot_target: "tasks.robot".into(),
+                            variable_files: vec![],
+                            argument_files: vec![],
                             command_line_args: vec![],
                         },
                         execution_config: ExecutionConfig {
@@ -116,7 +124,7 @@ fn create_config(
                             timeout: 15,
                         },
                         environment_config: EnvironmentConfig::Rcc(RCCEnvironmentConfig {
-                            robot_yaml_path: suite_dir.join("robot.yaml"),
+                            robot_yaml_path: "robot.yaml".into(),
                             build_timeout: 1200,
                         }),
                         session_config: SessionConfig::SpecificUser(UserSessionConfig {
@@ -134,10 +142,13 @@ fn create_config(
                     },
                     PlanConfig {
                         id: "managed_robot_zip".into(),
-                        zip_file: Some("C:\\zips\\restry_rcc_defN.zip".into()),
+                        source: Source::Managed {
+                            zip_file: "C:\\zips\\restry_rcc_defN.zip".into(),
+                        },
                         robot_config: RobotConfig {
-                            robot_target: test_dir
-                                .join("managed_robots\\managed_robot_zip\\tasks.robot"),
+                            robot_target: "tasks.robot".into(),
+                            variable_files: vec![],
+                            argument_files: vec![],
                             command_line_args: vec![],
                         },
                         execution_config: ExecutionConfig {
@@ -146,8 +157,7 @@ fn create_config(
                             timeout: 15,
                         },
                         environment_config: EnvironmentConfig::Rcc(RCCEnvironmentConfig {
-                            robot_yaml_path: test_dir
-                                .join("managed_robots\\managed_robot_zip\\tasks.robot"),
+                            robot_yaml_path: "tasks.robot".into(),
                             build_timeout: 1200,
                         }),
                         session_config: SessionConfig::SpecificUser(UserSessionConfig {
@@ -172,9 +182,13 @@ fn create_config(
             SequentialPlanGroup {
                 plans: vec![PlanConfig {
                     id: "no_rcc".into(),
-                    zip_file: None,
+                    source: Source::Manual {
+                        base_dir: suite_dir.into(),
+                    },
                     robot_config: RobotConfig {
-                        robot_target: suite_dir.join("tasks.robot"),
+                        robot_target: "tasks.robot".into(),
+                        variable_files: vec![],
+                        argument_files: vec![],
                         command_line_args: vec![],
                     },
                     execution_config: ExecutionConfig {

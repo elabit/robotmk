@@ -1,6 +1,6 @@
 use super::{failed_plan_ids_human_readable, grant_permissions_to_all_plan_users};
 use crate::build::environment_building_working_directory;
-use crate::internal_config::{sort_plans_by_grouping, GlobalConfig, Plan};
+use crate::internal_config::{sort_plans_by_grouping, GlobalConfig, Plan, Source};
 use anyhow::{anyhow, Context, Result as AnyhowResult};
 use camino::{Utf8Path, Utf8PathBuf};
 use log::{debug, error};
@@ -58,11 +58,13 @@ fn setup_managed_directories(managed_directory: &Utf8Path, plans: &[Plan]) -> An
     }
     create_dir_all(managed_directory).context("Failed to create managed directory")?;
     for plan in plans {
-        create_dir_all(&plan.managed_directory).context(anyhow!(
-            "Failed to create managed directory {} for plan {}",
-            &plan.managed_directory,
-            plan.id
-        ))?;
+        if let Source::Managed { target, .. } = &plan.source {
+            create_dir_all(target).context(anyhow!(
+                "Failed to create managed directory {} for plan {}",
+                target,
+                plan.id
+            ))?;
+        }
     }
     Ok(())
 }

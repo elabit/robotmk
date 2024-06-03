@@ -1,4 +1,6 @@
-use robotmk::config::{Config, PlanMetadata, RCCConfig, WorkingDirectoryCleanupConfig};
+use robotmk::config::{
+    Config, PlanMetadata, RCCConfig, Source as ConfigSource, WorkingDirectoryCleanupConfig,
+};
 use robotmk::environment::Environment;
 use robotmk::lock::Locker;
 use robotmk::results::plan_results_directory;
@@ -19,12 +21,20 @@ pub struct GlobalConfig {
 }
 
 #[derive(Clone)]
+pub enum Source {
+    Manual,
+    Managed {
+        zip_file: Utf8PathBuf,
+        target: Utf8PathBuf,
+    },
+}
+
+#[derive(Clone)]
 pub struct Plan {
     pub id: String,
+    pub source: Source,
     pub working_directory: Utf8PathBuf,
     pub results_file: Utf8PathBuf,
-    pub managed_directory: Utf8PathBuf,
-    pub zip_file: Option<Utf8PathBuf>,
     pub timeout: u64,
     pub robot: Robot,
     pub environment: Environment,
@@ -53,24 +63,46 @@ pub fn from_external_config(
 
     for (group_index, sequential_group) in external_config.plan_groups.into_iter().enumerate() {
         for (plan_index, plan_config) in sequential_group.plans.into_iter().enumerate() {
+            let (plan_source_dir, source) = match &plan_config.source {
+                ConfigSource::Manual { base_dir } => (base_dir.clone(), Source::Manual),
+                ConfigSource::Managed { zip_file } => {
+                    let target = external_config.managed_directory.join(&plan_config.id);
+                    (
+                        target.clone(),
+                        Source::Managed {
+                            zip_file: zip_file.clone(),
+                            target,
+                        },
+                    )
+                }
+            };
+            let mut command_line_args = plan_config.robot_config.command_line_args.clone();
+            for file in &plan_config.robot_config.argument_files {
+                command_line_args.push("--argumentfile".into());
+                command_line_args.push(plan_source_dir.join(file).into())
+            }
+            for file in &plan_config.robot_config.variable_files {
+                command_line_args.push("--variablefile".into());
+                command_line_args.push(plan_source_dir.join(file).into())
+            }
             plans.push(Plan {
                 id: plan_config.id.clone(),
+                source,
                 working_directory: external_config
                     .working_directory
                     .join("plans")
                     .join(&plan_config.id),
                 results_file: plan_results_directory(&external_config.results_directory)
                     .join(format!("{}.json", plan_config.id)),
-                managed_directory: external_config.managed_directory.join(&plan_config.id),
-                zip_file: plan_config.zip_file,
                 timeout: plan_config.execution_config.timeout,
                 robot: Robot {
-                    robot_target: plan_config.robot_config.robot_target,
-                    command_line_args: plan_config.robot_config.command_line_args,
+                    robot_target: plan_source_dir.join(plan_config.robot_config.robot_target),
+                    command_line_args,
                     n_attempts_max: plan_config.execution_config.n_attempts_max,
                     retry_strategy: plan_config.execution_config.retry_strategy,
                 },
                 environment: Environment::new(
+                    &plan_source_dir,
                     &plan_config.id,
                     &external_config.rcc_config.binary_path,
                     &plan_config.environment_config,
@@ -124,9 +156,13 @@ mod tests {
     fn system_plan_config() -> PlanConfig {
         PlanConfig {
             id: "system".into(),
-            zip_file: None,
+            source: ConfigSource::Manual {
+                base_dir: "/synthetic_tests/system/".into(),
+            },
             robot_config: RobotConfig {
-                robot_target: Utf8PathBuf::from("/synthetic_tests/system/tasks.robot"),
+                robot_target: Utf8PathBuf::from("tasks.robot"),
+                variable_files: vec![],
+                argument_files: vec![],
                 command_line_args: vec![],
             },
             execution_config: ExecutionConfig {
@@ -149,9 +185,13 @@ mod tests {
     fn rcc_plan_config() -> PlanConfig {
         PlanConfig {
             id: "rcc".into(),
-            zip_file: None,
+            source: ConfigSource::Manual {
+                base_dir: "/synthetic_tests/rcc/".into(),
+            },
             robot_config: RobotConfig {
-                robot_target: Utf8PathBuf::from("/synthetic_tests/rcc/tasks.robot"),
+                robot_target: Utf8PathBuf::from("tasks.robot"),
+                variable_files: vec![],
+                argument_files: vec![],
                 command_line_args: vec![],
             },
             execution_config: ExecutionConfig {
@@ -160,7 +200,7 @@ mod tests {
                 timeout: 60,
             },
             environment_config: EnvironmentConfig::Rcc(RCCEnvironmentConfig {
-                robot_yaml_path: Utf8PathBuf::from("/synthetic_tests/rcc/robot.yaml"),
+                robot_yaml_path: Utf8PathBuf::from("robot.yaml"),
                 build_timeout: 300,
             }),
             session_config: SessionConfig::SpecificUser(UserSessionConfig {
