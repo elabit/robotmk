@@ -32,6 +32,9 @@ pub fn setup(global_config: &GlobalConfig, plans: Vec<Plan>) -> AnyhowResult<Vec
 }
 
 fn setup_working_directories(working_directory: &Utf8Path, plans: &[Plan]) -> AnyhowResult<()> {
+    if working_directory.exists() {
+        remove_dir_all(working_directory).context("Failed to remove working directory")?;
+    }
     create_dir_all(working_directory).context("Failed to create working directory")?;
     for plan in plans {
         create_dir_all(&plan.working_directory).context(format!(
