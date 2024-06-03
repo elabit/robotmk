@@ -137,6 +137,7 @@ mod tests {
         let rebot_command_spec = Rebot {
             plan_id: "my_plan",
             environment: &Environment::new(
+                "/working/".into(),
                 "my_plan",
                 "/bin/rcc".into(),
                 &EnvironmentConfig::System,

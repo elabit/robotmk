@@ -1,4 +1,4 @@
-use crate::internal_config::Plan;
+use crate::internal_config::{Plan, Source};
 use crate::setup::run_icacls_command;
 use camino::Utf8Path;
 use log::{error, info};
@@ -42,12 +42,12 @@ fn unzip_into(zip_file: &Utf8Path, target_path: &Utf8Path) -> anyhow::Result<()>
 fn zip_setup(plans: Vec<Plan>) -> Vec<Plan> {
     let mut surviving_plans = Vec::new();
     for plan in plans.into_iter() {
-        if let Some(zip_file) = &plan.zip_file {
-            if let Err(error) = unzip_into(zip_file, &plan.managed_directory) {
+        if let Source::Managed { zip_file, target } = &plan.source {
+            if let Err(error) = unzip_into(zip_file, target) {
                 error!("{error:#}");
                 continue;
             }
-            info!("Unzipped {} into `{}`.", zip_file, &plan.managed_directory);
+            info!("Unzipped {} into `{}`.", zip_file, target);
         }
         surviving_plans.push(plan);
     }
@@ -71,15 +71,16 @@ fn permission_setup(plans: Vec<Plan>) -> Vec<Plan> {
     let mut surviving_plans = Vec::new();
     for plan in plans.into_iter() {
         if let Session::User(user_session) = &plan.session {
-            if let Err(error) = grant_full_access(&user_session.user_name, &plan.managed_directory)
-            {
-                error!("{error:#}");
-                continue;
+            if let Source::Managed { target, .. } = &plan.source {
+                if let Err(error) = grant_full_access(&user_session.user_name, target) {
+                    error!("{error:#}");
+                    continue;
+                }
+                info!(
+                    "Adjusted permissions for {} for user `{}`.",
+                    target, &user_session.user_name
+                );
             }
-            info!(
-                "Adjusted permissions for {} for user `{}`.",
-                &plan.managed_directory, &user_session.user_name
-            );
         }
         surviving_plans.push(plan);
     }

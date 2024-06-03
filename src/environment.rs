@@ -29,6 +29,7 @@ pub struct RCCEnvironment {
 
 impl Environment {
     pub fn new(
+        base_dir: &Utf8Path,
         plan_id: &str,
         rcc_binary_path: &Utf8Path,
         environment_config: &EnvironmentConfig,
@@ -37,7 +38,7 @@ impl Environment {
             EnvironmentConfig::System => Self::System(SystemEnvironment {}),
             EnvironmentConfig::Rcc(rcc_environment_config) => Self::Rcc(RCCEnvironment {
                 binary_path: rcc_binary_path.to_path_buf(),
-                robot_yaml_path: rcc_environment_config.robot_yaml_path.clone(),
+                robot_yaml_path: base_dir.join(&rcc_environment_config.robot_yaml_path),
                 controller: String::from("robotmk"),
                 space: plan_id.to_string(),
                 build_timeout: rcc_environment_config.build_timeout,

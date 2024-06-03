@@ -43,9 +43,15 @@ pub struct SequentialPlanGroup {
 }
 
 #[derive(Clone, Debug, Deserialize, PartialEq, Serialize)]
+pub enum Source {
+    Manual { base_dir: Utf8PathBuf },
+    Managed { zip_file: Utf8PathBuf },
+}
+
+#[derive(Clone, Debug, Deserialize, PartialEq, Serialize)]
 pub struct PlanConfig {
     pub id: String,
-    pub zip_file: Option<Utf8PathBuf>,
+    pub source: Source,
     pub robot_config: RobotConfig,
     pub execution_config: ExecutionConfig,
     pub environment_config: EnvironmentConfig,
@@ -58,6 +64,8 @@ pub struct PlanConfig {
 #[derive(Clone, Debug, Deserialize, PartialEq, Serialize)]
 pub struct RobotConfig {
     pub robot_target: Utf8PathBuf,
+    pub variable_files: Vec<Utf8PathBuf>,
+    pub argument_files: Vec<Utf8PathBuf>,
     pub command_line_args: Vec<String>,
 }
 
