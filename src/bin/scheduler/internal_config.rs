@@ -1,5 +1,6 @@
 use robotmk::config::{
-    Config, PlanMetadata, RCCConfig, Source as ConfigSource, WorkingDirectoryCleanupConfig,
+    Config, PlanMetadata, RCCConfig, RobotConfig, Source as ConfigSource,
+    WorkingDirectoryCleanupConfig,
 };
 use robotmk::environment::Environment;
 use robotmk::lock::Locker;
@@ -76,15 +77,6 @@ pub fn from_external_config(
                     )
                 }
             };
-            let mut command_line_args = plan_config.robot_config.command_line_args.clone();
-            for file in &plan_config.robot_config.argument_files {
-                command_line_args.push("--argumentfile".into());
-                command_line_args.push(plan_source_dir.join(file).into())
-            }
-            for file in &plan_config.robot_config.variable_files {
-                command_line_args.push("--variablefile".into());
-                command_line_args.push(plan_source_dir.join(file).into())
-            }
             plans.push(Plan {
                 id: plan_config.id.clone(),
                 source,
@@ -95,12 +87,32 @@ pub fn from_external_config(
                 results_file: plan_results_directory(&external_config.results_directory)
                     .join(format!("{}.json", plan_config.id)),
                 timeout: plan_config.execution_config.timeout,
-                robot: Robot {
-                    robot_target: plan_source_dir.join(plan_config.robot_config.robot_target),
-                    command_line_args,
-                    n_attempts_max: plan_config.execution_config.n_attempts_max,
-                    retry_strategy: plan_config.execution_config.retry_strategy,
-                },
+                robot: Robot::new(
+                    RobotConfig {
+                        robot_target: plan_source_dir.join(plan_config.robot_config.robot_target),
+                        top_level_suite_name: plan_config.robot_config.top_level_suite_name,
+                        suites: plan_config.robot_config.suites,
+                        tests: plan_config.robot_config.tests,
+                        test_tags_include: plan_config.robot_config.test_tags_include,
+                        test_tags_exclude: plan_config.robot_config.test_tags_exclude,
+                        variables: plan_config.robot_config.variables,
+                        variable_files: plan_config
+                            .robot_config
+                            .variable_files
+                            .into_iter()
+                            .map(|f| plan_source_dir.join(f))
+                            .collect(),
+                        argument_files: plan_config
+                            .robot_config
+                            .argument_files
+                            .into_iter()
+                            .map(|f| plan_source_dir.join(f))
+                            .collect(),
+                        exit_on_failure: plan_config.robot_config.exit_on_failure,
+                    },
+                    plan_config.execution_config.n_attempts_max,
+                    plan_config.execution_config.retry_strategy,
+                ),
                 environment: Environment::new(
                     &plan_source_dir,
                     &plan_config.id,
@@ -161,9 +173,15 @@ mod tests {
             },
             robot_config: RobotConfig {
                 robot_target: Utf8PathBuf::from("tasks.robot"),
+                top_level_suite_name: Some("top_suite".into()),
+                suites: vec![],
+                tests: vec![],
+                test_tags_include: vec![],
+                test_tags_exclude: vec![],
+                variables: vec![],
                 variable_files: vec![],
-                argument_files: vec![],
-                command_line_args: vec![],
+                argument_files: vec!["args.txt".into(), "more_args.txt".into()],
+                exit_on_failure: false,
             },
             execution_config: ExecutionConfig {
                 n_attempts_max: 1,
@@ -190,9 +208,15 @@ mod tests {
             },
             robot_config: RobotConfig {
                 robot_target: Utf8PathBuf::from("tasks.robot"),
-                variable_files: vec![],
+                top_level_suite_name: None,
+                suites: vec![],
+                tests: vec![],
+                test_tags_include: vec![],
+                test_tags_exclude: vec![],
+                variables: vec![],
+                variable_files: vec!["vars.txt".into()],
                 argument_files: vec![],
-                command_line_args: vec![],
+                exit_on_failure: false,
             },
             execution_config: ExecutionConfig {
                 n_attempts_max: 1,
@@ -266,7 +290,10 @@ mod tests {
             plans[0].robot,
             Robot {
                 robot_target: Utf8PathBuf::from("/synthetic_tests/rcc/tasks.robot"),
-                command_line_args: vec![],
+                command_line_args: vec![
+                    "--variablefile".into(),
+                    "/synthetic_tests/rcc/vars.txt".into()
+                ],
                 n_attempts_max: 1,
                 retry_strategy: RetryStrategy::Complete,
             }
@@ -309,7 +336,14 @@ mod tests {
             plans[1].robot,
             Robot {
                 robot_target: Utf8PathBuf::from("/synthetic_tests/system/tasks.robot"),
-                command_line_args: vec![],
+                command_line_args: vec![
+                    "--name".into(),
+                    "top_suite".into(),
+                    "--argumentfile".into(),
+                    "/synthetic_tests/system/args.txt".into(),
+                    "--argumentfile".into(),
+                    "/synthetic_tests/system/more_args.txt".into()
+                ],
                 n_attempts_max: 1,
                 retry_strategy: RetryStrategy::Incremental,
             }

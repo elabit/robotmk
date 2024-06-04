@@ -1,5 +1,5 @@
 use crate::command_spec::CommandSpec;
-use crate::config::RetryStrategy;
+use crate::config::{RetryStrategy, RobotConfig};
 
 use camino::{Utf8Path, Utf8PathBuf};
 
@@ -21,6 +21,19 @@ pub struct Attempt {
 }
 
 impl Robot {
+    pub fn new(
+        robot_config: RobotConfig,
+        n_attempts_max: usize,
+        retry_strategy: RetryStrategy,
+    ) -> Self {
+        Self {
+            robot_target: robot_config.robot_target.clone(),
+            command_line_args: Self::config_to_command_line_args(robot_config),
+            n_attempts_max,
+            retry_strategy,
+        }
+    }
+
     pub fn attempts<'a>(
         &'a self,
         output_directory: &'a Utf8Path,
@@ -63,46 +76,134 @@ impl Robot {
             .add_argument(&self.robot_target);
         command_spec
     }
+
+    fn config_to_command_line_args(robot_config: RobotConfig) -> Vec<String> {
+        let mut args = vec![];
+        if let Some(top_level_suite_name) = robot_config.top_level_suite_name {
+            args.push("--name".to_string());
+            args.push(top_level_suite_name);
+        }
+        for suite in robot_config.suites {
+            args.push("--suite".to_string());
+            args.push(suite);
+        }
+        for test in robot_config.tests {
+            args.push("--test".to_string());
+            args.push(test);
+        }
+        for tag in robot_config.test_tags_include {
+            args.push("--include".to_string());
+            args.push(tag);
+        }
+        for tag in robot_config.test_tags_exclude {
+            args.push("--exclude".to_string());
+            args.push(tag);
+        }
+        for (name, value) in robot_config.variables {
+            args.push("--variable".to_string());
+            args.push(format!("{}:{}", name, value));
+        }
+        for file in robot_config.variable_files {
+            args.push("--variablefile".to_string());
+            args.push(file.to_string());
+        }
+        for file in robot_config.argument_files {
+            args.push("--argumentfile".to_string());
+            args.push(file.to_string());
+        }
+        if robot_config.exit_on_failure {
+            args.push("--exitonfailure".to_string());
+        }
+        args
+    }
 }
 
 #[cfg(test)]
 mod tests {
     use super::*;
 
-    fn expected_first_run(output_directory: &Utf8Path) -> CommandSpec {
-        let mut expected = CommandSpec::new(PYTHON_EXECUTABLE);
-        expected
-            .add_argument("-m")
-            .add_argument("robot")
-            .add_argument("--outputdir")
-            .add_argument(output_directory)
-            .add_argument("--output")
-            .add_argument(output_directory.join("1.xml"))
-            .add_argument("--log")
-            .add_argument(output_directory.join("1.html"))
-            .add_argument("--report")
-            .add_argument("NONE")
-            .add_argument("~/calculator_test/calculator.robot");
-        expected
+    #[test]
+    fn test_command_line_args_empty() {
+        assert!(Robot::new(
+            RobotConfig {
+                robot_target: "/suite/tasks.robot".into(),
+                top_level_suite_name: None,
+                suites: vec![],
+                tests: vec![],
+                test_tags_include: vec![],
+                test_tags_exclude: vec![],
+                variables: vec![],
+                variable_files: vec![],
+                argument_files: vec![],
+                exit_on_failure: false,
+            },
+            1,
+            RetryStrategy::Incremental
+        )
+        .command_line_args
+        .is_empty(),);
     }
 
-    fn expected_second_run(output_directory: &Utf8Path) -> CommandSpec {
-        let mut expected = CommandSpec::new(PYTHON_EXECUTABLE);
-        expected
-            .add_argument("-m")
-            .add_argument("robot")
-            .add_argument("--rerunfailed")
-            .add_argument(output_directory.join("1.xml"))
-            .add_argument("--outputdir")
-            .add_argument(output_directory)
-            .add_argument("--output")
-            .add_argument(output_directory.join("2.xml"))
-            .add_argument("--log")
-            .add_argument(output_directory.join("2.html"))
-            .add_argument("--report")
-            .add_argument("NONE")
-            .add_argument("~/calculator_test/calculator.robot");
-        expected
+    #[test]
+    fn test_command_line_args_non_empty() {
+        assert_eq!(
+            Robot::new(
+                RobotConfig {
+                    robot_target: "/suite/tasks.robot".into(),
+                    top_level_suite_name: Some("top_suite".into()),
+                    suites: vec!["suite1".into(), "suite2".into()],
+                    tests: vec!["test1".into(), "test2".into()],
+                    test_tags_include: vec!["tag1".into(), "tag2".into()],
+                    test_tags_exclude: vec!["tag3".into(), "tag4".into()],
+                    variables: vec![("k1".into(), "v1".into()), ("k2".into(), "v2".into())],
+                    variable_files: vec![
+                        "/suite/varfile1.txt".into(),
+                        "/suite/varfile2.txt".into()
+                    ],
+                    argument_files: vec![
+                        "/suite/argfile1.txt".into(),
+                        "/suite/argfile2.txt".into()
+                    ],
+                    exit_on_failure: true,
+                },
+                1,
+                RetryStrategy::Incremental
+            )
+            .command_line_args,
+            vec![
+                "--name",
+                "top_suite",
+                "--suite",
+                "suite1",
+                "--suite",
+                "suite2",
+                "--test",
+                "test1",
+                "--test",
+                "test2",
+                "--include",
+                "tag1",
+                "--include",
+                "tag2",
+                "--exclude",
+                "tag3",
+                "--exclude",
+                "tag4",
+                "--variable",
+                "k1:v1",
+                "--variable",
+                "k2:v2",
+                "--variablefile",
+                "/suite/varfile1.txt",
+                "--variablefile",
+                "/suite/varfile2.txt",
+                "--argumentfile",
+                "/suite/argfile1.txt",
+                "--argumentfile",
+                "/suite/argfile2.txt",
+                "--exitonfailure"
+            ]
+        );
     }
 
     #[test]
@@ -111,12 +212,33 @@ mod tests {
         let robot = Robot {
             robot_target: "~/calculator_test/calculator.robot".into(),
             n_attempts_max: 1,
-            command_line_args: vec![],
+            command_line_args: vec![
+                "--suite".into(),
+                "suite1".into(),
+                "--variable".into(),
+                "k:v".into(),
+            ],
             retry_strategy: RetryStrategy::Complete,
         };
         let output_directory =
             Utf8PathBuf::from("/tmp/calculator_plan/2023-08-29T12.23.44.419347+00.00");
-        let expected = expected_first_run(&output_directory);
+        let mut expected = CommandSpec::new(PYTHON_EXECUTABLE);
+        expected
+            .add_argument("-m")
+            .add_argument("robot")
+            .add_argument("--suite")
+            .add_argument("suite1")
+            .add_argument("--variable")
+            .add_argument("k:v")
+            .add_argument("--outputdir")
+            .add_argument(&output_directory)
+            .add_argument("--output")
+            .add_argument(output_directory.join("1.xml"))
+            .add_argument("--log")
+            .add_argument(output_directory.join("1.html"))
+            .add_argument("--report")
+            .add_argument("NONE")
+            .add_argument("~/calculator_test/calculator.robot");
         // Act
         let command_spec =
             robot.command_spec(&output_directory, &output_directory.join("1.xml"), 1);
@@ -130,12 +252,31 @@ mod tests {
         let robot = Robot {
             robot_target: "~/calculator_test/calculator.robot".into(),
             n_attempts_max: 2,
-            command_line_args: vec![],
+            command_line_args: vec![
+                "--name".into(),
+                "top_suite".into(),
+                "--exitonfailure".into(),
+            ],
             retry_strategy: RetryStrategy::Incremental,
         };
         let output_directory =
             Utf8PathBuf::from("/tmp/calculator_plan/2023-08-29T12.23.44.419347+00.00");
-        let expected = expected_first_run(&output_directory);
+        let mut expected = CommandSpec::new(PYTHON_EXECUTABLE);
+        expected
+            .add_argument("-m")
+            .add_argument("robot")
+            .add_argument("--name")
+            .add_argument("top_suite")
+            .add_argument("--exitonfailure")
+            .add_argument("--outputdir")
+            .add_argument(&output_directory)
+            .add_argument("--output")
+            .add_argument(output_directory.join("1.xml"))
+            .add_argument("--log")
+            .add_argument(output_directory.join("1.html"))
+            .add_argument("--report")
+            .add_argument("NONE")
+            .add_argument("~/calculator_test/calculator.robot");
         // Act
         let command_spec =
             robot.command_spec(&output_directory, &output_directory.join("1.xml"), 1);
@@ -154,7 +295,21 @@ mod tests {
         };
         let output_directory =
             Utf8PathBuf::from("/tmp/calculator_plan/2023-08-29T12.23.44.419347+00.00");
-        let expected = expected_second_run(&output_directory);
+        let mut expected = CommandSpec::new(PYTHON_EXECUTABLE);
+        expected
+            .add_argument("-m")
+            .add_argument("robot")
+            .add_argument("--rerunfailed")
+            .add_argument(output_directory.join("1.xml"))
+            .add_argument("--outputdir")
+            .add_argument(&output_directory)
+            .add_argument("--output")
+            .add_argument(output_directory.join("2.xml"))
+            .add_argument("--log")
+            .add_argument(output_directory.join("2.html"))
+            .add_argument("--report")
+            .add_argument("NONE")
+            .add_argument("~/calculator_test/calculator.robot");
         // Act
         let command_spec =
             robot.command_spec(&output_directory, &output_directory.join("2.xml"), 2);
@@ -173,14 +328,42 @@ mod tests {
         };
         let output_directory =
             Utf8PathBuf::from("/tmp/outputdir/plan_1/2023-08-29T12.23.44.419347+00.00");
+        let mut first_command_spec = CommandSpec::new(PYTHON_EXECUTABLE);
+        first_command_spec
+            .add_argument("-m")
+            .add_argument("robot")
+            .add_argument("--outputdir")
+            .add_argument(&output_directory)
+            .add_argument("--output")
+            .add_argument(output_directory.join("1.xml"))
+            .add_argument("--log")
+            .add_argument(output_directory.join("1.html"))
+            .add_argument("--report")
+            .add_argument("NONE")
+            .add_argument("~/calculator_test/calculator.robot");
+        let mut second_command_spec = CommandSpec::new(PYTHON_EXECUTABLE);
+        second_command_spec
+            .add_argument("-m")
+            .add_argument("robot")
+            .add_argument("--rerunfailed")
+            .add_argument(output_directory.join("1.xml"))
+            .add_argument("--outputdir")
+            .add_argument(&output_directory)
+            .add_argument("--output")
+            .add_argument(output_directory.join("2.xml"))
+            .add_argument("--log")
+            .add_argument(output_directory.join("2.html"))
+            .add_argument("--report")
+            .add_argument("NONE")
+            .add_argument("~/calculator_test/calculator.robot");
         let first_attempt = Attempt {
             index: 1,
-            command_spec: expected_first_run(&output_directory),
+            command_spec: first_command_spec,
             output_xml_file: output_directory.join("1.xml"),
         };
         let second_attempt = Attempt {
             index: 2,
-            command_spec: expected_second_run(&output_directory),
+            command_spec: second_command_spec,
             output_xml_file: output_directory.join("2.xml"),
         };
         // Act
