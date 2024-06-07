@@ -1,33 +1,62 @@
 {
-	"working_directory": "C:\\tmp\\output",
-	"results_directory": "C:\\tmp\\results",
-	"rcc_binary_path": "C:\\Users\\vagrant\\AppData\\Local\\Microsoft\\WindowsApps\\rcc.exe",
-	"suites": {
-		"test": {
-			"robot_framework_config": {
-				"robot_target": "C:\\robotmk\\data\\retry_suite\\tasks.robot",
-				"command_line_args": [
-					"--variablefile",
-					"C:\\robotmk\\data\\retry_suite\\retry_variables.yaml"
-				]
-			},
-			"execution_config": {
-				"n_attempts_max": 1,
-				"retry_strategy": "Incremental",
-				"execution_interval_seconds": 10,
-				"timeout": 5
-			},
-			"environment_config": {
-				"Rcc": {
-					"robot_yaml_path": "C:\\robotmk\\data\\retry_rcc\\robot.yaml",
-					"build_timeout": 600
-				}
-			},
-			"session_config": "Current",
-			"working_directory_cleanup_config": {
-				"MaxExecutions": 180
-			},
-			"host": "Source"
-		}
-	}
+  "working_directory": "C:\\tmp\\output",
+  "results_directory": "C:\\tmp\\results",
+  "managed_directory": "C:\\tmp\\managed_directory",
+  "rcc_config": {
+    "binary_path": "C:\\ProgramData\\checkmk\\agent\\bin\\rcc.exe",
+    "profile_config": "Default"
+  },
+  "plan_groups": [
+    {
+      "plans": [
+        {
+          "id": "test",
+          "source": {
+            "Manual": {
+              "base_dir": "C:\\"
+            }
+          },
+          "robot_config": {
+            "robot_target": "robotmk\\data\\retry_suite\\tasks.robot",
+            "top_level_suite_name": null,
+            "suites": [],
+            "tests": [],
+            "test_tags_include": [],
+            "test_tags_exclude": [],
+            "variables": [
+              [
+                "a",
+                "b"
+              ]
+            ],
+            "variable_files": [],
+            "argument_files": [],
+            "exit_on_failure": false
+          },
+          "execution_config": {
+            "n_attempts_max": 1,
+            "retry_strategy": "Incremental",
+            "timeout": 5
+          },
+          "environment_config": {
+            "Rcc": {
+              "robot_yaml_path": "robotmk\\data\\retry_rcc\\robot.yaml",
+              "build_timeout": 600
+            }
+          },
+          "session_config": "Current",
+          "working_directory_cleanup_config": {
+            "MaxExecutions": 180
+          },
+          "host": "Source",
+          "metadata": {
+            "application": "app",
+            "suite_name": "suite_name",
+            "variant": "var"
+          }
+        }
+      ],
+      "execution_interval": 10
+    }
+  ]
 }
