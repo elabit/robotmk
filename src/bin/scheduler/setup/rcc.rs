@@ -155,17 +155,6 @@ fn rcc_setup(
         );
     }
 
-    debug!("Initializing shared holotree");
-    (sucessful_plans, rcc_setup_failures.shared_holotree) =
-        shared_holotree_init(global_config, sucessful_plans)
-            .context("Received termination signal while initializing shared holotree")?;
-    if !rcc_setup_failures.shared_holotree.is_empty() {
-        error!(
-            "Dropping the following plans due to shared holotree initialization failure: {}",
-            failed_plan_ids_human_readable(rcc_setup_failures.shared_holotree.keys())
-        );
-    }
-
     debug!("Initializing holotree");
     (sucessful_plans, rcc_setup_failures.holotree_init) =
         holotree_init(global_config, sucessful_plans)
@@ -268,21 +257,6 @@ fn enable_long_path_support(
         plans,
         &command_spec,
         "long_path_support_enabling",
-    )
-}
-
-fn shared_holotree_init(
-    global_config: &GlobalConfig,
-    plans: Vec<Plan>,
-) -> Result<(Vec<Plan>, HashMap<String, String>), Cancelled> {
-    let mut command_spec =
-        RCCEnvironment::bundled_command_spec(&global_config.rcc_config.binary_path);
-    command_spec.add_arguments(["holotree", "shared", "--enable", "--once"]);
-    run_command_spec_once_in_current_session(
-        global_config,
-        plans,
-        &command_spec,
-        "shared_holotree_init",
     )
 }
 

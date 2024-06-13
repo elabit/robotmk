@@ -307,8 +307,6 @@ async fn assert_working_directory(
             &format!("holotree_initialization_user_{headed_user_name}.stdout"),
             "long_path_support_enabling.stderr",
             "long_path_support_enabling.stdout",
-            "shared_holotree_init.stderr",
-            "shared_holotree_init.stdout",
             "telemetry_disabling_current_user.stderr",
             "telemetry_disabling_current_user.stdout",
             &format!("telemetry_disabling_user_{headed_user_name}.bat"),
@@ -403,8 +401,6 @@ async fn assert_rcc_configuration(rcc_config: &RCCConfig) -> AnyhowResult<()> {
         .arg("diagnostics");
     let stdout = String::from_utf8(rcc_config_diag_command.output().await?.stdout)?;
     assert!(stdout.contains("telemetry-enabled                     ...  \"false\""));
-    assert!(stdout.contains("holotree-shared                       ...  \"true\""));
-    assert!(stdout.contains("holotree-global-shared                ...  \"true\""));
     if let RCCProfileConfig::Custom(custom_rcc_profile_config) = &rcc_config.profile_config {
         assert!(stdout.contains(&format!(
             "config-active-profile                 ...  \"{}\"",
