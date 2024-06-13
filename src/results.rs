@@ -41,7 +41,6 @@ pub struct RCCSetupFailures {
     pub telemetry_disabling: HashMap<String, String>,
     pub profile_configuring: HashMap<String, String>,
     pub long_path_support: HashMap<String, String>,
-    pub shared_holotree: HashMap<String, String>,
     pub holotree_init: HashMap<String, String>,
 }
 
