@@ -1,3 +1,5 @@
+pub mod rcc;
+use crate::rcc::read_configuration_diagnostics;
 use anyhow::Result as AnyhowResult;
 use assert_cmd::cargo::cargo_bin;
 use camino::{Utf8Path, Utf8PathBuf};
@@ -321,17 +323,24 @@ async fn assert_rcc_files_permissions(
 }
 
 async fn assert_rcc_configuration(rcc_config: &RCCConfig) -> AnyhowResult<()> {
-    let mut rcc_config_diag_command = Command::new(&rcc_config.binary_path);
-    rcc_config_diag_command
-        .arg("configuration")
-        .arg("diagnostics");
-    let stdout = String::from_utf8(rcc_config_diag_command.output().await?.stdout)?;
-    assert!(stdout.contains("telemetry-enabled                     ...  \"false\""));
+    let diagnostics = read_configuration_diagnostics(&rcc_config.binary_path)?;
+    assert_eq!(
+        diagnostics
+            .details
+            .get("telemetry-enabled")
+            .unwrap()
+            .as_str(),
+        "false"
+    );
     if let RCCProfileConfig::Custom(custom_rcc_profile_config) = &rcc_config.profile_config {
-        assert!(stdout.contains(&format!(
-            "config-active-profile                 ...  \"{}\"",
+        assert_eq!(
+            diagnostics
+                .details
+                .get("config-active-profile")
+                .unwrap()
+                .as_str(),
             custom_rcc_profile_config.name
-        )));
+        );
     }
     Ok(())
 }
