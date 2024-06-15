@@ -267,12 +267,41 @@ fn holotree_init(
     let mut command_spec =
         RCCEnvironment::bundled_command_spec(&global_config.rcc_config.binary_path);
     command_spec.add_arguments(["holotree", "init"]);
-    run_command_spec_per_session(
-        global_config,
-        plans,
-        &command_spec,
-        "holotree_initialization",
-    )
+    let mut succesful_plans = vec![];
+    let mut failed_plans: HashMap<String, String> = HashMap::new();
+
+    for (session, plans) in plans_by_sessions(plans) {
+        let session_id = format!(
+            "{}_{}",
+            "holotree_initialization",
+            match &session {
+                Session::Current(_) => "current_user".into(),
+                Session::User(user_session) => format!("user_{}", user_session.user_name),
+            }
+        );
+
+        debug!("Running {} for `{}`", command_spec, &session);
+        match execute_run_spec_in_session(
+            &session,
+            &RunSpec {
+                id: &format!("robotmk_{session_id}"),
+                command_spec: &command_spec,
+                base_path: &rcc_setup_working_directory(&global_config.working_directory)
+                    .join(session_id),
+                timeout: 120,
+                cancellation_token: &global_config.cancellation_token,
+            },
+        )? {
+            Some(error_msg) => {
+                for plan in plans {
+                    failed_plans.insert(plan.id, error_msg.clone());
+                }
+            }
+            None => succesful_plans.extend(plans),
+        }
+    }
+
+    Ok((succesful_plans, failed_plans))
 }
 
 fn run_command_spec_once_in_current_session(
