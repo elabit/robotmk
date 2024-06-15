@@ -271,16 +271,14 @@ fn holotree_init(
     let mut failed_plans: HashMap<String, String> = HashMap::new();
 
     for (session, plans) in plans_by_sessions(plans) {
-        let session_id = format!(
-            "{}_{}",
-            "holotree_initialization",
+        debug!("Running {} for `{}`", command_spec, &session);
+        let session_id = &format!(
+            "holotree_initialization_{}",
             match &session {
                 Session::Current(_) => "current_user".into(),
                 Session::User(user_session) => format!("user_{}", user_session.user_name),
             }
         );
-
-        debug!("Running {} for `{}`", command_spec, &session);
         let run_spec = &RunSpec {
             id: &format!("robotmk_{session_id}"),
             command_spec: &command_spec,
@@ -289,49 +287,45 @@ fn holotree_init(
             timeout: 120,
             cancellation_token: &global_config.cancellation_token,
         };
-        let outcome = {
-            match session.run(run_spec).context(format!(
-                "Failed to run {} for `{session}`",
-                run_spec.command_spec
-            )) {
-                Ok(run_outcome) => match run_outcome {
-                    Outcome::Completed(exit_code) => {
-                        if exit_code == 0 {
-                            debug!("{} for `{session}` successful", run_spec.command_spec);
-                            Ok(None)
-                        } else {
-                            error!(
-                                "{} for `{session}` exited non-successfully",
-                                run_spec.command_spec
-                            );
-                            Ok(Some(format!(
-                                "Non-zero exit code, see {} for stdio logs",
-                                run_spec.base_path
-                            )))
-                        }
-                    }
-                    Outcome::Timeout => {
-                        error!("{} for `{session}` timed out", run_spec.command_spec);
-                        Ok(Some("Timeout".into()))
-                    }
-                    Outcome::Cancel => {
-                        error!("{} for `{session}` cancelled", run_spec.command_spec);
-                        Err(Cancelled {})
-                    }
-                },
-                Err(error) => {
-                    let error = log_and_return_error(error);
-                    Ok(Some(format!("{error:?}")))
-                }
+        match session.run(run_spec) {
+            Ok(Outcome::Completed(0)) => {
+                debug!("{} for `{session}` successful", run_spec.command_spec);
+                succesful_plans.extend(plans);
             }
-        };
-        match outcome? {
-            Some(error_msg) => {
+            Ok(Outcome::Completed(_)) => {
+                error!(
+                    "{} for `{session}` exited non-successfully",
+                    run_spec.command_spec
+                );
+                let error_message = format!(
+                    "Non-zero exit code, see {} for stdio logs",
+                    run_spec.base_path
+                );
                 for plan in plans {
-                    failed_plans.insert(plan.id, error_msg.clone());
+                    failed_plans.insert(plan.id, error_message.clone());
                 }
             }
-            None => succesful_plans.extend(plans),
+            Ok(Outcome::Timeout) => {
+                error!("{} for `{session}` timed out", run_spec.command_spec);
+                for plan in plans {
+                    failed_plans.insert(plan.id, "Timeout".to_string());
+                }
+            }
+            Ok(Outcome::Cancel) => {
+                error!("{} for `{session}` cancelled", run_spec.command_spec);
+                return Err(Cancelled {});
+            }
+            Err(error) => {
+                let error = error.context(format!(
+                    "Failed to run {} for `{session}`",
+                    run_spec.command_spec
+                ));
+                let error = log_and_return_error(error);
+                let error_message = format!("{error:?}");
+                for plan in plans {
+                    failed_plans.insert(plan.id, error_message.clone());
+                }
+            }
         }
     }
 
