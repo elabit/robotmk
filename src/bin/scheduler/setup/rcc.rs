@@ -281,17 +281,51 @@ fn holotree_init(
         );
 
         debug!("Running {} for `{}`", command_spec, &session);
-        match execute_run_spec_in_session(
-            &session,
-            &RunSpec {
-                id: &format!("robotmk_{session_id}"),
-                command_spec: &command_spec,
-                base_path: &rcc_setup_working_directory(&global_config.working_directory)
-                    .join(session_id),
-                timeout: 120,
-                cancellation_token: &global_config.cancellation_token,
-            },
-        )? {
+        let run_spec = &RunSpec {
+            id: &format!("robotmk_{session_id}"),
+            command_spec: &command_spec,
+            base_path: &rcc_setup_working_directory(&global_config.working_directory)
+                .join(session_id),
+            timeout: 120,
+            cancellation_token: &global_config.cancellation_token,
+        };
+        let outcome = {
+            match session.run(run_spec).context(format!(
+                "Failed to run {} for `{session}`",
+                run_spec.command_spec
+            )) {
+                Ok(run_outcome) => match run_outcome {
+                    Outcome::Completed(exit_code) => {
+                        if exit_code == 0 {
+                            debug!("{} for `{session}` successful", run_spec.command_spec);
+                            Ok(None)
+                        } else {
+                            error!(
+                                "{} for `{session}` exited non-successfully",
+                                run_spec.command_spec
+                            );
+                            Ok(Some(format!(
+                                "Non-zero exit code, see {} for stdio logs",
+                                run_spec.base_path
+                            )))
+                        }
+                    }
+                    Outcome::Timeout => {
+                        error!("{} for `{session}` timed out", run_spec.command_spec);
+                        Ok(Some("Timeout".into()))
+                    }
+                    Outcome::Cancel => {
+                        error!("{} for `{session}` cancelled", run_spec.command_spec);
+                        Err(Cancelled {})
+                    }
+                },
+                Err(error) => {
+                    let error = log_and_return_error(error);
+                    Ok(Some(format!("{error:?}")))
+                }
+            }
+        };
+        match outcome? {
             Some(error_msg) => {
                 for plan in plans {
                     failed_plans.insert(plan.id, error_msg.clone());
