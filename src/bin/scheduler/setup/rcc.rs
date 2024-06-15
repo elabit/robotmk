@@ -155,14 +155,16 @@ fn rcc_setup(
         );
     }
 
-    debug!("Initializing holotree");
-    (sucessful_plans, rcc_setup_failures.holotree_init) =
-        holotree_init(global_config, sucessful_plans)
-            .context("Received termination signal while initializing holotree")?;
-    if !rcc_setup_failures.holotree_init.is_empty() {
+    debug!("Disabling shared holotree");
+    (
+        sucessful_plans,
+        rcc_setup_failures.holotree_disabling_sharing,
+    ) = holotree_disable_sharing(global_config, sucessful_plans)
+        .context("Received termination signal while revoking shared holotree")?;
+    if !rcc_setup_failures.holotree_disabling_sharing.is_empty() {
         error!(
-            "Dropping the following plans due to holotree initialization failure: {}",
-            failed_plan_ids_human_readable(rcc_setup_failures.holotree_init.keys())
+            "Dropping the following plans due to failing to disable holotree sharing: {}",
+            failed_plan_ids_human_readable(rcc_setup_failures.holotree_disabling_sharing.keys())
         );
     }
 
@@ -260,20 +262,20 @@ fn enable_long_path_support(
     )
 }
 
-fn holotree_init(
+fn holotree_disable_sharing(
     global_config: &GlobalConfig,
     plans: Vec<Plan>,
 ) -> Result<(Vec<Plan>, HashMap<String, String>), Cancelled> {
     let mut command_spec =
         RCCEnvironment::bundled_command_spec(&global_config.rcc_config.binary_path);
-    command_spec.add_arguments(["holotree", "init"]);
+    command_spec.add_arguments(["holotree", "init", "--revoke"]);
     let mut succesful_plans = vec![];
     let mut failed_plans: HashMap<String, String> = HashMap::new();
 
     for (session, plans) in plans_by_sessions(plans) {
         debug!("Running {} for `{}`", command_spec, &session);
         let session_id = &format!(
-            "holotree_initialization_{}",
+            "holotree_disabling_sharing_{}",
             match &session {
                 Session::Current(_) => "current_user".into(),
                 Session::User(user_session) => format!("user_{}", user_session.user_name),
@@ -290,6 +292,10 @@ fn holotree_init(
         match session.run(run_spec) {
             Ok(Outcome::Completed(0)) => {
                 debug!("{} for `{session}` successful", run_spec.command_spec);
+                succesful_plans.extend(plans);
+            }
+            Ok(Outcome::Completed(5)) => {
+                debug!("`{session}` not using shared holotree. Don't need to disable.");
                 succesful_plans.extend(plans);
             }
             Ok(Outcome::Completed(_)) => {
