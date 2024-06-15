@@ -228,12 +228,12 @@ async fn assert_working_directory(
             &format!("custom_profile_switch_user_{headed_user_name}.exit_code"),
             &format!("custom_profile_switch_user_{headed_user_name}.stderr"),
             &format!("custom_profile_switch_user_{headed_user_name}.stdout"),
-            "holotree_initialization_current_user.stderr",
-            "holotree_initialization_current_user.stdout",
-            &format!("holotree_initialization_user_{headed_user_name}.bat"),
-            &format!("holotree_initialization_user_{headed_user_name}.exit_code"),
-            &format!("holotree_initialization_user_{headed_user_name}.stderr"),
-            &format!("holotree_initialization_user_{headed_user_name}.stdout"),
+            "holotree_disabling_sharing_current_user.stderr",
+            "holotree_disabling_sharing_current_user.stdout",
+            &format!("holotree_disabling_sharing_user_{headed_user_name}.bat"),
+            &format!("holotree_disabling_sharing_user_{headed_user_name}.exit_code"),
+            &format!("holotree_disabling_sharing_user_{headed_user_name}.stderr"),
+            &format!("holotree_disabling_sharing_user_{headed_user_name}.stdout"),
             "long_path_support_enabling.stderr",
             "long_path_support_enabling.stdout",
             "telemetry_disabling_current_user.stderr",
@@ -330,6 +330,10 @@ async fn assert_rcc_configuration(rcc_config: &RCCConfig) -> AnyhowResult<()> {
             .get("telemetry-enabled")
             .unwrap()
             .as_str(),
+        "false"
+    );
+    assert_eq!(
+        diagnostics.details.get("holotree-shared").unwrap().as_str(),
         "false"
     );
     if let RCCProfileConfig::Custom(custom_rcc_profile_config) = &rcc_config.profile_config {
