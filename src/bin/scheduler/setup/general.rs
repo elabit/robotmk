@@ -7,7 +7,7 @@ use log::{debug, error};
 use robotmk::results::{plan_results_directory, GeneralSetupFailures};
 use robotmk::section::WriteSection;
 use std::collections::{HashMap, HashSet};
-use std::fs::{create_dir_all, remove_file};
+use std::fs::{create_dir_all, remove_dir_all, remove_file};
 
 pub fn setup(global_config: &GlobalConfig, plans: Vec<Plan>) -> AnyhowResult<Vec<Plan>> {
     setup_working_directories(&global_config.working_directory, &plans)?;
