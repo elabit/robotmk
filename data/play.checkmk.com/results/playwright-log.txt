@@ -1,0 +1,77 @@
+{"level":30,"time":"2024-02-26T10:45:38.278Z","pid":58881,"hostname":"melmac-2.fritz.box","msg":"Listening on 56883"}
+(node:58881) DeprecationWarning: Calling start() is no longer necessary. It can be safely omitted.
+(Use `node --trace-deprecation ...` to show where the warning was created)
+{"level":30,"time":"2024-02-26T10:45:39.329Z","pid":58881,"hostname":"melmac-2.fritz.box","msg":"Start of node method getBrowserCatalog"}
+{"level":30,"time":"2024-02-26T10:45:39.331Z","pid":58881,"hostname":"melmac-2.fritz.box","msg":"End of node method getBrowserCatalog"}
+{"level":30,"time":"2024-02-26T10:45:39.345Z","pid":58881,"hostname":"melmac-2.fritz.box","msg":"Start of node method newBrowser"}
+{"level":30,"time":"2024-02-26T10:45:39.754Z","pid":58881,"hostname":"melmac-2.fritz.box","msg":"Adding browser to stack: chromium, version: 121.0.6167.57"}
+{"level":30,"time":"2024-02-26T10:45:39.755Z","pid":58881,"hostname":"melmac-2.fritz.box","msg":"End of node method newBrowser"}
+{"level":30,"time":"2024-02-26T10:45:39.755Z","pid":58881,"hostname":"melmac-2.fritz.box","msg":"Adding 0 contexts to browser"}
+{"level":30,"time":"2024-02-26T10:45:39.766Z","pid":58881,"hostname":"melmac-2.fritz.box","msg":"Start of node method newContext"}
+{"level":30,"time":"2024-02-26T10:45:39.767Z","pid":58881,"hostname":"melmac-2.fritz.box","msg":"currentBrowser: [object Object]"}
+{"level":30,"time":"2024-02-26T10:45:39.767Z","pid":58881,"hostname":"melmac-2.fritz.box","msg":"Trace file: "}
+{"level":30,"time":"2024-02-26T10:45:39.786Z","pid":58881,"hostname":"melmac-2.fritz.box","msg":"Changed active context"}
+{"level":30,"time":"2024-02-26T10:45:39.788Z","pid":58881,"hostname":"melmac-2.fritz.box","msg":"End of node method newContext"}
+{"level":30,"time":"2024-02-26T10:45:39.802Z","pid":58881,"hostname":"melmac-2.fritz.box","Cookie data: ":"{\"name\": \"cmk_demo\", \"value\": \"kCGgLDI87dmLp48QOLvg\", \"domain\": \"play.checkmk.com\", \"path\": \"/play/\"}"}
+{"level":30,"time":"2024-02-26T10:45:39.812Z","pid":58881,"hostname":"melmac-2.fritz.box","msg":"Start of node method newPage"}
+{"level":30,"time":"2024-02-26T10:45:39.812Z","pid":58881,"hostname":"melmac-2.fritz.box","msg":"currentBrowser: [object Object]"}
+{"level":30,"time":"2024-02-26T10:45:40.040Z","pid":58881,"hostname":"melmac-2.fritz.box","msg":"Video path: undefined"}
+{"level":30,"time":"2024-02-26T10:45:40.040Z","pid":58881,"hostname":"melmac-2.fritz.box","msg":"Changed active page"}
+{"level":30,"time":"2024-02-26T10:45:42.247Z","pid":58881,"hostname":"melmac-2.fritz.box","msg":"End of node method newPage"}
+{"level":30,"time":"2024-02-26T10:45:42.257Z","pid":58881,"hostname":"melmac-2.fritz.box","msg":"Start of node method getElementStates"}
+{"level":30,"time":"2024-02-26T10:45:42.257Z","pid":58881,"hostname":"melmac-2.fritz.box","msg":"Strict mode is enabled, find Locator with text=Accept all in page."}
+{"level":30,"time":"2024-02-26T10:45:42.510Z","pid":58881,"hostname":"melmac-2.fritz.box","msg":"End of node method getElementStates"}
+{"level":30,"time":"2024-02-26T10:45:42.516Z","pid":58881,"hostname":"melmac-2.fritz.box","msg":"Start of node method getElementStates"}
+{"level":30,"time":"2024-02-26T10:45:42.517Z","pid":58881,"hostname":"melmac-2.fritz.box","msg":"Strict mode is enabled, find Locator with div.appcues in page."}
+{"level":30,"time":"2024-02-26T10:45:42.587Z","pid":58881,"hostname":"melmac-2.fritz.box","msg":"End of node method getElementStates"}
+{"level":30,"time":"2024-02-26T10:45:42.593Z","pid":58881,"hostname":"melmac-2.fritz.box","msg":"Start of node method getBrowserCatalog"}
+{"level":30,"time":"2024-02-26T10:45:42.600Z","pid":58881,"hostname":"melmac-2.fritz.box","msg":"End of node method getBrowserCatalog"}
+{"level":30,"time":"2024-02-26T10:45:42.607Z","pid":58881,"hostname":"melmac-2.fritz.box","msg":"Start of node method click"}
+{"level":30,"time":"2024-02-26T10:45:42.608Z","pid":58881,"hostname":"melmac-2.fritz.box","msg":"Strict mode is enabled, find Locator with text=\"Monitor\" in page."}
+{"level":30,"time":"2024-02-26T10:45:42.695Z","pid":58881,"hostname":"melmac-2.fritz.box","msg":"End of node method click"}
+{"level":30,"time":"2024-02-26T10:45:42.703Z","pid":58881,"hostname":"melmac-2.fritz.box","msg":"Start of node method click"}
+{"level":30,"time":"2024-02-26T10:45:42.703Z","pid":58881,"hostname":"melmac-2.fritz.box","msg":"Strict mode is enabled, find Locator with text=\"Linux hosts\" in page."}
+{"level":30,"time":"2024-02-26T10:45:42.753Z","pid":58881,"hostname":"melmac-2.fritz.box","msg":"End of node method click"}
+{"level":30,"time":"2024-02-26T10:45:45.764Z","pid":58881,"hostname":"melmac-2.fritz.box","msg":"Start of node method takeScreenshot"}
+{"level":30,"time":"2024-02-26T10:45:45.765Z","pid":58881,"hostname":"melmac-2.fritz.box","Take screenshot with options: ":{"path":"/Users/simon/Documents/01_Development/02_Kundenprojekte/11_CMK/Code/play.checkmk.com/results/browser/screenshot/3ad11873612f43cc8108bb5d4ca04710.jpeg","fileType":"jpeg","fullPage":false,"timeout":10000,"omitBackground":false,"quality":50}}
+{"level":30,"time":"2024-02-26T10:45:45.765Z","pid":58881,"hostname":"melmac-2.fritz.box","msg":"Strict mode is enabled, find Locator with iframe[name=\"main\"] >> internal:control=enter-frame >> div#dashboard in page."}
+{"level":30,"time":"2024-02-26T10:45:45.765Z","pid":58881,"hostname":"melmac-2.fritz.box","Using selecotr: ":"iframe[name=\"main\"] >>> div#dashboard"}
+{"level":30,"time":"2024-02-26T10:45:45.953Z","pid":58881,"hostname":"melmac-2.fritz.box","msg":"End of node method takeScreenshot"}
+{"level":30,"time":"2024-02-26T10:45:45.969Z","pid":58881,"hostname":"melmac-2.fritz.box","msg":"Start of node method click"}
+{"level":30,"time":"2024-02-26T10:45:45.970Z","pid":58881,"hostname":"melmac-2.fritz.box","msg":"Strict mode is enabled, find Locator with text=\"Monitor\" in page."}
+{"level":30,"time":"2024-02-26T10:45:46.016Z","pid":58881,"hostname":"melmac-2.fritz.box","msg":"End of node method click"}
+{"level":30,"time":"2024-02-26T10:45:46.022Z","pid":58881,"hostname":"melmac-2.fritz.box","msg":"Start of node method click"}
+{"level":30,"time":"2024-02-26T10:45:46.022Z","pid":58881,"hostname":"melmac-2.fritz.box","msg":"Strict mode is enabled, find Locator with text=\"Windows hosts\" in page."}
+{"level":30,"time":"2024-02-26T10:45:46.070Z","pid":58881,"hostname":"melmac-2.fritz.box","msg":"End of node method click"}
+{"level":30,"time":"2024-02-26T10:45:49.085Z","pid":58881,"hostname":"melmac-2.fritz.box","msg":"Start of node method takeScreenshot"}
+{"level":30,"time":"2024-02-26T10:45:49.087Z","pid":58881,"hostname":"melmac-2.fritz.box","Take screenshot with options: ":{"path":"/Users/simon/Documents/01_Development/02_Kundenprojekte/11_CMK/Code/play.checkmk.com/results/browser/screenshot/a8754c3ca0904ebead70e2fa8e1de371.jpeg","fileType":"jpeg","fullPage":false,"timeout":10000,"omitBackground":false,"quality":50}}
+{"level":30,"time":"2024-02-26T10:45:49.087Z","pid":58881,"hostname":"melmac-2.fritz.box","msg":"Strict mode is enabled, find Locator with iframe[name=\"main\"] >> internal:control=enter-frame >> div#dashboard in page."}
+{"level":30,"time":"2024-02-26T10:45:49.087Z","pid":58881,"hostname":"melmac-2.fritz.box","Using selecotr: ":"iframe[name=\"main\"] >>> div#dashboard"}
+{"level":30,"time":"2024-02-26T10:45:49.235Z","pid":58881,"hostname":"melmac-2.fritz.box","msg":"End of node method takeScreenshot"}
+{"level":30,"time":"2024-02-26T10:45:49.257Z","pid":58881,"hostname":"melmac-2.fritz.box","msg":"Start of node method getBrowserCatalog"}
+{"level":30,"time":"2024-02-26T10:45:49.259Z","pid":58881,"hostname":"melmac-2.fritz.box","msg":"End of node method getBrowserCatalog"}
+{"level":30,"time":"2024-02-26T10:45:49.270Z","pid":58881,"hostname":"melmac-2.fritz.box","msg":"Start of node method getBrowserCatalog"}
+{"level":30,"time":"2024-02-26T10:45:49.273Z","pid":58881,"hostname":"melmac-2.fritz.box","msg":"End of node method getBrowserCatalog"}
+{"level":30,"time":"2024-02-26T10:45:49.280Z","pid":58881,"hostname":"melmac-2.fritz.box","msg":"Start of node method getBrowserCatalog"}
+{"level":30,"time":"2024-02-26T10:45:49.283Z","pid":58881,"hostname":"melmac-2.fritz.box","msg":"End of node method getBrowserCatalog"}
+{"level":30,"time":"2024-02-26T10:45:49.288Z","pid":58881,"hostname":"melmac-2.fritz.box","msg":"Changed active context"}
+{"level":30,"time":"2024-02-26T10:45:49.289Z","pid":58881,"hostname":"melmac-2.fritz.box","msg":"Changing current active page: page=4d8dbfc8-f495-4607-80fb-7fac01bd4a71"}
+{"level":30,"time":"2024-02-26T10:45:49.289Z","pid":58881,"hostname":"melmac-2.fritz.box","msg":"Changed active page"}
+{"level":30,"time":"2024-02-26T10:45:49.301Z","pid":58881,"hostname":"melmac-2.fritz.box","msg":"Start of node method getBrowserCatalog"}
+{"level":30,"time":"2024-02-26T10:45:49.303Z","pid":58881,"hostname":"melmac-2.fritz.box","msg":"End of node method getBrowserCatalog"}
+{"level":30,"time":"2024-02-26T10:45:49.305Z","pid":58881,"hostname":"melmac-2.fritz.box","msg":"Start of node method switchBrowser"}
+{"level":30,"time":"2024-02-26T10:45:49.306Z","pid":58881,"hostname":"melmac-2.fritz.box","msg":"End of node method switchBrowser"}
+{"level":30,"time":"2024-02-26T10:45:49.308Z","pid":58881,"hostname":"melmac-2.fritz.box","msg":"Start of node method switchBrowser"}
+{"level":30,"time":"2024-02-26T10:45:49.308Z","pid":58881,"hostname":"melmac-2.fritz.box","msg":"End of node method switchBrowser"}
+{"level":30,"time":"2024-02-26T10:45:49.315Z","pid":58881,"hostname":"melmac-2.fritz.box","msg":"Changing current active page: page=4d8dbfc8-f495-4607-80fb-7fac01bd4a71"}
+{"level":30,"time":"2024-02-26T10:45:49.315Z","pid":58881,"hostname":"melmac-2.fritz.box","msg":"Changed active page"}
+{"level":30,"time":"2024-02-26T10:45:49.324Z","pid":58881,"hostname":"melmac-2.fritz.box","msg":"Start of node method getBrowserCatalog"}
+{"level":30,"time":"2024-02-26T10:45:49.327Z","pid":58881,"hostname":"melmac-2.fritz.box","msg":"End of node method getBrowserCatalog"}
+{"level":30,"time":"2024-02-26T10:45:49.334Z","pid":58881,"hostname":"melmac-2.fritz.box","msg":"Changed active context"}
+{"level":30,"time":"2024-02-26T10:45:49.334Z","pid":58881,"hostname":"melmac-2.fritz.box","msg":"Changing current active page: page=4d8dbfc8-f495-4607-80fb-7fac01bd4a71"}
+{"level":30,"time":"2024-02-26T10:45:49.334Z","pid":58881,"hostname":"melmac-2.fritz.box","msg":"Changed active page"}
+{"level":30,"time":"2024-02-26T10:45:49.344Z","pid":58881,"hostname":"melmac-2.fritz.box","msg":"Start of node method closeContext"}
+{"level":30,"time":"2024-02-26T10:45:49.364Z","pid":58881,"hostname":"melmac-2.fritz.box","msg":"Removed page=6c1ff471-1422-423c-8411-5fcb4349026c from context=77e698e7-82a2-402c-bc26-a99ff3ba3da7 page stack"}
+{"level":30,"time":"2024-02-26T10:45:49.382Z","pid":58881,"hostname":"melmac-2.fritz.box","msg":"End of node method closeContext"}
+{"level":30,"time":"2024-02-26T10:45:49.438Z","pid":58881,"hostname":"melmac-2.fritz.box","msg":"Start of node method closeAllBrowsers"}
+{"level":30,"time":"2024-02-26T10:45:49.502Z","pid":58881,"hostname":"melmac-2.fritz.box","msg":"End of node method closeAllBrowsers"}

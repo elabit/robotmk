@@ -1,0 +1,79 @@
+channels:
+- conda-forge
+dependencies:
+- bzip2=1.0.8
+- ca-certificates=2023.11.17
+- icu=73.2
+- libcxx=16.0.6
+- libffi=3.4.2
+- libsqlite=3.44.2
+- libuv=1.46.0
+- libzlib=1.2.13
+- ncurses=6.4
+- nodejs=16.20.2
+- openssl=3.2.0
+- pip=23.2.1
+- python=3.10.12
+- readline=8.2
+- setuptools=69.0.3
+- tk=8.6.13
+- tzdata=2023d
+- wheel=0.42.0
+- xz=5.2.6
+- zlib=1.2.13
+- pip:
+  - click==8.1.7
+  - colorama==0.4.6
+  - deepdiff==6.7.1
+  - grpcio==1.60.1
+  - grpcio-tools==1.60.1
+  - imageio==2.34.0
+  - imutils==0.5.4
+  - Jinja2==3.1.3
+  - lazy_loader==0.3
+  - markdown-it-py==3.0.0
+  - MarkupSafe==2.1.5
+  - mdurl==0.1.2
+  - networkx==3.2.1
+  - numpy==1.26.4
+  - opencv-python-headless==4.9.0.80
+  - ordered-set==4.1.0
+  - overrides==7.7.0
+  - packaging==23.2
+  - parsimonious==0.10.0
+  - pathspec==0.12.1
+  - pillow==10.2.0
+  - platformdirs==4.1.0
+  - pluggy==1.4.0
+  - protobuf==4.25.3
+  - Pygments==2.17.2
+  - pylibdmtx==0.1.10
+  - PyMuPDF==1.23.25
+  - PyMuPDFb==1.23.22
+  - pytesseract==0.3.10
+  - pyzbar==0.1.9
+  - regex==2023.12.25
+  - rich==13.7.0
+  - rich-click==1.7.3
+  - robotcode==0.76.0
+  - robotcode-core==0.76.0
+  - robotcode-modifiers==0.76.0
+  - robotcode-plugin==0.76.0
+  - robotcode-robot==0.76.0
+  - robotcode-runner==0.76.0
+  - robotframework==6.1.1
+  - robotframework-assertion-engine==3.0.3
+  - robotframework-browser==18.2.0
+  - robotframework-doctestlibrary==0.22.0
+  - robotframework-pythonlibcore==4.3.0
+  - robotframework-tidy==4.9.0
+  - scikit-image==0.22.0
+  - scipy==1.12.0
+  - tifffile==2024.2.12
+  - tomli==2.0.1
+  - tomli_w==1.0.0
+  - typing_extensions==4.9.0
+  - Wand==0.6.13
+  - wrapt==1.16.0
+rccPostInstall:
+- rfbrowser init
