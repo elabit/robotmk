@@ -10,6 +10,19 @@ use icacls::run_icacls_command;
 use robotmk::session::Session;
 use std::collections::HashMap;
 
+fn grant_full_access(user: &str, target_path: &Utf8Path) -> anyhow::Result<()> {
+    let arguments = [
+        target_path.as_ref(),
+        "/grant",
+        &format!("{user}:(OI)(CI)F"),
+        "/T",
+    ];
+    run_icacls_command(arguments).map_err(|e| {
+        let message = format!("Adjusting permissions of {target_path} for user `{user}` failed");
+        e.context(message)
+    })
+}
+
 fn plans_by_sessions(plans: Vec<Plan>) -> HashMap<Session, Vec<Plan>> {
     let mut plans_by_session = HashMap::new();
     for plan in plans {

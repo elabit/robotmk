@@ -62,11 +62,12 @@ fn build_environment(
         build_stage_reporter.update(id, EnvironmentBuildStage::Complete(outcome.clone()))?;
         return Ok(outcome);
     };
+    let base_path = &working_directory.join(session.id()).join(id);
     info!("Building environment for plan {id}");
     let run_spec = RunSpec {
         id: &format!("robotmk_env_building_{id}"),
         command_spec: &build_instructions.command_spec,
-        base_path: &working_directory.join(id),
+        base_path,
         timeout: build_instructions.timeout,
         cancellation_token,
     };
