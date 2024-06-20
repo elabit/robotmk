@@ -17,7 +17,6 @@ use robotmk::{
     section::WriteSection,
 };
 use std::collections::HashMap;
-use std::fs::{create_dir_all, remove_dir_all};
 use std::vec;
 
 pub fn setup(global_config: &GlobalConfig, plans: Vec<Plan>) -> AnyhowResult<Vec<Plan>> {
@@ -29,10 +28,6 @@ pub fn setup(global_config: &GlobalConfig, plans: Vec<Plan>) -> AnyhowResult<Vec
         sort_plans_by_grouping(&mut system_plans);
         return Ok(system_plans);
     }
-
-    clear_rcc_setup_working_directory(&rcc_setup_working_directory(
-        &global_config.working_directory,
-    ))?;
 
     let mut rcc_setup_failures = RCCSetupFailures::default();
     let surviving_rcc_plans = adjust_rcc_file_permissions(
@@ -57,18 +52,7 @@ pub fn setup(global_config: &GlobalConfig, plans: Vec<Plan>) -> AnyhowResult<Vec
     Ok(surviving_plans)
 }
 
-fn clear_rcc_setup_working_directory(working_directory: &Utf8Path) -> AnyhowResult<()> {
-    if working_directory.exists() {
-        remove_dir_all(working_directory).context(format!(
-            "Failed to remove working directory for RCC setup: {working_directory}"
-        ))?;
-    }
-    create_dir_all(working_directory).context(format!(
-        "Failed to create working directory for RCC setup: {working_directory}"
-    ))
-}
-
-fn rcc_setup_working_directory(working_directory: &Utf8Path) -> Utf8PathBuf {
+pub fn rcc_setup_working_directory(working_directory: &Utf8Path) -> Utf8PathBuf {
     working_directory.join("rcc_setup")
 }
 
@@ -274,18 +258,13 @@ fn holotree_disable_sharing(
 
     for (session, plans) in plans_by_sessions(plans) {
         debug!("Running {} for `{}`", command_spec, &session);
-        let session_id = &format!(
-            "holotree_disabling_sharing_{}",
-            match &session {
-                Session::Current(_) => "current_user".into(),
-                Session::User(user_session) => format!("user_{}", user_session.user_name),
-            }
-        );
+        let name = "holotree_disabling_sharing";
         let run_spec = &RunSpec {
-            id: &format!("robotmk_{session_id}"),
+            id: &format!("robotmk_{name}_{}", session.id()),
             command_spec: &command_spec,
             base_path: &rcc_setup_working_directory(&global_config.working_directory)
-                .join(session_id),
+                .join(session.id())
+                .join(name),
             timeout: 120,
             cancellation_token: &global_config.cancellation_token,
         };
@@ -344,13 +323,17 @@ fn run_command_spec_once_in_current_session(
     command_spec: &CommandSpec,
     id: &str,
 ) -> Result<(Vec<Plan>, HashMap<String, String>), Cancelled> {
+    let session = Session::Current(CurrentSession {});
+    let base_path = &rcc_setup_working_directory(&global_config.working_directory)
+        .join(session.id())
+        .join(id);
     Ok(
         match execute_run_spec_in_session(
-            &Session::Current(CurrentSession {}),
+            &session,
             &RunSpec {
                 id: &format!("robotmk_{id}"),
                 command_spec,
-                base_path: &rcc_setup_working_directory(&global_config.working_directory).join(id),
+                base_path,
                 timeout: 120,
                 cancellation_token: &global_config.cancellation_token,
             },
@@ -374,23 +357,16 @@ fn run_command_spec_per_session(
     let mut failed_plans: HashMap<String, String> = HashMap::new();
 
     for (session, plans) in plans_by_sessions(plans) {
-        let session_id = format!(
-            "{}_{}",
-            id,
-            match &session {
-                Session::Current(_) => "current_user".into(),
-                Session::User(user_session) => format!("user_{}", user_session.user_name),
-            }
-        );
-
+        let base_path = &rcc_setup_working_directory(&global_config.working_directory)
+            .join(session.id())
+            .join(id);
         debug!("Running {} for `{}`", command_spec, &session);
         match execute_run_spec_in_session(
             &session,
             &RunSpec {
-                id: &format!("robotmk_{session_id}"),
+                id: &format!("robotmk_{id}"),
                 command_spec,
-                base_path: &rcc_setup_working_directory(&global_config.working_directory)
-                    .join(session_id),
+                base_path,
                 timeout: 120,
                 cancellation_token: &global_config.cancellation_token,
             },

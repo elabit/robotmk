@@ -276,58 +276,71 @@ async fn assert_working_directory(
     working_directory: &Utf8Path,
     headed_user_name: &str,
 ) -> AnyhowResult<()> {
-    assert_permissions(
-        &working_directory,
-        &format!("{headed_user_name}:(OI)(CI)(F)"),
-    )
-    .await?;
     assert!(working_directory.is_dir());
     assert_eq!(
         directory_entries(working_directory, 1),
         ["environment_building", "plans", "rcc_setup"]
     );
     assert_eq!(
-        directory_entries(working_directory.join("rcc_setup"), 1),
+        directory_entries(working_directory.join("rcc_setup"), 2),
         [
-            "custom_profile_import_current_user.stderr",
-            "custom_profile_import_current_user.stdout",
-            &format!("custom_profile_import_user_{headed_user_name}.bat"),
-            &format!("custom_profile_import_user_{headed_user_name}.exit_code"),
-            &format!("custom_profile_import_user_{headed_user_name}.stderr"),
-            &format!("custom_profile_import_user_{headed_user_name}.stdout"),
-            "custom_profile_switch_current_user.stderr",
-            "custom_profile_switch_current_user.stdout",
-            &format!("custom_profile_switch_user_{headed_user_name}.bat"),
-            &format!("custom_profile_switch_user_{headed_user_name}.exit_code"),
-            &format!("custom_profile_switch_user_{headed_user_name}.stderr"),
-            &format!("custom_profile_switch_user_{headed_user_name}.stdout"),
-            "holotree_disabling_sharing_current_user.stderr",
-            "holotree_disabling_sharing_current_user.stdout",
-            &format!("holotree_disabling_sharing_user_{headed_user_name}.bat"),
-            &format!("holotree_disabling_sharing_user_{headed_user_name}.exit_code"),
-            &format!("holotree_disabling_sharing_user_{headed_user_name}.stderr"),
-            &format!("holotree_disabling_sharing_user_{headed_user_name}.stdout"),
-            "long_path_support_enabling.stderr",
-            "long_path_support_enabling.stdout",
-            "telemetry_disabling_current_user.stderr",
-            "telemetry_disabling_current_user.stdout",
-            &format!("telemetry_disabling_user_{headed_user_name}.bat"),
-            &format!("telemetry_disabling_user_{headed_user_name}.exit_code"),
-            &format!("telemetry_disabling_user_{headed_user_name}.stderr"),
-            &format!("telemetry_disabling_user_{headed_user_name}.stdout")
-        ]
+            "current_user",
+            "current_user\\custom_profile_import.stderr",
+            "current_user\\custom_profile_import.stdout",
+            "current_user\\custom_profile_switch.stderr",
+            "current_user\\custom_profile_switch.stdout",
+            "current_user\\holotree_disabling_sharing.stderr",
+            "current_user\\holotree_disabling_sharing.stdout",
+            "current_user\\long_path_support_enabling.stderr",
+            "current_user\\long_path_support_enabling.stdout",
+            "current_user\\telemetry_disabling.stderr",
+            "current_user\\telemetry_disabling.stdout",
+            &format!("user_{headed_user_name}"),
+            &format!("user_{headed_user_name}\\custom_profile_import.bat"),
+            &format!("user_{headed_user_name}\\custom_profile_import.exit_code"),
+            &format!("user_{headed_user_name}\\custom_profile_import.stderr"),
+            &format!("user_{headed_user_name}\\custom_profile_import.stdout"),
+            &format!("user_{headed_user_name}\\custom_profile_switch.bat"),
+            &format!("user_{headed_user_name}\\custom_profile_switch.exit_code"),
+            &format!("user_{headed_user_name}\\custom_profile_switch.stderr"),
+            &format!("user_{headed_user_name}\\custom_profile_switch.stdout"),
+            &format!("user_{headed_user_name}\\holotree_disabling_sharing.bat"),
+            &format!("user_{headed_user_name}\\holotree_disabling_sharing.exit_code"),
+            &format!("user_{headed_user_name}\\holotree_disabling_sharing.stderr"),
+            &format!("user_{headed_user_name}\\holotree_disabling_sharing.stdout"),
+            &format!("user_{headed_user_name}\\telemetry_disabling.bat"),
+            &format!("user_{headed_user_name}\\telemetry_disabling.exit_code"),
+            &format!("user_{headed_user_name}\\telemetry_disabling.stderr"),
+            &format!("user_{headed_user_name}\\telemetry_disabling.stdout"),
+        ],
     );
+    assert_permissions(
+        working_directory
+            .join("rcc_setup")
+            .join(&format!("user_{headed_user_name}")),
+        &format!("{headed_user_name}:(OI)(CI)(F)"),
+    )
+    .await?;
     assert_eq!(
-        directory_entries(working_directory.join("environment_building"), 1),
+        directory_entries(working_directory.join("environment_building"), 2),
         [
-            "rcc_headed.bat",
-            "rcc_headed.exit_code",
-            "rcc_headed.stderr",
-            "rcc_headed.stdout",
-            "rcc_headless.stderr",
-            "rcc_headless.stdout"
+            "current_user",
+            "current_user\\rcc_headless.stderr",
+            "current_user\\rcc_headless.stdout",
+            &format!("user_{headed_user_name}"),
+            &format!("user_{headed_user_name}\\rcc_headed.bat"),
+            &format!("user_{headed_user_name}\\rcc_headed.exit_code"),
+            &format!("user_{headed_user_name}\\rcc_headed.stderr"),
+            &format!("user_{headed_user_name}\\rcc_headed.stdout"),
         ]
     );
+    assert_permissions(
+        working_directory
+            .join("environment_building")
+            .join(&format!("user_{headed_user_name}")),
+        &format!("{headed_user_name}:(OI)(CI)(F)"),
+    )
+    .await?;
     assert_eq!(
         directory_entries(working_directory.join("plans"), 1),
         ["managed_robot_zip", "no_rcc", "rcc_headed", "rcc_headless"]
