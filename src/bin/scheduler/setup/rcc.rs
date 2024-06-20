@@ -1,7 +1,9 @@
 use super::{
     failed_plan_ids_human_readable, grant_permissions_to_all_plan_users, plans_by_sessions,
 };
-use crate::internal_config::{sort_plans_by_grouping, GlobalConfig, Plan};
+use crate::internal_config::{
+    sort_plans_by_grouping, CustomRCCProfileConfig, GlobalConfig, Plan, RCCConfig, RCCProfileConfig,
+};
 use crate::logging::log_and_return_error;
 use robotmk::command_spec::CommandSpec;
 use robotmk::environment::{Environment, RCCEnvironment};
@@ -12,10 +14,7 @@ use robotmk::termination::{Cancelled, Outcome};
 use anyhow::{Context, Result as AnyhowResult};
 use camino::{Utf8Path, Utf8PathBuf};
 use log::{debug, error};
-use robotmk::{
-    config::{CustomRCCProfileConfig, RCCConfig, RCCProfileConfig},
-    section::WriteSection,
-};
+use robotmk::section::WriteSection;
 use std::collections::HashMap;
 use std::fs::{create_dir_all, remove_dir_all};
 use std::vec;

@@ -4,8 +4,8 @@ use camino::{Utf8Path, Utf8PathBuf};
 use serde::Serialize;
 use std::collections::HashMap;
 
-pub fn plan_results_directory(results_directory: &Utf8Path) -> Utf8PathBuf {
-    results_directory.join("plans")
+pub fn plan_results_directory(results_directory: impl AsRef<Utf8Path>) -> Utf8PathBuf {
+    results_directory.as_ref().join("plans")
 }
 
 #[derive(Serialize)]

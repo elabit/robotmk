@@ -9,9 +9,9 @@ pub struct ConfigurationDiagnostics {
 }
 
 pub fn read_configuration_diagnostics(
-    binary_path: &Utf8Path,
+    binary_path: impl AsRef<Utf8Path>,
 ) -> anyhow::Result<ConfigurationDiagnostics> {
-    let mut config_diag_command = Command::new(binary_path);
+    let mut config_diag_command = Command::new(binary_path.as_ref());
     config_diag_command
         .arg("configuration")
         .arg("diagnostics")

@@ -23,7 +23,7 @@ fn plans_by_sessions(plans: Vec<Plan>) -> HashMap<Session, Vec<Plan>> {
 }
 
 fn grant_permissions_to_all_plan_users(
-    path: &Utf8Path,
+    path: impl AsRef<Utf8Path>,
     plans: Vec<Plan>,
     permissions: &str,
     additional_icacls_args: &[&str],
@@ -34,11 +34,12 @@ fn grant_permissions_to_all_plan_users(
     for (session, plans_in_session) in plans_by_sessions(plans) {
         if let Session::User(user_session) = session {
             let icacls_permission_arg = format!("{}:{}", user_session.user_name, permissions);
-            let mut icacls_args = vec![path.as_str(), "/grant", &icacls_permission_arg];
+            let mut icacls_args = vec![path.as_ref().as_str(), "/grant", &icacls_permission_arg];
             icacls_args.extend(additional_icacls_args);
 
             match run_icacls_command(icacls_args).context(format!(
-                "Adjusting permissions of {path} for user `{}` failed",
+                "Adjusting permissions of {} for user `{}` failed",
+                path.as_ref(),
                 user_session.user_name
             )) {
                 Ok(_) => surviving_plans.extend(plans_in_session),

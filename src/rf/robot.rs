@@ -1,5 +1,5 @@
 use crate::command_spec::CommandSpec;
-use crate::config::{RetryStrategy, RobotConfig};
+use crate::config::RetryStrategy;
 
 use camino::{Utf8Path, Utf8PathBuf};
 
@@ -116,6 +116,19 @@ impl Robot {
         }
         args
     }
+}
+
+pub struct RobotConfig {
+    pub robot_target: Utf8PathBuf,
+    pub top_level_suite_name: Option<String>,
+    pub suites: Vec<String>,
+    pub tests: Vec<String>,
+    pub test_tags_include: Vec<String>,
+    pub test_tags_exclude: Vec<String>,
+    pub variables: Vec<(String, String)>,
+    pub variable_files: Vec<Utf8PathBuf>,
+    pub argument_files: Vec<Utf8PathBuf>,
+    pub exit_on_failure: bool,
 }
 
 #[cfg(test)]

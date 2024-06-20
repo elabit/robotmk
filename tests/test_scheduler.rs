@@ -30,7 +30,9 @@ async fn test_scheduler() -> AnyhowResult<()> {
             .join("tests")
             .join("minimal_suite"),
         RCCConfig {
-            binary_path: var("RCC_BINARY_PATH")?.into(),
+            binary_path: Utf8PathBuf::from(var("RCC_BINARY_PATH")?)
+                .try_into()
+                .unwrap(),
             profile_config: RCCProfileConfig::Custom(create_custom_rcc_profile(&test_dir)?),
         },
         &current_user_name,
@@ -38,8 +40,8 @@ async fn test_scheduler() -> AnyhowResult<()> {
 
     run_scheduler(&test_dir, &config, var("RUN_FOR")?.parse::<u64>()?).await?;
 
-    assert_working_directory(&config.working_directory, &current_user_name).await?;
-    assert_results_directory(&config.results_directory);
+    assert_working_directory(config.working_directory.as_ref(), &current_user_name).await?;
+    assert_results_directory(config.results_directory.as_ref());
     assert_rcc(&config.rcc_config, &current_user_name).await?;
     assert_tasks().await?;
 
@@ -61,7 +63,7 @@ settings:
     )?;
     Ok(CustomRCCProfileConfig {
         name: "Robotmk".into(),
-        path: rcc_profile_path,
+        path: rcc_profile_path.try_into().unwrap(),
     })
 }
 
@@ -72,9 +74,9 @@ fn create_config(
     user_name_headed: &str,
 ) -> Config {
     Config {
-        working_directory: test_dir.join("working"),
-        results_directory: test_dir.join("results"),
-        managed_directory: test_dir.join("managed_robots"),
+        working_directory: test_dir.join("working").try_into().unwrap(),
+        results_directory: test_dir.join("results").try_into().unwrap(),
+        managed_directory: test_dir.join("managed_robots").try_into().unwrap(),
         rcc_config,
         plan_groups: vec![
             SequentialPlanGroup {
@@ -82,10 +84,10 @@ fn create_config(
                     PlanConfig {
                         id: "rcc_headless".into(),
                         source: Source::Manual {
-                            base_dir: suite_dir.into(),
+                            base_dir: suite_dir.to_path_buf().try_into().unwrap(),
                         },
                         robot_config: RobotConfig {
-                            robot_target: "tasks.robot".into(),
+                            robot_target: Utf8PathBuf::from("tasks.robot").try_into().unwrap(),
                             top_level_suite_name: None,
                             suites: vec![],
                             tests: vec![],
@@ -102,7 +104,7 @@ fn create_config(
                             timeout: 10,
                         },
                         environment_config: EnvironmentConfig::Rcc(RCCEnvironmentConfig {
-                            robot_yaml_path: "robot.yaml".into(),
+                            robot_yaml_path: Utf8PathBuf::from("robot.yaml").try_into().unwrap(),
                             build_timeout: 1200,
                         }),
                         session_config: SessionConfig::Current,
@@ -118,10 +120,10 @@ fn create_config(
                     PlanConfig {
                         id: "rcc_headed".into(),
                         source: Source::Manual {
-                            base_dir: suite_dir.into(),
+                            base_dir: suite_dir.to_path_buf().try_into().unwrap(),
                         },
                         robot_config: RobotConfig {
-                            robot_target: "tasks.robot".into(),
+                            robot_target: Utf8PathBuf::from("tasks.robot").try_into().unwrap(),
                             top_level_suite_name: None,
                             suites: vec![],
                             tests: vec![],
@@ -138,7 +140,7 @@ fn create_config(
                             timeout: 15,
                         },
                         environment_config: EnvironmentConfig::Rcc(RCCEnvironmentConfig {
-                            robot_yaml_path: "robot.yaml".into(),
+                            robot_yaml_path: Utf8PathBuf::from("robot.yaml").try_into().unwrap(),
                             build_timeout: 1200,
                         }),
                         session_config: SessionConfig::SpecificUser(UserSessionConfig {
@@ -157,10 +159,12 @@ fn create_config(
                     PlanConfig {
                         id: "managed_robot_zip".into(),
                         source: Source::Managed {
-                            zip_file: "C:\\zips\\restry_rcc_defN.zip".into(),
+                            zip_file: Utf8PathBuf::from("C:\\zips\\restry_rcc_defN.zip")
+                                .try_into()
+                                .unwrap(),
                         },
                         robot_config: RobotConfig {
-                            robot_target: "tasks.robot".into(),
+                            robot_target: Utf8PathBuf::from("tasks.robot").try_into().unwrap(),
                             top_level_suite_name: None,
                             suites: vec![],
                             tests: vec![],
@@ -177,7 +181,7 @@ fn create_config(
                             timeout: 15,
                         },
                         environment_config: EnvironmentConfig::Rcc(RCCEnvironmentConfig {
-                            robot_yaml_path: "tasks.robot".into(),
+                            robot_yaml_path: Utf8PathBuf::from("robot.yaml").try_into().unwrap(),
                             build_timeout: 1200,
                         }),
                         session_config: SessionConfig::SpecificUser(UserSessionConfig {
@@ -203,10 +207,10 @@ fn create_config(
                 plans: vec![PlanConfig {
                     id: "no_rcc".into(),
                     source: Source::Manual {
-                        base_dir: suite_dir.into(),
+                        base_dir: suite_dir.to_path_buf().try_into().unwrap(),
                     },
                     robot_config: RobotConfig {
-                        robot_target: "tasks.robot".into(),
+                        robot_target: Utf8PathBuf::from("tasks.robot").try_into().unwrap(),
                         top_level_suite_name: None,
                         suites: vec![],
                         tests: vec![],
@@ -378,19 +382,23 @@ fn assert_results_directory(results_directory: &Utf8Path) {
 async fn assert_rcc(rcc_config: &RCCConfig, headed_user_name: &str) -> AnyhowResult<()> {
     assert_rcc_files_permissions(rcc_config, headed_user_name).await?;
     assert_rcc_configuration(rcc_config).await?;
-    assert_rcc_longpath_support_enabled(&rcc_config.binary_path).await
+    assert_rcc_longpath_support_enabled(rcc_config.binary_path.as_ref()).await
 }
 
 async fn assert_rcc_files_permissions(
     rcc_config: &RCCConfig,
     headed_user_name: &str,
 ) -> AnyhowResult<()> {
-    assert_permissions(&rcc_config.binary_path, &format!("{headed_user_name}:(RX)")).await?;
+    assert_permissions(
+        rcc_config.binary_path.as_ref(),
+        &format!("{headed_user_name}:(RX)"),
+    )
+    .await?;
     let RCCProfileConfig::Custom(custom_rcc_profile_config) = &rcc_config.profile_config else {
         return Ok(());
     };
     assert_permissions(
-        &custom_rcc_profile_config.path,
+        custom_rcc_profile_config.path.as_ref(),
         &format!("{headed_user_name}:(R)"),
     )
     .await
