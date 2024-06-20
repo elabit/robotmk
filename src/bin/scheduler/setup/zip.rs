@@ -1,5 +1,5 @@
+use super::grant_full_access;
 use crate::internal_config::{Plan, Source};
-use crate::setup::run_icacls_command;
 use camino::Utf8Path;
 use log::info;
 use robotmk::lock::Locker;
@@ -58,19 +58,6 @@ fn zip_setup(plans: Vec<Plan>) -> (Vec<Plan>, HashMap<String, String>) {
         surviving_plans.push(plan);
     }
     (surviving_plans, failures)
-}
-
-fn grant_full_access(user: &str, target_path: &Utf8Path) -> anyhow::Result<()> {
-    let arguments = [
-        target_path.as_ref(),
-        "/grant",
-        &format!("{user}:(OI)(CI)F"),
-        "/T",
-    ];
-    run_icacls_command(arguments).map_err(|e| {
-        let message = format!("Adjusting permissions of {target_path} for user `{user}` failed");
-        e.context(message)
-    })
 }
 
 fn permission_setup(plans: Vec<Plan>) -> (Vec<Plan>, HashMap<String, String>) {

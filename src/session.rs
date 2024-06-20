@@ -31,6 +31,13 @@ impl Session {
             Self::User(user_session) => user_session.run(spec),
         }
     }
+
+    pub fn id(&self) -> String {
+        match self {
+            Self::Current(session) => session.id(),
+            Self::User(session) => session.id(),
+        }
+    }
 }
 
 impl Display for Session {
@@ -92,6 +99,10 @@ impl CurrentSession {
             Outcome::Cancel => Ok(Outcome::Cancel),
         }
     }
+
+    pub fn id(&self) -> String {
+        "current_user".into()
+    }
 }
 
 impl UserSession {
@@ -104,6 +115,10 @@ impl UserSession {
             timeout: spec.timeout,
             cancellation_token: spec.cancellation_token,
         })
+    }
+
+    pub fn id(&self) -> String {
+        format!("user_{}", self.user_name)
     }
 }
 
