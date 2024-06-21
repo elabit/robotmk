@@ -14,9 +14,7 @@ jobs:
           path: C:\
       - uses: actions/checkout@v4
       - run: mkdir C:\managed_robots
-      - run: cd data\retry_rcc\
-      - run: tar -c -a -f C:\managed_robots\retry_rcc_defN.zip .
-      - run: cd ..\..
+      - run: tar --create --auto-compress --directory tests\minimal_suite\ --file C:\managed_robots\minimal_suite_defN.zip *
       - uses: actions-rust-lang/setup-rust-toolchain@v1.9
         with:
           target: x86_64-pc-windows-gnu
@@ -24,7 +22,7 @@ jobs:
         env:
           TEST_DIR: C:\test_scheduler
           RCC_BINARY_PATH: C:\windows64\rcc.exe
-          RUN_FOR: 240
+          RUN_FOR: 300
       - uses: actions/upload-artifact@v4
         with:
           name: system_test_debug_information
