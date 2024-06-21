@@ -45,7 +45,7 @@ pub struct RCCSetupFailures {
 
 impl WriteSection for RCCSetupFailures {
     fn name() -> &'static str {
-        "robotmk_rcc_setup_failures_v2"
+        "robotmk_rcc_setup_failures_v3"
     }
 }
 
