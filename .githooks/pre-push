@@ -2,13 +2,14 @@
 
 set -e
 
-VALID_BRANCH_REGEX="(main$|dev\/.+)"
+VALID_BRANCH_REGEX="(main$|[0-9]+\.[0-9]$|dev\/.+)"
 VALID_REF_REGEX="^refs\/heads\/${VALID_BRANCH_REGEX}"
 
 while read -r _local_ref _local_oid remote_ref _remote_oid
 do
     if [[ ! "${remote_ref}" =~ $VALID_REF_REGEX ]]
     then
+        echo $remote_ref
         echo "Branch names should follow this pattern: ${VALID_BRANCH_REGEX}."
         exit 1
     fi
