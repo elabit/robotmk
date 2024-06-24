@@ -51,7 +51,7 @@ pub fn build_environments(
 fn build_environment(
     id: &str,
     environment: &Environment,
-    sesssion: &Session,
+    session: &Session,
     cancellation_token: &CancellationToken,
     build_stage_reporter: &mut BuildStageReporter,
     working_directory: &Utf8Path,
@@ -75,7 +75,7 @@ fn build_environment(
         id,
         EnvironmentBuildStage::InProgress(start_time.timestamp()),
     )?;
-    let outcome = run_build_command(id, &run_spec, sesssion, start_time).context(format!(
+    let outcome = run_build_command(id, &run_spec, session, start_time).context(format!(
         "Received termination signal while building environment for plan {id}"
     ))?;
     build_stage_reporter.update(id, EnvironmentBuildStage::Complete(outcome.clone()))?;
