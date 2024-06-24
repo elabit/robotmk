@@ -25,9 +25,7 @@ jobs:
     runs-on: ubuntu-latest
     needs: [tests, system_tests, rcc, build_robotmk]
     steps:
-      - uses: actions/checkout@v4 # Determines the ref, which is used for the
-        # release. For setting a different ref, all `needs` jobs need to be
-        # adjusted. Currently, everything uses the default branch.
+      - uses: actions/checkout@v4
 
       - uses: actions/download-artifact@v4
         with:
