@@ -156,9 +156,9 @@ fn create_config(
                         },
                     },
                     PlanConfig {
-                        id: "managed_robot_zip".into(),
+                        id: "managed_robot_archive".into(),
                         source: Source::Managed {
-                            zip_file: "C:\\managed_robots\\minimal_suite_defN.zip".into(),
+                            tar_gz_path: "C:\\managed_robots\\minimal_suite.tar.gz".into(),
                         },
                         robot_config: RobotConfig {
                             robot_target: "tasks.robot".into(),
@@ -190,7 +190,7 @@ fn create_config(
                         host: Host::Source,
                         metadata: PlanMetadata {
                             application: "managed".into(),
-                            suite_name: "robot_zip".into(),
+                            suite_name: "robot_archive".into(),
                             variant: "".into(),
                         },
                     },
@@ -329,10 +329,10 @@ async fn assert_working_directory(
             "current_user\\rcc_headless.stderr",
             "current_user\\rcc_headless.stdout",
             &format!("user_{headed_user_name}"),
-            &format!("user_{headed_user_name}\\managed_robot_zip.bat"),
-            &format!("user_{headed_user_name}\\managed_robot_zip.exit_code"),
-            &format!("user_{headed_user_name}\\managed_robot_zip.stderr"),
-            &format!("user_{headed_user_name}\\managed_robot_zip.stdout"),
+            &format!("user_{headed_user_name}\\managed_robot_archive.bat"),
+            &format!("user_{headed_user_name}\\managed_robot_archive.exit_code"),
+            &format!("user_{headed_user_name}\\managed_robot_archive.stderr"),
+            &format!("user_{headed_user_name}\\managed_robot_archive.stdout"),
             &format!("user_{headed_user_name}\\rcc_headed.bat"),
             &format!("user_{headed_user_name}\\rcc_headed.exit_code"),
             &format!("user_{headed_user_name}\\rcc_headed.stderr"),
@@ -348,7 +348,12 @@ async fn assert_working_directory(
     .await?;
     assert_eq!(
         directory_entries(working_directory.join("plans"), 1),
-        ["managed_robot_zip", "no_rcc", "rcc_headed", "rcc_headless"]
+        [
+            "managed_robot_archive",
+            "no_rcc",
+            "rcc_headed",
+            "rcc_headless"
+        ]
     );
 
     // We expliclitly don't check for the rebot files in the case without RCC, since this must also
@@ -365,8 +370,13 @@ async fn assert_working_directory(
     assert!(entries_rcc_headless.contains("rebot.xml"));
     assert!(!entries_rcc_headless.contains("1.bat"));
 
-    let entries_managed =
-        directory_entries(working_directory.join("plans").join("managed_robot_zip"), 2).join("");
+    let entries_managed = directory_entries(
+        working_directory
+            .join("plans")
+            .join("managed_robot_archive"),
+        2,
+    )
+    .join("");
     assert!(entries_managed.contains("rebot.xml"));
     assert!(entries_managed.contains("1.bat"));
 
@@ -389,7 +399,7 @@ fn assert_results_directory(results_directory: &Utf8Path) {
             "general_setup_failures.json",
             "management_failures.json",
             "plans",
-            "plans\\managed_robot_zip.json",
+            "plans\\managed_robot_archive.json",
             "plans\\no_rcc.json",
             "plans\\rcc_headed.json",
             "plans\\rcc_headless.json",
@@ -406,10 +416,10 @@ async fn assert_managed_directory(
     assert!(managed_directory.is_dir());
     assert_eq!(
         directory_entries(managed_directory, 1),
-        ["managed_robot_zip"]
+        ["managed_robot_archive"]
     );
     assert_permissions(
-        &managed_directory.join("managed_robot_zip"),
+        &managed_directory.join("managed_robot_archive"),
         &format!("{headed_user_name}:(OI)(CI)(F)"),
     )
     .await?;

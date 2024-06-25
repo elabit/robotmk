@@ -14,7 +14,7 @@ jobs:
           path: C:\
       - uses: actions/checkout@v4
       - run: mkdir C:\managed_robots
-      - run: tar --create --auto-compress --directory tests\minimal_suite\ --file C:\managed_robots\minimal_suite_defN.zip *
+      - run: tar --create -z --directory tests\minimal_suite\ --file C:\managed_robots\minimal_suite.tar.gz *
       - uses: actions-rust-lang/setup-rust-toolchain@v1.9
         with:
           target: x86_64-pc-windows-gnu

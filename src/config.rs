@@ -45,7 +45,7 @@ pub struct SequentialPlanGroup {
 #[derive(Clone, Debug, Deserialize, PartialEq, Serialize)]
 pub enum Source {
     Manual { base_dir: Utf8PathBuf },
-    Managed { zip_file: Utf8PathBuf },
+    Managed { tar_gz_path: Utf8PathBuf },
 }
 
 #[derive(Clone, Debug, Deserialize, PartialEq, Serialize)]

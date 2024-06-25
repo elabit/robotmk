@@ -25,7 +25,7 @@ pub struct GlobalConfig {
 pub enum Source {
     Manual,
     Managed {
-        zip_file: Utf8PathBuf,
+        tar_gz_path: Utf8PathBuf,
         target: Utf8PathBuf,
     },
 }
@@ -66,12 +66,12 @@ pub fn from_external_config(
         for (plan_index, plan_config) in sequential_group.plans.into_iter().enumerate() {
             let (plan_source_dir, source) = match &plan_config.source {
                 ConfigSource::Manual { base_dir } => (base_dir.clone(), Source::Manual),
-                ConfigSource::Managed { zip_file } => {
+                ConfigSource::Managed { tar_gz_path } => {
                     let target = external_config.managed_directory.join(&plan_config.id);
                     (
                         target.clone(),
                         Source::Managed {
-                            zip_file: zip_file.clone(),
+                            tar_gz_path: tar_gz_path.clone(),
                             target,
                         },
                     )
