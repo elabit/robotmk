@@ -1,59 +1,40 @@
 use super::grant_full_access;
 use crate::internal_config::{Plan, Source};
 use camino::Utf8Path;
+use flate2::read::GzDecoder;
 use log::info;
 use robotmk::lock::Locker;
 use robotmk::results::ManagementFailues;
 use robotmk::section::WriteSection;
 use robotmk::session::Session;
 use std::collections::HashMap;
-use std::fs;
-use std::io;
+use std::fs::File;
+use tar::Archive;
 
-fn unzip_into(zip_file: &Utf8Path, target_path: &Utf8Path) -> anyhow::Result<()> {
-    info!("Reading archive \"{}\"", zip_file);
-    let file = fs::File::open(zip_file)?;
-    let mut archive = zip::ZipArchive::new(file)?;
-    for i in 0..archive.len() {
-        let mut file = archive.by_index(i)?;
-        let outpath = match file.enclosed_name() {
-            Some(path) => path.to_owned(),
-            None => continue,
-        };
-        let target = target_path.join_os(outpath);
-        if file.is_dir() {
-            fs::create_dir_all(&target)?;
-            info!("Directory created \"{}\"", target.display());
-        } else {
-            if let Some(p) = target.parent() {
-                if !p.exists() {
-                    info!("Directory created \"{}\"", p.display());
-                    fs::create_dir_all(p)?;
-                }
-            }
-            let mut target_file = fs::File::create(&target)?;
-            io::copy(&mut file, &mut target_file)?;
-            info!(
-                "File extracted to \"{}\" ({} bytes)",
-                target.display(),
-                file.size()
-            );
-        }
-    }
+fn unpack_into(tar_gz_path: &Utf8Path, target_path: &Utf8Path) -> anyhow::Result<()> {
+    info!("Extracting archive \"{tar_gz_path}\"");
+    let tar_gz = File::open(tar_gz_path)?;
+    let tar = GzDecoder::new(tar_gz);
+    let mut archive = Archive::new(tar);
+    archive.unpack(target_path)?;
     Ok(())
 }
 
-fn zip_setup(plans: Vec<Plan>) -> (Vec<Plan>, HashMap<String, String>) {
+fn unpack_setup(plans: Vec<Plan>) -> (Vec<Plan>, HashMap<String, String>) {
     let mut surviving_plans = Vec::new();
     let mut failures = HashMap::new();
     for plan in plans.into_iter() {
-        if let Source::Managed { zip_file, target } = &plan.source {
-            if let Err(error) = unzip_into(zip_file, target) {
+        if let Source::Managed {
+            tar_gz_path,
+            target,
+        } = &plan.source
+        {
+            if let Err(error) = unpack_into(tar_gz_path, target) {
                 info!("{error:#}");
                 failures.insert(plan.id.clone(), format!("{error:#}"));
                 continue;
             }
-            info!("Unzipped {} into `{}`.", zip_file, target);
+            info!("Unpacked {} into `{}`.", tar_gz_path, target);
         }
         surviving_plans.push(plan);
     }
@@ -87,10 +68,10 @@ pub fn setup(
     results_directory_locker: &Locker,
     plans: Vec<Plan>,
 ) -> anyhow::Result<Vec<Plan>> {
-    let (surviving_plans, zip_failures) = zip_setup(plans);
+    let (surviving_plans, unpack_failures) = unpack_setup(plans);
     let (surviving_plans, permission_failures) = permission_setup(surviving_plans);
     ManagementFailues(
-        zip_failures
+        unpack_failures
             .into_iter()
             .chain(permission_failures.into_iter())
             .collect(),
