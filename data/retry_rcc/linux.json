@@ -1,0 +1,62 @@
+{
+  "working_directory": "/tmp/rmk/output",
+  "results_directory": "/tmp/rmk/results",
+  "managed_directory": "/tmp/rmk/managed_directory",
+  "rcc_config": {
+    "binary_path": "/usr/local/bin/rcc",
+    "profile_config": "Default"
+  },
+  "plan_groups": [
+    {
+      "plans": [
+        {
+          "id": "test",
+          "source": {
+            "Manual": {
+              "base_dir": "/home/solo/git/robotmk"
+            }
+          },
+          "robot_config": {
+            "robot_target": "data/retry_suite/tasks.robot",
+            "top_level_suite_name": null,
+            "suites": [],
+            "tests": [],
+            "test_tags_include": [],
+            "test_tags_exclude": [],
+            "variables": [
+              [
+                "a",
+                "b"
+              ]
+            ],
+            "variable_files": [],
+            "argument_files": [],
+            "exit_on_failure": false
+          },
+          "execution_config": {
+            "n_attempts_max": 1,
+            "retry_strategy": "Incremental",
+            "timeout": 5
+          },
+          "environment_config": {
+            "Rcc": {
+              "robot_yaml_path": "data/retry_rcc/robot.yaml",
+              "build_timeout": 600
+            }
+          },
+          "session_config": "Current",
+          "working_directory_cleanup_config": {
+            "MaxExecutions": 180
+          },
+          "host": "Source",
+          "metadata": {
+            "application": "app",
+            "suite_name": "suite_name",
+            "variant": "var"
+          }
+        }
+      ],
+      "execution_interval": 10
+    }
+  ]
+}
