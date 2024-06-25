@@ -50,7 +50,7 @@ fn run() -> AnyhowResult<()> {
     info!("General setup completed");
 
     write_phase(&SchedulerPhase::ManagedRobots, &global_config)?;
-    let plans = setup::zip::setup(
+    let plans = setup::unpack_managed::setup(
         &global_config.results_directory,
         &global_config.results_directory_locker,
         plans,
