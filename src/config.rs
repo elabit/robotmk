@@ -103,6 +103,7 @@ pub struct RCCEnvironmentConfig {
 #[derive(Clone, Debug, Deserialize, PartialEq, Serialize)]
 pub enum SessionConfig {
     Current,
+    #[cfg(windows)]
     SpecificUser(UserSessionConfig),
 }
 

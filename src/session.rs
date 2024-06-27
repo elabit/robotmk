@@ -19,6 +19,7 @@ impl Session {
     pub fn new(session_config: &SessionConfig) -> Session {
         match session_config {
             SessionConfig::Current => Session::Current(CurrentSession {}),
+            #[cfg(windows)]
             SessionConfig::SpecificUser(user_session_config) => Session::User(UserSession {
                 user_name: user_session_config.user_name.clone(),
             }),

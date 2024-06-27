@@ -161,7 +161,7 @@ mod tests {
     use robotmk::config::{
         CustomRCCProfileConfig, EnvironmentConfig, ExecutionConfig, PlanConfig,
         RCCEnvironmentConfig, RCCProfileConfig, RetryStrategy, RobotConfig, SequentialPlanGroup,
-        SessionConfig, UserSessionConfig,
+        SessionConfig,
     };
     use robotmk::environment::{Environment, RCCEnvironment, SystemEnvironment};
 
@@ -227,7 +227,10 @@ mod tests {
                 robot_yaml_path: Utf8PathBuf::from("robot.yaml"),
                 build_timeout: 300,
             }),
-            session_config: SessionConfig::SpecificUser(UserSessionConfig {
+            #[cfg(unix)]
+            session_config: SessionConfig::Current,
+            #[cfg(windows)]
+            session_config: SessionConfig::SpecificUser(robotmk::config::UserSessionConfig {
                 user_name: "user".into(),
             }),
             working_directory_cleanup_config: WorkingDirectoryCleanupConfig::MaxExecutions(50),
