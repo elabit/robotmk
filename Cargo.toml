@@ -33,6 +33,7 @@ features = [
     "Win32_System_Ole",
     "Win32_Foundation",
     "Win32_System_Variant",
+    "Win32_Security_Authorization",
 ]
 
 [dev-dependencies]

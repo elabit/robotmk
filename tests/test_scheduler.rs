@@ -319,7 +319,14 @@ async fn assert_working_directory(
         working_directory
             .join("rcc_setup")
             .join(&format!("user_{headed_user_name}")),
-        &format!("{headed_user_name}:(OI)(CI)(F)"),
+        &format!("{headed_user_name}:(OI)(CI)(IO)(F)"),
+    )
+    .await?;
+    assert_permissions(
+        working_directory
+            .join("rcc_setup")
+            .join(&format!("user_{headed_user_name}")),
+        &format!("{headed_user_name}:(F)"),
     )
     .await?;
     assert_eq!(
@@ -343,7 +350,14 @@ async fn assert_working_directory(
         working_directory
             .join("environment_building")
             .join(&format!("user_{headed_user_name}")),
-        &format!("{headed_user_name}:(OI)(CI)(F)"),
+        &format!("{headed_user_name}:(OI)(CI)(IO)(F)"),
+    )
+    .await?;
+    assert_permissions(
+        working_directory
+            .join("environment_building")
+            .join(&format!("user_{headed_user_name}")),
+        &format!("{headed_user_name}:(F)"),
     )
     .await?;
     assert_eq!(
@@ -420,7 +434,12 @@ async fn assert_managed_directory(
     );
     assert_permissions(
         &managed_directory.join("managed_robot_archive"),
-        &format!("{headed_user_name}:(OI)(CI)(F)"),
+        &format!("{headed_user_name}:(OI)(CI)(IO)(F)"),
+    )
+    .await?;
+    assert_permissions(
+        &managed_directory.join("managed_robot_archive"),
+        &format!("{headed_user_name}:(F)"),
     )
     .await?;
     Ok(())
@@ -436,7 +455,11 @@ async fn assert_rcc_files_permissions(
     rcc_config: &RCCConfig,
     headed_user_name: &str,
 ) -> AnyhowResult<()> {
-    assert_permissions(&rcc_config.binary_path, &format!("{headed_user_name}:(RX)")).await?;
+    assert_permissions(
+        &rcc_config.binary_path,
+        &format!("{headed_user_name}:(Rc,S,X,RA)"),
+    )
+    .await?;
     let RCCProfileConfig::Custom(custom_rcc_profile_config) = &rcc_config.profile_config else {
         return Ok(());
     };

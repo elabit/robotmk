@@ -1,4 +1,3 @@
-use super::grant_full_access;
 use crate::internal_config::{Plan, Source};
 use camino::Utf8Path;
 use flate2::read::GzDecoder;
@@ -6,7 +5,6 @@ use log::info;
 use robotmk::lock::Locker;
 use robotmk::results::ManagementFailues;
 use robotmk::section::WriteSection;
-use robotmk::session::Session;
 use std::collections::HashMap;
 use std::fs::File;
 use tar::Archive;
@@ -41,7 +39,11 @@ fn unpack_setup(plans: Vec<Plan>) -> (Vec<Plan>, HashMap<String, String>) {
     (surviving_plans, failures)
 }
 
+#[cfg(windows)]
 fn permission_setup(plans: Vec<Plan>) -> (Vec<Plan>, HashMap<String, String>) {
+    use super::windows::grant_full_access;
+    use robotmk::session::Session;
+
     let mut surviving_plans = Vec::new();
     let mut failures = HashMap::new();
     for plan in plans.into_iter() {
@@ -69,14 +71,16 @@ pub fn setup(
     plans: Vec<Plan>,
 ) -> anyhow::Result<Vec<Plan>> {
     let (surviving_plans, unpack_failures) = unpack_setup(plans);
+    #[cfg(windows)]
     let (surviving_plans, permission_failures) = permission_setup(surviving_plans);
-    ManagementFailues(
-        unpack_failures
-            .into_iter()
-            .chain(permission_failures.into_iter())
-            .collect(),
-    )
-    .write(
+    #[cfg(windows)]
+    let failures = unpack_failures
+        .into_iter()
+        .chain(permission_failures)
+        .collect();
+    #[cfg(unix)]
+    let failures = unpack_failures;
+    ManagementFailues(failures).write(
         results_directory.join("management_failures.json"),
         results_directory_locker,
     )?;
