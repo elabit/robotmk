@@ -1,3 +1,4 @@
+#![cfg(windows)]
 pub mod rcc;
 use crate::rcc::read_configuration_diagnostics;
 use anyhow::Result as AnyhowResult;
