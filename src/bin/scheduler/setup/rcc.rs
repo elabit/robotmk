@@ -1,6 +1,4 @@
-use super::{
-    failed_plan_ids_human_readable, grant_permissions_to_all_plan_users, plans_by_sessions,
-};
+use super::{grant_permissions_to_all_plan_users, plans_by_sessions};
 use crate::internal_config::{sort_plans_by_grouping, GlobalConfig, Plan};
 use crate::logging::log_and_return_error;
 use robotmk::command_spec::CommandSpec;
@@ -18,6 +16,13 @@ use robotmk::{
 };
 use std::collections::HashMap;
 use std::vec;
+
+fn failed_plan_ids_human_readable<'a>(failed_plan_ids: impl Iterator<Item = &'a String>) -> String {
+    failed_plan_ids
+        .map(|plan_id| plan_id.as_str())
+        .collect::<Vec<&str>>()
+        .join(", ")
+}
 
 pub fn setup(global_config: &GlobalConfig, plans: Vec<Plan>) -> AnyhowResult<Vec<Plan>> {
     let (rcc_plans, mut system_plans): (Vec<Plan>, Vec<Plan>) = plans

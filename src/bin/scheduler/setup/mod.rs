@@ -69,10 +69,3 @@ fn grant_permissions_to_all_plan_users(
 
     (surviving_plans, failures_by_plan_id)
 }
-
-fn failed_plan_ids_human_readable<'a>(failed_plan_ids: impl Iterator<Item = &'a String>) -> String {
-    failed_plan_ids
-        .map(|plan_id| plan_id.as_str())
-        .collect::<Vec<&str>>()
-        .join(", ")
-}
