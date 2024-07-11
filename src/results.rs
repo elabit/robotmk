@@ -26,6 +26,7 @@ impl WriteSection for SchedulerPhase {
 #[derive(Default, Serialize)]
 pub struct GeneralSetupFailures {
     pub working_directory_permissions: HashMap<String, String>,
+    pub managed_directories: HashMap<String, String>,
 }
 
 impl WriteSection for GeneralSetupFailures {
