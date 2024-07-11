@@ -1,10 +1,13 @@
+#![cfg(windows)]
+use super::{failed_plan_ids_human_readable, plans_by_sessions};
 use anyhow::{bail, Context};
+use log::{debug, error};
 use std::process::Command;
-use log::error;
-use super::plans_by_sessions;
 
 use crate::internal_config::Plan;
 use camino::Utf8Path;
+use robotmk::config::{RCCConfig, RCCProfileConfig};
+use robotmk::results::RCCSetupFailures;
 use robotmk::session::Session;
 use std::collections::HashMap;
 
@@ -70,4 +73,47 @@ pub fn grant_full_access(user: &str, target_path: &Utf8Path) -> anyhow::Result<(
         let message = format!("Adjusting permissions of {target_path} for user `{user}` failed");
         e.context(message)
     })
+}
+
+pub fn adjust_rcc_file_permissions(
+    rcc_config: &RCCConfig,
+    rcc_plans: Vec<Plan>,
+    rcc_setup_failures: &mut RCCSetupFailures,
+) -> Vec<Plan> {
+    let mut surviving_rcc_plans: Vec<Plan>;
+
+    debug!(
+        "Granting all plan users read and execute access to {}",
+        rcc_config.binary_path
+    );
+    (surviving_rcc_plans, rcc_setup_failures.binary_permissions) =
+        grant_permissions_to_all_plan_users(&rcc_config.binary_path, rcc_plans, "(RX)", &[]);
+    if !rcc_setup_failures.binary_permissions.is_empty() {
+        error!(
+            "Dropping the following plans due to failure to adjust RCC binary permissions: {}",
+            failed_plan_ids_human_readable(rcc_setup_failures.binary_permissions.keys())
+        );
+    }
+
+    if let RCCProfileConfig::Custom(custom_rcc_profile_config) = &rcc_config.profile_config {
+        debug!(
+            "Granting all plan users read access to {}",
+            custom_rcc_profile_config.path
+        );
+        (surviving_rcc_plans, rcc_setup_failures.profile_permissions) =
+            grant_permissions_to_all_plan_users(
+                &custom_rcc_profile_config.path,
+                surviving_rcc_plans,
+                "(R)",
+                &[],
+            );
+        if !rcc_setup_failures.profile_permissions.is_empty() {
+            error!(
+                "Dropping the following plans due to failure to adjust RCC profile permissions: {}",
+                failed_plan_ids_human_readable(rcc_setup_failures.profile_permissions.keys())
+            );
+        }
+    }
+
+    surviving_rcc_plans
 }
