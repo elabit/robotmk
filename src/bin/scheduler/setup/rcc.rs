@@ -1,18 +1,17 @@
-use super::windows_permissions::grant_permissions_to_all_plan_users;
 use super::{failed_plan_ids_human_readable, plans_by_sessions};
 use crate::internal_config::{sort_plans_by_grouping, GlobalConfig, Plan};
 use crate::logging::log_and_return_error;
 use robotmk::command_spec::CommandSpec;
 use robotmk::environment::{Environment, RCCEnvironment};
 use robotmk::results::RCCSetupFailures;
-use robotmk::session::{CurrentSession, RunSpec, Session};
+use robotmk::session::{RunSpec, Session};
 use robotmk::termination::{Cancelled, Outcome};
 
 use anyhow::{Context, Result as AnyhowResult};
 use camino::{Utf8Path, Utf8PathBuf};
 use log::{debug, error};
 use robotmk::{
-    config::{CustomRCCProfileConfig, RCCConfig, RCCProfileConfig},
+    config::{CustomRCCProfileConfig, RCCProfileConfig},
     section::WriteSection,
 };
 use std::collections::HashMap;
@@ -29,11 +28,17 @@ pub fn setup(global_config: &GlobalConfig, plans: Vec<Plan>) -> AnyhowResult<Vec
     }
 
     let mut rcc_setup_failures = RCCSetupFailures::default();
-    let surviving_rcc_plans = adjust_rcc_file_permissions(
-        &global_config.rcc_config,
-        rcc_plans,
-        &mut rcc_setup_failures,
-    );
+    #[cfg(windows)]
+    let surviving_rcc_plans = {
+        use super::windows_permissions::adjust_rcc_file_permissions;
+        adjust_rcc_file_permissions(
+            &global_config.rcc_config,
+            rcc_plans,
+            &mut rcc_setup_failures,
+        )
+    };
+    #[cfg(unix)]
+    let surviving_rcc_plans = rcc_plans;
     let surviving_rcc_plans =
         rcc_setup(global_config, surviving_rcc_plans, &mut rcc_setup_failures)?;
 
@@ -53,49 +58,6 @@ pub fn setup(global_config: &GlobalConfig, plans: Vec<Plan>) -> AnyhowResult<Vec
 
 pub fn rcc_setup_working_directory(working_directory: &Utf8Path) -> Utf8PathBuf {
     working_directory.join("rcc_setup")
-}
-
-fn adjust_rcc_file_permissions(
-    rcc_config: &RCCConfig,
-    rcc_plans: Vec<Plan>,
-    rcc_setup_failures: &mut RCCSetupFailures,
-) -> Vec<Plan> {
-    let mut surviving_rcc_plans: Vec<Plan>;
-
-    debug!(
-        "Granting all plan users read and execute access to {}",
-        rcc_config.binary_path
-    );
-    (surviving_rcc_plans, rcc_setup_failures.binary_permissions) =
-        grant_permissions_to_all_plan_users(&rcc_config.binary_path, rcc_plans, "(RX)", &[]);
-    if !rcc_setup_failures.binary_permissions.is_empty() {
-        error!(
-            "Dropping the following plans due to failure to adjust RCC binary permissions: {}",
-            failed_plan_ids_human_readable(rcc_setup_failures.binary_permissions.keys())
-        );
-    }
-
-    if let RCCProfileConfig::Custom(custom_rcc_profile_config) = &rcc_config.profile_config {
-        debug!(
-            "Granting all plan users read access to {}",
-            custom_rcc_profile_config.path
-        );
-        (surviving_rcc_plans, rcc_setup_failures.profile_permissions) =
-            grant_permissions_to_all_plan_users(
-                &custom_rcc_profile_config.path,
-                surviving_rcc_plans,
-                "(R)",
-                &[],
-            );
-        if !rcc_setup_failures.profile_permissions.is_empty() {
-            error!(
-                "Dropping the following plans due to failure to adjust RCC profile permissions: {}",
-                failed_plan_ids_human_readable(rcc_setup_failures.profile_permissions.keys())
-            );
-        }
-    }
-
-    surviving_rcc_plans
 }
 
 fn rcc_setup(
@@ -127,15 +89,18 @@ fn rcc_setup(
         );
     }
 
-    debug!("Enabling support for long paths");
-    (sucessful_plans, rcc_setup_failures.long_path_support) =
-        enable_long_path_support(global_config, sucessful_plans)
-            .context("Received termination signal while enabling support for long paths")?;
-    if !rcc_setup_failures.long_path_support.is_empty() {
-        error!(
-            "Dropping the following plans due to long path support enabling failure: {}",
-            failed_plan_ids_human_readable(rcc_setup_failures.long_path_support.keys())
-        );
+    #[cfg(windows)]
+    {
+        debug!("Enabling support for long paths");
+        (sucessful_plans, rcc_setup_failures.long_path_support) =
+            enable_long_path_support(global_config, sucessful_plans)
+                .context("Received termination signal while enabling support for long paths")?;
+        if !rcc_setup_failures.long_path_support.is_empty() {
+            error!(
+                "Dropping the following plans due to long path support enabling failure: {}",
+                failed_plan_ids_human_readable(rcc_setup_failures.long_path_support.keys())
+            );
+        }
     }
 
     debug!("Disabling shared holotree");
@@ -230,6 +195,7 @@ fn configure_custom_rcc_profile(
     Ok((sucessful_plans_switch, failed_plans))
 }
 
+#[cfg(windows)]
 fn enable_long_path_support(
     global_config: &GlobalConfig,
     plans: Vec<Plan>,
@@ -316,12 +282,14 @@ fn holotree_disable_sharing(
     Ok((succesful_plans, failed_plans))
 }
 
+#[cfg(windows)]
 fn run_command_spec_once_in_current_session(
     global_config: &GlobalConfig,
     plans: Vec<Plan>,
     command_spec: &CommandSpec,
     id: &str,
 ) -> Result<(Vec<Plan>, HashMap<String, String>), Cancelled> {
+    use robotmk::session::CurrentSession;
     let session = Session::Current(CurrentSession {});
     let base_path = &rcc_setup_working_directory(&global_config.working_directory)
         .join(session.id())

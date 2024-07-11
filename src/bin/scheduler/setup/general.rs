@@ -1,8 +1,7 @@
-use super::rcc::rcc_setup_working_directory;
 use super::plans_by_sessions;
+use super::rcc::rcc_setup_working_directory;
 use crate::build::environment_building_working_directory;
 use crate::internal_config::{sort_plans_by_grouping, GlobalConfig, Plan, Source};
-use super::windows_permissions::{grant_full_access};
 
 use anyhow::{anyhow, Context, Result as AnyhowResult};
 use camino::{Utf8Path, Utf8PathBuf};
@@ -10,7 +9,6 @@ use log::info;
 use robotmk::environment::Environment;
 use robotmk::results::{plan_results_directory, GeneralSetupFailures};
 use robotmk::section::WriteSection;
-use robotmk::session::Session;
 use std::collections::{HashMap, HashSet};
 use std::fs::{create_dir_all, remove_dir_all, remove_file};
 
@@ -64,20 +62,26 @@ fn setup_plans_working_directory(plans: Vec<Plan>) -> (Vec<Plan>, HashMap<String
             failures.insert(plan.id.clone(), format!("{error:#}"));
             continue;
         }
-        if let Session::User(user_session) = &plan.session {
-            info!(
-                "Granting full access for {} to user `{}`.",
-                &plan.working_directory, &user_session.user_name
-            );
-            if let Err(e) = grant_full_access(&user_session.user_name, &plan.working_directory) {
-                let error = anyhow!(e).context(format!(
-                    "Failed to set permissions for working directory {} of plan {}",
-                    plan.working_directory, plan.id
-                ));
-                info!("{error:#}");
-                failures.insert(plan.id.clone(), format!("{error:#}"));
-                continue;
-            };
+        #[cfg(windows)]
+        {
+            use super::windows_permissions::grant_full_access;
+            use robotmk::session::Session;
+            if let Session::User(user_session) = &plan.session {
+                info!(
+                    "Granting full access for {} to user `{}`.",
+                    &plan.working_directory, &user_session.user_name
+                );
+                if let Err(e) = grant_full_access(&user_session.user_name, &plan.working_directory)
+                {
+                    let error = anyhow!(e).context(format!(
+                        "Failed to set permissions for working directory {} of plan {}",
+                        plan.working_directory, plan.id
+                    ));
+                    info!("{error:#}");
+                    failures.insert(plan.id.clone(), format!("{error:#}"));
+                    continue;
+                };
+            }
         }
         surviving_plans.push(plan);
     }
@@ -136,22 +140,27 @@ fn setup_with_one_directory_per_user(
             }
             continue;
         }
-        if let Session::User(user_session) = &session {
-            info!(
-                "Granting full access for {} to user `{}`.",
-                user_target, &user_session.user_name
-            );
-            if let Err(e) = grant_full_access(&user_session.user_name, user_target) {
-                let error = anyhow!(e).context(format!(
-                    "Failed to grant full access for {} to user `{}`.",
+        #[cfg(windows)]
+        {
+            use super::windows_permissions::grant_full_access;
+            use robotmk::session::Session;
+            if let Session::User(user_session) = &session {
+                info!(
+                    "Granting full access for {} to user `{}`.",
                     user_target, &user_session.user_name
-                ));
-                info!("{error:#}");
-                for plan in plans_in_session {
-                    failures.insert(plan.id.clone(), format!("{error:#}"));
-                }
-                continue;
-            };
+                );
+                if let Err(e) = grant_full_access(&user_session.user_name, user_target) {
+                    let error = anyhow!(e).context(format!(
+                        "Failed to grant full access for {} to user `{}`.",
+                        user_target, &user_session.user_name
+                    ));
+                    info!("{error:#}");
+                    for plan in plans_in_session {
+                        failures.insert(plan.id.clone(), format!("{error:#}"));
+                    }
+                    continue;
+                };
+            }
         }
         surviving_plans.extend(plans_in_session);
     }
@@ -178,15 +187,20 @@ fn setup_managed_directories(managed_directory: &Utf8Path, plans: &[Plan]) -> An
                 target,
                 plan.id
             ))?;
-            if let Session::User(user_session) = &plan.session {
-                if let Err(error) = grant_full_access(&user_session.user_name, target) {
-                    info!("{error:#}");
-                    continue;
+            #[cfg(windows)]
+            {
+                use super::windows_permissions::grant_full_access;
+                use robotmk::session::Session;
+                if let Session::User(user_session) = &plan.session {
+                    if let Err(error) = grant_full_access(&user_session.user_name, target) {
+                        info!("{error:#}");
+                        continue;
+                    }
+                    info!(
+                        "Adjusted permissions for {} for user `{}`.",
+                        target, &user_session.user_name
+                    );
                 }
-                info!(
-                    "Adjusted permissions for {} for user `{}`.",
-                    target, &user_session.user_name
-                );
             }
         }
     }
