@@ -19,26 +19,20 @@ pub fn setup(global_config: &GlobalConfig, plans: Vec<Plan>) -> AnyhowResult<Vec
     }
     create_dir_all(&global_config.working_directory)
         .context("Failed to create working directory")?;
+    if global_config.managed_directory.exists() {
+        remove_dir_all(&global_config.managed_directory)
+            .context("Failed to remove managed directory")?;
+    }
+    create_dir_all(&global_config.managed_directory)
+        .context("Failed to create managed directory")?;
     setup_results_directories(global_config, &plans)?;
-    setup_managed_directories(&global_config.managed_directory, &plans)?;
 
-    let mut surviving_plans: Vec<Plan> = setup_working_directories(global_config, plans)?;
-    sort_plans_by_grouping(&mut surviving_plans);
-    Ok(surviving_plans)
-}
-
-fn setup_working_directories(
-    global_config: &GlobalConfig,
-    plans: Vec<Plan>,
-) -> AnyhowResult<Vec<Plan>> {
-    let (surviving_plans, plan_failures) = setup_plans_working_directory(plans);
-    let (surviving_plans, rcc_failures) =
-        setup_rcc_working_directories(&global_config.working_directory, surviving_plans);
+    let (surviving_plans, managed_dir_failures) = setup_managed_directories(plans);
+    let (mut surviving_plans, working_dir_failures) =
+        setup_working_directories(global_config, surviving_plans);
     GeneralSetupFailures {
-        working_directory_permissions: plan_failures
-            .into_iter()
-            .chain(rcc_failures.into_iter())
-            .collect(),
+        working_directory_permissions: working_dir_failures,
+        managed_directories: managed_dir_failures,
     }
     .write(
         global_config
@@ -46,7 +40,22 @@ fn setup_working_directories(
             .join("general_setup_failures.json"),
         &global_config.results_directory_locker,
     )?;
+
+    sort_plans_by_grouping(&mut surviving_plans);
     Ok(surviving_plans)
+}
+
+fn setup_working_directories(
+    global_config: &GlobalConfig,
+    plans: Vec<Plan>,
+) -> (Vec<Plan>, HashMap<String, String>) {
+    let (surviving_plans, plan_failures) = setup_plans_working_directory(plans);
+    let (surviving_plans, rcc_failures) =
+        setup_rcc_working_directories(&global_config.working_directory, surviving_plans);
+    (
+        surviving_plans,
+        plan_failures.into_iter().chain(rcc_failures).collect(),
+    )
 }
 
 fn setup_plans_working_directory(plans: Vec<Plan>) -> (Vec<Plan>, HashMap<String, String>) {
@@ -175,18 +184,21 @@ fn setup_results_directories(global_config: &GlobalConfig, plans: &[Plan]) -> An
     clean_up_results_directory(global_config, plans).context("Failed to clean up results directory")
 }
 
-fn setup_managed_directories(managed_directory: &Utf8Path, plans: &[Plan]) -> AnyhowResult<()> {
-    if managed_directory.exists() {
-        remove_dir_all(managed_directory).context("Failed to remove managed directory")?;
-    }
-    create_dir_all(managed_directory).context("Failed to create managed directory")?;
+fn setup_managed_directories(plans: Vec<Plan>) -> (Vec<Plan>, HashMap<String, String>) {
+    let mut surviving_plans = Vec::new();
+    let mut failures = HashMap::new();
     for plan in plans {
         if let Source::Managed { target, .. } = &plan.source {
-            create_dir_all(target).context(anyhow!(
-                "Failed to create managed directory {} for plan {}",
-                target,
-                plan.id
-            ))?;
+            if let Err(e) = create_dir_all(target) {
+                let error = anyhow!(e).context(anyhow!(
+                    "Failed to create managed directory {} for plan {}",
+                    target,
+                    plan.id
+                ));
+                info!("{error:#}");
+                failures.insert(plan.id.clone(), format!("{error:#}"));
+                continue;
+            }
             #[cfg(windows)]
             {
                 use super::windows_permissions::grant_full_access;
@@ -194,6 +206,7 @@ fn setup_managed_directories(managed_directory: &Utf8Path, plans: &[Plan]) -> An
                 if let Session::User(user_session) = &plan.session {
                     if let Err(error) = grant_full_access(&user_session.user_name, target) {
                         info!("{error:#}");
+                        failures.insert(plan.id.clone(), format!("{error:#}"));
                         continue;
                     }
                     info!(
@@ -203,8 +216,9 @@ fn setup_managed_directories(managed_directory: &Utf8Path, plans: &[Plan]) -> An
                 }
             }
         }
+        surviving_plans.push(plan)
     }
-    Ok(())
+    (surviving_plans, failures)
 }
 
 fn clean_up_results_directory(global_config: &GlobalConfig, plans: &[Plan]) -> AnyhowResult<()> {
