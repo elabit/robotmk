@@ -177,6 +177,16 @@ fn setup_managed_directories(managed_directory: &Utf8Path, plans: &[Plan]) -> An
                 target,
                 plan.id
             ))?;
+            if let Session::User(user_session) = &plan.session {
+                if let Err(error) = grant_full_access(&user_session.user_name, target) {
+                    info!("{error:#}");
+                    continue;
+                }
+                info!(
+                    "Adjusted permissions for {} for user `{}`.",
+                    target, &user_session.user_name
+                );
+            }
         }
     }
     Ok(())
