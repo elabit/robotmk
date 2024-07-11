@@ -1,7 +1,8 @@
 use super::rcc::rcc_setup_working_directory;
-use super::{grant_full_access, plans_by_sessions};
+use super::plans_by_sessions;
 use crate::build::environment_building_working_directory;
 use crate::internal_config::{sort_plans_by_grouping, GlobalConfig, Plan, Source};
+use super::windows_permissions::{grant_full_access};
 
 use anyhow::{anyhow, Context, Result as AnyhowResult};
 use camino::{Utf8Path, Utf8PathBuf};

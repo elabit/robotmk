@@ -1,6 +1,5 @@
-use super::{
-    failed_plan_ids_human_readable, grant_permissions_to_all_plan_users, plans_by_sessions,
-};
+use super::windows_permissions::grant_permissions_to_all_plan_users;
+use super::{failed_plan_ids_human_readable, plans_by_sessions};
 use crate::internal_config::{sort_plans_by_grouping, GlobalConfig, Plan};
 use crate::logging::log_and_return_error;
 use robotmk::command_spec::CommandSpec;
