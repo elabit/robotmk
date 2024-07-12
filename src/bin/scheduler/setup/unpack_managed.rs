@@ -1,11 +1,8 @@
 use crate::internal_config::{Plan, Source};
 use camino::Utf8Path;
 use flate2::read::GzDecoder;
-use log::info;
-use robotmk::lock::Locker;
-use robotmk::results::ManagementFailues;
-use robotmk::section::WriteSection;
-use std::collections::HashMap;
+use log::{error, info};
+use robotmk::results::SetupFailure;
 use std::fs::File;
 use tar::Archive;
 
@@ -18,9 +15,9 @@ fn unpack_into(tar_gz_path: &Utf8Path, target_path: &Utf8Path) -> anyhow::Result
     Ok(())
 }
 
-fn unpack_setup(plans: Vec<Plan>) -> (Vec<Plan>, HashMap<String, String>) {
+pub fn setup(plans: Vec<Plan>) -> (Vec<Plan>, Vec<SetupFailure>) {
     let mut surviving_plans = Vec::new();
-    let mut failures = HashMap::new();
+    let mut failures = vec![];
     for plan in plans.into_iter() {
         if let Source::Managed {
             tar_gz_path,
@@ -28,8 +25,16 @@ fn unpack_setup(plans: Vec<Plan>) -> (Vec<Plan>, HashMap<String, String>) {
         } = &plan.source
         {
             if let Err(error) = unpack_into(tar_gz_path, target) {
-                info!("{error:#}");
-                failures.insert(plan.id.clone(), format!("{error:#}"));
+                error!(
+                    "Plan {}: Failed to unpack managed source archive. Plan won't be scheduled.
+                     Error: {error:#}",
+                    plan.id
+                );
+                failures.push(SetupFailure {
+                    plan_id: plan.id.clone(),
+                    summary: "Failed to unpack managed source archive".to_string(),
+                    details: format!("{error:#}"),
+                });
                 continue;
             }
             info!("Unpacked {} into `{}`.", tar_gz_path, target);
@@ -37,17 +42,4 @@ fn unpack_setup(plans: Vec<Plan>) -> (Vec<Plan>, HashMap<String, String>) {
         surviving_plans.push(plan);
     }
     (surviving_plans, failures)
-}
-
-pub fn setup(
-    results_directory: &Utf8Path,
-    results_directory_locker: &Locker,
-    plans: Vec<Plan>,
-) -> anyhow::Result<Vec<Plan>> {
-    let (surviving_plans, unpack_failures) = unpack_setup(plans);
-    ManagementFailues(unpack_failures).write(
-        results_directory.join("management_failures.json"),
-        results_directory_locker,
-    )?;
-    anyhow::Ok(surviving_plans)
 }

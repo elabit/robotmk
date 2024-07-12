@@ -5,14 +5,16 @@ use crate::internal_config::{sort_plans_by_grouping, GlobalConfig, Plan, Source}
 
 use anyhow::{anyhow, Context, Result as AnyhowResult};
 use camino::{Utf8Path, Utf8PathBuf};
-use log::info;
+use log::error;
 use robotmk::environment::Environment;
-use robotmk::results::{plan_results_directory, GeneralSetupFailures};
-use robotmk::section::WriteSection;
-use std::collections::{HashMap, HashSet};
+use robotmk::results::{plan_results_directory, SetupFailure};
+use std::collections::HashSet;
 use std::fs::{create_dir_all, remove_dir_all, remove_file};
 
-pub fn setup(global_config: &GlobalConfig, plans: Vec<Plan>) -> AnyhowResult<Vec<Plan>> {
+pub fn setup(
+    global_config: &GlobalConfig,
+    plans: Vec<Plan>,
+) -> AnyhowResult<(Vec<Plan>, Vec<SetupFailure>)> {
     if global_config.working_directory.exists() {
         remove_dir_all(&global_config.working_directory)
             .context("Failed to remove working directory")?;
@@ -30,25 +32,21 @@ pub fn setup(global_config: &GlobalConfig, plans: Vec<Plan>) -> AnyhowResult<Vec
     let (surviving_plans, managed_dir_failures) = setup_managed_directories(plans);
     let (mut surviving_plans, working_dir_failures) =
         setup_working_directories(global_config, surviving_plans);
-    GeneralSetupFailures {
-        working_directories: working_dir_failures,
-        managed_directories: managed_dir_failures,
-    }
-    .write(
-        global_config
-            .results_directory
-            .join("general_setup_failures.json"),
-        &global_config.results_directory_locker,
-    )?;
 
     sort_plans_by_grouping(&mut surviving_plans);
-    Ok(surviving_plans)
+    Ok((
+        surviving_plans,
+        managed_dir_failures
+            .into_iter()
+            .chain(working_dir_failures)
+            .collect(),
+    ))
 }
 
 fn setup_working_directories(
     global_config: &GlobalConfig,
     plans: Vec<Plan>,
-) -> (Vec<Plan>, HashMap<String, String>) {
+) -> (Vec<Plan>, Vec<SetupFailure>) {
     let (surviving_plans, plan_failures) = setup_plans_working_directory(plans);
     let (surviving_plans, rcc_failures) =
         setup_rcc_working_directories(&global_config.working_directory, surviving_plans);
@@ -58,23 +56,30 @@ fn setup_working_directories(
     )
 }
 
-fn setup_plans_working_directory(plans: Vec<Plan>) -> (Vec<Plan>, HashMap<String, String>) {
+fn setup_plans_working_directory(plans: Vec<Plan>) -> (Vec<Plan>, Vec<SetupFailure>) {
     let mut surviving_plans = Vec::new();
-    let mut failures = HashMap::new();
+    let mut failures = vec![];
     for plan in plans.into_iter() {
         if let Err(e) = create_dir_all(&plan.working_directory) {
-            let error = anyhow!(e).context(format!(
-                "Failed to create working directory {} of plan {}",
-                plan.working_directory, plan.id
-            ));
-            info!("{error:#}");
-            failures.insert(plan.id.clone(), format!("{error:#}"));
+            let error = anyhow!(e);
+            error!(
+                "Plan {}: Failed to create working directory. Plan won't be scheduled.
+                 Error: {error:#}",
+                plan.id
+            );
+            failures.push(SetupFailure {
+                plan_id: plan.id.clone(),
+                summary: "Failed to create working directory".to_string(),
+                details: format!("{error:#}"),
+            });
             continue;
         }
         #[cfg(windows)]
         {
             use super::windows_permissions::grant_full_access;
+            use log::info;
             use robotmk::session::Session;
+
             if let Session::User(user_session) = &plan.session {
                 info!(
                     "Granting full access for {} to user `{}`.",
@@ -82,12 +87,18 @@ fn setup_plans_working_directory(plans: Vec<Plan>) -> (Vec<Plan>, HashMap<String
                 );
                 if let Err(e) = grant_full_access(&user_session.user_name, &plan.working_directory)
                 {
-                    let error = anyhow!(e).context(format!(
-                        "Failed to set permissions for working directory {} of plan {}",
-                        plan.working_directory, plan.id
-                    ));
-                    info!("{error:#}");
-                    failures.insert(plan.id.clone(), format!("{error:#}"));
+                    let error = anyhow!(e);
+                    error!(
+                        "Plan {}: Failed to set permissions for working directory. \
+                         Plan won't be scheduled.
+                         Error: {error:#}",
+                        plan.id
+                    );
+                    failures.push(SetupFailure {
+                        plan_id: plan.id.clone(),
+                        summary: "Failed to set permissions for working directory".to_string(),
+                        details: format!("{error:#}"),
+                    });
                     continue;
                 };
             }
@@ -100,17 +111,19 @@ fn setup_plans_working_directory(plans: Vec<Plan>) -> (Vec<Plan>, HashMap<String
 fn setup_rcc_working_directories(
     working_directory: &Utf8Path,
     plans: Vec<Plan>,
-) -> (Vec<Plan>, HashMap<String, String>) {
+) -> (Vec<Plan>, Vec<SetupFailure>) {
     let (rcc_plans, system_plans): (Vec<Plan>, Vec<Plan>) = plans
         .into_iter()
         .partition(|plan| matches!(plan.environment, Environment::Rcc(_)));
     let (surviving_plans, environment_failures) = setup_with_one_directory_per_user(
         &environment_building_working_directory(working_directory),
         rcc_plans,
+        "environment building",
     );
     let (mut surviving_plans, rcc_setup_failures) = setup_with_one_directory_per_user(
         &rcc_setup_working_directory(working_directory),
         surviving_plans,
+        "RCC setup",
     );
     surviving_plans.extend(system_plans);
     (
@@ -125,47 +138,71 @@ fn setup_rcc_working_directories(
 fn setup_with_one_directory_per_user(
     target: &Utf8Path,
     plans: Vec<Plan>,
-) -> (Vec<Plan>, HashMap<String, String>) {
+    description_for_failure_reporting: &str,
+) -> (Vec<Plan>, Vec<SetupFailure>) {
     let mut surviving_plans = Vec::new();
-    let mut failures = HashMap::new();
+    let mut failures = vec![];
     if let Err(e) = create_dir_all(target) {
-        let error = anyhow!(e).context(format!("Failed to create directory {target}",));
-        info!("{error:#}");
+        let error = anyhow!(e);
         for plan in plans {
-            failures.insert(plan.id.clone(), format!("{error:#}"));
+            error!(
+                "Plan {}: Failed to create {description_for_failure_reporting} directory. \
+                 Plan won't be scheduled.
+                 Error: {error:#}",
+                plan.id
+            );
+            failures.push(SetupFailure {
+                plan_id: plan.id.clone(),
+                summary: format!("Failed to create {description_for_failure_reporting} directory"),
+                details: format!("{error:#}"),
+            });
         }
         return (surviving_plans, failures);
     }
     for (session, plans_in_session) in plans_by_sessions(plans) {
         let user_target = &target.join(&session.id());
         if let Err(e) = create_dir_all(user_target) {
-            let error = anyhow!(e).context(format!(
-                "Failed to create directory {} for session {}",
-                user_target, &session
-            ));
-            info!("{error:#}");
+            let error = anyhow!(e);
             for plan in plans_in_session {
-                failures.insert(plan.id.clone(), format!("{error:#}"));
+                error!(
+                    "Plan {}: Failed to create user-specific {description_for_failure_reporting} \
+                     directory. Plan won't be scheduled.
+                     Error: {error:#}",
+                    plan.id
+                );
+                failures.push(SetupFailure {
+                    plan_id: plan.id.clone(),
+                    summary: format!("Failed to create user-specific {description_for_failure_reporting} directory"),
+                    details: format!("{error:#}"),
+                });
             }
             continue;
         }
         #[cfg(windows)]
         {
             use super::windows_permissions::grant_full_access;
+            use log::info;
             use robotmk::session::Session;
+
             if let Session::User(user_session) = &session {
                 info!(
                     "Granting full access for {} to user `{}`.",
                     user_target, &user_session.user_name
                 );
                 if let Err(e) = grant_full_access(&user_session.user_name, user_target) {
-                    let error = anyhow!(e).context(format!(
-                        "Failed to grant full access for {} to user `{}`.",
-                        user_target, &user_session.user_name
-                    ));
-                    info!("{error:#}");
+                    let error = anyhow!(e);
                     for plan in plans_in_session {
-                        failures.insert(plan.id.clone(), format!("{error:#}"));
+                        error!(
+                            "Plan {}: Failed to adjust permissions for user-specific \
+                             {description_for_failure_reporting} directory. Plan won't be scheduled.
+                             Error: {error:#}",
+                            plan.id
+                        );
+                        failures.push(SetupFailure {
+                            plan_id: plan.id.clone(),
+                            summary: format!("Failed to adjust permissions for user-specific {description_for_failure_reporting} directory"),
+                            details: format!("{error:#}"),
+                        });
                     }
                     continue;
                 };
@@ -184,29 +221,44 @@ fn setup_results_directories(global_config: &GlobalConfig, plans: &[Plan]) -> An
     clean_up_results_directory(global_config, plans).context("Failed to clean up results directory")
 }
 
-fn setup_managed_directories(plans: Vec<Plan>) -> (Vec<Plan>, HashMap<String, String>) {
+fn setup_managed_directories(plans: Vec<Plan>) -> (Vec<Plan>, Vec<SetupFailure>) {
     let mut surviving_plans = Vec::new();
-    let mut failures = HashMap::new();
+    let mut failures = vec![];
     for plan in plans {
         if let Source::Managed { target, .. } = &plan.source {
             if let Err(e) = create_dir_all(target) {
-                let error = anyhow!(e).context(anyhow!(
-                    "Failed to create managed directory {} for plan {}",
-                    target,
+                let error = anyhow!(e);
+                error!(
+                    "Plan {}: Failed to create managed directory. Plan won't be scheduled.
+                     Error: {error:#}",
                     plan.id
-                ));
-                info!("{error:#}");
-                failures.insert(plan.id.clone(), format!("{error:#}"));
+                );
+                failures.push(SetupFailure {
+                    plan_id: plan.id.clone(),
+                    summary: "Failed to create managed directory".to_string(),
+                    details: format!("{error:#}"),
+                });
                 continue;
             }
             #[cfg(windows)]
             {
                 use super::windows_permissions::grant_full_access;
+                use log::info;
                 use robotmk::session::Session;
+
                 if let Session::User(user_session) = &plan.session {
                     if let Err(error) = grant_full_access(&user_session.user_name, target) {
-                        info!("{error:#}");
-                        failures.insert(plan.id.clone(), format!("{error:#}"));
+                        error!(
+                            "Plan {}: Failed to adjust permissions of managed directory. Plan won't be scheduled.
+                             Error: {error:#}",
+                            plan.id
+                        );
+                        failures.push(SetupFailure {
+                            plan_id: plan.id.clone(),
+                            summary: "Failed to adjust permissions of managed directory"
+                                .to_string(),
+                            details: format!("{error:#}"),
+                        });
                         continue;
                     }
                     info!(
