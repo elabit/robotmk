@@ -397,15 +397,13 @@ fn assert_results_directory(results_directory: &Utf8Path) {
         directory_entries(results_directory, 2),
         [
             "environment_build_states.json",
-            "general_setup_failures.json",
-            "management_failures.json",
             "plans",
             "plans\\managed_robot_archive.json",
             "plans\\no_rcc.json",
             "plans\\rcc_headed.json",
             "plans\\rcc_headless.json",
-            "rcc_setup_failures.json",
             "scheduler_phase.json",
+            "setup_failures.json"
         ]
     );
 }

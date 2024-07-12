@@ -1,5 +1,5 @@
 #![cfg(windows)]
-use super::{failed_plan_ids_human_readable, plans_by_sessions};
+use super::plans_by_sessions;
 use anyhow::{bail, Context};
 use log::{debug, error};
 use std::process::Command;
@@ -7,9 +7,8 @@ use std::process::Command;
 use crate::internal_config::Plan;
 use camino::Utf8Path;
 use robotmk::config::{RCCConfig, RCCProfileConfig};
-use robotmk::results::RCCSetupFailures;
+use robotmk::results::SetupFailure;
 use robotmk::session::Session;
-use std::collections::HashMap;
 
 pub fn run_icacls_command<'a>(arguments: impl IntoIterator<Item = &'a str>) -> anyhow::Result<()> {
     let mut command = Command::new("icacls.exe");
@@ -32,9 +31,10 @@ pub fn grant_permissions_to_all_plan_users(
     plans: Vec<Plan>,
     permissions: &str,
     additional_icacls_args: &[&str],
-) -> (Vec<Plan>, HashMap<String, String>) {
+    description_for_failure_reporting: &str,
+) -> (Vec<Plan>, Vec<SetupFailure>) {
     let mut surviving_plans = vec![];
-    let mut failures_by_plan_id = HashMap::new();
+    let mut failures = vec![];
 
     for (session, plans_in_session) in plans_by_sessions(plans) {
         if let Session::User(user_session) = session {
@@ -48,9 +48,20 @@ pub fn grant_permissions_to_all_plan_users(
             )) {
                 Ok(_) => surviving_plans.extend(plans_in_session),
                 Err(error) => {
-                    error!("{error:?}");
                     for plan in plans_in_session {
-                        failures_by_plan_id.insert(plan.id, format!("{error:?}"));
+                        error!(
+                            "Plan {}: Failed to adjust permissions of \
+                             {description_for_failure_reporting} for plan user. Plan won't be scheduled.
+                             Error: {error:#}",
+                            plan.id
+                        );
+                        failures.push(SetupFailure {
+                            plan_id: plan.id.clone(),
+                            summary: format!(
+                                "Failed to adjust permissions of {description_for_failure_reporting} for plan user"
+                            ),
+                            details: format!("{error:#}"),
+                        });
                     }
                 }
             }
@@ -59,7 +70,7 @@ pub fn grant_permissions_to_all_plan_users(
         }
     }
 
-    (surviving_plans, failures_by_plan_id)
+    (surviving_plans, failures)
 }
 
 pub fn grant_full_access(user: &str, target_path: &Utf8Path) -> anyhow::Result<()> {
@@ -78,42 +89,41 @@ pub fn grant_full_access(user: &str, target_path: &Utf8Path) -> anyhow::Result<(
 pub fn adjust_rcc_file_permissions(
     rcc_config: &RCCConfig,
     rcc_plans: Vec<Plan>,
-    rcc_setup_failures: &mut RCCSetupFailures,
-) -> Vec<Plan> {
-    let mut surviving_rcc_plans: Vec<Plan>;
-
+) -> (Vec<Plan>, Vec<SetupFailure>) {
     debug!(
         "Granting all plan users read and execute access to {}",
         rcc_config.binary_path
     );
-    (surviving_rcc_plans, rcc_setup_failures.binary_permissions) =
-        grant_permissions_to_all_plan_users(&rcc_config.binary_path, rcc_plans, "(RX)", &[]);
-    if !rcc_setup_failures.binary_permissions.is_empty() {
-        error!(
-            "Dropping the following plans due to failure to adjust RCC binary permissions: {}",
-            failed_plan_ids_human_readable(rcc_setup_failures.binary_permissions.keys())
+    let (mut surviving_rcc_plans, rcc_binary_permissions_failures) =
+        grant_permissions_to_all_plan_users(
+            &rcc_config.binary_path,
+            rcc_plans,
+            "(RX)",
+            &[],
+            "RCC binary",
         );
-    }
 
+    let mut rcc_profile_file_permissions_failures = vec![];
     if let RCCProfileConfig::Custom(custom_rcc_profile_config) = &rcc_config.profile_config {
         debug!(
             "Granting all plan users read access to {}",
             custom_rcc_profile_config.path
         );
-        (surviving_rcc_plans, rcc_setup_failures.profile_permissions) =
+        (surviving_rcc_plans, rcc_profile_file_permissions_failures) =
             grant_permissions_to_all_plan_users(
                 &custom_rcc_profile_config.path,
                 surviving_rcc_plans,
                 "(R)",
                 &[],
+                "RCC profile file",
             );
-        if !rcc_setup_failures.profile_permissions.is_empty() {
-            error!(
-                "Dropping the following plans due to failure to adjust RCC profile permissions: {}",
-                failed_plan_ids_human_readable(rcc_setup_failures.profile_permissions.keys())
-            );
-        }
     }
 
-    surviving_rcc_plans
+    (
+        surviving_rcc_plans,
+        rcc_binary_permissions_failures
+            .into_iter()
+            .chain(rcc_profile_file_permissions_failures)
+            .collect(),
+    )
 }

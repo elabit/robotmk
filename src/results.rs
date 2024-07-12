@@ -23,41 +23,20 @@ impl WriteSection for SchedulerPhase {
     }
 }
 
-#[derive(Default, Serialize)]
-pub struct GeneralSetupFailures {
-    pub working_directories: HashMap<String, String>,
-    pub managed_directories: HashMap<String, String>,
-}
+#[derive(Serialize)]
+pub struct SetupFailures(pub Vec<SetupFailure>);
 
-impl WriteSection for GeneralSetupFailures {
+impl WriteSection for SetupFailures {
     fn name() -> &'static str {
-        "robotmk_general_setup_failures_v2"
+        "robotmk_setup_failures"
     }
 }
 
-#[derive(Default, Serialize)]
-pub struct RCCSetupFailures {
-    pub binary_permissions: HashMap<String, String>,
-    pub profile_permissions: HashMap<String, String>,
-    pub telemetry_disabling: HashMap<String, String>,
-    pub profile_configuring: HashMap<String, String>,
-    pub long_path_support: HashMap<String, String>,
-    pub holotree_disabling_sharing: HashMap<String, String>,
-}
-
-impl WriteSection for RCCSetupFailures {
-    fn name() -> &'static str {
-        "robotmk_rcc_setup_failures_v3"
-    }
-}
-
-#[derive(Default, Serialize)]
-pub struct ManagementFailues(pub HashMap<String, String>);
-
-impl WriteSection for ManagementFailues {
-    fn name() -> &'static str {
-        "robotmk_management_failures"
-    }
+#[derive(Serialize)]
+pub struct SetupFailure {
+    pub plan_id: String,
+    pub summary: String,
+    pub details: String,
 }
 
 #[derive(Serialize)]

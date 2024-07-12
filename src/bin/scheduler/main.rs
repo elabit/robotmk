@@ -11,7 +11,7 @@ use clap::Parser;
 use log::info;
 use logging::log_and_return_error;
 use robotmk::lock::Locker;
-use robotmk::results::SchedulerPhase;
+use robotmk::results::{SchedulerPhase, SetupFailure, SetupFailures};
 use robotmk::section::WriteSection;
 use robotmk::termination::Cancelled;
 use std::time::Duration;
@@ -46,16 +46,12 @@ fn run() -> AnyhowResult<()> {
         bail!("Terminated")
     }
 
-    let plans = setup::general::setup(&global_config, plans).context("General setup failed")?;
+    let (plans, general_setup_failures) =
+        setup::general::setup(&global_config, plans).context("General setup failed")?;
     info!("General setup completed");
 
     write_phase(&SchedulerPhase::ManagedRobots, &global_config)?;
-    let plans = setup::unpack_managed::setup(
-        &global_config.results_directory,
-        &global_config.results_directory_locker,
-        plans,
-    )
-    .context("Writing robotmk_management_errors section failed")?;
+    let (plans, unpacking_managed_failures) = setup::unpack_managed::setup(plans);
     info!("Managed robot setup completed");
 
     if let Some(grace_period) = args.grace_period {
@@ -67,8 +63,17 @@ fn run() -> AnyhowResult<()> {
     }
 
     write_phase(&SchedulerPhase::RCCSetup, &global_config)?;
-    let plans = setup::rcc::setup(&global_config, plans).context("RCC-specific setup failed")?;
+    let (plans, rcc_setup_failures) =
+        setup::rcc::setup(&global_config, plans).context("RCC-specific setup failed")?;
     info!("RCC-specific setup completed");
+
+    write_setup_failures(
+        general_setup_failures
+            .into_iter()
+            .chain(unpacking_managed_failures)
+            .chain(rcc_setup_failures),
+        &global_config,
+    )?;
 
     if global_config.cancellation_token.is_cancelled() {
         bail!("Terminated")
@@ -94,6 +99,16 @@ fn write_phase(
 ) -> AnyhowResult<()> {
     phase.write(
         global_config.results_directory.join("scheduler_phase.json"),
+        &global_config.results_directory_locker,
+    )
+}
+
+fn write_setup_failures(
+    failures: impl Iterator<Item = SetupFailure>,
+    global_config: &internal_config::GlobalConfig,
+) -> AnyhowResult<()> {
+    SetupFailures(failures.collect()).write(
+        global_config.results_directory.join("setup_failures.json"),
         &global_config.results_directory_locker,
     )
 }

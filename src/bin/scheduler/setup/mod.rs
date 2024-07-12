@@ -17,10 +17,3 @@ fn plans_by_sessions(plans: Vec<Plan>) -> HashMap<Session, Vec<Plan>> {
     }
     plans_by_session
 }
-
-fn failed_plan_ids_human_readable<'a>(failed_plan_ids: impl Iterator<Item = &'a String>) -> String {
-    failed_plan_ids
-        .map(|plan_id| plan_id.as_str())
-        .collect::<Vec<&str>>()
-        .join(", ")
-}
