@@ -25,13 +25,13 @@ impl WriteSection for SchedulerPhase {
 
 #[derive(Default, Serialize)]
 pub struct GeneralSetupFailures {
-    pub working_directory_permissions: HashMap<String, String>,
+    pub working_directories: HashMap<String, String>,
     pub managed_directories: HashMap<String, String>,
 }
 
 impl WriteSection for GeneralSetupFailures {
     fn name() -> &'static str {
-        "robotmk_general_setup_failures"
+        "robotmk_general_setup_failures_v2"
     }
 }
 
