@@ -31,7 +31,7 @@ pub fn setup(global_config: &GlobalConfig, plans: Vec<Plan>) -> AnyhowResult<Vec
     let (mut surviving_plans, working_dir_failures) =
         setup_working_directories(global_config, surviving_plans);
     GeneralSetupFailures {
-        working_directory_permissions: working_dir_failures,
+        working_directories: working_dir_failures,
         managed_directories: managed_dir_failures,
     }
     .write(
