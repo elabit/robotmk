@@ -1,15 +1,6 @@
 ---
 name: "Release"
-# Careful! This pushes a git tag to GitHub! The release itself is private.
-on:
-  workflow_dispatch:
-    inputs:
-      tag:
-        description: >
-          Tag, which is set by the this GitHub workflow.
-          Should follow SemVer and is not allowed to exist already.
-        required: true
-        type: string
+on: workflow_dispatch
 
 jobs:
   tests:
@@ -27,6 +18,10 @@ jobs:
     steps:
       - uses: actions/checkout@v4
 
+      - uses: actions-rust-lang/setup-rust-toolchain@v1.9
+        with:
+          target: x86_64-unknown-linux-gnu
+
       - uses: actions/download-artifact@v4
         with:
           name: rcc
@@ -39,12 +34,18 @@ jobs:
 
       - run: zip -r executables.zip artifact
 
+      - name: "Compute release tag"
+        id: compute-tag
+        run: |
+            version="$(cargo run --bin robotmk_scheduler -- --version | cut --delimiter " " --fields 2)"
+            echo "TAG=v${version}" >> "${GITHUB_OUTPUT}"
+
       - name: "Push release tag"
         # This is publicly visible and needs to be manually fixed if any
         # consecutive step fails.
         run: |
-          git tag ${{ inputs.tag }}  # Fails, if tag exists.
-          git push origin ${{ inputs.tag }}
+          git tag ${{ steps.compute-tag.outputs.TAG }}  # Fails, if tag exists.
+          git push origin ${{ steps.compute-tag.outputs.TAG }}
 
       - uses: ncipollo/release-action@v1.13.0
         with:
@@ -58,4 +59,4 @@ jobs:
           artifactErrorsFailBuild: true
           updateOnlyUnreleased: true
           makeLatest: false
-          tag: ${{ inputs.tag }}
+          tag: ${{ steps.compute-tag.outputs.TAG }}
