@@ -11,7 +11,7 @@ use std::fs::read_to_string;
 use std::io;
 
 #[derive(Parser)]
-#[command(about = "Robotmk agent plugin.")]
+#[command(about = "Robotmk agent plugin.", version)]
 struct Args {
     /// Configuration file path.
     #[clap(name = "CONFIG_PATH")]
