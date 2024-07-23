@@ -6,14 +6,13 @@ mod scheduling;
 mod setup;
 mod termination;
 
-use anyhow::{bail, Context, Result as AnyhowResult};
+use anyhow::{Context, Result as AnyhowResult};
 use clap::Parser;
 use log::info;
 use logging::log_and_return_error;
 use robotmk::lock::Locker;
 use robotmk::results::{SchedulerPhase, SetupFailure, SetupFailures};
 use robotmk::section::WriteSection;
-use robotmk::termination::Cancelled;
 use std::time::Duration;
 use tokio::time::{timeout_at, Instant};
 use tokio_util::sync::CancellationToken;
@@ -43,7 +42,8 @@ fn run() -> AnyhowResult<()> {
     );
 
     if global_config.cancellation_token.is_cancelled() {
-        bail!("Terminated")
+        info!("Terminated");
+        return Ok(());
     }
 
     let (plans, general_setup_failures) =
@@ -57,16 +57,18 @@ fn run() -> AnyhowResult<()> {
     if let Some(grace_period) = args.grace_period {
         info!("Grace period: Sleeping for {grace_period} seconds");
         write_phase(&SchedulerPhase::GracePeriod(grace_period), &global_config)?;
-        if await_grace_period(grace_period, &cancellation_token).is_err() {
-            bail!("Terminated")
-        }
+        await_grace_period(grace_period, &cancellation_token);
+    }
+
+    if global_config.cancellation_token.is_cancelled() {
+        info!("Terminated");
+        return Ok(());
     }
 
     write_phase(&SchedulerPhase::RCCSetup, &global_config)?;
+    info!("RCC-specific setup started");
     let (plans, rcc_setup_failures) =
         setup::rcc::setup(&global_config, plans).context("RCC-specific setup failed")?;
-    info!("RCC-specific setup completed");
-
     write_setup_failures(
         general_setup_failures
             .into_iter()
@@ -74,23 +76,26 @@ fn run() -> AnyhowResult<()> {
             .chain(rcc_setup_failures),
         &global_config,
     )?;
-
     if global_config.cancellation_token.is_cancelled() {
-        bail!("Terminated")
+        info!("Terminated");
+        return Ok(());
     }
+    info!("RCC-specific setup completed");
 
     info!("Starting environment building");
     write_phase(&SchedulerPhase::EnvironmentBuilding, &global_config)?;
     let plans = build::build_environments(&global_config, plans)?;
-    info!("Environment building finished");
-
     if global_config.cancellation_token.is_cancelled() {
-        bail!("Terminated")
+        info!("Terminated");
+        return Ok(());
     }
+    info!("Environment building finished");
 
     info!("Starting plan scheduling");
     write_phase(&SchedulerPhase::Scheduling, &global_config)?;
-    scheduling::scheduler::run_plans_and_cleanup(&global_config, &plans).context("Terminated")
+    scheduling::scheduler::run_plans_and_cleanup(&global_config, &plans);
+    info!("Terminated");
+    Ok(())
 }
 
 fn write_phase(
@@ -114,18 +119,10 @@ fn write_setup_failures(
 }
 
 #[tokio::main]
-async fn await_grace_period(
-    grace_period: u64,
-    cancellation_token: &CancellationToken,
-) -> Result<(), Cancelled> {
-    if timeout_at(
+async fn await_grace_period(grace_period: u64, cancellation_token: &CancellationToken) {
+    let _ = timeout_at(
         Instant::now() + Duration::from_secs(grace_period),
         cancellation_token.cancelled(),
     )
-    .await
-    .is_err()
-    {
-        return Ok(());
-    }
-    return Err(Cancelled {});
+    .await;
 }
