@@ -2,7 +2,6 @@ use super::cleanup::cleanup_working_directories;
 use super::plans::run_plan;
 use crate::internal_config::{GlobalConfig, Plan};
 use crate::logging::log_and_return_error;
-use robotmk::termination::Cancelled;
 
 use chrono::Utc;
 use log::error;
@@ -13,10 +12,7 @@ use tokio::time::{interval_at, Instant};
 use tokio_util::sync::CancellationToken;
 
 #[tokio::main]
-pub async fn run_plans_and_cleanup(
-    global_config: &GlobalConfig,
-    plans: &[Plan],
-) -> Result<(), Cancelled> {
+pub async fn run_plans_and_cleanup(global_config: &GlobalConfig, plans: &[Plan]) {
     let mut plans_by_exec_group = HashMap::new();
     for plan in plans {
         plans_by_exec_group
@@ -50,7 +46,6 @@ pub async fn run_plans_and_cleanup(
             error!("{error:?}");
         }
     }
-    return Err(Cancelled {});
 }
 
 async fn run_sequential_plan_group_scheduler(
