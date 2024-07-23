@@ -1,0 +1,15 @@
+# Example usage (without root):
+# $ cp robotmk.service ${XDG_CONFIG_HOME:-$HOME/.config/}/systemd/user/
+# $ systemctl --user daemon-reload
+# $ systemctl --user start robotmk
+[Unit]
+Description=Robotmk Scheduler
+Documentation=https://docs.checkmk.com/latest/en/robotmk.html
+
+[Service]
+Type=simple
+# The paths `%h` and `%E` need to replaced by values from the AgentConfig by
+# the bakery. For development purposes, we use the XDG locations:
+# https://specifications.freedesktop.org/basedir-spec/basedir-spec-latest.html
+# https://www.freedesktop.org/software/systemd/man/systemd.unit.html#Specifiers
+ExecStart=%h/.local/bin/robotmk_scheduler %E/robotmk/robotmk.json
