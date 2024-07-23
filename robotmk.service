@@ -13,3 +13,4 @@ Type=simple
 # https://specifications.freedesktop.org/basedir-spec/basedir-spec-latest.html
 # https://www.freedesktop.org/software/systemd/man/systemd.unit.html#Specifiers
 ExecStart=%h/.local/bin/robotmk_scheduler %E/robotmk/robotmk.json
+KillMode=process
