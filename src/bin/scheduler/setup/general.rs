@@ -284,7 +284,7 @@ fn clean_up_results_directory(global_config: &GlobalConfig, plans: &[Plan]) -> A
         &plan_results_directory(&global_config.results_directory),
         plans,
     )?;
-    results_directory_lock.release()
+    Ok(results_directory_lock.release()?)
 }
 
 fn clean_up_plan_results_directory(
