@@ -48,6 +48,8 @@ impl ChildProcessSupervisor<'_> {
 
     fn build_command(&self) -> AnyhowResult<Command> {
         let mut command = Command::from(self.command_spec);
+        #[cfg(unix)]
+        command.process_group(0);
         if let Some(stdio_paths) = &self.stdio_paths {
             command
                 .stdout(std::fs::File::create(&stdio_paths.stdout).context(format!(
@@ -74,11 +76,17 @@ async fn wait_for_child(
     let child = &mut command.spawn().context("Failed to spawn subprocess")?;
     match waited(duration, flag, child.wait()).await {
         Outcome::Timeout => {
+            #[cfg(windows)]
             kill_child_tree(child);
+            #[cfg(unix)]
+            interrupt_and_wait(child).await;
             Ok(Outcome::Timeout)
         }
         Outcome::Cancel => {
+            #[cfg(windows)]
             kill_child_tree(child);
+            #[cfg(unix)]
+            interrupt_and_wait(child).await;
             Ok(Outcome::Cancel)
         }
         Outcome::Completed(result) => {
@@ -96,4 +104,23 @@ fn kill_child_tree(child: &tokio::process::Child) {
     if let Some(id) = child.id() {
         kill_process_tree(&Pid::from_u32(id))
     }
+}
+
+#[cfg(unix)]
+async fn interrupt_and_wait(child: &mut tokio::process::Child) {
+    use nix::sys::signal::{killpg, Signal};
+    use nix::unistd::{getpgid, Pid};
+    use tokio::time::sleep;
+
+    if let Some(pid) = child.id() {
+        let gid = getpgid(Some(Pid::from_raw(pid as i32))).unwrap();
+        killpg(gid, Signal::SIGKILL).unwrap();
+    }
+    tokio::select! {
+        _ = child.wait() => { },
+        _ = sleep(Duration::from_secs(10)) => {
+            kill_child_tree(child);
+            let _ = child.wait().await;
+        },
+    };
 }
