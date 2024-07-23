@@ -861,6 +861,7 @@ dependencies = [
  "sysinfo",
  "tar",
  "tempfile",
+ "thiserror",
  "tokio",
  "tokio-util",
  "walkdir",

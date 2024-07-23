@@ -34,7 +34,7 @@ fn write(section: &Section, path: impl AsRef<Utf8Path>, locker: &Locker) -> Anyh
     let lock = locker.wait_for_write_lock()?;
     file.persist(path)
         .context(format!("Persisting tempfile failed, final_path: {path}"))?;
-    lock.release()
+    Ok(lock.release()?)
 }
 
 pub trait WriteSection {
