@@ -7,26 +7,47 @@ use anyhow::{anyhow, Context, Result as AnyhowResult};
 use camino::{Utf8Path, Utf8PathBuf};
 use log::error;
 use robotmk::environment::Environment;
+use robotmk::fs::{create_dir_all, remove_dir_all, remove_file};
+use robotmk::lock::LockerError;
 use robotmk::results::{plan_results_directory, SetupFailure};
 use std::collections::HashSet;
-use std::fs::{create_dir_all, remove_dir_all, remove_file};
+use thiserror::Error;
+
+#[derive(Error, Debug)]
+pub enum SetupError {
+    #[error("Failed to `{0}`")]
+    Unrecoverable(String),
+    #[error("Terminated")]
+    Cancelled,
+}
+
+impl From<LockerError> for SetupError {
+    fn from(value: LockerError) -> Self {
+        match value {
+            LockerError::Cancelled => Self::Cancelled,
+            value => Self::Unrecoverable(format!("{:?}", value)),
+        }
+    }
+}
+
+impl From<anyhow::Error> for SetupError {
+    fn from(value: anyhow::Error) -> Self {
+        Self::Unrecoverable(format!("{:?}", value))
+    }
+}
 
 pub fn setup(
     global_config: &GlobalConfig,
     plans: Vec<Plan>,
-) -> AnyhowResult<(Vec<Plan>, Vec<SetupFailure>)> {
+) -> Result<(Vec<Plan>, Vec<SetupFailure>), SetupError> {
     if global_config.working_directory.exists() {
-        remove_dir_all(&global_config.working_directory)
-            .context("Failed to remove working directory")?;
+        remove_dir_all(&global_config.working_directory)?;
     }
-    create_dir_all(&global_config.working_directory)
-        .context("Failed to create working directory")?;
+    create_dir_all(&global_config.working_directory)?;
     if global_config.managed_directory.exists() {
-        remove_dir_all(&global_config.managed_directory)
-            .context("Failed to remove managed directory")?;
+        remove_dir_all(&global_config.managed_directory)?;
     }
-    create_dir_all(&global_config.managed_directory)
-        .context("Failed to create managed directory")?;
+    create_dir_all(&global_config.managed_directory)?;
     setup_results_directories(global_config, &plans)?;
 
     let (surviving_plans, managed_dir_failures) = setup_managed_directories(plans);
@@ -214,10 +235,8 @@ fn setup_with_one_directory_per_user(
 }
 
 fn setup_results_directories(global_config: &GlobalConfig, plans: &[Plan]) -> AnyhowResult<()> {
-    create_dir_all(&global_config.results_directory)
-        .context("Failed to create results directory")?;
-    create_dir_all(plan_results_directory(&global_config.results_directory))
-        .context("Failed to create plan results directory")?;
+    create_dir_all(&global_config.results_directory)?;
+    create_dir_all(plan_results_directory(&global_config.results_directory))?;
     clean_up_results_directory(global_config, plans).context("Failed to clean up results directory")
 }
 
@@ -273,7 +292,10 @@ fn setup_managed_directories(plans: Vec<Plan>) -> (Vec<Plan>, Vec<SetupFailure>)
     (surviving_plans, failures)
 }
 
-fn clean_up_results_directory(global_config: &GlobalConfig, plans: &[Plan]) -> AnyhowResult<()> {
+fn clean_up_results_directory(
+    global_config: &GlobalConfig,
+    plans: &[Plan],
+) -> Result<(), SetupError> {
     let results_directory_lock = global_config
         .results_directory_locker
         .wait_for_write_lock()?;

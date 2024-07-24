@@ -46,8 +46,14 @@ fn run() -> AnyhowResult<()> {
         return Ok(());
     }
 
-    let (plans, general_setup_failures) =
-        setup::general::setup(&global_config, plans).context("General setup failed")?;
+    let (plans, general_setup_failures) = match setup::general::setup(&global_config, plans) {
+        Ok(ok) => ok,
+        Err(setup::general::SetupError::Cancelled) => {
+            info!("Terminated");
+            return Ok(());
+        }
+        e => e.context("General setup failed")?,
+    };
     info!("General setup completed");
 
     write_phase(&SchedulerPhase::ManagedRobots, &global_config)?;
