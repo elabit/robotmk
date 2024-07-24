@@ -122,7 +122,13 @@ fn run() -> AnyhowResult<()> {
         }
         e => e?,
     }
-    let plans = build::build_environments(&global_config, plans)?;
+    let plans = match build::build_environments(&global_config, plans) {
+        Err(build::BuildError::Cancelled) => {
+            info!("Terminated");
+            return Ok(());
+        }
+        e => e?,
+    };
     if global_config.cancellation_token.is_cancelled() {
         info!("Terminated");
         return Ok(());

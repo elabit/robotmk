@@ -6,12 +6,43 @@ use robotmk::section::{WriteError, WriteSection};
 use robotmk::session::{RunSpec, Session};
 use robotmk::termination::{Cancelled, Outcome};
 
-use anyhow::{anyhow, Context, Result as AnyhowResult};
+use anyhow::anyhow;
 use camino::{Utf8Path, Utf8PathBuf};
 use chrono::{DateTime, Utc};
 use log::{error, info};
 use std::collections::HashMap;
 use tokio_util::sync::CancellationToken;
+
+use thiserror::Error;
+
+#[derive(Error, Debug)]
+pub enum BuildError {
+    #[error("Failed to `{0}`")]
+    Unrecoverable(String),
+    #[error("Terminated")]
+    Cancelled,
+}
+
+impl From<WriteError> for BuildError {
+    fn from(value: WriteError) -> Self {
+        match value {
+            WriteError::Cancelled => Self::Cancelled,
+            value => Self::Unrecoverable(format!("{:?}", value)),
+        }
+    }
+}
+
+impl From<anyhow::Error> for BuildError {
+    fn from(value: anyhow::Error) -> Self {
+        Self::Unrecoverable(format!("{:?}", value))
+    }
+}
+
+impl From<Cancelled> for BuildError {
+    fn from(_value: Cancelled) -> Self {
+        Self::Cancelled
+    }
+}
 
 pub fn environment_building_working_directory(working_directory: &Utf8Path) -> Utf8PathBuf {
     working_directory.join("environment_building")
@@ -20,7 +51,7 @@ pub fn environment_building_working_directory(working_directory: &Utf8Path) -> U
 pub fn build_environments(
     global_config: &GlobalConfig,
     plans: Vec<Plan>,
-) -> AnyhowResult<Vec<Plan>> {
+) -> Result<Vec<Plan>, BuildError> {
     let mut build_stage_reporter = BuildStageReporter::new(
         plans.iter().map(|plan| plan.id.as_ref()),
         &global_config.results_directory,
@@ -55,7 +86,7 @@ fn build_environment(
     cancellation_token: &CancellationToken,
     build_stage_reporter: &mut BuildStageReporter,
     working_directory: &Utf8Path,
-) -> AnyhowResult<BuildOutcome> {
+) -> Result<BuildOutcome, BuildError> {
     let Some(build_instructions) = environment.build_instructions() else {
         let outcome = BuildOutcome::NotNeeded;
         info!("Nothing to do for plan {id}");
@@ -76,9 +107,7 @@ fn build_environment(
         id,
         EnvironmentBuildStage::InProgress(start_time.timestamp()),
     )?;
-    let outcome = run_build_command(id, &run_spec, session, start_time).context(format!(
-        "Received termination signal while building environment for plan {id}"
-    ))?;
+    let outcome = run_build_command(id, &run_spec, session, start_time)?;
     build_stage_reporter.update(id, EnvironmentBuildStage::Complete(outcome.clone()))?;
     Ok(outcome)
 }
@@ -135,7 +164,7 @@ impl<'a> BuildStageReporter<'a> {
         ids: impl Iterator<Item = &'c str>,
         results_directory: &Utf8Path,
         locker: &'a Locker,
-    ) -> AnyhowResult<BuildStageReporter<'a>> {
+    ) -> Result<BuildStageReporter<'a>, WriteError> {
         let build_states: HashMap<_, _> = ids
             .map(|id| (id.to_string(), EnvironmentBuildStage::Pending))
             .collect();
