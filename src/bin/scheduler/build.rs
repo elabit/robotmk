@@ -2,7 +2,7 @@ use super::internal_config::{GlobalConfig, Plan};
 use robotmk::environment::Environment;
 use robotmk::lock::Locker;
 use robotmk::results::{BuildOutcome, BuildStates, EnvironmentBuildStage};
-use robotmk::section::WriteSection;
+use robotmk::section::{WriteError, WriteSection};
 use robotmk::session::{RunSpec, Session};
 use robotmk::termination::{Cancelled, Outcome};
 
@@ -152,7 +152,7 @@ impl<'a> BuildStageReporter<'a> {
         &mut self,
         plan_id: &str,
         build_status: EnvironmentBuildStage,
-    ) -> AnyhowResult<()> {
+    ) -> Result<(), WriteError> {
         self.build_states.insert(plan_id.into(), build_status);
         BuildStates(&self.build_states).write(&self.path, self.locker)
     }
