@@ -7,7 +7,7 @@ use robotmk::results::SetupFailure;
 use robotmk::session::{RunSpec, Session};
 use robotmk::termination::{Cancelled, Outcome};
 
-use anyhow::{Context, Result as AnyhowResult};
+use anyhow::Context;
 use camino::{Utf8Path, Utf8PathBuf};
 use log::{debug, error};
 use robotmk::config::{CustomRCCProfileConfig, RCCProfileConfig};
@@ -16,7 +16,7 @@ use std::vec;
 pub fn setup(
     global_config: &GlobalConfig,
     plans: Vec<Plan>,
-) -> AnyhowResult<(Vec<Plan>, Vec<SetupFailure>)> {
+) -> Result<(Vec<Plan>, Vec<SetupFailure>), Cancelled> {
     let (rcc_plans, mut system_plans): (Vec<Plan>, Vec<Plan>) = plans
         .into_iter()
         .partition(|plan| matches!(plan.environment, Environment::Rcc(_)));
@@ -57,33 +57,29 @@ pub fn rcc_setup_working_directory(working_directory: &Utf8Path) -> Utf8PathBuf 
 fn rcc_setup(
     global_config: &GlobalConfig,
     rcc_plans: Vec<Plan>,
-) -> AnyhowResult<(Vec<Plan>, Vec<SetupFailure>)> {
+) -> Result<(Vec<Plan>, Vec<SetupFailure>), Cancelled> {
     let mut sucessful_plans: Vec<Plan>;
     let mut all_failures = vec![];
     let mut current_failures: Vec<SetupFailure>;
 
     debug!("Disabling RCC telemetry");
-    (sucessful_plans, current_failures) = disable_rcc_telemetry(global_config, rcc_plans)
-        .context("Received termination signal while disabling RCC telemetry")?;
+    (sucessful_plans, current_failures) = disable_rcc_telemetry(global_config, rcc_plans)?;
     all_failures.extend(current_failures);
 
     debug!("Configuring RCC profile");
-    (sucessful_plans, current_failures) = configure_rcc_profile(global_config, sucessful_plans)
-        .context("Received termination signal while configuring RCC profile")?;
+    (sucessful_plans, current_failures) = configure_rcc_profile(global_config, sucessful_plans)?;
     all_failures.extend(current_failures);
 
     #[cfg(windows)]
     {
         debug!("Enabling support for long paths");
         (sucessful_plans, current_failures) =
-            enable_long_path_support(global_config, sucessful_plans)
-                .context("Received termination signal while enabling support for long paths")?;
+            enable_long_path_support(global_config, sucessful_plans)?;
         all_failures.extend(current_failures);
     }
 
     debug!("Disabling shared holotree");
-    (sucessful_plans, current_failures) = holotree_disable_sharing(global_config, sucessful_plans)
-        .context("Received termination signal while revoking shared holotree")?;
+    (sucessful_plans, current_failures) = holotree_disable_sharing(global_config, sucessful_plans)?;
     all_failures.extend(current_failures);
 
     Ok((sucessful_plans, all_failures))
