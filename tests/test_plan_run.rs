@@ -38,10 +38,11 @@ fn test_rebot_run() -> AnyhowResult<()> {
 #[test]
 fn test_timeout_process() -> AnyhowResult<()> {
     let test_dir = Utf8PathBuf::from_path_buf(tempdir()?.into_path()).unwrap();
+    let resource = test_dir.join("resource");
     let robot = Robot {
         robot_target: "tests/timeout/tasks.robot".into(),
         n_attempts_max: 1,
-        command_line_args: vec![],
+        command_line_args: vec!["--variable".into(), format!("RESOURCE:{resource}")],
         retry_strategy: RetryStrategy::Complete,
     };
     let (attempt_reports, rebot) = run_attempts_with_rebot(
@@ -58,5 +59,7 @@ fn test_timeout_process() -> AnyhowResult<()> {
     assert_eq!(attempt_report.index, 1);
     assert_eq!(attempt_report.outcome, AttemptOutcome::TimedOut);
     assert!(rebot.is_none());
+    #[cfg(unix)]
+    assert!(!resource.is_file());
     Ok(())
 }
