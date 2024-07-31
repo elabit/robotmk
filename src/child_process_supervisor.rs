@@ -114,7 +114,7 @@ async fn interrupt_and_wait(child: &mut tokio::process::Child) {
 
     if let Some(pid) = child.id() {
         let gid = getpgid(Some(Pid::from_raw(pid as i32))).unwrap();
-        killpg(gid, Signal::SIGKILL).unwrap();
+        killpg(gid, Signal::SIGINT).unwrap();
     }
     tokio::select! {
         _ = child.wait() => { },
