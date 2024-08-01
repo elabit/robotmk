@@ -24,6 +24,7 @@ jobs:
           RCC_BINARY_PATH: C:\windows64\rcc.exe
           RUN_FOR: 300
       - uses: actions/upload-artifact@v4
+        if: success() || failure()
         with:
           name: system_test_debug_information
           path: C:\test_scheduler
