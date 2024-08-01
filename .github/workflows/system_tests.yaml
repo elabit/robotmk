@@ -27,3 +27,4 @@ jobs:
         with:
           name: system_test_debug_information
           path: C:\test_scheduler
+      - run: cargo run --example termination -- C:\windows64\rcc.exe
