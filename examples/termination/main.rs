@@ -9,7 +9,7 @@ use std::collections::{HashMap, HashSet};
 use std::env::var;
 use std::thread;
 use std::time::Duration;
-use sysinfo::{get_current_pid, Pid, Process, ProcessStatus, System};
+use sysinfo::{get_current_pid, Pid, Process, System};
 use tempfile::tempdir;
 use tokio_util::sync::CancellationToken;
 
@@ -41,12 +41,17 @@ fn print_process_tree(depth: usize, processes: &HashMap<Pid, Process>, pid: Pid,
 }
 
 fn get_tree_size(processes: &HashMap<Pid, Process>, pid: Pid) -> usize {
-    let mut count = 0;
-    let status = processes.get(&pid).unwrap().status();
-    match status {
-        ProcessStatus::Zombie => {}
-        _ => count += 1,
+    #[cfg(windows)]
+    let mut count = {
+        let status = processes.get(&pid).unwrap().status();
+        use sysinfo::ProcessStatus;
+        match status {
+            ProcessStatus::Zombie => 0,
+            _ => 1,
+        }
     };
+    #[cfg(unix)]
+    let mut count = 1;
     for child in get_children(processes, &pid) {
         count += get_tree_size(processes, child);
     }
@@ -67,10 +72,16 @@ fn main() -> AnyhowResult<()> {
     let cargo_manifest_dir = Utf8PathBuf::from(var("CARGO_MANIFEST_DIR")?);
     let test_dir = Utf8PathBuf::from_path_buf(tempdir()?.into_path()).unwrap();
     let flag_file = test_dir.join("flag_file");
+    let resource_file = test_dir.join("resource");
     let robot = Robot {
         robot_target: cargo_manifest_dir.join("examples/termination/tasks.robot"),
         n_attempts_max: 1,
-        command_line_args: vec!["--variable".into(), format!("FLAG_FILE:{flag_file}")],
+        command_line_args: vec![
+            "--variable".into(),
+            format!("FLAG_FILE:{flag_file}"),
+            "--variable".into(),
+            format!("RESOURCE:{resource_file}"),
+        ],
         retry_strategy: RetryStrategy::Complete,
     };
     let token = CancellationToken::new();
@@ -94,6 +105,7 @@ fn main() -> AnyhowResult<()> {
         }
     }
     assert_eq!(check_tree_size(&mut system, current_pid), 3);
+    assert!(resource_file.exists());
     token.cancel();
     match running.join().unwrap() {
         Err(error) => {
@@ -103,5 +115,7 @@ fn main() -> AnyhowResult<()> {
         ok => panic!("Cancellation failed: {ok:?}"),
     };
     assert_eq!(check_tree_size(&mut system, current_pid), 1);
+    #[cfg(unix)]
+    assert!(!resource_file.exists());
     Ok(())
 }

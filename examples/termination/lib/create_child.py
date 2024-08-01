@@ -1,4 +1,12 @@
 import subprocess
+import pathlib
+
+def setup(path: pathlib.Path) -> None:
+    path.touch(exist_ok=False)
+
+
+def teardown(path: pathlib.Path) -> None:
+    path.unlink(missing_ok=False)
 
 
 def spawn(file_name: str) -> None:
