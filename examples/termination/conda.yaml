@@ -1,0 +1,10 @@
+# https://github.com/robocorp/rcc/blob/master/docs/recipes.md#what-is-in-condayaml
+
+channels:
+  - conda-forge
+
+dependencies:
+  - python=3.12
+  - pip=23.2
+  - pip:
+      - robotframework==7.0.1
