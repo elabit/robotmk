@@ -15,7 +15,7 @@ use thiserror::Error;
 
 #[derive(Error, Debug)]
 pub enum SetupError {
-    #[error("Failed to `{0}`")]
+    #[error("{0}")]
     Unrecoverable(String),
     #[error("Terminated")]
     Cancelled,

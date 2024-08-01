@@ -25,7 +25,7 @@ pub struct Section {
 
 #[derive(Error, Debug)]
 pub enum WriteError {
-    #[error("Failed to `{0}`")]
+    #[error("{0}")]
     Unrecoverable(String),
     #[error("Terminated")]
     Cancelled,
