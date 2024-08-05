@@ -122,7 +122,7 @@ fn setup_with_one_directory_per_user(
         return (surviving_plans, failures);
     }
     for (session, plans_in_session) in plans_by_sessions(plans) {
-        let user_target = &target.join(&session.id());
+        let user_target = &target.join(session.id());
         if let Err(e) = create_dir_all(user_target) {
             let error = anyhow!(e).context(format!(
                 "Failed to create directory {} for session {}",
