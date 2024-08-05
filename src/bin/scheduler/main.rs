@@ -8,88 +8,32 @@ mod termination;
 
 use anyhow::{Context, Result as AnyhowResult};
 use clap::Parser;
-use flexi_logger::FlexiLoggerError;
 use log::info;
 use logging::log_and_return_error;
 use robotmk::lock::Locker;
 use robotmk::results::{SchedulerPhase, SetupFailure, SetupFailures};
-use robotmk::section::{WriteError, WriteSection};
-use robotmk::termination::Cancelled;
-use setup::general::SetupError;
+use robotmk::section::WriteSection;
+use robotmk::termination::Terminate;
 use std::time::Duration;
-use thiserror::Error;
 use tokio::time::{timeout_at, Instant};
 use tokio_util::sync::CancellationToken;
 
 fn main() -> AnyhowResult<()> {
     if let Err(e) = run() {
         return match e {
-            RunError::Cancelled => {
+            Terminate::Cancelled => {
                 info!("Terminated");
                 Ok(())
             }
-            RunError::Unrecoverable(any) => Err(log_and_return_error(any)),
+            Terminate::Unrecoverable(any) => Err(log_and_return_error(any)),
         };
     }
     Ok(())
 }
 
-#[derive(Error, Debug)]
-enum RunError {
-    #[error("Terminated")]
-    Cancelled,
-    #[error(transparent)]
-    Unrecoverable(anyhow::Error),
-}
-
-impl From<FlexiLoggerError> for RunError {
-    fn from(value: FlexiLoggerError) -> Self {
-        Self::Unrecoverable(value.into())
-    }
-}
-
-impl From<anyhow::Error> for RunError {
-    fn from(value: anyhow::Error) -> Self {
-        Self::Unrecoverable(value)
-    }
-}
-
-impl From<SetupError> for RunError {
-    fn from(value: SetupError) -> Self {
-        match value {
-            SetupError::Cancelled => RunError::Cancelled,
-            _ => Self::Unrecoverable(value.into()),
-        }
-    }
-}
-
-impl From<WriteError> for RunError {
-    fn from(value: WriteError) -> Self {
-        match value {
-            WriteError::Cancelled => RunError::Cancelled,
-            _ => Self::Unrecoverable(value.into()),
-        }
-    }
-}
-
-impl From<build::BuildError> for RunError {
-    fn from(value: build::BuildError) -> Self {
-        match value {
-            build::BuildError::Cancelled => RunError::Cancelled,
-            _ => Self::Unrecoverable(value.into()),
-        }
-    }
-}
-
-impl From<Cancelled> for RunError {
-    fn from(_value: Cancelled) -> Self {
-        Self::Cancelled
-    }
-}
-
-fn run() -> Result<(), RunError> {
+fn run() -> Result<(), Terminate> {
     let args = cli::Args::parse();
-    logging::init(args.log_specification(), args.log_path)?;
+    logging::init(args.log_specification(), args.log_path).context("Logging setup failed.")?;
     info!("Program started and logging set up");
 
     let external_config =
@@ -161,7 +105,7 @@ fn run() -> Result<(), RunError> {
 fn write_phase(
     phase: &SchedulerPhase,
     global_config: &internal_config::GlobalConfig,
-) -> Result<(), WriteError> {
+) -> Result<(), Terminate> {
     phase.write(
         global_config.results_directory.join("scheduler_phase.json"),
         &global_config.results_directory_locker,
@@ -171,7 +115,7 @@ fn write_phase(
 fn write_setup_failures(
     failures: impl Iterator<Item = SetupFailure>,
     global_config: &internal_config::GlobalConfig,
-) -> Result<(), WriteError> {
+) -> Result<(), Terminate> {
     SetupFailures(failures.collect()).write(
         global_config.results_directory.join("setup_failures.json"),
         &global_config.results_directory_locker,

@@ -1,3 +1,4 @@
+use crate::termination::Terminate;
 use camino::{Utf8Path, Utf8PathBuf};
 use fs4::FileExt;
 use log::debug;
@@ -27,6 +28,15 @@ pub enum LockerError {
     Shared(Utf8PathBuf, #[source] io::Error),
     #[error("Failed to release lock for `{0}`")]
     Release(Utf8PathBuf, #[source] io::Error),
+}
+
+impl From<LockerError> for Terminate {
+    fn from(value: LockerError) -> Self {
+        match value {
+            LockerError::Cancelled => Self::Cancelled,
+            _ => Self::Unrecoverable(value.into()),
+        }
+    }
 }
 
 pub struct Lock(File, Utf8PathBuf);

@@ -8,38 +8,14 @@ use camino::{Utf8Path, Utf8PathBuf};
 use log::error;
 use robotmk::environment::Environment;
 use robotmk::fs::{create_dir_all, remove_dir_all, remove_file};
-use robotmk::lock::LockerError;
 use robotmk::results::{plan_results_directory, SetupFailure};
+use robotmk::termination::Terminate;
 use std::collections::HashSet;
-use thiserror::Error;
-
-#[derive(Error, Debug)]
-pub enum SetupError {
-    #[error("{0}")]
-    Unrecoverable(String),
-    #[error("Terminated")]
-    Cancelled,
-}
-
-impl From<LockerError> for SetupError {
-    fn from(value: LockerError) -> Self {
-        match value {
-            LockerError::Cancelled => Self::Cancelled,
-            value => Self::Unrecoverable(format!("{:#?}", value)),
-        }
-    }
-}
-
-impl From<anyhow::Error> for SetupError {
-    fn from(value: anyhow::Error) -> Self {
-        Self::Unrecoverable(format!("{:#?}", value))
-    }
-}
 
 pub fn setup(
     global_config: &GlobalConfig,
     plans: Vec<Plan>,
-) -> Result<(Vec<Plan>, Vec<SetupFailure>), SetupError> {
+) -> Result<(Vec<Plan>, Vec<SetupFailure>), Terminate> {
     if global_config.working_directory.exists() {
         remove_dir_all(&global_config.working_directory)?;
     }
@@ -295,7 +271,7 @@ fn setup_managed_directories(plans: Vec<Plan>) -> (Vec<Plan>, Vec<SetupFailure>)
 fn clean_up_results_directory(
     global_config: &GlobalConfig,
     plans: &[Plan],
-) -> Result<(), SetupError> {
+) -> Result<(), Terminate> {
     let results_directory_lock = global_config
         .results_directory_locker
         .wait_for_write_lock()?;
