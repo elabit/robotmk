@@ -108,13 +108,25 @@ fn kill_child_tree(child: &tokio::process::Child) {
 
 #[cfg(unix)]
 async fn interrupt_and_wait(child: &mut tokio::process::Child) {
+    use log::error;
     use nix::sys::signal::{killpg, Signal};
     use nix::unistd::{getpgid, Pid};
     use tokio::time::sleep;
 
     if let Some(pid) = child.id() {
-        let gid = getpgid(Some(Pid::from_raw(pid as i32))).unwrap();
-        killpg(gid, Signal::SIGINT).unwrap();
+        match getpgid(Some(Pid::from_raw(pid as i32))) {
+            Ok(gid) => {
+                if let Err(error) = killpg(gid, Signal::SIGINT) {
+                    error!("Failed to interrupt process group. Error message:\n{error:#?}");
+                }
+            }
+            Err(error) => {
+                error!(
+                    "Failed to retrieve process group ID of process {pid}, 
+                     cannot proceed with interruption. Error message:\n{error:#?}"
+                );
+            }
+        }
     }
     tokio::select! {
         _ = child.wait() => { },
