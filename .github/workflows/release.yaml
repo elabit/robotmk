@@ -37,7 +37,7 @@ jobs:
       - name: "Compute release tag"
         id: compute-tag
         run: |
-            version="$(cargo run --bin robotmk_scheduler -- --version | cut --delimiter " " --fields 2)"
+            version="$(RUSTFLAGS="--cfg tokio_unstable" cargo run --bin robotmk_scheduler -- --version | cut --delimiter " " --fields 2)"
             echo "TAG=v${version}" >> "${GITHUB_OUTPUT}"
 
       - name: "Push release tag"
