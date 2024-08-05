@@ -93,10 +93,32 @@ fn setup_rcc_working_directories(
         &environment_building_working_directory(working_directory),
         rcc_plans,
     );
+
+    #[cfg(unix)]
     let (mut surviving_plans, rcc_setup_failures) = setup_with_one_directory_per_user(
         &rcc_setup_working_directory(working_directory),
         surviving_plans,
     );
+    #[cfg(windows)]
+    let (mut surviving_plans, rcc_setup_failures) = {
+        let (surviving_plans, rcc_setup_failures) = setup_with_one_directory_per_user(
+            &rcc_setup_working_directory(working_directory),
+            surviving_plans,
+        );
+        let (surviving_plans, rcc_setup_failures_long_path_support) =
+            setup_with_one_directory_for_current_session(
+                &rcc_setup_working_directory(working_directory),
+                surviving_plans,
+            );
+        (
+            surviving_plans,
+            rcc_setup_failures
+                .into_iter()
+                .chain(rcc_setup_failures_long_path_support)
+                .collect::<HashMap<String, String>>(),
+        )
+    };
+
     surviving_plans.extend(system_plans);
     (
         surviving_plans,
@@ -154,6 +176,27 @@ fn setup_with_one_directory_per_user(
         surviving_plans.extend(plans_in_session);
     }
     (surviving_plans, failures)
+}
+
+#[cfg(windows)]
+fn setup_with_one_directory_for_current_session(
+    target: &Utf8Path,
+    plans: Vec<Plan>,
+) -> (Vec<Plan>, HashMap<String, String>) {
+    use robotmk::session::CurrentSession;
+
+    match create_dir_all(target.join(CurrentSession {}.id())) {
+        Ok(()) => (plans, HashMap::new()),
+        Err(error) => {
+            let error = anyhow!(error).context(format!("Failed to create directory {target}",));
+            info!("{error:#}");
+            let mut failures = HashMap::new();
+            for plan in plans {
+                failures.insert(plan.id.clone(), format!("{error:#}"));
+            }
+            (vec![], failures)
+        }
+    }
 }
 
 fn setup_results_directories(global_config: &GlobalConfig, plans: &[Plan]) -> AnyhowResult<()> {
