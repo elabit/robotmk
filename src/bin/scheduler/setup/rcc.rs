@@ -259,13 +259,13 @@ fn holotree_disable_sharing(
                 for plan in plans {
                     error!(
                         "Plan {}: Disabling RCC shared holotree failed. Plan won't be scheduled.
-                         Error: {error:#}",
+                         Error: {error:#?}",
                         plan.id,
                     );
                     failures.push(SetupFailure {
                         plan_id: plan.id.clone(),
                         summary: "Disabling RCC shared holotree failed".to_string(),
-                        details: format!("{error:#}"),
+                        details: format!("{error:#?}"),
                     });
                 }
             }
@@ -377,7 +377,7 @@ fn execute_run_spec_in_session(
         Ok(run_outcome) => run_outcome,
         Err(error) => {
             let error = log_and_return_error(error);
-            return Ok(Some(format!("{error:?}")));
+            return Ok(Some(format!("{error:#?}")));
         }
     };
     let exit_code = match run_outcome {

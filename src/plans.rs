@@ -92,8 +92,8 @@ fn run_attempt(
     {
         Ok(run_outcome) => run_outcome,
         Err(error_) => {
-            error!("{log_message_start}: {error_:?}");
-            return Ok((AttemptOutcome::OtherError(format!("{error_:?}")), None));
+            error!("{log_message_start}: {error_:#?}");
+            return Ok((AttemptOutcome::OtherError(format!("{error_:#?}")), None));
         }
     };
     let exit_code = match run_outcome {
