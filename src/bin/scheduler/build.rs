@@ -2,9 +2,9 @@ use super::internal_config::{GlobalConfig, Plan};
 use robotmk::environment::Environment;
 use robotmk::lock::Locker;
 use robotmk::results::{BuildOutcome, BuildStates, EnvironmentBuildStage};
-use robotmk::section::{WriteError, WriteSection};
+use robotmk::section::WriteSection;
 use robotmk::session::{RunSpec, Session};
-use robotmk::termination::{Cancelled, Outcome};
+use robotmk::termination::{Cancelled, Outcome, Terminate};
 
 use anyhow::anyhow;
 use camino::{Utf8Path, Utf8PathBuf};
@@ -13,37 +13,6 @@ use log::{error, info};
 use std::collections::HashMap;
 use tokio_util::sync::CancellationToken;
 
-use thiserror::Error;
-
-#[derive(Error, Debug)]
-pub enum BuildError {
-    #[error("{0}")]
-    Unrecoverable(String),
-    #[error("Terminated")]
-    Cancelled,
-}
-
-impl From<WriteError> for BuildError {
-    fn from(value: WriteError) -> Self {
-        match value {
-            WriteError::Cancelled => Self::Cancelled,
-            value => Self::Unrecoverable(format!("{:#?}", value)),
-        }
-    }
-}
-
-impl From<anyhow::Error> for BuildError {
-    fn from(value: anyhow::Error) -> Self {
-        Self::Unrecoverable(format!("{:#?}", value))
-    }
-}
-
-impl From<Cancelled> for BuildError {
-    fn from(_value: Cancelled) -> Self {
-        Self::Cancelled
-    }
-}
-
 pub fn environment_building_working_directory(working_directory: &Utf8Path) -> Utf8PathBuf {
     working_directory.join("environment_building")
 }
@@ -51,7 +20,7 @@ pub fn environment_building_working_directory(working_directory: &Utf8Path) -> U
 pub fn build_environments(
     global_config: &GlobalConfig,
     plans: Vec<Plan>,
-) -> Result<Vec<Plan>, BuildError> {
+) -> Result<Vec<Plan>, Terminate> {
     let mut build_stage_reporter = BuildStageReporter::new(
         plans.iter().map(|plan| plan.id.as_ref()),
         &global_config.results_directory,
@@ -86,7 +55,7 @@ fn build_environment(
     cancellation_token: &CancellationToken,
     build_stage_reporter: &mut BuildStageReporter,
     working_directory: &Utf8Path,
-) -> Result<BuildOutcome, BuildError> {
+) -> Result<BuildOutcome, Terminate> {
     let Some(build_instructions) = environment.build_instructions() else {
         let outcome = BuildOutcome::NotNeeded;
         info!("Nothing to do for plan {id}");
@@ -164,7 +133,7 @@ impl<'a> BuildStageReporter<'a> {
         ids: impl Iterator<Item = &'c str>,
         results_directory: &Utf8Path,
         locker: &'a Locker,
-    ) -> Result<BuildStageReporter<'a>, WriteError> {
+    ) -> Result<BuildStageReporter<'a>, Terminate> {
         let build_states: HashMap<_, _> = ids
             .map(|id| (id.to_string(), EnvironmentBuildStage::Pending))
             .collect();
@@ -181,7 +150,7 @@ impl<'a> BuildStageReporter<'a> {
         &mut self,
         plan_id: &str,
         build_status: EnvironmentBuildStage,
-    ) -> Result<(), WriteError> {
+    ) -> Result<(), Terminate> {
         self.build_states.insert(plan_id.into(), build_status);
         BuildStates(&self.build_states).write(&self.path, self.locker)
     }

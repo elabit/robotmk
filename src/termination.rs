@@ -1,24 +1,26 @@
 use std::collections::HashSet;
-use std::error::Error;
-use std::fmt;
 use std::future::Future;
 use std::time::Duration;
 use sysinfo::{Pid, Process, System};
+use thiserror::Error;
 use tokio::time::sleep;
 use tokio_util::sync::CancellationToken;
 
-#[derive(Debug, Clone)]
-pub struct Cancelled;
-
-impl fmt::Display for Cancelled {
-    fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
-        write!(f, "Cancelled")
-    }
+#[derive(Debug, Error)]
+pub enum Terminate {
+    #[error("Terminated")]
+    Cancelled,
+    #[error(transparent)]
+    Unrecoverable(#[from] anyhow::Error),
 }
 
-impl Error for Cancelled {
-    fn source(&self) -> Option<&(dyn Error + 'static)> {
-        None
+#[derive(Error, Debug, Clone)]
+#[error("Terminated")]
+pub struct Cancelled;
+
+impl From<Cancelled> for Terminate {
+    fn from(_value: Cancelled) -> Self {
+        Self::Cancelled
     }
 }
 

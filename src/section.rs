@@ -1,5 +1,6 @@
 use super::lock::{Locker, LockerError};
 
+use crate::termination::Terminate;
 use anyhow::{Context, Result as AnyhowResult};
 use camino::Utf8Path;
 use serde::{Deserialize, Serialize};
@@ -7,7 +8,6 @@ use std::fs::read_to_string;
 use std::io::Write;
 use std::path::Path;
 use tempfile::NamedTempFile;
-use thiserror::Error;
 use walkdir::{DirEntry, WalkDir};
 
 #[derive(Deserialize, Serialize, Clone, Debug, PartialEq)]
@@ -23,30 +23,7 @@ pub struct Section {
     pub content: String,
 }
 
-#[derive(Error, Debug)]
-pub enum WriteError {
-    #[error("{0}")]
-    Unrecoverable(String),
-    #[error("Terminated")]
-    Cancelled,
-}
-
-impl From<LockerError> for WriteError {
-    fn from(value: LockerError) -> Self {
-        match value {
-            LockerError::Cancelled => Self::Cancelled,
-            value => Self::Unrecoverable(format!("{:#?}", value)),
-        }
-    }
-}
-
-impl From<anyhow::Error> for WriteError {
-    fn from(value: anyhow::Error) -> Self {
-        Self::Unrecoverable(format!("{:#?}", value))
-    }
-}
-
-fn write(section: &Section, path: impl AsRef<Utf8Path>, locker: &Locker) -> Result<(), WriteError> {
+fn write(section: &Section, path: impl AsRef<Utf8Path>, locker: &Locker) -> Result<(), Terminate> {
     let path = path.as_ref();
     let section = serde_json::to_string(&section).unwrap();
     let mut file = NamedTempFile::new().context("Opening tempfile failed")?;
@@ -64,7 +41,7 @@ fn write(section: &Section, path: impl AsRef<Utf8Path>, locker: &Locker) -> Resu
 pub trait WriteSection {
     fn name() -> &'static str;
 
-    fn write(&self, path: impl AsRef<Utf8Path>, locker: &Locker) -> Result<(), WriteError>
+    fn write(&self, path: impl AsRef<Utf8Path>, locker: &Locker) -> Result<(), Terminate>
     where
         Self: Serialize,
     {
@@ -85,7 +62,7 @@ pub trait WritePiggybackSection {
         path: impl AsRef<Utf8Path>,
         host: Host,
         locker: &Locker,
-    ) -> Result<(), WriteError>
+    ) -> Result<(), Terminate>
     where
         Self: Serialize,
     {
