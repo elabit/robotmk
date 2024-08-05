@@ -44,6 +44,6 @@ pub fn init(
 }
 
 pub fn log_and_return_error(error: Error) -> Error {
-    error!("{error:?}");
+    error!("{error:#?}");
     error
 }

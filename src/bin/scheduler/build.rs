@@ -27,14 +27,14 @@ impl From<WriteError> for BuildError {
     fn from(value: WriteError) -> Self {
         match value {
             WriteError::Cancelled => Self::Cancelled,
-            value => Self::Unrecoverable(format!("{:?}", value)),
+            value => Self::Unrecoverable(format!("{:#?}", value)),
         }
     }
 }
 
 impl From<anyhow::Error> for BuildError {
     fn from(value: anyhow::Error) -> Self {
-        Self::Unrecoverable(format!("{:?}", value))
+        Self::Unrecoverable(format!("{:#?}", value))
     }
 }
 
@@ -125,8 +125,8 @@ fn run_build_command(
                 "Environment building failed, plan {id} will be dropped. See {} for stdio logs",
                 run_spec.base_path,
             ));
-            error!("{log_error:?}");
-            return Ok(BuildOutcome::Error(format!("{log_error:?}")));
+            error!("{log_error:#?}");
+            return Ok(BuildOutcome::Error(format!("{log_error:#?}")));
         }
     };
     let duration = (Utc::now() - reference_timestamp_for_duration).num_seconds();

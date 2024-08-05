@@ -43,7 +43,7 @@ pub async fn run_plans_and_cleanup(global_config: &GlobalConfig, plans: &[Plan])
     error!("Received termination signal while scheduling, waiting for plans to terminate");
     while let Some(outcome) = join_set.join_next().await {
         if let Err(error) = outcome {
-            error!("{error:?}");
+            error!("{error:#?}");
         }
     }
 }

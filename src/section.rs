@@ -35,14 +35,14 @@ impl From<LockerError> for WriteError {
     fn from(value: LockerError) -> Self {
         match value {
             LockerError::Cancelled => Self::Cancelled,
-            value => Self::Unrecoverable(format!("{:?}", value)),
+            value => Self::Unrecoverable(format!("{:#?}", value)),
         }
     }
 }
 
 impl From<anyhow::Error> for WriteError {
     fn from(value: anyhow::Error) -> Self {
-        Self::Unrecoverable(format!("{:?}", value))
+        Self::Unrecoverable(format!("{:#?}", value))
     }
 }
 

@@ -52,7 +52,7 @@ pub fn grant_permissions_to_all_plan_users(
                         error!(
                             "Plan {}: Failed to adjust permissions of \
                              {description_for_failure_reporting} for plan user. Plan won't be scheduled.
-                             Error: {error:#}",
+                             Error: {error:#?}",
                             plan.id
                         );
                         failures.push(SetupFailure {
@@ -60,7 +60,7 @@ pub fn grant_permissions_to_all_plan_users(
                             summary: format!(
                                 "Failed to adjust permissions of {description_for_failure_reporting} for plan user"
                             ),
-                            details: format!("{error:#}"),
+                            details: format!("{error:#?}"),
                         });
                     }
                 }
