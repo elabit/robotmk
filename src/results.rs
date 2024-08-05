@@ -32,7 +32,7 @@ impl WriteSection for SetupFailures {
     }
 }
 
-#[derive(Serialize)]
+#[derive(Serialize, Clone)]
 pub struct SetupFailure {
     pub plan_id: String,
     pub summary: String,
