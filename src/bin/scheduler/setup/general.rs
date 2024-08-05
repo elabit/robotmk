@@ -117,11 +117,32 @@ fn setup_rcc_working_directories(
         rcc_plans,
         "environment building",
     );
+
+    #[cfg(unix)]
     let (mut surviving_plans, rcc_setup_failures) = setup_with_one_directory_per_user(
         &rcc_setup_working_directory(working_directory),
         surviving_plans,
         "RCC setup",
     );
+    #[cfg(windows)]
+    let (mut surviving_plans, rcc_setup_failures) = {
+        let (surviving_plans, rcc_setup_failures) = setup_with_one_directory_per_user(
+            &rcc_setup_working_directory(working_directory),
+            surviving_plans,
+            "RCC setup",
+        );
+        let (surviving_plans, rcc_setup_failures_long_path_support) =
+            setup_with_one_directory_for_current_session(
+                &rcc_setup_working_directory(working_directory),
+                surviving_plans,
+                "RCC setup (long path support)",
+            );
+        (
+            surviving_plans,
+            [rcc_setup_failures, rcc_setup_failures_long_path_support].concat(),
+        )
+    };
+
     surviving_plans.extend(system_plans);
     (
         surviving_plans,
@@ -208,6 +229,38 @@ fn setup_with_one_directory_per_user(
         surviving_plans.extend(plans_in_session);
     }
     (surviving_plans, failures)
+}
+
+#[cfg(windows)]
+fn setup_with_one_directory_for_current_session(
+    target: &Utf8Path,
+    plans: Vec<Plan>,
+    description_for_failure_reporting: &str,
+) -> (Vec<Plan>, Vec<SetupFailure>) {
+    use robotmk::session::CurrentSession;
+
+    match create_dir_all(target.join(CurrentSession {}.id())) {
+        Ok(()) => (plans, vec![]),
+        Err(error) => {
+            let mut failures = vec![];
+            for plan in plans {
+                error!(
+                    "Plan {}: Failed to create {description_for_failure_reporting} directory. \
+                     Plan won't be scheduled.
+                     Error: {error:#}",
+                    plan.id
+                );
+                failures.push(SetupFailure {
+                    plan_id: plan.id.clone(),
+                    summary: format!(
+                        "Failed to create {description_for_failure_reporting} directory"
+                    ),
+                    details: format!("{error:#}"),
+                });
+            }
+            (vec![], failures)
+        }
+    }
 }
 
 fn setup_results_directories(global_config: &GlobalConfig, plans: &[Plan]) -> AnyhowResult<()> {
