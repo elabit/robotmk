@@ -27,13 +27,13 @@ pub fn setup(plans: Vec<Plan>) -> (Vec<Plan>, Vec<SetupFailure>) {
             if let Err(error) = unpack_into(tar_gz_path, target) {
                 error!(
                     "Plan {}: Failed to unpack managed source archive. Plan won't be scheduled.
-                     Error: {error:#?}",
+                     Error: {error:?}",
                     plan.id
                 );
                 failures.push(SetupFailure {
                     plan_id: plan.id.clone(),
                     summary: "Failed to unpack managed source archive".to_string(),
-                    details: format!("{error:#?}"),
+                    details: format!("{error:?}"),
                 });
                 continue;
             }

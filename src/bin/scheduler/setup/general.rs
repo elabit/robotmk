@@ -61,13 +61,13 @@ fn setup_plans_working_directory(plans: Vec<Plan>) -> (Vec<Plan>, Vec<SetupFailu
             let error = anyhow!(e);
             error!(
                 "Plan {}: Failed to create working directory. Plan won't be scheduled.
-                 Error: {error:#?}",
+                 Error: {error:?}",
                 plan.id
             );
             failures.push(SetupFailure {
                 plan_id: plan.id.clone(),
                 summary: "Failed to create working directory".to_string(),
-                details: format!("{error:#?}"),
+                details: format!("{error:?}"),
             });
             continue;
         }
@@ -88,13 +88,13 @@ fn setup_plans_working_directory(plans: Vec<Plan>) -> (Vec<Plan>, Vec<SetupFailu
                     error!(
                         "Plan {}: Failed to set permissions for working directory. \
                          Plan won't be scheduled.
-                         Error: {error:#?}",
+                         Error: {error:?}",
                         plan.id
                     );
                     failures.push(SetupFailure {
                         plan_id: plan.id.clone(),
                         summary: "Failed to set permissions for working directory".to_string(),
-                        details: format!("{error:#?}"),
+                        details: format!("{error:?}"),
                     });
                     continue;
                 };
@@ -166,13 +166,13 @@ fn setup_with_one_directory_per_user(
             error!(
                 "Plan {}: Failed to create {description_for_failure_reporting} directory. \
                  Plan won't be scheduled.
-                 Error: {error:#?}",
+                 Error: {error:?}",
                 plan.id
             );
             failures.push(SetupFailure {
                 plan_id: plan.id.clone(),
                 summary: format!("Failed to create {description_for_failure_reporting} directory"),
-                details: format!("{error:#?}"),
+                details: format!("{error:?}"),
             });
         }
         return (surviving_plans, failures);
@@ -185,13 +185,13 @@ fn setup_with_one_directory_per_user(
                 error!(
                     "Plan {}: Failed to create user-specific {description_for_failure_reporting} \
                      directory. Plan won't be scheduled.
-                     Error: {error:#?}",
+                     Error: {error:?}",
                     plan.id
                 );
                 failures.push(SetupFailure {
                     plan_id: plan.id.clone(),
                     summary: format!("Failed to create user-specific {description_for_failure_reporting} directory"),
-                    details: format!("{error:#?}"),
+                    details: format!("{error:?}"),
                 });
             }
             continue;
@@ -213,13 +213,13 @@ fn setup_with_one_directory_per_user(
                         error!(
                             "Plan {}: Failed to adjust permissions for user-specific \
                              {description_for_failure_reporting} directory. Plan won't be scheduled.
-                             Error: {error:#?}",
+                             Error: {error:?}",
                             plan.id
                         );
                         failures.push(SetupFailure {
                             plan_id: plan.id.clone(),
                             summary: format!("Failed to adjust permissions for user-specific {description_for_failure_reporting} directory"),
-                            details: format!("{error:#?}"),
+                            details: format!("{error:?}"),
                         });
                     }
                     continue;
@@ -278,13 +278,13 @@ fn setup_managed_directories(plans: Vec<Plan>) -> (Vec<Plan>, Vec<SetupFailure>)
                 let error = anyhow!(e);
                 error!(
                     "Plan {}: Failed to create managed directory. Plan won't be scheduled.
-                     Error: {error:#?}",
+                     Error: {error:?}",
                     plan.id
                 );
                 failures.push(SetupFailure {
                     plan_id: plan.id.clone(),
                     summary: "Failed to create managed directory".to_string(),
-                    details: format!("{error:#?}"),
+                    details: format!("{error:?}"),
                 });
                 continue;
             }
@@ -298,14 +298,14 @@ fn setup_managed_directories(plans: Vec<Plan>) -> (Vec<Plan>, Vec<SetupFailure>)
                     if let Err(error) = grant_full_access(&user_session.user_name, target) {
                         error!(
                             "Plan {}: Failed to adjust permissions of managed directory. Plan won't be scheduled.
-                             Error: {error:#?}",
+                             Error: {error:?}",
                             plan.id
                         );
                         failures.push(SetupFailure {
                             plan_id: plan.id.clone(),
                             summary: "Failed to adjust permissions of managed directory"
                                 .to_string(),
-                            details: format!("{error:#?}"),
+                            details: format!("{error:?}"),
                         });
                         continue;
                     }
