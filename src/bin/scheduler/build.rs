@@ -94,8 +94,8 @@ fn run_build_command(
                 "Environment building failed, plan {id} will be dropped. See {} for stdio logs",
                 run_spec.base_path,
             ));
-            error!("{log_error:#?}");
-            return Ok(BuildOutcome::Error(format!("{log_error:#?}")));
+            error!("{log_error:?}");
+            return Ok(BuildOutcome::Error(format!("{log_error:?}")));
         }
     };
     let duration = (Utc::now() - reference_timestamp_for_duration).num_seconds();
