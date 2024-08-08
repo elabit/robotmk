@@ -6,15 +6,6 @@ use robotmk::results::SetupFailure;
 use std::fs::File;
 use tar::Archive;
 
-fn unpack_into(tar_gz_path: &Utf8Path, target_path: &Utf8Path) -> anyhow::Result<()> {
-    info!("Extracting archive \"{tar_gz_path}\"");
-    let tar_gz = File::open(tar_gz_path)?;
-    let tar = GzDecoder::new(tar_gz);
-    let mut archive = Archive::new(tar);
-    archive.unpack(target_path)?;
-    Ok(())
-}
-
 pub fn setup(plans: Vec<Plan>) -> (Vec<Plan>, Vec<SetupFailure>) {
     let mut surviving_plans = Vec::new();
     let mut failures = vec![];
@@ -42,4 +33,16 @@ pub fn setup(plans: Vec<Plan>) -> (Vec<Plan>, Vec<SetupFailure>) {
         surviving_plans.push(plan);
     }
     (surviving_plans, failures)
+}
+
+fn unpack_into(tar_gz_path: &Utf8Path, target_path: &Utf8Path) -> anyhow::Result<()> {
+    info!("Extracting archive \"{tar_gz_path}\"");
+    open_tar_gz_archive(tar_gz_path)?.unpack(target_path)?;
+    Ok(())
+}
+
+fn open_tar_gz_archive(path: &Utf8Path) -> std::io::Result<Archive<GzDecoder<File>>> {
+    let tar_gz = File::open(path)?;
+    let tar = GzDecoder::new(tar_gz);
+    Ok(Archive::new(tar))
 }
