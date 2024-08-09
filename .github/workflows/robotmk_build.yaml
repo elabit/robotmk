@@ -4,7 +4,7 @@ name: "Build Robotmk"
 on:
   workflow_call: {}
 jobs:
-  build_robotmk:
+  build_windows:
     runs-on: windows-latest
     steps:
       - uses: actions/checkout@v4
@@ -24,6 +24,30 @@ jobs:
         with:
           name: rmk_windows64
           path: |
-            ${{ github.workspace }}/target/x86_64-pc-windows-gnu/release/robotmk_scheduler.exe
-            ${{ github.workspace }}/target/x86_64-pc-windows-gnu/release/robotmk_agent_plugin.exe
+            target/x86_64-pc-windows-gnu/release/robotmk_scheduler.exe
+            target/x86_64-pc-windows-gnu/release/robotmk_agent_plugin.exe
+          if-no-files-found: error
+
+  build_linux:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions-rust-lang/setup-rust-toolchain@v1.9
+        with:
+          target: x86_64-unknown-linux-gnu
+          # By default, setup-rust-toolchain sets "-D warnings". As a side effect, the settings in
+          # .cargo/config.toml are ignored:
+          # https://doc.rust-lang.org/cargo/reference/config.html#buildrustflags
+          # "There are four mutually exclusive sources of extra flags"
+          rustflags: ""
+
+      - run: cargo build --target=x86_64-unknown-linux-gnu --release
+
+      - uses: actions/upload-artifact@v4
+        with:
+          name: rmk_linux64
+          path: |
+            target/x86_64-unknown-linux-gnu/release/robotmk_scheduler
+            target/x86_64-unknown-linux-gnu/release/robotmk_agent_plugin
           if-no-files-found: error
