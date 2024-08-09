@@ -27,7 +27,7 @@ jobs:
           name: rcc
           path: C:\
 
-      - run: cargo test --target=x86_64-pc-windows-gnu --test test_plan_run -- --ignored
+      - run: cargo test --target=x86_64-pc-windows-gnu --test test_plan_run --test test_agent_plugin -- --ignored
       - run: cargo run --example termination --target=x86_64-pc-windows-gnu
       - run: cargo run --example termination --target=x86_64-pc-windows-gnu -- C:\windows64\rcc.exe
 
@@ -70,7 +70,7 @@ jobs:
       # https://github.com/actions/upload-artifact?tab=readme-ov-file#permission-loss
       - run: chmod +x /tmp/linux64/rcc
 
-      - run: cargo test --target=x86_64-unknown-linux-gnu --test test_plan_run -- --ignored
+      - run: cargo test --target=x86_64-unknown-linux-gnu --test test_plan_run --test test_agent_plugin -- --ignored
       - run: cargo run --example termination --target=x86_64-unknown-linux-gnu
       - run: cargo run --example termination --target=x86_64-unknown-linux-gnu -- /tmp/linux64/rcc
 
