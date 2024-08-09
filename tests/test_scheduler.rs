@@ -51,7 +51,12 @@ async fn test_scheduler() -> AnyhowResult<()> {
     )
     .await?;
     assert_results_directory(&config.results_directory);
-    assert_managed_directory(&config.managed_directory).await?;
+    assert_managed_directory(
+        &config.managed_directory,
+        #[cfg(windows)]
+        &current_user_name,
+    )
+    .await?;
     assert_rcc(
         &config.rcc_config,
         #[cfg(windows)]
@@ -200,7 +205,12 @@ fn create_config(
                             robot_yaml_path: "robot.yaml".into(),
                             build_timeout: 1200,
                         }),
+                        #[cfg(unix)]
                         session_config: SessionConfig::Current,
+                        #[cfg(windows)]
+                        session_config: SessionConfig::SpecificUser(UserSessionConfig {
+                            user_name: user_name_headed.into(),
+                        }),
                         working_directory_cleanup_config: WorkingDirectoryCleanupConfig::MaxAgeSecs(
                             120,
                         ),
@@ -363,12 +373,22 @@ async fn assert_working_directory(
         directory_entries(working_directory.join("environment_building"), 2),
         [
             "current_user",
+            #[cfg(unix)]
             "current_user/managed_robot_archive.stderr",
+            #[cfg(unix)]
             "current_user/managed_robot_archive.stdout",
             "current_user/rcc_headless.stderr",
             "current_user/rcc_headless.stdout",
             #[cfg(windows)]
             &format!("user_{headed_user_name}"),
+            #[cfg(windows)]
+            &format!("user_{headed_user_name}/managed_robot_archive.bat"),
+            #[cfg(windows)]
+            &format!("user_{headed_user_name}/managed_robot_archive.exit_code"),
+            #[cfg(windows)]
+            &format!("user_{headed_user_name}/managed_robot_archive.stderr"),
+            #[cfg(windows)]
+            &format!("user_{headed_user_name}/managed_robot_archive.stdout"),
             #[cfg(windows)]
             &format!("user_{headed_user_name}/rcc_headed.bat"),
             #[cfg(windows)]
@@ -453,12 +473,21 @@ fn assert_results_directory(results_directory: &Utf8Path) {
     );
 }
 
-async fn assert_managed_directory(managed_directory: &Utf8Path) -> AnyhowResult<()> {
+async fn assert_managed_directory(
+    managed_directory: &Utf8Path,
+    #[cfg(windows)] headed_user_name: &str,
+) -> AnyhowResult<()> {
     assert!(managed_directory.is_dir());
     assert_eq!(
         directory_entries(managed_directory, 1),
         ["managed_robot_archive"]
     );
+    #[cfg(windows)]
+    assert_permissions(
+        &managed_directory.join("managed_robot_archive"),
+        &format!("{headed_user_name}:(OI)(CI)(F)"),
+    )
+    .await?;
     Ok(())
 }
 
