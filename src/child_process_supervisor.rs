@@ -117,13 +117,13 @@ async fn interrupt_and_wait(child: &mut tokio::process::Child) {
         match getpgid(Some(Pid::from_raw(pid as i32))) {
             Ok(gid) => {
                 if let Err(error) = killpg(gid, Signal::SIGINT) {
-                    error!("Failed to interrupt process group. Error message:\n{error:#?}");
+                    error!("Failed to interrupt process group. Error message:\n{error:?}");
                 }
             }
             Err(error) => {
                 error!(
                     "Failed to retrieve process group ID of process {pid}, 
-                     cannot proceed with interruption. Error message:\n{error:#?}"
+                     cannot proceed with interruption. Error message:\n{error:?}"
                 );
             }
         }
