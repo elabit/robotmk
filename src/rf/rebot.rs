@@ -31,9 +31,9 @@ impl Rebot<'_> {
         let outcome = match self.run() {
             Ok(outcome) => outcome,
             Err(error) => {
-                error!("Rebot execution failed: {error:#?}");
+                error!("Rebot execution failed: {error:?}");
                 return Ok(RebotOutcome::Error(format!(
-                    "Rebot execution failed: {error:#?}"
+                    "Rebot execution failed: {error:?}"
                 )));
             }
         };
@@ -107,7 +107,7 @@ impl Rebot<'_> {
                 }),
                 Err(error) => {
                     let error_message = format!(
-                        "Failed to read merged HTML file content from {}: {error:#?}",
+                        "Failed to read merged HTML file content from {}: {error:?}",
                         self.path_html
                     );
                     error!("{error_message}");
@@ -116,7 +116,7 @@ impl Rebot<'_> {
             },
             Err(error) => {
                 let error_message = format!(
-                    "Failed to read merged XML file content from {}: {error:#?}",
+                    "Failed to read merged XML file content from {}: {error:?}",
                     self.path_xml
                 );
                 error!("{error_message}");

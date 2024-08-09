@@ -247,7 +247,7 @@ fn setup_with_one_directory_for_current_session(
                 error!(
                     "Plan {}: Failed to create {description_for_failure_reporting} directory. \
                      Plan won't be scheduled.
-                     Error: {error:#}",
+                     Error: {error:?}",
                     plan.id
                 );
                 failures.push(SetupFailure {
@@ -255,7 +255,7 @@ fn setup_with_one_directory_for_current_session(
                     summary: format!(
                         "Failed to create {description_for_failure_reporting} directory"
                     ),
-                    details: format!("{error:#}"),
+                    details: format!("{error:?}"),
                 });
             }
             (vec![], failures)

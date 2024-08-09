@@ -42,7 +42,7 @@ pub fn run_task(task_spec: &TaskSpec) -> AnyhowResult<Outcome<i32>> {
     let _ = task_manager
         .delete_task(&task)
         .context(format!("Failed to delete task {}", task_spec.task_name))
-        .map_err(|e| error!("{:#?}", e));
+        .map_err(|e| error!("{:?}", e));
 
     match outcome {
         Outcome::Cancel => return Ok(Outcome::Cancel),
