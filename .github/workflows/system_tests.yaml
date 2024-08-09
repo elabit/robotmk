@@ -8,16 +8,26 @@ jobs:
   test_scheduler_windows:
     runs-on: windows-latest
     steps:
+      - uses: actions/checkout@v4
+      - uses: actions-rust-lang/setup-rust-toolchain@v1.9
+        with:
+          target: x86_64-pc-windows-gnu
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.12'
+          cache: 'pip'
+      - run: pip install -r tests/minimal_suite/requirements.txt
       - uses: actions/download-artifact@v4
         with:
           name: rcc
           path: C:\
-      - uses: actions/checkout@v4
+
+      - run: cargo test --target=x86_64-pc-windows-gnu --test test_plan_run -- --ignored
+      - run: cargo run --example termination --target=x86_64-pc-windows-gnu
+      - run: cargo run --example termination --target=x86_64-pc-windows-gnu -- C:\windows64\rcc.exe
+
       - run: mkdir C:\managed_robots
       - run: tar --create -z --directory tests\minimal_suite\ --file C:\managed_robots\minimal_suite.tar.gz *
-      - uses: actions-rust-lang/setup-rust-toolchain@v1.9
-        with:
-          target: x86_64-pc-windows-gnu
       - run: cargo test --target=x86_64-pc-windows-gnu --test test_scheduler -- --nocapture --ignored
         env:
           TEST_DIR: C:\test_scheduler
@@ -29,11 +39,20 @@ jobs:
         with:
           name: system_test_debug_information_windows
           path: C:\test_scheduler
-      - run: cargo run --example termination -- C:\windows64\rcc.exe
 
   test_scheduler_linux:
     runs-on: ubuntu-latest
     steps:
+      - uses: actions/checkout@v4
+      - uses: actions-rust-lang/setup-rust-toolchain@v1.9
+        with:
+          target: x86_64-unknown-linux-gnu
+      - run: echo "RUSTFLAGS=--cfg tokio_unstable" >> "$GITHUB_ENV"
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.12'
+          cache: 'pip'
+      - run: pip install -r tests/minimal_suite/requirements.txt
       - uses: actions/download-artifact@v4
         with:
           name: rcc
@@ -41,13 +60,13 @@ jobs:
       # file permissions are not retained during upload:
       # https://github.com/actions/upload-artifact?tab=readme-ov-file#permission-loss
       - run: chmod +x /tmp/linux64/rcc
-      - uses: actions/checkout@v4
+
+      - run: cargo test --target=x86_64-unknown-linux-gnu --test test_plan_run -- --ignored
+      - run: cargo run --example termination --target=x86_64-unknown-linux-gnu
+      - run: cargo run --example termination --target=x86_64-unknown-linux-gnu -- /tmp/linux64/rcc
+
       - run: mkdir /tmp/managed_robots
       - run: tar --create --gzip --directory tests/minimal_suite/ --file /tmp/managed_robots/minimal_suite.tar.gz .
-      - uses: actions-rust-lang/setup-rust-toolchain@v1.9
-        with:
-          target: x86_64-unknown-linux-gnu
-      - run: echo "RUSTFLAGS=--cfg tokio_unstable" >> "$GITHUB_ENV"
       - run: cargo test --target=x86_64-unknown-linux-gnu --test test_scheduler -- --nocapture --ignored
         env:
           TEST_DIR: /tmp/test_scheduler
@@ -59,4 +78,3 @@ jobs:
         with:
           name: system_test_debug_information_linux
           path: /tmp/test_scheduler
-      - run: cargo run --example termination -- /tmp/linux64/rcc
