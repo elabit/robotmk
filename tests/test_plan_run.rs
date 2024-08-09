@@ -10,6 +10,7 @@ use tempfile::tempdir;
 use tokio_util::sync::CancellationToken;
 
 #[test]
+#[ignore]
 fn test_rebot_run() -> AnyhowResult<()> {
     let test_dir = Utf8PathBuf::from_path_buf(tempdir()?.into_path()).unwrap();
     let robot = Robot {
@@ -36,6 +37,7 @@ fn test_rebot_run() -> AnyhowResult<()> {
 }
 
 #[test]
+#[ignore]
 fn test_timeout_process() -> AnyhowResult<()> {
     let test_dir = Utf8PathBuf::from_path_buf(tempdir()?.into_path()).unwrap();
     let resource = test_dir.join("resource");

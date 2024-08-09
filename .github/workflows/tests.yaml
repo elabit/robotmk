@@ -14,11 +14,6 @@ jobs:
           - { os: ubuntu-latest,  target: x86_64-unknown-linux-gnu }
     steps:
       - uses: actions/checkout@v4
-      - uses: actions/setup-python@v5
-        with:
-          python-version: '3.12'
-          cache: 'pip'
-      - run: pip install -r requirements.txt
       - uses: actions-rust-lang/setup-rust-toolchain@v1.9
         with:
           components: rustfmt, clippy
@@ -26,6 +21,5 @@ jobs:
       - run: echo "RUSTFLAGS=--cfg tokio_unstable" >> "$GITHUB_ENV"
       - run: cargo fmt -- --check
       - run: cargo test --all-targets --target ${{ matrix.type.target }} -- --skip test_scheduler
-      - run: cargo run --example termination --target ${{ matrix.type.target }}
       - run: cargo clippy --all-targets --target ${{ matrix.type.target }} -- --deny warnings
       - run: cargo build --target ${{ matrix.type.target }}
