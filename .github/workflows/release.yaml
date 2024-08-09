@@ -18,15 +18,6 @@ jobs:
     steps:
       - uses: actions/checkout@v4
 
-      - uses: actions-rust-lang/setup-rust-toolchain@v1.9
-        with:
-          target: x86_64-unknown-linux-gnu
-          # By default, setup-rust-toolchain sets "-D warnings". As a side effect, the settings in
-          # .cargo/config.toml are ignored:
-          # https://doc.rust-lang.org/cargo/reference/config.html#buildrustflags
-          # "There are four mutually exclusive sources of extra flags"
-          rustflags: ""
-
       - uses: actions/download-artifact@v4
         with:
           name: rcc
@@ -37,12 +28,20 @@ jobs:
           name: rmk_windows64
           path: artifact/rmk_windows64/
 
+      - uses: actions/download-artifact@v4
+        with:
+          name: rmk_linux64
+          path: artifact/rmk_linux64/
+
       - run: zip -r executables.zip artifact
 
       - name: "Compute release tag"
         id: compute-tag
         run: |
-            version="$(cargo run --bin robotmk_scheduler -- --version | cut --delimiter " " --fields 2)"
+            # file permissions are not retained during upload:
+            # https://github.com/actions/upload-artifact?tab=readme-ov-file#permission-loss
+            chmod +x artifact/rmk_linux64/robotmk_scheduler
+            version="$(./artifact/rmk_linux64/robotmk_scheduler --version | cut --delimiter " " --fields 2)"
             echo "TAG=v${version}" >> "${GITHUB_OUTPUT}"
 
       - name: "Push release tag"
