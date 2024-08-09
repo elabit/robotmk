@@ -18,7 +18,11 @@ jobs:
         with:
           components: rustfmt, clippy
           target: ${{ matrix.type.target }}
-      - run: echo "RUSTFLAGS=--cfg tokio_unstable" >> "$GITHUB_ENV"
+          # By default, setup-rust-toolchain sets "-D warnings". As a side effect, the settings in
+          # .cargo/config.toml are ignored:
+          # https://doc.rust-lang.org/cargo/reference/config.html#buildrustflags
+          # "There are four mutually exclusive sources of extra flags"
+          rustflags: ""
       - run: cargo fmt -- --check
       - run: cargo test --all-targets --target ${{ matrix.type.target }} -- --skip test_scheduler
       - run: cargo clippy --all-targets --target ${{ matrix.type.target }} -- --deny warnings
