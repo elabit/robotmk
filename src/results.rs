@@ -115,3 +115,9 @@ pub struct AttemptsConfig {
     pub timeout: u64,
     pub n_attempts_max: usize,
 }
+
+#[derive(Serialize)]
+pub enum ConfigSection {
+    ReadingError(String),
+    FileContent(String),
+}
