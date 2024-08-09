@@ -3,9 +3,9 @@ use clap::Parser;
 use robotmk::{
     config::Config,
     lock::Locker,
+    results::ConfigSection,
     section::{read, Host, Section},
 };
-use serde::Serialize;
 use std::env::{var, VarError};
 use std::fs::read_to_string;
 use std::io;
@@ -18,23 +18,20 @@ struct Args {
     pub config_path: Option<Utf8PathBuf>,
 }
 
-#[derive(Serialize)]
-pub enum ConfigSection {
-    ReadingError(String),
-    FileContent(String),
-}
-
 fn determine_config_path(arg: Option<Utf8PathBuf>) -> Result<Utf8PathBuf, String> {
     Ok(arg.unwrap_or(config_path_from_env()?))
 }
 
 fn config_path_from_env() -> Result<Utf8PathBuf, String> {
-    let config_path = match var("MK_CONFDIR") {
+    let config_dir = match var("MK_CONFDIR") {
         Ok(path) => path,
+        #[cfg(unix)]
+        Err(VarError::NotPresent) => "/etc/check_mk".into(),
+        #[cfg(windows)]
         Err(VarError::NotPresent) => "C:\\ProgramData\\checkmk\\agent\\config".into(),
         Err(VarError::NotUnicode(path)) => return Err(format!("Path {path:?} is not utf-8.")),
     };
-    Ok(Utf8PathBuf::from(config_path).join("robotmk.json"))
+    Ok(Utf8PathBuf::from(config_dir).join("robotmk.json"))
 }
 
 fn report_config_section(section: &ConfigSection) {
