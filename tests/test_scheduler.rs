@@ -1,6 +1,6 @@
 pub mod rcc;
 use crate::rcc::read_configuration_diagnostics;
-use anyhow::Result as AnyhowResult;
+use anyhow::{bail, Result as AnyhowResult};
 use assert_cmd::cargo::cargo_bin;
 use camino::{Utf8Path, Utf8PathBuf};
 #[cfg(windows)]
@@ -18,7 +18,11 @@ use std::ffi::OsStr;
 use std::fs::{create_dir_all, remove_file, write};
 use std::path::Path;
 use std::time::Duration;
-use tokio::{process::Command, time::timeout};
+use tokio::{
+    process::Command,
+    select,
+    time::{sleep, timeout},
+};
 use walkdir::WalkDir;
 
 #[tokio::test]
@@ -42,7 +46,12 @@ async fn test_scheduler() -> AnyhowResult<()> {
         &current_user_name,
     );
 
-    run_scheduler(&test_dir, &config, var("RUN_FOR")?.parse::<u64>()?).await?;
+    run_scheduler(
+        &test_dir,
+        &config,
+        var("N_SECONDS_RUN_MAX")?.parse::<u64>()?,
+    )
+    .await?;
 
     assert_working_directory(
         &config.working_directory,
@@ -271,7 +280,7 @@ fn create_config(
 async fn run_scheduler(
     test_dir: &Utf8Path,
     config: &Config,
-    n_seconds_run: u64,
+    n_seconds_run_max: u64,
 ) -> AnyhowResult<()> {
     let config_path = test_dir.join("config.json");
     write(&config_path, to_string(&config)?)?;
@@ -286,18 +295,45 @@ async fn run_scheduler(
         .arg(&run_flag_path);
     let mut robotmk_child_proc = robotmk_cmd.spawn()?;
 
-    assert!(timeout(
-        Duration::from_secs(n_seconds_run),
-        robotmk_child_proc.wait()
-    )
-    .await
-    .is_err());
+    select! {
+        _ = await_plan_results(config) => {},
+        _ = robotmk_child_proc.wait() => {
+            bail!("Scheduler terminated unexpectedly")
+        },
+        _ = sleep(Duration::from_secs(n_seconds_run_max)) => {
+            bail!(format!("No plan result files appeared with {n_seconds_run_max} seconds"))
+        },
+    };
     remove_file(&run_flag_path)?;
     assert!(timeout(Duration::from_secs(3), robotmk_child_proc.wait())
         .await
         .is_ok());
 
     Ok(())
+}
+
+async fn await_plan_results(config: &Config) {
+    let expected_result_files: Vec<Utf8PathBuf> = config
+        .plan_groups
+        .iter()
+        .flat_map(|plan_group| {
+            plan_group.plans.iter().map(|plan_config| {
+                config
+                    .results_directory
+                    .join("plans")
+                    .join(format!("{}.json", &plan_config.id))
+            })
+        })
+        .collect();
+    loop {
+        if expected_result_files
+            .iter()
+            .all(|expected_result_file| expected_result_file.is_file())
+        {
+            break;
+        }
+        sleep(Duration::from_secs(5)).await;
+    }
 }
 
 async fn assert_working_directory(
