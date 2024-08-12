@@ -38,7 +38,7 @@ jobs:
           TEST_DIR: C:\test_scheduler
           RCC_BINARY_PATH: C:\windows64\rcc.exe
           MANAGED_ROBOT_ARCHIVE_PATH: C:\managed_robots\minimal_suite.tar.gz
-          RUN_FOR: 300
+          N_SECONDS_RUN_MAX: 300
       - uses: actions/upload-artifact@v4
         if: success() || failure()
         with:
@@ -81,7 +81,7 @@ jobs:
           TEST_DIR: /tmp/test_scheduler
           RCC_BINARY_PATH: /tmp/linux64/rcc
           MANAGED_ROBOT_ARCHIVE_PATH: /tmp/managed_robots/minimal_suite.tar.gz
-          RUN_FOR: 300
+          N_SECONDS_RUN_MAX: 300
       - uses: actions/upload-artifact@v4
         if: success() || failure()
         with:
