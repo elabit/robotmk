@@ -189,7 +189,7 @@ fn create_config(
                         },
                     },
                     PlanConfig {
-                        id: "managed_robot_archive".into(),
+                        id: "managed_robot".into(),
                         source: Source::Managed {
                             tar_gz_path: managed_robot_archive_path.into(),
                         },
@@ -410,21 +410,21 @@ async fn assert_working_directory(
         [
             "current_user",
             #[cfg(unix)]
-            "current_user/managed_robot_archive.stderr",
+            "current_user/managed_robot.stderr",
             #[cfg(unix)]
-            "current_user/managed_robot_archive.stdout",
+            "current_user/managed_robot.stdout",
             "current_user/rcc_headless.stderr",
             "current_user/rcc_headless.stdout",
             #[cfg(windows)]
             &format!("user_{headed_user_name}"),
             #[cfg(windows)]
-            &format!("user_{headed_user_name}/managed_robot_archive.bat"),
+            &format!("user_{headed_user_name}/managed_robot.bat"),
             #[cfg(windows)]
-            &format!("user_{headed_user_name}/managed_robot_archive.exit_code"),
+            &format!("user_{headed_user_name}/managed_robot.exit_code"),
             #[cfg(windows)]
-            &format!("user_{headed_user_name}/managed_robot_archive.stderr"),
+            &format!("user_{headed_user_name}/managed_robot.stderr"),
             #[cfg(windows)]
-            &format!("user_{headed_user_name}/managed_robot_archive.stdout"),
+            &format!("user_{headed_user_name}/managed_robot.stdout"),
             #[cfg(windows)]
             &format!("user_{headed_user_name}/rcc_headed.bat"),
             #[cfg(windows)]
@@ -446,7 +446,7 @@ async fn assert_working_directory(
     assert_eq!(
         directory_entries(working_directory.join("plans"), 1),
         [
-            "managed_robot_archive",
+            "managed_robot",
             "no_rcc",
             #[cfg(windows)]
             "rcc_headed",
@@ -471,13 +471,8 @@ async fn assert_working_directory(
     assert!(entries_rcc_headless.contains("rebot.xml"));
     assert!(!entries_rcc_headless.contains("1.bat"));
 
-    let entries_managed = directory_entries(
-        working_directory
-            .join("plans")
-            .join("managed_robot_archive"),
-        2,
-    )
-    .join("");
+    let entries_managed =
+        directory_entries(working_directory.join("plans").join("managed_robot"), 2).join("");
     assert!(entries_managed.contains("rebot.xml"));
 
     Ok(())
@@ -498,7 +493,7 @@ fn assert_results_directory(results_directory: &Utf8Path) {
         [
             "environment_build_states.json",
             "plans",
-            "plans/managed_robot_archive.json",
+            "plans/managed_robot.json",
             "plans/no_rcc.json",
             #[cfg(windows)]
             "plans/rcc_headed.json",
@@ -514,13 +509,10 @@ async fn assert_managed_directory(
     #[cfg(windows)] headed_user_name: &str,
 ) -> AnyhowResult<()> {
     assert!(managed_directory.is_dir());
-    assert_eq!(
-        directory_entries(managed_directory, 1),
-        ["managed_robot_archive"]
-    );
+    assert_eq!(directory_entries(managed_directory, 1), ["managed_robot"]);
     #[cfg(windows)]
     assert_permissions(
-        &managed_directory.join("managed_robot_archive"),
+        &managed_directory.join("managed_robot"),
         &format!("{headed_user_name}:(OI)(CI)(F)"),
     )
     .await?;
