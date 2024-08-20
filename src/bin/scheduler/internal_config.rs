@@ -15,7 +15,7 @@ use tokio_util::sync::CancellationToken;
 pub struct GlobalConfig {
     pub working_directory: Utf8PathBuf,
     pub results_directory: Utf8PathBuf,
-    pub managed_directory: Utf8PathBuf, // Absolute path
+    pub managed_directory: Utf8PathBuf,
     pub rcc_config: RCCConfig,
     pub cancellation_token: CancellationToken,
     pub results_directory_locker: Locker,
