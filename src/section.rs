@@ -1,13 +1,11 @@
 use super::lock::{Locker, LockerError};
 
 use crate::termination::Terminate;
-use anyhow::{Context, Result as AnyhowResult};
-use camino::Utf8Path;
+use anyhow::{anyhow, Context, Result as AnyhowResult};
+use camino::{Utf8Path, Utf8PathBuf};
 use serde::{Deserialize, Serialize};
-use std::fs::read_to_string;
-use std::io::Write;
+use std::fs;
 use std::path::Path;
-use tempfile::NamedTempFile;
 use walkdir::{DirEntry, WalkDir};
 
 #[derive(Deserialize, Serialize, Clone, Debug, PartialEq)]
@@ -73,22 +71,57 @@ pub fn read(directory: impl AsRef<Path>, locker: &Locker) -> Result<Vec<Section>
 }
 
 fn write(section: &Section, path: impl AsRef<Utf8Path>, locker: &Locker) -> Result<(), Terminate> {
-    let path = path.as_ref();
-    let section = serde_json::to_string(&section).unwrap();
-    let mut file = NamedTempFile::new().context("Opening tempfile failed")?;
-    file.write_all(section.as_bytes()).context(format!(
-        "Writing tempfile failed, {}",
-        file.path().display()
-    ))?;
-
     let lock = locker.wait_for_write_lock()?;
-    file.persist(path)
-        .context(format!("Persisting tempfile failed, final_path: {path}"))?;
-    Ok(lock.release()?)
+    let mut errors = write_to_tmp_and_move(
+        &serde_json::to_string(section).unwrap(),
+        path.as_ref(),
+        &Utf8PathBuf::from(format!("{}.tmp", path.as_ref())),
+    );
+    if let Err(err) = lock.release() {
+        errors.push(anyhow!(err));
+    }
+    if errors.is_empty() {
+        return Ok(());
+    }
+    let mut error_message =
+        "Encountered the following errors while attempting to write section:".to_string();
+    for error in errors {
+        error_message = format!("{error_message}\n{error:?}");
+    }
+    Err(Terminate::Unrecoverable(anyhow!(error_message)))
+}
+
+fn write_to_tmp_and_move(
+    content: &str,
+    path: &Utf8Path,
+    tmp_path: &Utf8Path,
+) -> Vec<anyhow::Error> {
+    let mut errors =
+        match fs::write(tmp_path, content).context(format!("Writing to {tmp_path} failed")) {
+            Ok(_) => match fs::rename(tmp_path, path)
+                .context(format!("Renaming {tmp_path} to {path} failed"))
+            {
+                Ok(_) => vec![],
+
+                Err(err) => vec![err],
+            },
+            Err(err) => vec![err],
+        };
+    if errors.is_empty() {
+        return errors;
+    }
+    if tmp_path.exists() {
+        if let Err(err) =
+            fs::remove_file(tmp_path).context(format!("{tmp_path} exists and removing it failed"))
+        {
+            errors.push(err)
+        }
+    }
+    errors
 }
 
 fn read_entry(entry: Result<DirEntry, walkdir::Error>) -> AnyhowResult<Section> {
     let entry = entry?;
-    let raw = read_to_string(entry.path())?;
+    let raw = fs::read_to_string(entry.path())?;
     Ok(serde_json::from_str(&raw)?)
 }
