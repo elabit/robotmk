@@ -40,8 +40,7 @@ pub fn build_environments(
             &working_directory,
         )?;
         match outcome {
-            BuildOutcome::NotNeeded => completed_plans.push(plan),
-            BuildOutcome::Success(_) => completed_plans.push(plan),
+            BuildOutcome::NotNeeded | BuildOutcome::Success(_) => completed_plans.push(plan),
             _ => {}
         }
     }
