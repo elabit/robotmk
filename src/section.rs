@@ -23,21 +23,6 @@ pub struct Section {
     pub content: String,
 }
 
-fn write(section: &Section, path: impl AsRef<Utf8Path>, locker: &Locker) -> Result<(), Terminate> {
-    let path = path.as_ref();
-    let section = serde_json::to_string(&section).unwrap();
-    let mut file = NamedTempFile::new().context("Opening tempfile failed")?;
-    file.write_all(section.as_bytes()).context(format!(
-        "Writing tempfile failed, {}",
-        file.path().display()
-    ))?;
-
-    let lock = locker.wait_for_write_lock()?;
-    file.persist(path)
-        .context(format!("Persisting tempfile failed, final_path: {path}"))?;
-    Ok(lock.release()?)
-}
-
 pub trait WriteSection {
     fn name() -> &'static str;
 
@@ -75,12 +60,6 @@ pub trait WritePiggybackSection {
     }
 }
 
-fn read_entry(entry: Result<DirEntry, walkdir::Error>) -> AnyhowResult<Section> {
-    let entry = entry?;
-    let raw = read_to_string(entry.path())?;
-    Ok(serde_json::from_str(&raw)?)
-}
-
 pub fn read(directory: impl AsRef<Path>, locker: &Locker) -> Result<Vec<Section>, LockerError> {
     // TODO: Test this function.
     let lock = locker.wait_for_read_lock()?;
@@ -91,4 +70,25 @@ pub fn read(directory: impl AsRef<Path>, locker: &Locker) -> Result<Vec<Section>
         .collect();
     lock.release()?;
     Ok(sections)
+}
+
+fn write(section: &Section, path: impl AsRef<Utf8Path>, locker: &Locker) -> Result<(), Terminate> {
+    let path = path.as_ref();
+    let section = serde_json::to_string(&section).unwrap();
+    let mut file = NamedTempFile::new().context("Opening tempfile failed")?;
+    file.write_all(section.as_bytes()).context(format!(
+        "Writing tempfile failed, {}",
+        file.path().display()
+    ))?;
+
+    let lock = locker.wait_for_write_lock()?;
+    file.persist(path)
+        .context(format!("Persisting tempfile failed, final_path: {path}"))?;
+    Ok(lock.release()?)
+}
+
+fn read_entry(entry: Result<DirEntry, walkdir::Error>) -> AnyhowResult<Section> {
+    let entry = entry?;
+    let raw = read_to_string(entry.path())?;
+    Ok(serde_json::from_str(&raw)?)
 }
