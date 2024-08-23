@@ -33,14 +33,23 @@ async fn test_scheduler() -> AnyhowResult<()> {
         .join("working")
         .join("plans")
         .join("should_be_removed_during_scheduler_setup");
-    let configured_plan_previous_execution_dir = test_dir
-        .join("working")
-        .join("plans")
-        .join("rcc_headless")
-        .join("should_still_exist_after_scheduler_run");
+    let configured_plan_working_dir = test_dir.join("working").join("plans").join("rcc_headless");
+    let configured_plan_previous_execution_dir =
+        configured_plan_working_dir.join("should_still_exist_after_scheduler_run");
     create_dir_all(&test_dir)?;
     create_dir_all(&unconfigured_plan_working_dir)?;
     create_dir_all(&configured_plan_previous_execution_dir)?;
+    #[cfg(windows)]
+    let test_user = var("TEST_USER")?;
+    #[cfg(windows)]
+    {
+        grant_full_access(&test_user, &configured_plan_working_dir).await?;
+        assert_permissions(
+            &configured_plan_working_dir,
+            &format!("{test_user}:(OI)(CI)(F)"),
+        )
+        .await?;
+    }
 
     #[cfg(windows)]
     let current_user_name = var("UserName")?;
@@ -73,6 +82,10 @@ async fn test_scheduler() -> AnyhowResult<()> {
     .await?;
     assert!(!unconfigured_plan_working_dir.exists());
     assert!(configured_plan_previous_execution_dir.is_dir());
+    #[cfg(windows)]
+    assert!(!get_permissions(&configured_plan_working_dir)
+        .await?
+        .contains(&test_user));
     assert_results_directory(&config.results_directory);
     assert_managed_directory(
         &config.managed_directory,
@@ -89,6 +102,16 @@ async fn test_scheduler() -> AnyhowResult<()> {
     #[cfg(windows)]
     assert_tasks().await?;
 
+    Ok(())
+}
+
+#[cfg(windows)]
+async fn grant_full_access(user: &str, target_path: &Utf8Path) -> tokio::io::Result<()> {
+    let mut icacls_command = Command::new("icacls.exe");
+    icacls_command
+        .arg(target_path)
+        .args(["/grant", &format!("{user}:(OI)(CI)F"), "/T"]);
+    assert!(icacls_command.output().await?.status.success());
     Ok(())
 }
 
@@ -493,10 +516,16 @@ async fn assert_working_directory(
 }
 
 #[cfg(windows)]
-async fn assert_permissions(path: impl AsRef<OsStr>, permissions: &str) -> AnyhowResult<()> {
+async fn get_permissions(path: impl AsRef<OsStr>) -> AnyhowResult<String> {
     let mut icacls_command = Command::new("icacls.exe");
     icacls_command.arg(path);
-    assert!(String::from_utf8(icacls_command.output().await?.stdout)?.contains(permissions));
+    let permissions = String::from_utf8(icacls_command.output().await?.stdout)?;
+    Ok(permissions)
+}
+
+#[cfg(windows)]
+async fn assert_permissions(path: impl AsRef<OsStr>, permissions: &str) -> AnyhowResult<()> {
+    assert!(get_permissions(path).await?.contains(permissions));
     Ok(())
 }
 
