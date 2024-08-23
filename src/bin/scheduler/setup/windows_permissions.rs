@@ -86,6 +86,14 @@ pub fn grant_full_access(user: &str, target_path: &Utf8Path) -> anyhow::Result<(
     })
 }
 
+pub fn reset_access(target_path: &Utf8Path) -> anyhow::Result<()> {
+    let arguments = [target_path.as_ref(), "/reset", "/T"];
+    run_icacls_command(arguments).map_err(|e| {
+        let message = format!("Resetting permissions of {target_path} failed");
+        e.context(message)
+    })
+}
+
 pub fn adjust_rcc_file_permissions(
     rcc_config: &RCCConfig,
     rcc_plans: Vec<Plan>,

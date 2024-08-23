@@ -86,9 +86,26 @@ fn setup_plans_working_directory(plans: Vec<Plan>) -> (Vec<Plan>, Vec<SetupFailu
         }
         #[cfg(windows)]
         {
-            use super::windows_permissions::grant_full_access;
+            use super::windows_permissions::{grant_full_access, reset_access};
             use log::info;
             use robotmk::session::Session;
+
+            info!("Resetting permissions for {}", &plan.working_directory);
+            if let Err(e) = reset_access(&plan.working_directory) {
+                let error = anyhow!(e);
+                error!(
+                    "Plan {}: Failed to reset permissions for working directory. \
+                     Plan won't be scheduled.
+                     Error: {error:?}",
+                    plan.id
+                );
+                failures.push(SetupFailure {
+                    plan_id: plan.id.clone(),
+                    summary: "Failed to reset permissions for working directory".to_string(),
+                    details: format!("{error:?}"),
+                });
+                continue;
+            };
 
             if let Session::User(user_session) = &plan.session {
                 info!(
