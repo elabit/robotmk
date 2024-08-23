@@ -38,8 +38,9 @@ jobs:
       - uses: ruby/setup-ruby@v1
         with:
             ruby-version: ${{ env.RUBY_VERSION }}
-      - run: rake build
+      - run: CGO_ENABLED=0 rake build
       - run: rake test
+      - run: ldd build/linux64/rcc | grep "statically linked"
       - uses: actions/cache/save@v4
         with:
           key: rcc-${{ env.RCC_TAG }}-${{ env.GO_VERSION }}-${{ env.RUBY_VERSION }}
