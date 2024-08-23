@@ -33,21 +33,25 @@ jobs:
     steps:
       - uses: actions/checkout@v4
 
+      - run: sudo apt-get update
+      - run: sudo apt-get install -y musl-tools
       - uses: actions-rust-lang/setup-rust-toolchain@v1.9
         with:
-          target: x86_64-unknown-linux-gnu
+          target: x86_64-unknown-linux-musl
           # By default, setup-rust-toolchain sets "-D warnings". As a side effect, the settings in
           # .cargo/config.toml are ignored:
           # https://doc.rust-lang.org/cargo/reference/config.html#buildrustflags
           # "There are four mutually exclusive sources of extra flags"
           rustflags: ""
 
-      - run: cargo build --target=x86_64-unknown-linux-gnu --release
+      - run: cargo build --target=x86_64-unknown-linux-musl --release
+      - run: ldd target/x86_64-unknown-linux-musl/release/robotmk_scheduler | grep "statically linked"
+      - run: ldd target/x86_64-unknown-linux-musl/release/robotmk_agent_plugin | grep "statically linked"
 
       - uses: actions/upload-artifact@v4
         with:
           name: rmk_linux64
           path: |
-            target/x86_64-unknown-linux-gnu/release/robotmk_scheduler
-            target/x86_64-unknown-linux-gnu/release/robotmk_agent_plugin
+            target/x86_64-unknown-linux-musl/release/robotmk_scheduler
+            target/x86_64-unknown-linux-musl/release/robotmk_agent_plugin
           if-no-files-found: error
