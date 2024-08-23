@@ -16,10 +16,16 @@ pub fn setup(
     global_config: &GlobalConfig,
     plans: Vec<Plan>,
 ) -> Result<(Vec<Plan>, Vec<SetupFailure>), Terminate> {
-    if global_config.working_directory.exists() {
-        remove_dir_all(&global_config.working_directory)?;
-    }
     create_dir_all(&global_config.working_directory)?;
+    for working_sub_dir in [
+        rcc_setup_working_directory(&global_config.working_directory),
+        environment_building_working_directory(&global_config.working_directory),
+    ] {
+        if working_sub_dir.exists() {
+            remove_dir_all(&working_sub_dir)?;
+        }
+        create_dir_all(&working_sub_dir)?;
+    }
     if global_config.managed_directory.exists() {
         remove_dir_all(&global_config.managed_directory)?;
     }
