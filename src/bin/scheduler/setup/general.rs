@@ -1,7 +1,9 @@
 use super::plans_by_sessions;
 use super::rcc::rcc_setup_working_directory;
 use crate::build::environment_building_working_directory;
-use crate::internal_config::{sort_plans_by_grouping, GlobalConfig, Plan, Source};
+use crate::internal_config::{
+    plans_working_directory, sort_plans_by_grouping, GlobalConfig, Plan, Source,
+};
 
 use anyhow::{anyhow, Context, Result as AnyhowResult};
 use camino::{Utf8Path, Utf8PathBuf};
@@ -17,6 +19,7 @@ pub fn setup(
     plans: Vec<Plan>,
 ) -> Result<(Vec<Plan>, Vec<SetupFailure>), Terminate> {
     create_dir_all(&global_config.working_directory)?;
+    create_dir_all(plans_working_directory(&global_config.working_directory))?;
     for working_sub_dir in [
         rcc_setup_working_directory(&global_config.working_directory),
         environment_building_working_directory(&global_config.working_directory),
@@ -26,6 +29,10 @@ pub fn setup(
         }
         create_dir_all(&working_sub_dir)?;
     }
+    clean_up_file_system_entries(
+        plans.iter().map(|plan| &plan.working_directory),
+        top_level_directories(&plans_working_directory(&global_config.working_directory))?.iter(),
+    )?;
     if global_config.managed_directory.exists() {
         remove_dir_all(&global_config.managed_directory)?;
     }
@@ -337,47 +344,62 @@ fn clean_up_results_directory(
     for path in top_level_files(&global_config.results_directory)? {
         remove_file(path)?;
     }
-    clean_up_plan_results_directory(
-        &plan_results_directory(&global_config.results_directory),
-        plans,
+    clean_up_file_system_entries(
+        plans.iter().map(|plan| &plan.results_file),
+        top_level_files(&plan_results_directory(&global_config.results_directory))?.iter(),
     )?;
     Ok(results_directory_lock.release()?)
 }
 
-fn clean_up_plan_results_directory(
-    plan_results_directory: &Utf8Path,
-    plans: &[Plan],
-) -> AnyhowResult<()> {
-    let result_files_to_keep =
-        HashSet::<Utf8PathBuf>::from_iter(plans.iter().map(|plan| plan.results_file.clone()));
-    let currently_present_result_files =
-        HashSet::<Utf8PathBuf>::from_iter(top_level_files(plan_results_directory)?);
-    for path in currently_present_result_files.difference(&result_files_to_keep) {
-        remove_file(path)?;
-    }
-    Ok(())
+fn top_level_directories(directory: &Utf8Path) -> AnyhowResult<Vec<Utf8PathBuf>> {
+    Ok(top_level_directory_entries(directory)?
+        .into_iter()
+        .filter(|path| path.is_dir())
+        .collect())
 }
 
 fn top_level_files(directory: &Utf8Path) -> AnyhowResult<Vec<Utf8PathBuf>> {
-    let mut result_files = vec![];
+    Ok(top_level_directory_entries(directory)?
+        .into_iter()
+        .filter(|path| path.is_file())
+        .collect())
+}
 
-    for dir_entry in directory.read_dir_utf8().context(format!(
-        "Failed to read entries of results directory {directory}",
-    ))? {
-        let dir_entry = dir_entry.context(format!(
-            "Failed to read entries of results directory {directory}",
-        ))?;
-        if dir_entry
-            .file_type()
-            .context(format!(
-                "Failed to determine file type of {}",
-                dir_entry.path()
-            ))?
-            .is_file()
-        {
-            result_files.push(dir_entry.path().to_path_buf())
-        }
+fn top_level_directory_entries(directory: &Utf8Path) -> AnyhowResult<Vec<Utf8PathBuf>> {
+    let mut entries = vec![];
+
+    for dir_entry in directory
+        .read_dir_utf8()
+        .context(format!("Failed to read entries of directory {directory}",))?
+    {
+        entries.push(
+            dir_entry
+                .context(format!("Failed to read entries of directory {directory}",))?
+                .path()
+                .to_path_buf(),
+        )
     }
 
-    Ok(result_files)
+    Ok(entries)
+}
+
+fn clean_up_file_system_entries<P>(
+    entries_to_keep: impl IntoIterator<Item = P>,
+    currently_present_entries: impl IntoIterator<Item = P>,
+) -> AnyhowResult<()>
+where
+    P: AsRef<Utf8Path>,
+    P: std::cmp::Eq,
+    P: std::hash::Hash,
+{
+    for entry in HashSet::<P>::from_iter(currently_present_entries)
+        .difference(&HashSet::from_iter(entries_to_keep))
+    {
+        if entry.as_ref().is_file() {
+            remove_file(entry)?
+        } else {
+            remove_dir_all(entry)?
+        }
+    }
+    Ok(())
 }

@@ -9,7 +9,7 @@ use robotmk::rf::robot::Robot;
 use robotmk::section::Host;
 use robotmk::session::Session;
 
-use camino::Utf8PathBuf;
+use camino::{Utf8Path, Utf8PathBuf};
 use tokio_util::sync::CancellationToken;
 
 pub struct GlobalConfig {
@@ -80,9 +80,7 @@ pub fn from_external_config(
             plans.push(Plan {
                 id: plan_config.id.clone(),
                 source,
-                working_directory: external_config
-                    .working_directory
-                    .join("plans")
+                working_directory: plans_working_directory(&external_config.working_directory)
                     .join(&plan_config.id),
                 results_file: plan_results_directory(&external_config.results_directory)
                     .join(format!("{}.json", plan_config.id)),
@@ -153,6 +151,10 @@ pub fn sort_plans_by_grouping(plans: &mut [Plan]) {
             plan.group_affiliation.position_in_group,
         )
     });
+}
+
+pub fn plans_working_directory(working_directory: &Utf8Path) -> Utf8PathBuf {
+    working_directory.join("plans")
 }
 
 #[cfg(test)]
