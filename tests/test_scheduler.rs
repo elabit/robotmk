@@ -438,7 +438,7 @@ async fn assert_working_directory(
     assert_permissions(
         working_directory
             .join("rcc_setup")
-            .join(&format!("user_{headed_user_name}")),
+            .join(format!("user_{headed_user_name}")),
         &format!("{headed_user_name}:(OI)(CI)(F)"),
     )
     .await?;
@@ -476,7 +476,7 @@ async fn assert_working_directory(
     assert_permissions(
         working_directory
             .join("environment_building")
-            .join(&format!("user_{headed_user_name}")),
+            .join(format!("user_{headed_user_name}")),
         &format!("{headed_user_name}:(OI)(CI)(F)"),
     )
     .await?;
