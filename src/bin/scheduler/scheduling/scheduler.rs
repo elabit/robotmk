@@ -4,7 +4,7 @@ use crate::internal_config::{GlobalConfig, Plan};
 use crate::logging::log_and_return_error;
 
 use chrono::Utc;
-use log::error;
+use log::{error, info};
 use std::collections::HashMap;
 use std::time::Duration;
 use tokio::task::{spawn_blocking, JoinSet};
@@ -40,7 +40,7 @@ pub async fn run_plans_and_cleanup(global_config: &GlobalConfig, plans: &[Plan])
     ));
 
     global_config.cancellation_token.cancelled().await;
-    error!("Received termination signal while scheduling, waiting for plans to terminate");
+    info!("Received termination signal while scheduling, waiting for plans to terminate");
     while let Some(outcome) = join_set.join_next().await {
         if let Err(error) = outcome {
             error!("{error:?}");
