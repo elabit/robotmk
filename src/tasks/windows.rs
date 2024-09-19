@@ -237,11 +237,25 @@ impl TaskManager {
 }
 
 fn build_task_script(task_name: &str, command_spec: &CommandSpec, paths: &Paths) -> String {
+    let set_envs = command_spec
+        .envs
+        .iter()
+        .map(|(k, v)| format!("set \"{k}={v}\""))
+        .collect::<Vec<_>>()
+        .join("\n");
     [
         String::from("@echo off"),
+        String::from("setlocal"),
         format!("echo Robotmk: running task {task_name}. Please do not close this window."),
-        format!("{command_spec} > {} 2> {}", paths.stdout, paths.stderr),
+        set_envs,
+        format!(
+            "{} > {} 2> {}",
+            command_spec.to_command_string(),
+            paths.stdout,
+            paths.stderr
+        ),
         format!("echo %errorlevel% > {}", paths.exit_code),
+        String::from("endlocal"),
     ]
     .join("\n")
 }
@@ -318,6 +332,10 @@ mod tests {
             .add_argument("--some-flag")
             .add_argument("--some-option")
             .add_argument("some-value");
+        command_spec.add_env(
+            String::from("RCC_REMOTE_ORIGIN"),
+            String::from("http://1.com"),
+        );
         assert_eq!(
             build_task_script(
                 "robotmk_task",
@@ -325,10 +343,11 @@ mod tests {
                 &Paths::from(Utf8PathBuf::from("C:\\working\\plans\\my_plan\\123\\0").as_ref())
             ),
             "@echo off
+setlocal
 echo Robotmk: running task robotmk_task. Please do not close this window.
-\"C:\\\\somewhere\\\\rcc.exe\" \"mandatory\" \"--some-flag\" \"--some-option\" \"some-value\" \
-> C:\\working\\plans\\my_plan\\123\\0.stdout 2> C:\\working\\plans\\my_plan\\123\\0.stderr
-echo %errorlevel% > C:\\working\\plans\\my_plan\\123\\0.exit_code"
+set \"RCC_REMOTE_ORIGIN=http://1.com\"
+\"C:\\\\somewhere\\\\rcc.exe\" \"mandatory\" \"--some-flag\" \"--some-option\" \"some-value\" > C:\\working\\plans\\my_plan\\123\\0.stdout 2> C:\\working\\plans\\my_plan\\123\\0.stderr\necho %errorlevel% > C:\\working\\plans\\my_plan\\123\\0.exit_code
+endlocal"
         )
     }
 

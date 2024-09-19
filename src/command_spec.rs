@@ -1,4 +1,5 @@
 use std::convert::From;
+use std::ffi::OsString;
 use std::fmt::{Display, Formatter, Result};
 use std::process::Command;
 
@@ -6,11 +7,18 @@ use std::process::Command;
 pub struct CommandSpec {
     pub executable: String,
     pub arguments: Vec<String>,
+    pub envs: Vec<(String, String)>,
 }
 
 impl Display for CommandSpec {
     fn fmt(&self, f: &mut Formatter<'_>) -> Result {
-        write!(f, "{:?}", Command::from(self))
+        let env_str = self
+            .envs
+            .iter()
+            .map(|(k, _)| format!("{k}=***"))
+            .collect::<Vec<_>>()
+            .join(" ");
+        write!(f, "{env_str} {}", self.to_command_string())
     }
 }
 
@@ -18,15 +26,19 @@ impl From<&CommandSpec> for Command {
     fn from(command_spec: &CommandSpec) -> Self {
         let mut command = Self::new(&command_spec.executable);
         command.args(&command_spec.arguments);
+        command.envs(
+            command_spec
+                .envs
+                .iter()
+                .map(|(k, v)| (OsString::from(&k), OsString::from(&v))),
+        );
         command
     }
 }
 
 impl From<&CommandSpec> for tokio::process::Command {
     fn from(command_spec: &CommandSpec) -> Self {
-        let mut command = Self::new(&command_spec.executable);
-        command.args(&command_spec.arguments);
-        command
+        tokio::process::Command::from(Command::from(command_spec))
     }
 }
 
@@ -35,6 +47,7 @@ impl CommandSpec {
         Self {
             executable: executable.as_ref().into(),
             arguments: vec![],
+            envs: vec![],
         }
     }
 
@@ -50,6 +63,17 @@ impl CommandSpec {
         self.arguments
             .extend(arguments.into_iter().map(|s| s.as_ref().into()));
         self
+    }
+
+    pub fn add_env(&mut self, key: String, value: String) -> &mut Self {
+        self.envs.push((key, value));
+        self
+    }
+
+    pub fn to_command_string(&self) -> String {
+        let mut command = Command::new(self.executable.clone());
+        command.args(&self.arguments);
+        format!("{:?}", command)
     }
 }
 
@@ -67,11 +91,11 @@ mod tests {
                 String::from("--option"),
                 String::from("value"),
             ],
+            envs: vec![("RCC_REMOTE_ORIGIN".into(), "http://1.com".into())],
         };
-        assert_eq!(
-            format!("{command_spec}"),
-            "\"/my/binary\" \"mandatory\" \"--flag\" \"--option\" \"value\""
-        );
+        let expected =
+            "RCC_REMOTE_ORIGIN=*** \"/my/binary\" \"mandatory\" \"--flag\" \"--option\" \"value\"";
+        assert_eq!(format!("{command_spec}"), expected);
     }
 
     #[test]
@@ -81,22 +105,27 @@ mod tests {
             .arg("mandatory")
             .arg("--flag")
             .arg("--option")
-            .arg("value");
+            .arg("value")
+            .env("key", "val");
+        let command = Command::from(&CommandSpec {
+            executable: String::from("/my/binary"),
+            arguments: vec![
+                String::from("mandatory"),
+                String::from("--flag"),
+                String::from("--option"),
+                String::from("value"),
+            ],
+            envs: vec![(String::from("key"), String::from("val"))],
+        });
+        assert_eq!(command.get_program(), expected.get_program());
         assert_eq!(
-            format!(
-                "{:?}",
-                Command::from(&CommandSpec {
-                    executable: String::from("/my/binary"),
-                    arguments: vec![
-                        String::from("mandatory"),
-                        String::from("--flag"),
-                        String::from("--option"),
-                        String::from("value"),
-                    ],
-                })
-            ),
-            format!("{:?}", expected)
-        )
+            command.get_args().collect::<Vec<_>>(),
+            expected.get_args().collect::<Vec<_>>()
+        );
+        assert_eq!(
+            command.get_envs().collect::<Vec<_>>(),
+            expected.get_envs().collect::<Vec<_>>()
+        );
     }
 
     #[test]
@@ -106,6 +135,7 @@ mod tests {
             CommandSpec {
                 executable: String::from("/my/binary"),
                 arguments: vec![],
+                envs: vec![],
             }
         )
     }
@@ -115,6 +145,7 @@ mod tests {
         let mut command_spec = CommandSpec {
             executable: String::from("/my/binary"),
             arguments: vec![],
+            envs: vec![],
         };
         command_spec.add_argument("arg");
         assert_eq!(
@@ -122,7 +153,18 @@ mod tests {
             CommandSpec {
                 executable: String::from("/my/binary"),
                 arguments: vec!["arg".into()],
+                envs: vec![],
             }
+        );
+    }
+
+    #[test]
+    fn add_env() {
+        let mut command_spec = CommandSpec::new("/my/binary");
+        command_spec.add_env("key".to_string(), "val".to_string());
+        assert_eq!(
+            command_spec.envs,
+            [(String::from("key"), String::from("val"))]
         );
     }
 
@@ -131,6 +173,7 @@ mod tests {
         let mut command_spec = CommandSpec {
             executable: String::from("/my/binary"),
             arguments: vec![],
+            envs: vec![],
         };
         command_spec.add_arguments(vec!["arg1", "arg2"]);
         assert_eq!(
@@ -138,6 +181,7 @@ mod tests {
             CommandSpec {
                 executable: String::from("/my/binary"),
                 arguments: vec!["arg1".into(), "arg2".into()],
+                envs: vec![],
             }
         );
     }
