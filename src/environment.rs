@@ -21,6 +21,7 @@ pub struct SystemEnvironment {}
 #[derive(Clone, Debug, PartialEq)]
 pub struct RCCEnvironment {
     pub binary_path: Utf8PathBuf,
+    pub remote_origin: Option<String>,
     pub robot_yaml_path: Utf8PathBuf,
     pub controller: String,
     pub space: String,
@@ -38,6 +39,7 @@ impl Environment {
             EnvironmentConfig::System => Self::System(SystemEnvironment {}),
             EnvironmentConfig::Rcc(rcc_environment_config) => Self::Rcc(RCCEnvironment {
                 binary_path: rcc_binary_path.to_path_buf(),
+                remote_origin: rcc_environment_config.remote_origin.clone(),
                 robot_yaml_path: base_dir.join(&rcc_environment_config.robot_yaml_path),
                 controller: String::from("robotmk"),
                 space: plan_id.to_string(),
@@ -98,6 +100,10 @@ impl RCCEnvironment {
             .add_argument("task")
             .add_argument("script");
         self.apply_current_settings(&mut build_command_spec);
+        if let Some(remote_origin) = &self.remote_origin {
+            build_command_spec
+                .add_env(String::from("RCC_REMOTE_ORIGIN"), remote_origin.to_string());
+        }
 
         let mut version_command_spec = Self::bundled_command_spec(&self.binary_path);
         version_command_spec.add_argument("-v");
@@ -193,6 +199,7 @@ mod tests {
         assert_eq!(
             RCCEnvironment {
                 binary_path: Utf8PathBuf::from("/bin/rcc"),
+                remote_origin: None,
                 robot_yaml_path: Utf8PathBuf::from("/a/b/c/robot.yaml"),
                 controller: String::from("robotmk"),
                 space: String::from("my_plan"),
@@ -248,6 +255,7 @@ mod tests {
         assert_eq!(
             RCCEnvironment {
                 binary_path: Utf8PathBuf::from("C:\\bin\\z.exe"),
+                remote_origin: None,
                 robot_yaml_path: Utf8PathBuf::from("C:\\some_synthetic_test\\robot.yaml"),
                 controller: String::from("robotmk"),
                 space: String::from("my_plan"),
