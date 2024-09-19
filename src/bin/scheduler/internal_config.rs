@@ -228,6 +228,7 @@ mod tests {
             environment_config: EnvironmentConfig::Rcc(RCCEnvironmentConfig {
                 robot_yaml_path: Utf8PathBuf::from("robot.yaml"),
                 build_timeout: 300,
+                remote_origin: None,
             }),
             #[cfg(unix)]
             session_config: SessionConfig::Current,
@@ -307,6 +308,7 @@ mod tests {
             plans[0].environment,
             Environment::Rcc(RCCEnvironment {
                 binary_path: Utf8PathBuf::from("/bin/rcc"),
+                remote_origin: None,
                 robot_yaml_path: Utf8PathBuf::from("/synthetic_tests/rcc/robot.yaml"),
                 controller: "robotmk".into(),
                 space: "rcc".into(),

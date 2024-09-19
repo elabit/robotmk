@@ -104,6 +104,7 @@ fn rcc_main(rcc_binary_path: Utf8PathBuf) -> AnyhowResult<()> {
     };
     let rcc_environment = Environment::Rcc(RCCEnvironment {
         binary_path: rcc_binary_path,
+        remote_origin: None,
         robot_yaml_path: cargo_manifest_dir.join("examples/termination/robot.yaml"),
         controller: "termination_rcc".into(),
         space: "termination_rcc".into(),
