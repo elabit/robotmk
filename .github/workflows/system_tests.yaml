@@ -27,6 +27,12 @@ jobs:
           name: rcc
           path: C:\
 
+      # MSVC uses vctip.exe for telemetry. vctip.exe is started as a child of termination.exe. This
+      # can cause CI failures, if "vctip.exe" does not terminate before `get_children` is called.
+      # It is unclear why MSVC is running, despite target=x86_64-pc-windows-gnu. The following
+      # command is intended turn off telemetry via vctip.exe.
+      - shell: pwsh
+        run:  Get-ChildItem -Filter vctip.exe -Recurse "C:\\Program Files\\Microsoft Visual Studio\\2022\\Enterprise\\VC\\Tools\\MSVC" | rm
       - run: cargo test --target=x86_64-pc-windows-gnu --test test_plan_run --test test_agent_plugin -- --ignored
       - run: cargo run --example termination --target=x86_64-pc-windows-gnu
       - run: cargo run --example termination --target=x86_64-pc-windows-gnu -- C:\windows64\rcc.exe
