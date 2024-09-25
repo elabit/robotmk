@@ -553,15 +553,9 @@ class RobotItem(object):
         return subnodes
 
     def _get_node_elapsed_time(self):
-        """Returns the time between given timestamps of a node in seconds."""
-        self.start_time = self.xmlnode.find("status").attrib["starttime"]
-        self.end_time = self.xmlnode.find("status").attrib["endtime"]
-        if self.start_time == self.end_time or not (self.start_time and self.end_time):
-            return 0
-        start_millis = timestamp_to_millis(self.start_time)
-        end_millis = timestamp_to_millis(self.end_time)
-        # start/end_millis can be long but we want to return int when possible
-        return int(end_millis - start_millis) / float(1000)
+        """Returns the time elapsed of a node in seconds."""
+        self.elapsed = self.xmlnode.find("status").attrib["elapsed"]
+        return self.elapsed
 
     # If the pattern for a WATO <setting> matches, return the value (if tuple) or True
     def _get_pattern_value(self, setting, check_params):
