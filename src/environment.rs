@@ -22,6 +22,7 @@ pub struct SystemEnvironment {}
 pub struct RCCEnvironment {
     pub binary_path: Utf8PathBuf,
     pub remote_origin: Option<String>,
+    pub holotree_zip: Option<Utf8PathBuf>,
     pub robot_yaml_path: Utf8PathBuf,
     pub controller: String,
     pub space: String,
@@ -40,6 +41,7 @@ impl Environment {
             EnvironmentConfig::Rcc(rcc_environment_config) => Self::Rcc(RCCEnvironment {
                 binary_path: rcc_binary_path.to_path_buf(),
                 remote_origin: rcc_environment_config.remote_origin.clone(),
+                holotree_zip: None,
                 robot_yaml_path: base_dir.join(&rcc_environment_config.robot_yaml_path),
                 controller: String::from("robotmk"),
                 space: plan_id.to_string(),
@@ -95,6 +97,14 @@ impl RCCEnvironment {
     }
 
     fn build_instructions(&self) -> Option<BuildInstructions> {
+        let import_command_spec = self.holotree_zip.as_ref().map(|zip| {
+            let mut spec = Self::bundled_command_spec(&self.binary_path);
+            spec.add_argument("holotree")
+                .add_argument("import")
+                .add_argument(zip);
+            spec
+        });
+
         let mut build_command_spec = Self::bundled_command_spec(&self.binary_path);
         build_command_spec
             .add_argument("task")
@@ -114,7 +124,8 @@ impl RCCEnvironment {
             .add_arguments(version_command_spec.arguments);
 
         Some(BuildInstructions {
-            command_spec: build_command_spec,
+            import_command_spec,
+            build_command_spec,
             timeout: self.build_timeout,
         })
     }
@@ -170,7 +181,8 @@ impl RCCEnvironment {
 
 #[derive(Debug, PartialEq)]
 pub struct BuildInstructions {
-    pub command_spec: CommandSpec,
+    pub import_command_spec: Option<CommandSpec>,
+    pub build_command_spec: CommandSpec,
     pub timeout: u64,
 }
 
@@ -200,6 +212,7 @@ mod tests {
             RCCEnvironment {
                 binary_path: Utf8PathBuf::from("/bin/rcc"),
                 remote_origin: None,
+                holotree_zip: None,
                 robot_yaml_path: Utf8PathBuf::from("/a/b/c/robot.yaml"),
                 controller: String::from("robotmk"),
                 space: String::from("my_plan"),
@@ -208,7 +221,8 @@ mod tests {
             .build_instructions()
             .unwrap(),
             BuildInstructions {
-                command_spec: expected_command_spec,
+                import_command_spec: None,
+                build_command_spec: expected_command_spec,
                 timeout: 123,
             }
         )
@@ -256,6 +270,7 @@ mod tests {
             RCCEnvironment {
                 binary_path: Utf8PathBuf::from("C:\\bin\\z.exe"),
                 remote_origin: None,
+                holotree_zip: None,
                 robot_yaml_path: Utf8PathBuf::from("C:\\some_synthetic_test\\robot.yaml"),
                 controller: String::from("robotmk"),
                 space: String::from("my_plan"),

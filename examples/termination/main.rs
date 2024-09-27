@@ -105,6 +105,7 @@ fn rcc_main(rcc_binary_path: Utf8PathBuf) -> AnyhowResult<()> {
     let rcc_environment = Environment::Rcc(RCCEnvironment {
         binary_path: rcc_binary_path,
         remote_origin: None,
+        holotree_zip: None,
         robot_yaml_path: cargo_manifest_dir.join("examples/termination/robot.yaml"),
         controller: "termination_rcc".into(),
         space: "termination_rcc".into(),
@@ -114,7 +115,7 @@ fn rcc_main(rcc_binary_path: Utf8PathBuf) -> AnyhowResult<()> {
     let build_instructions = rcc_environment.build_instructions().unwrap();
     let run_spec = RunSpec {
         id: "unused_id",
-        command_spec: &build_instructions.command_spec,
+        command_spec: &build_instructions.build_command_spec,
         base_path: &test_dir,
         timeout: build_instructions.timeout,
         cancellation_token: &CancellationToken::new(),
