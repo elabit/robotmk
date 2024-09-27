@@ -1,5 +1,5 @@
 use super::internal_config::{GlobalConfig, Plan};
-use robotmk::environment::Environment;
+use robotmk::environment::{BuildInstructions, Environment};
 use robotmk::lock::Locker;
 use robotmk::results::{BuildOutcome, BuildStates, EnvironmentBuildStage};
 use robotmk::section::WriteSection;
@@ -63,30 +63,82 @@ fn build_environment(
     };
     let base_path = &working_directory.join(session.id()).join(id);
     info!("Building environment for plan {id}");
-    let run_spec = RunSpec {
-        id: &format!("robotmk_env_building_{id}"),
-        command_spec: &build_instructions.command_spec,
-        base_path,
-        timeout: build_instructions.timeout,
-        cancellation_token,
-    };
     let start_time = Utc::now();
     build_stage_reporter.update(
         id,
         EnvironmentBuildStage::InProgress(start_time.timestamp()),
     )?;
-    let outcome = run_build_command(id, &run_spec, session, start_time)?;
+    let outcome = run_build_commands(
+        id,
+        &build_instructions,
+        session,
+        start_time,
+        cancellation_token,
+        base_path,
+    )?;
     build_stage_reporter.update(id, EnvironmentBuildStage::Complete(outcome.clone()))?;
     Ok(outcome)
 }
 
-fn run_build_command(
+fn run_build_commands(
     id: &str,
-    run_spec: &RunSpec,
+    build_instructions: &BuildInstructions,
     session: &Session,
     start_time: DateTime<Utc>,
+    cancellation_token: &CancellationToken,
+    base_path: &Utf8Path,
 ) -> Result<BuildOutcome, Cancelled> {
-    match session.run(&run_spec) {
+    if let Some(command_spec) = &build_instructions.import_command_spec {
+        let import_run_spec = RunSpec {
+            id: &format!("robotmk_env_import_{id}"),
+            command_spec,
+            base_path,
+            timeout: build_instructions.timeout,
+            cancellation_token,
+        };
+        match session.run(&import_run_spec) {
+            Ok(Outcome::Completed(0)) => {
+                info!("Environment import succeeded for plan {id}");
+            }
+            Ok(Outcome::Completed(_exit_code)) => {
+                error!("Environment import not successful, plan {id} will be dropped");
+                return Ok(BuildOutcome::Error(format!(
+                    "Environment import not successful, see {base_path} for stdio logs"
+                )));
+            }
+            Ok(Outcome::Timeout) => {
+                error!("Environment import timed out, plan {id} will be dropped");
+                return Ok(BuildOutcome::Timeout);
+            }
+            Ok(Outcome::Cancel) => {
+                error!("Environment import cancelled, plan {id} will be dropped");
+                return Err(Cancelled {});
+            }
+            Err(e) => {
+                let log_error = e.context(anyhow!(
+                    "Environment import failed, plan {id} will be dropped. See {} for stdio logs",
+                    base_path,
+                ));
+                error!("{log_error:?}");
+                return Ok(BuildOutcome::Error(format!("{log_error:?}")));
+            }
+        };
+    } else {
+        info!("No holotree zip. Environment import skipped.");
+    };
+    let elapsed: u64 = (Utc::now() - start_time).num_seconds().try_into().unwrap();
+    if elapsed >= build_instructions.timeout {
+        error!("Environment import timed out, plan {id} will be dropped");
+        return Ok(BuildOutcome::Timeout);
+    };
+    let build_run_spec = RunSpec {
+        id: &format!("robotmk_env_building_{id}"),
+        command_spec: &build_instructions.build_command_spec,
+        base_path,
+        timeout: build_instructions.timeout - elapsed,
+        cancellation_token,
+    };
+    match session.run(&build_run_spec) {
         Ok(Outcome::Completed(0)) => {
             info!("Environment building succeeded for plan {id}");
             let duration = (Utc::now() - start_time).num_seconds();
@@ -95,8 +147,7 @@ fn run_build_command(
         Ok(Outcome::Completed(_exit_code)) => {
             error!("Environment building not successful, plan {id} will be dropped");
             Ok(BuildOutcome::Error(format!(
-                "Environment building not successful, see {} for stdio logs",
-                run_spec.base_path,
+                "Environment building not successful, see {base_path} for stdio logs",
             )))
         }
         Ok(Outcome::Timeout) => {
@@ -110,7 +161,7 @@ fn run_build_command(
         Err(e) => {
             let log_error = e.context(anyhow!(
                 "Environment building failed, plan {id} will be dropped. See {} for stdio logs",
-                run_spec.base_path,
+                base_path,
             ));
             error!("{log_error:?}");
             Ok(BuildOutcome::Error(format!("{log_error:?}")))
