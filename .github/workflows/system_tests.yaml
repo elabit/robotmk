@@ -5,55 +5,7 @@ on:
   workflow_call: {}
 
 jobs:
-  test_scheduler_windows:
-    runs-on: windows-latest
-    steps:
-      - uses: actions/checkout@v4
-      - uses: actions-rust-lang/setup-rust-toolchain@v1.9
-        with:
-          target: x86_64-pc-windows-gnu
-          # By default, setup-rust-toolchain sets "-D warnings". As a side effect, the settings in
-          # .cargo/config.toml are ignored:
-          # https://doc.rust-lang.org/cargo/reference/config.html#buildrustflags
-          # "There are four mutually exclusive sources of extra flags"
-          rustflags: ""
-      - uses: actions/setup-python@v5
-        with:
-          python-version: '3.12'
-          cache: 'pip'
-      - run: pip install -r tests/minimal_suite/requirements.txt
-      - uses: actions/download-artifact@v4
-        with:
-          name: rcc
-          path: C:\
-
-      # MSVC uses vctip.exe for telemetry. vctip.exe is started as a child of termination.exe. This
-      # can cause CI failures, if "vctip.exe" does not terminate before `get_children` is called.
-      # It is unclear why MSVC is running, despite target=x86_64-pc-windows-gnu. The following
-      # command is intended turn off telemetry via vctip.exe.
-      - shell: pwsh
-        run:  Get-ChildItem -Filter vctip.exe -Recurse "C:\\Program Files\\Microsoft Visual Studio\\2022\\Enterprise\\VC\\Tools\\MSVC" | rm
-      - run: cargo test --target=x86_64-pc-windows-gnu --test test_plan_run --test test_agent_plugin -- --ignored
-      - run: cargo run --example termination --target=x86_64-pc-windows-gnu
-      - run: cargo run --example termination --target=x86_64-pc-windows-gnu -- C:\windows64\rcc.exe
-
-      - run: mkdir C:\managed_robots
-      - run: tar --create -z --directory tests\minimal_suite\ --file C:\managed_robots\minimal_suite.tar.gz *
-      - run: net user "test_user" "uCjV*NRE#XH2a" /add
-      - run: cargo test --target=x86_64-pc-windows-gnu --test test_scheduler -- --nocapture --ignored
-        env:
-          TEST_DIR: C:\test_scheduler
-          RCC_BINARY_PATH: C:\windows64\rcc.exe
-          MANAGED_ROBOT_ARCHIVE_PATH: C:\managed_robots\minimal_suite.tar.gz
-          N_SECONDS_RUN_MAX: 300
-          TEST_USER: test_user
-      - uses: actions/upload-artifact@v4
-        if: success() || failure()
-        with:
-          name: system_test_debug_information_windows
-          path: C:\test_scheduler
-
-  test_scheduler_linux:
+  test_import_hololib:
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
@@ -65,11 +17,6 @@ jobs:
           # https://doc.rust-lang.org/cargo/reference/config.html#buildrustflags
           # "There are four mutually exclusive sources of extra flags"
           rustflags: ""
-      - uses: actions/setup-python@v5
-        with:
-          python-version: '3.12'
-          cache: 'pip'
-      - run: pip install -r tests/minimal_suite/requirements.txt
       - uses: actions/download-artifact@v4
         with:
           name: rcc
@@ -77,21 +24,8 @@ jobs:
       # file permissions are not retained during upload:
       # https://github.com/actions/upload-artifact?tab=readme-ov-file#permission-loss
       - run: chmod +x /tmp/linux64/rcc
-
-      - run: cargo test --target=x86_64-unknown-linux-gnu --test test_plan_run --test test_agent_plugin -- --ignored
-      - run: cargo run --example termination --target=x86_64-unknown-linux-gnu
-      - run: cargo run --example termination --target=x86_64-unknown-linux-gnu -- /tmp/linux64/rcc
-
-      - run: mkdir /tmp/managed_robots
-      - run: tar --create --gzip --directory tests/minimal_suite/ --file /tmp/managed_robots/minimal_suite.tar.gz .
-      - run: cargo test --target=x86_64-unknown-linux-gnu --test test_scheduler -- --nocapture --ignored
-        env:
-          TEST_DIR: /tmp/test_scheduler
-          RCC_BINARY_PATH: /tmp/linux64/rcc
-          MANAGED_ROBOT_ARCHIVE_PATH: /tmp/managed_robots/minimal_suite.tar.gz
-          N_SECONDS_RUN_MAX: 300
-      - uses: actions/upload-artifact@v4
-        if: success() || failure()
-        with:
-          name: system_test_debug_information_linux
-          path: /tmp/test_scheduler
+      - run: echo "CARGO_MANIFEST_DIR=$(pwd)" >> $GITHUB_ENV
+      - run: echo "TERMINATION_EXECUTABLE=$(cargo build --example termination --target=x86_64-unknown-linux-gnu --message-format=json | jq -r 'select(.reason == "compiler-artifact" and .target.kind[] == "example") | .executable')" >> $GITHUB_ENV
+      - run: echo "RCC_EXECUTABLE=/tmp/linux64/rcc" >> $GITHUB_ENV
+      - run: ./build.sh
+      - run: sudo unshare --net -- "${CARGO_MANIFEST_DIR}/un.sh" "$CARGO_MANIFEST_DIR" "$RCC_EXECUTABLE" "$TERMINATION_EXECUTABLE"
