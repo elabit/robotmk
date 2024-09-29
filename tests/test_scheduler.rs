@@ -1,4 +1,6 @@
+pub mod helper;
 pub mod rcc;
+use crate::helper::{await_plan_results, directory_entries};
 use crate::rcc::read_configuration_diagnostics;
 use anyhow::{bail, Result as AnyhowResult};
 use assert_cmd::cargo::cargo_bin;
@@ -23,7 +25,6 @@ use tokio::{
     select,
     time::{sleep, timeout},
 };
-use walkdir::WalkDir;
 
 #[tokio::test]
 #[ignore]
@@ -367,30 +368,6 @@ async fn run_scheduler(
     Ok(())
 }
 
-async fn await_plan_results(config: &Config) {
-    let expected_result_files: Vec<Utf8PathBuf> = config
-        .plan_groups
-        .iter()
-        .flat_map(|plan_group| {
-            plan_group.plans.iter().map(|plan_config| {
-                config
-                    .results_directory
-                    .join("plans")
-                    .join(format!("{}.json", &plan_config.id))
-            })
-        })
-        .collect();
-    loop {
-        if expected_result_files
-            .iter()
-            .all(|expected_result_file| expected_result_file.is_file())
-        {
-            break;
-        }
-        sleep(Duration::from_secs(5)).await;
-    }
-}
-
 async fn assert_working_directory(
     working_directory: &Utf8Path,
     #[cfg(windows)] headed_user_name: &str,
@@ -667,25 +644,4 @@ fn assert_sequentiality(
     dir_entries_first_plan.sort();
     dir_entries_second_plan.sort();
     assert!(dir_entries_first_plan[0] < dir_entries_second_plan[0]);
-}
-
-fn directory_entries(directory: impl AsRef<Path>, max_depth: usize) -> Vec<String> {
-    WalkDir::new(&directory)
-        .max_depth(max_depth)
-        .sort_by_file_name()
-        .into_iter()
-        .map(|dir_entry_result| {
-            dir_entry_result
-                .unwrap()
-                .path()
-                .strip_prefix(&directory)
-                .unwrap()
-                .to_str()
-                .unwrap()
-                .into()
-        })
-        .filter(|entry: &String| !entry.is_empty())
-        // align unix and windows
-        .map(|s| s.replace("\\", "/"))
-        .collect()
 }

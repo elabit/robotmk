@@ -95,3 +95,14 @@ jobs:
         with:
           name: system_test_debug_information_linux
           path: /tmp/test_scheduler
+
+      - run: cargo test --target=x86_64-unknown-linux-gnu --test test_ht_import_scheduler -- --nocapture --ignored
+        env:
+          TEST_DIR: /tmp/test_ht_import_scheduler
+          RCC_BINARY_PATH: /tmp/linux64/rcc
+          N_SECONDS_RUN_MAX: 120
+      - uses: actions/upload-artifact@v4
+        if: success() || failure()
+        with:
+          name: system_test_debug_information_ht_import
+          path: /tmp/test_ht_import_scheduler
