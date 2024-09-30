@@ -84,40 +84,37 @@ fn run_build_command(
     id: &str,
     run_spec: &RunSpec,
     session: &Session,
-    reference_timestamp_for_duration: DateTime<Utc>,
+    start_time: DateTime<Utc>,
 ) -> Result<BuildOutcome, Cancelled> {
-    let outcome = match session.run(run_spec) {
-        Ok(o) => o,
+    match session.run(&run_spec) {
+        Ok(Outcome::Completed(0)) => {
+            info!("Environment building succeeded for plan {id}");
+            let duration = (Utc::now() - start_time).num_seconds();
+            Ok(BuildOutcome::Success(duration))
+        }
+        Ok(Outcome::Completed(_exit_code)) => {
+            error!("Environment building not successful, plan {id} will be dropped");
+            Ok(BuildOutcome::Error(format!(
+                "Environment building not successful, see {} for stdio logs",
+                run_spec.base_path,
+            )))
+        }
+        Ok(Outcome::Timeout) => {
+            error!("Environment building timed out, plan {id} will be dropped");
+            Ok(BuildOutcome::Timeout)
+        }
+        Ok(Outcome::Cancel) => {
+            error!("Environment building cancelled, plan {id} will be dropped");
+            Err(Cancelled {})
+        }
         Err(e) => {
             let log_error = e.context(anyhow!(
                 "Environment building failed, plan {id} will be dropped. See {} for stdio logs",
                 run_spec.base_path,
             ));
             error!("{log_error:?}");
-            return Ok(BuildOutcome::Error(format!("{log_error:?}")));
+            Ok(BuildOutcome::Error(format!("{log_error:?}")))
         }
-    };
-    let duration = (Utc::now() - reference_timestamp_for_duration).num_seconds();
-    let exit_code = match outcome {
-        Outcome::Completed(exit_code) => exit_code,
-        Outcome::Timeout => {
-            error!("Environment building timed out, plan {id} will be dropped");
-            return Ok(BuildOutcome::Timeout);
-        }
-        Outcome::Cancel => {
-            error!("Environment building cancelled, plan {id} will be dropped");
-            return Err(Cancelled {});
-        }
-    };
-    if exit_code == 0 {
-        info!("Environment building succeeded for plan {id}");
-        Ok(BuildOutcome::Success(duration))
-    } else {
-        error!("Environment building not successful, plan {id} will be dropped");
-        Ok(BuildOutcome::Error(format!(
-            "Environment building not successful, see {} for stdio logs",
-            run_spec.base_path
-        )))
     }
 }
 
