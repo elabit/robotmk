@@ -101,6 +101,16 @@ async fn test_scheduler() -> AnyhowResult<()> {
     .await?;
     #[cfg(windows)]
     assert_tasks().await?;
+    assert_sequentiality(
+        config
+            .working_directory
+            .join("plans")
+            .join(&config.plan_groups[0].plans[0].id),
+        config
+            .working_directory
+            .join("plans")
+            .join(&config.plan_groups[0].plans[1].id),
+    );
 
     Ok(())
 }
@@ -641,6 +651,17 @@ async fn assert_tasks() -> AnyhowResult<()> {
     assert!(schtasks_output.status.success());
     assert!(!String::from_utf8(schtasks_output.stdout)?.contains("robotmk"));
     Ok(())
+}
+
+fn assert_sequentiality(
+    working_directory_first_plan: impl AsRef<Path>,
+    working_directory_second_plan: impl AsRef<Path>,
+) {
+    let mut dir_entries_first_plan = directory_entries(working_directory_first_plan, 1);
+    let mut dir_entries_second_plan = directory_entries(working_directory_second_plan, 1);
+    dir_entries_first_plan.sort();
+    dir_entries_second_plan.sort();
+    assert!(dir_entries_first_plan[0] < dir_entries_second_plan[0]);
 }
 
 fn directory_entries(directory: impl AsRef<Path>, max_depth: usize) -> Vec<String> {
