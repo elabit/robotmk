@@ -10,6 +10,20 @@ env:
   RUBY_VERSION: "2.7"
 
 jobs:
+  analyse_changes:
+    if: always()
+    runs-on: ubuntu-latest
+    outputs:
+      rcc_yaml_changed: ${{ steps.filter.outputs.rcc_yaml }}
+    steps:
+      - uses: actions/checkout@v4
+      - uses: dorny/paths-filter@v3
+        id: filter
+        with:
+          filters: |
+            rcc_yaml:
+              - '.github/workflows/rcc.yaml'
+
   check_cache:
     runs-on: ubuntu-latest
     outputs:
@@ -25,8 +39,9 @@ jobs:
   build_and_cache:
     runs-on: ubuntu-latest
     needs:
+      - analyse_changes
       - check_cache
-    if: ${{ needs.check_cache.outputs.cache_hit != 'true' }}
+    if: ${{ (needs.analyse_changes.outputs.rcc_yaml_changed == 'true') || (needs.check_cache.outputs.cache_hit != 'true') }}
     steps:
       - uses: actions/checkout@v4
         with:
