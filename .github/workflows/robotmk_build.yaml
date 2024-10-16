@@ -9,7 +9,7 @@ jobs:
     steps:
       - uses: actions/checkout@v4
 
-      - uses: actions-rust-lang/setup-rust-toolchain@v1.9
+      - uses: actions-rust-lang/setup-rust-toolchain@v1
         with:
           target: x86_64-pc-windows-gnu
           # By default, setup-rust-toolchain sets "-D warnings". As a side effect, the settings in
@@ -35,7 +35,7 @@ jobs:
 
       - run: sudo apt-get update
       - run: sudo apt-get install -y musl-tools
-      - uses: actions-rust-lang/setup-rust-toolchain@v1.9
+      - uses: actions-rust-lang/setup-rust-toolchain@v1
         with:
           target: x86_64-unknown-linux-musl
           # By default, setup-rust-toolchain sets "-D warnings". As a side effect, the settings in
