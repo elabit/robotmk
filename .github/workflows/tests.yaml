@@ -14,7 +14,7 @@ jobs:
           - { os: ubuntu-latest,  target: x86_64-unknown-linux-gnu }
     steps:
       - uses: actions/checkout@v4
-      - uses: actions-rust-lang/setup-rust-toolchain@v1.9
+      - uses: actions-rust-lang/setup-rust-toolchain@v1
         with:
           components: rustfmt, clippy
           target: ${{ matrix.type.target }}
