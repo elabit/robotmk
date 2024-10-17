@@ -241,6 +241,8 @@ fn create_config(
                         id: "managed_robot".into(),
                         source: Source::Managed {
                             tar_gz_path: managed_robot_archive_path.into(),
+                            version_number: 1,
+                            version_label: "".into(),
                         },
                         robot_config: RobotConfig {
                             robot_target: "tasks.robot".into(),
