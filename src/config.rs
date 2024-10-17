@@ -69,10 +69,16 @@ pub struct RobotConfig {
     pub tests: Vec<String>,
     pub test_tags_include: Vec<String>,
     pub test_tags_exclude: Vec<String>,
-    pub variables: Vec<(String, String)>,
+    pub variables: Vec<RobotFrameworkVariable>,
     pub variable_files: Vec<Utf8PathBuf>,
     pub argument_files: Vec<Utf8PathBuf>,
     pub exit_on_failure: bool,
+}
+
+#[derive(Clone, Debug, Deserialize, PartialEq, Serialize)]
+pub struct RobotFrameworkVariable {
+    pub name: String,
+    pub value: String,
 }
 
 #[derive(Clone, Debug, Deserialize, PartialEq, Serialize)]
