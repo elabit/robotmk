@@ -27,6 +27,8 @@ pub enum Source {
     Managed {
         tar_gz_path: Utf8PathBuf,
         target: Utf8PathBuf,
+        version_number: usize,
+        version_label: String,
     },
 }
 
@@ -66,13 +68,19 @@ pub fn from_external_config(
         for (plan_index, plan_config) in sequential_group.plans.into_iter().enumerate() {
             let (plan_source_dir, source) = match &plan_config.source {
                 ConfigSource::Manual { base_dir } => (base_dir.clone(), Source::Manual),
-                ConfigSource::Managed { tar_gz_path, .. } => {
+                ConfigSource::Managed {
+                    tar_gz_path,
+                    version_number,
+                    version_label,
+                } => {
                     let target = external_config.managed_directory.join(&plan_config.id);
                     (
                         target.clone(),
                         Source::Managed {
                             tar_gz_path: tar_gz_path.clone(),
                             target,
+                            version_number: *version_number,
+                            version_label: version_label.clone(),
                         },
                     )
                 }
