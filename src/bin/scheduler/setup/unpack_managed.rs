@@ -16,6 +16,7 @@ pub fn setup(plans: Vec<Plan>) -> (Vec<Plan>, Vec<SetupFailure>) {
         if let Source::Managed {
             tar_gz_path,
             target,
+            ..
         } = &plan.source
         {
             if let Err(error) = unpack_into(tar_gz_path, target, SIZE_LIMIT) {
