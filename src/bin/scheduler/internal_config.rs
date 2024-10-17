@@ -66,7 +66,7 @@ pub fn from_external_config(
         for (plan_index, plan_config) in sequential_group.plans.into_iter().enumerate() {
             let (plan_source_dir, source) = match &plan_config.source {
                 ConfigSource::Manual { base_dir } => (base_dir.clone(), Source::Manual),
-                ConfigSource::Managed { tar_gz_path } => {
+                ConfigSource::Managed { tar_gz_path, .. } => {
                     let target = external_config.managed_directory.join(&plan_config.id);
                     (
                         target.clone(),
