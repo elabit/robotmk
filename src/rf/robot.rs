@@ -99,9 +99,9 @@ impl Robot {
             args.push("--exclude".to_string());
             args.push(tag);
         }
-        for (name, value) in robot_config.variables {
+        for variable in robot_config.variables {
             args.push("--variable".to_string());
-            args.push(format!("{}:{}", name, value));
+            args.push(format!("{}:{}", variable.name, variable.value));
         }
         for file in robot_config.variable_files {
             args.push("--variablefile".to_string());
@@ -121,6 +121,7 @@ impl Robot {
 #[cfg(test)]
 mod tests {
     use super::*;
+    use crate::config::RobotFrameworkVariable;
 
     #[test]
     fn test_command_line_args_empty() {
@@ -155,7 +156,16 @@ mod tests {
                     tests: vec!["test1".into(), "test2".into()],
                     test_tags_include: vec!["tag1".into(), "tag2".into()],
                     test_tags_exclude: vec!["tag3".into(), "tag4".into()],
-                    variables: vec![("k1".into(), "v1".into()), ("k2".into(), "v2".into())],
+                    variables: vec![
+                        RobotFrameworkVariable {
+                            name: "k1".into(),
+                            value: "v1".into()
+                        },
+                        RobotFrameworkVariable {
+                            name: "k2".into(),
+                            value: "v2".into()
+                        }
+                    ],
                     variable_files: vec![
                         "/suite/varfile1.txt".into(),
                         "/suite/varfile2.txt".into()
