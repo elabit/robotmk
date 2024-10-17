@@ -1,4 +1,4 @@
-use crate::internal_config::Plan;
+use crate::internal_config::{Plan, Source};
 use crate::logging::TIMESTAMP_FORMAT;
 use robotmk::plans::run_attempts_with_rebot;
 use robotmk::results::{AttemptsConfig, PlanExecutionReport};
@@ -10,7 +10,11 @@ use robotmk::section::WritePiggybackSection;
 use std::fs::create_dir_all;
 
 pub fn run_plan(plan: &Plan) -> AnyhowResult<()> {
-    info!("Running plan {}", &plan.id);
+    info!(
+        "Running plan {} ({})",
+        &plan.id,
+        format_source_for_logging(&plan.source)
+    );
     produce_plan_results(plan)?
         .write(
             &plan.results_file,
@@ -21,6 +25,27 @@ pub fn run_plan(plan: &Plan) -> AnyhowResult<()> {
     info!("Plan {} finished", &plan.id);
 
     Ok(())
+}
+
+fn format_source_for_logging(source: &Source) -> String {
+    match source {
+        Source::Manual => "manual robot".to_string(),
+        Source::Managed {
+            version_number,
+            version_label,
+            ..
+        } => {
+            format!(
+                "managed robot, version: {}{}",
+                version_number,
+                if version_label.is_empty() {
+                    "".to_string()
+                } else {
+                    format!(" ({version_label})")
+                }
+            )
+        }
+    }
 }
 
 fn produce_plan_results(plan: &Plan) -> AnyhowResult<PlanExecutionReport> {
@@ -57,4 +82,40 @@ fn produce_plan_results(plan: &Plan) -> AnyhowResult<PlanExecutionReport> {
         },
         metadata: plan.metadata.clone(),
     })
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    #[test]
+    fn format_source_for_logging_manual() {
+        assert_eq!(&format_source_for_logging(&Source::Manual), "manual robot");
+    }
+
+    #[test]
+    fn format_source_for_logging_managed_without_version_label() {
+        assert_eq!(
+            &format_source_for_logging(&Source::Managed {
+                tar_gz_path: "robot.tar.gz".into(),
+                target: "robot".into(),
+                version_number: 3,
+                version_label: "".into()
+            }),
+            "managed robot, version: 3"
+        );
+    }
+
+    #[test]
+    fn format_source_for_logging_managed_with_version_label() {
+        assert_eq!(
+            &format_source_for_logging(&Source::Managed {
+                tar_gz_path: "robot.tar.gz".into(),
+                target: "robot".into(),
+                version_number: 4,
+                version_label: "version_label".into()
+            }),
+            "managed robot, version: 4 (version_label)"
+        );
+    }
 }
