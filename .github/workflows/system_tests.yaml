@@ -5,7 +5,7 @@ on:
   workflow_call: {}
 
 jobs:
-  test_scheduler_windows:
+  windows:
     runs-on: windows-latest
     steps:
       - uses: actions/checkout@v4
@@ -53,7 +53,7 @@ jobs:
           name: system_test_debug_information_windows
           path: C:\test_scheduler
 
-  test_scheduler_linux:
+  linux:
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
