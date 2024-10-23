@@ -185,6 +185,7 @@ fn create_config(
                             robot_yaml_path: "robot.yaml".into(),
                             build_timeout: 1200,
                             remote_origin: None,
+                            catalog_zip: None,
                         }),
                         session_config: SessionConfig::Current,
                         working_directory_cleanup_config:
@@ -223,6 +224,7 @@ fn create_config(
                             robot_yaml_path: "robot.yaml".into(),
                             build_timeout: 1200,
                             remote_origin: None,
+                            catalog_zip: None,
                         }),
                         session_config: SessionConfig::SpecificUser(UserSessionConfig {
                             user_name: user_name_headed.into(),
@@ -265,6 +267,7 @@ fn create_config(
                             robot_yaml_path: "robot.yaml".into(),
                             build_timeout: 1200,
                             remote_origin: None,
+                            catalog_zip: None,
                         }),
                         #[cfg(unix)]
                         session_config: SessionConfig::Current,

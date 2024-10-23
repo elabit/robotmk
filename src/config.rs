@@ -111,6 +111,7 @@ pub struct RCCEnvironmentConfig {
     pub robot_yaml_path: Utf8PathBuf,
     pub build_timeout: u64,
     pub remote_origin: Option<String>,
+    pub catalog_zip: Option<Utf8PathBuf>,
 }
 
 #[derive(Clone, Debug, Deserialize, PartialEq, Serialize)]
