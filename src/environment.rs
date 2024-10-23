@@ -22,7 +22,7 @@ pub struct SystemEnvironment {}
 pub struct RCCEnvironment {
     pub binary_path: Utf8PathBuf,
     pub remote_origin: Option<String>,
-    pub holotree_zip: Option<Utf8PathBuf>,
+    pub catalog_zip: Option<Utf8PathBuf>,
     pub robot_yaml_path: Utf8PathBuf,
     pub controller: String,
     pub space: String,
@@ -41,7 +41,7 @@ impl Environment {
             EnvironmentConfig::Rcc(rcc_environment_config) => Self::Rcc(RCCEnvironment {
                 binary_path: rcc_binary_path.to_path_buf(),
                 remote_origin: rcc_environment_config.remote_origin.clone(),
-                holotree_zip: None,
+                catalog_zip: None,
                 robot_yaml_path: base_dir.join(&rcc_environment_config.robot_yaml_path),
                 controller: String::from("robotmk"),
                 space: plan_id.to_string(),
@@ -97,7 +97,7 @@ impl RCCEnvironment {
     }
 
     fn build_instructions(&self) -> Option<BuildInstructions> {
-        let import_command_spec = self.holotree_zip.as_ref().map(|zip| {
+        let import_command_spec = self.catalog_zip.as_ref().map(|zip| {
             let mut spec = Self::bundled_command_spec(&self.binary_path);
             spec.add_argument("holotree")
                 .add_argument("import")
@@ -212,7 +212,7 @@ mod tests {
             RCCEnvironment {
                 binary_path: Utf8PathBuf::from("/bin/rcc"),
                 remote_origin: None,
-                holotree_zip: None,
+                catalog_zip: None,
                 robot_yaml_path: Utf8PathBuf::from("/a/b/c/robot.yaml"),
                 controller: String::from("robotmk"),
                 space: String::from("my_plan"),
@@ -270,7 +270,7 @@ mod tests {
             RCCEnvironment {
                 binary_path: Utf8PathBuf::from("C:\\bin\\z.exe"),
                 remote_origin: None,
-                holotree_zip: None,
+                catalog_zip: None,
                 robot_yaml_path: Utf8PathBuf::from("C:\\some_synthetic_test\\robot.yaml"),
                 controller: String::from("robotmk"),
                 space: String::from("my_plan"),

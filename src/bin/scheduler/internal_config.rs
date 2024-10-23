@@ -317,7 +317,7 @@ mod tests {
             Environment::Rcc(RCCEnvironment {
                 binary_path: Utf8PathBuf::from("/bin/rcc"),
                 remote_origin: None,
-                holotree_zip: None,
+                catalog_zip: None,
                 robot_yaml_path: Utf8PathBuf::from("/synthetic_tests/rcc/robot.yaml"),
                 controller: "robotmk".into(),
                 space: "rcc".into(),
