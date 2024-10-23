@@ -237,6 +237,7 @@ mod tests {
                 robot_yaml_path: Utf8PathBuf::from("robot.yaml"),
                 build_timeout: 300,
                 remote_origin: None,
+                catalog_zip: None,
             }),
             #[cfg(unix)]
             session_config: SessionConfig::Current,
