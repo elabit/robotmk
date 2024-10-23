@@ -124,7 +124,7 @@ fn run_build_commands(
             }
         };
     } else {
-        info!("No holotree zip. Environment import skipped.");
+        info!("No catalog zip. Environment import skipped.");
     };
     let elapsed: u64 = (Utc::now() - start_time).num_seconds().try_into().unwrap();
     if elapsed >= build_instructions.timeout {
