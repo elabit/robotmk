@@ -442,29 +442,29 @@ async fn assert_working_directory(
         [
             "current_user",
             #[cfg(unix)]
-            "current_user/managed_robot.stderr",
+            "current_user/managed_robot_build.stderr",
             #[cfg(unix)]
-            "current_user/managed_robot.stdout",
-            "current_user/rcc_headless.stderr",
-            "current_user/rcc_headless.stdout",
+            "current_user/managed_robot_build.stdout",
+            "current_user/rcc_headless_build.stderr",
+            "current_user/rcc_headless_build.stdout",
             #[cfg(windows)]
             &format!("user_{headed_user_name}"),
             #[cfg(windows)]
-            &format!("user_{headed_user_name}/managed_robot.bat"),
+            &format!("user_{headed_user_name}/managed_robot_build.bat"),
             #[cfg(windows)]
-            &format!("user_{headed_user_name}/managed_robot.exit_code"),
+            &format!("user_{headed_user_name}/managed_robot_build.exit_code"),
             #[cfg(windows)]
-            &format!("user_{headed_user_name}/managed_robot.stderr"),
+            &format!("user_{headed_user_name}/managed_robot_build.stderr"),
             #[cfg(windows)]
-            &format!("user_{headed_user_name}/managed_robot.stdout"),
+            &format!("user_{headed_user_name}/managed_robot_build.stdout"),
             #[cfg(windows)]
-            &format!("user_{headed_user_name}/rcc_headed.bat"),
+            &format!("user_{headed_user_name}/rcc_headed_build.bat"),
             #[cfg(windows)]
-            &format!("user_{headed_user_name}/rcc_headed.exit_code"),
+            &format!("user_{headed_user_name}/rcc_headed_build.exit_code"),
             #[cfg(windows)]
-            &format!("user_{headed_user_name}/rcc_headed.stderr"),
+            &format!("user_{headed_user_name}/rcc_headed_build.stderr"),
             #[cfg(windows)]
-            &format!("user_{headed_user_name}/rcc_headed.stdout"),
+            &format!("user_{headed_user_name}/rcc_headed_build.stdout"),
         ]
     );
     #[cfg(windows)]
