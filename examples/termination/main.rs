@@ -116,7 +116,7 @@ fn rcc_main(rcc_binary_path: Utf8PathBuf) -> AnyhowResult<()> {
     let run_spec = RunSpec {
         id: "unused_id",
         command_spec: &build_instructions.build_command_spec,
-        base_path: &test_dir,
+        runtime_base_path: &test_dir,
         timeout: build_instructions.timeout,
         cancellation_token: &CancellationToken::new(),
     };

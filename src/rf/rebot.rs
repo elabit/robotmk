@@ -18,7 +18,7 @@ pub struct Rebot<'a> {
     pub plan_id: &'a str,
     pub environment: &'a Environment,
     pub session: &'a Session,
-    pub base_path: Utf8PathBuf,
+    pub runtime_base_path: Utf8PathBuf,
     pub cancellation_token: &'a CancellationToken,
     pub input_paths: &'a [Utf8PathBuf],
     pub path_xml: &'a Utf8Path,
@@ -57,7 +57,7 @@ impl Rebot<'_> {
                     error!("Rebot run failed (no merged XML found)");
                     Ok(RebotOutcome::Error(format!(
                         "Rebot run failed (no merged XML found), see {} for stdio logs",
-                        self.base_path
+                        self.runtime_base_path
                     )))
                 }
             }
@@ -65,7 +65,7 @@ impl Rebot<'_> {
                 error!("Environment failure when running rebot");
                 Ok(RebotOutcome::Error(format!(
                     "Environment failure when running rebot, see {} for stdio logs",
-                    self.base_path,
+                    self.runtime_base_path,
                 )))
             }
         }
@@ -75,7 +75,7 @@ impl Rebot<'_> {
         self.session.run(&RunSpec {
             id: &format!("robotmk_rebot_{}", self.plan_id),
             command_spec: &self.environment.wrap(self.build_rebot_command_spec()),
-            base_path: &self.base_path,
+            runtime_base_path: &self.runtime_base_path,
             timeout: 120,
             cancellation_token: self.cancellation_token,
         })
@@ -143,7 +143,7 @@ mod tests {
                 &EnvironmentConfig::System,
             ),
             session: &Session::Current(CurrentSession {}),
-            base_path: Utf8PathBuf::from("/working/my_plan/rebot"),
+            runtime_base_path: Utf8PathBuf::from("/working/my_plan/rebot"),
             cancellation_token: &CancellationToken::default(),
             input_paths: &[
                 Utf8PathBuf::from("/working/my_plan/0.xml"),

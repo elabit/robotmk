@@ -15,12 +15,15 @@ use windows::Win32::System::{Com, TaskScheduler, Variant::VARIANT};
 
 pub fn run_task(task_spec: &TaskSpec) -> AnyhowResult<Outcome<i32>> {
     debug!(
-        "Running the following command as task {} for user {}:\n{}\n\nBase path: {}",
-        task_spec.task_name, task_spec.user_name, task_spec.command_spec, task_spec.base_path
+        "Running the following command as task {} for user {}:\n{}\n\nRuntime base path: {}",
+        task_spec.task_name,
+        task_spec.user_name,
+        task_spec.command_spec,
+        task_spec.runtime_base_path
     );
     assert_session_is_present(task_spec.user_name)?;
 
-    let paths = Paths::from(task_spec.base_path);
+    let paths = Paths::from(task_spec.runtime_base_path);
     let task_manager = TaskManager::new().context("Failed to create new TaskManager")?;
 
     fs::write(
