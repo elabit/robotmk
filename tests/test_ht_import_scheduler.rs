@@ -9,6 +9,7 @@ use robotmk::config::{
     RCCEnvironmentConfig, RCCProfileConfig, RetryStrategy, RobotConfig, SequentialPlanGroup,
     SessionConfig, Source, WorkingDirectoryCleanupConfig,
 };
+use robotmk::results::results_directory;
 use robotmk::section::Host;
 use serde_json::to_string;
 use std::env::var;
@@ -70,16 +71,14 @@ async fn test_ht_import_scheduler() -> AnyhowResult<()> {
     )
     .await?;
 
-    assert_working_directory(&config.working_directory).await?;
-    assert_results_directory(&config.results_directory);
+    assert_working_directory(&config.runtime_directory.join("working")).await?;
+    assert_results_directory(&results_directory(&config.runtime_directory));
     Ok(())
 }
 
 fn create_config(test_dir: &Utf8Path, suite_dir: &Utf8Path, rcc_config: RCCConfig) -> Config {
     Config {
-        working_directory: test_dir.join("working"),
-        results_directory: test_dir.join("results"),
-        managed_directory: test_dir.join("managed_robots"),
+        runtime_directory: test_dir.into(),
         rcc_config,
         plan_groups: vec![SequentialPlanGroup {
             plans: vec![PlanConfig {

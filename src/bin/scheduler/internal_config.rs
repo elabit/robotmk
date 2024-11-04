@@ -4,7 +4,7 @@ use robotmk::config::{
 };
 use robotmk::environment::Environment;
 use robotmk::lock::Locker;
-use robotmk::results::plan_results_directory;
+use robotmk::results::{plan_results_directory, results_directory};
 use robotmk::rf::robot::Robot;
 use robotmk::section::Host;
 use robotmk::session::Session;
@@ -13,6 +13,8 @@ use camino::{Utf8Path, Utf8PathBuf};
 use tokio_util::sync::CancellationToken;
 
 pub struct GlobalConfig {
+    #[allow(dead_code)]
+    pub runtime_base_directory: Utf8PathBuf,
     pub working_directory: Utf8PathBuf,
     pub results_directory: Utf8PathBuf,
     pub managed_directory: Utf8PathBuf,
@@ -59,10 +61,20 @@ pub struct GroupAffiliation {
 
 pub fn from_external_config(
     external_config: Config,
-    cancellation_token: CancellationToken,
-    results_directory_locker: Locker,
+    cancellation_token: &CancellationToken,
+    results_directory_locker: &Locker,
 ) -> (GlobalConfig, Vec<Plan>) {
     let mut plans = vec![];
+
+    let global_config = GlobalConfig {
+        runtime_base_directory: external_config.runtime_directory.clone(),
+        working_directory: external_config.runtime_directory.join("working"),
+        results_directory: results_directory(&external_config.runtime_directory),
+        managed_directory: external_config.runtime_directory.join("managed"),
+        rcc_config: external_config.rcc_config,
+        cancellation_token: cancellation_token.clone(),
+        results_directory_locker: results_directory_locker.clone(),
+    };
 
     for (group_index, sequential_group) in external_config.plan_groups.into_iter().enumerate() {
         for (plan_index, plan_config) in sequential_group.plans.into_iter().enumerate() {
@@ -73,7 +85,7 @@ pub fn from_external_config(
                     version_number,
                     version_label,
                 } => {
-                    let target = external_config.managed_directory.join(&plan_config.id);
+                    let target = global_config.managed_directory.join(&plan_config.id);
                     (
                         target.clone(),
                         Source::Managed {
@@ -88,9 +100,9 @@ pub fn from_external_config(
             plans.push(Plan {
                 id: plan_config.id.clone(),
                 source,
-                working_directory: plans_working_directory(&external_config.working_directory)
+                working_directory: plans_working_directory(&global_config.working_directory)
                     .join(&plan_config.id),
-                results_file: plan_results_directory(&external_config.results_directory)
+                results_file: plan_results_directory(&global_config.results_directory)
                     .join(format!("{}.json", plan_config.id)),
                 timeout: plan_config.execution_config.timeout,
                 robot: Robot::new(
@@ -122,9 +134,9 @@ pub fn from_external_config(
                 environment: Environment::new(
                     &plan_source_dir,
                     &plan_config.id,
-                    &external_config.rcc_config.binary_path,
+                    &global_config.rcc_config.binary_path,
                     &plan_config.environment_config,
-                    &environment_building_directory(&external_config.working_directory)
+                    &environment_building_directory(&global_config.working_directory)
                         .join(&plan_config.id),
                 ),
                 session: Session::new(&plan_config.session_config),
@@ -141,17 +153,7 @@ pub fn from_external_config(
             });
         }
     }
-    (
-        GlobalConfig {
-            working_directory: external_config.working_directory,
-            results_directory: external_config.results_directory,
-            managed_directory: external_config.managed_directory,
-            rcc_config: external_config.rcc_config,
-            cancellation_token,
-            results_directory_locker,
-        },
-        plans,
-    )
+    (global_config, plans)
 }
 
 pub fn sort_plans_by_grouping(plans: &mut [Plan]) {
@@ -265,9 +267,7 @@ mod tests {
         let cancellation_token = CancellationToken::new();
         let (global_config, plans) = from_external_config(
             Config {
-                working_directory: Utf8PathBuf::from("/working"),
-                results_directory: Utf8PathBuf::from("/results"),
-                managed_directory: Utf8PathBuf::from("/managed_robots"),
+                runtime_directory: Utf8PathBuf::from("/"),
                 rcc_config: RCCConfig {
                     binary_path: Utf8PathBuf::from("/bin/rcc"),
                     profile_config: RCCProfileConfig::Custom(CustomRCCProfileConfig {
@@ -286,8 +286,8 @@ mod tests {
                     },
                 ],
             },
-            cancellation_token.clone(),
-            Locker::new("/config.json", Some(&cancellation_token)),
+            &cancellation_token,
+            &Locker::new("/config.json", Some(&cancellation_token)),
         );
         assert_eq!(global_config.working_directory, "/working");
         assert_eq!(global_config.results_directory, "/results");

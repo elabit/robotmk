@@ -1,5 +1,6 @@
 use camino::Utf8PathBuf;
 use robotmk::config::Config;
+use robotmk::results::{plan_results_directory, results_directory};
 use std::path::Path;
 use std::time::Duration;
 use tokio::time::sleep;
@@ -11,9 +12,7 @@ pub async fn await_plan_results(config: &Config) {
         .iter()
         .flat_map(|plan_group| {
             plan_group.plans.iter().map(|plan_config| {
-                config
-                    .results_directory
-                    .join("plans")
+                plan_results_directory(&results_directory(&config.runtime_directory))
                     .join(format!("{}.json", &plan_config.id))
             })
         })

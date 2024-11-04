@@ -2,7 +2,7 @@ use assert_cmd::cargo::cargo_bin;
 use camino::{Utf8Path, Utf8PathBuf};
 use robotmk::config::{Config, RCCConfig, RCCProfileConfig};
 use robotmk::lock::Locker;
-use robotmk::results::ConfigSection;
+use robotmk::results::{results_directory, ConfigSection};
 use robotmk::section::{Host, WritePiggybackSection, WriteSection};
 use serde::Serialize;
 use std::fs::{create_dir, write};
@@ -15,13 +15,12 @@ use tempfile::tempdir;
 fn test_agent_plugin() -> anyhow::Result<()> {
     let temp_dir = tempdir()?;
     let temp_dir_path = Utf8PathBuf::try_from(temp_dir.path().to_path_buf())?;
-    let results_dir = temp_dir_path.join("results");
-    create_dir(&results_dir)?;
 
-    let config = create_config(&results_dir);
+    let config = create_config(&temp_dir_path);
     let config_path = temp_dir_path.join("robotmk.json");
     write(&config_path, serde_json::to_string(&config)?)?;
-    write_results(&results_dir, &config_path)?;
+    create_dir(results_directory(&temp_dir_path))?;
+    write_results(&results_directory(&temp_dir_path), &config_path)?;
 
     let output = run_agent_plugin(&temp_dir_path)?;
     assert!(output.status.success());
@@ -44,11 +43,9 @@ fn test_agent_plugin() -> anyhow::Result<()> {
     Ok(())
 }
 
-fn create_config(results_dir: &Utf8Path) -> Config {
+fn create_config(runtime_dir: &Utf8Path) -> Config {
     Config {
-        working_directory: "".into(),
-        results_directory: results_dir.into(),
-        managed_directory: "".into(),
+        runtime_directory: runtime_dir.into(),
         rcc_config: RCCConfig {
             binary_path: "".into(),
             profile_config: RCCProfileConfig::Default,

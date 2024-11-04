@@ -3,6 +3,7 @@ use clap::Parser;
 use robotmk::{
     config::Config,
     lock::Locker,
+    results::results_directory,
     results::ConfigSection,
     section::{read, Host, Section},
 };
@@ -78,6 +79,10 @@ fn main() {
         }
     };
     report_config_section(&ConfigSection::FileContent(raw));
-    let sections = read(config.results_directory, &Locker::new(&config_path, None)).unwrap();
+    let sections = read(
+        results_directory(&config.runtime_directory),
+        &Locker::new(&config_path, None),
+    )
+    .unwrap();
     print_sections(&sections, &mut io::stdout());
 }
