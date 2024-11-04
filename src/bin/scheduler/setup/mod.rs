@@ -1,4 +1,4 @@
-pub mod general;
+pub mod directories;
 pub mod rcc;
 pub mod unpack_managed;
 pub mod windows_permissions;
