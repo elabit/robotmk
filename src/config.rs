@@ -11,9 +11,7 @@ pub fn load(path: &Utf8Path) -> AnyhowResult<Config> {
 
 #[derive(Clone, Debug, Deserialize, PartialEq, Serialize)]
 pub struct Config {
-    pub working_directory: Utf8PathBuf,
-    pub results_directory: Utf8PathBuf,
-    pub managed_directory: Utf8PathBuf,
+    pub runtime_directory: Utf8PathBuf,
     pub rcc_config: RCCConfig,
     pub plan_groups: Vec<SequentialPlanGroup>,
 }

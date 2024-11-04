@@ -12,6 +12,7 @@ use robotmk::config::{
     RCCConfig, RCCEnvironmentConfig, RCCProfileConfig, RetryStrategy, RobotConfig,
     SequentialPlanGroup, SessionConfig, Source, WorkingDirectoryCleanupConfig,
 };
+use robotmk::results::results_directory;
 use robotmk::section::Host;
 use serde_json::to_string;
 use std::env::var;
@@ -76,7 +77,7 @@ async fn test_scheduler() -> AnyhowResult<()> {
     .await?;
 
     assert_working_directory(
-        &config.working_directory,
+        &config.runtime_directory.join("working"),
         #[cfg(windows)]
         &current_user_name,
     )
@@ -87,9 +88,9 @@ async fn test_scheduler() -> AnyhowResult<()> {
     assert!(!get_permissions(&configured_plan_working_dir)
         .await?
         .contains(&test_user));
-    assert_results_directory(&config.results_directory);
+    assert_results_directory(&results_directory(&config.runtime_directory));
     assert_managed_directory(
-        &config.managed_directory,
+        &config.runtime_directory.join("managed"),
         #[cfg(windows)]
         &current_user_name,
     )
@@ -104,11 +105,13 @@ async fn test_scheduler() -> AnyhowResult<()> {
     assert_tasks().await?;
     assert_sequentiality(
         config
-            .working_directory
+            .runtime_directory
+            .join("working")
             .join("plans")
             .join(&config.plan_groups[0].plans[0].id),
         config
-            .working_directory
+            .runtime_directory
+            .join("working")
             .join("plans")
             .join(&config.plan_groups[0].plans[1].id),
     );
@@ -146,16 +149,14 @@ settings:
 }
 
 fn create_config(
-    test_dir: &Utf8Path,
+    runtime_dir: &Utf8Path,
     suite_dir: &Utf8Path,
     managed_robot_archive_path: &Utf8Path,
     rcc_config: RCCConfig,
     #[cfg(windows)] user_name_headed: &str,
 ) -> Config {
     Config {
-        working_directory: test_dir.join("working"),
-        results_directory: test_dir.join("results"),
-        managed_directory: test_dir.join("managed_robots"),
+        runtime_directory: runtime_dir.into(),
         rcc_config,
         plan_groups: vec![
             SequentialPlanGroup {

@@ -46,8 +46,8 @@ fn run() -> Result<(), Terminate> {
 
     let (global_config, plans) = internal_config::from_external_config(
         external_config,
-        cancellation_token.clone(),
-        Locker::new(&args.config_path, Some(&cancellation_token)),
+        &cancellation_token,
+        &Locker::new(&args.config_path, Some(&cancellation_token)),
     );
 
     if global_config.cancellation_token.is_cancelled() {
