@@ -172,11 +172,11 @@ async fn assert_working_directory(working_directory: &Utf8Path) -> AnyhowResult<
     assert_eq!(
         directory_entries(working_directory.join("environment_building"), 2),
         [
-            "current_user",
-            "current_user/rcc_headless_build.stderr",
-            "current_user/rcc_headless_build.stdout",
-            "current_user/rcc_headless_import.stderr",
-            "current_user/rcc_headless_import.stdout",
+            "rcc_headless",
+            "rcc_headless/build.stderr",
+            "rcc_headless/build.stdout",
+            "rcc_headless/import.stderr",
+            "rcc_headless/import.stdout",
         ]
     );
     assert_eq!(

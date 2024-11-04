@@ -440,38 +440,41 @@ async fn assert_working_directory(
     assert_eq!(
         directory_entries(working_directory.join("environment_building"), 2),
         [
-            "current_user",
-            #[cfg(unix)]
-            "current_user/managed_robot_build.stderr",
-            #[cfg(unix)]
-            "current_user/managed_robot_build.stdout",
-            "current_user/rcc_headless_build.stderr",
-            "current_user/rcc_headless_build.stdout",
+            "managed_robot",
             #[cfg(windows)]
-            &format!("user_{headed_user_name}"),
+            "managed_robot/build.bat",
             #[cfg(windows)]
-            &format!("user_{headed_user_name}/managed_robot_build.bat"),
+            "managed_robot/build.exit_code",
+            "managed_robot/build.stderr",
+            "managed_robot/build.stdout",
             #[cfg(windows)]
-            &format!("user_{headed_user_name}/managed_robot_build.exit_code"),
+            "rcc_headed",
             #[cfg(windows)]
-            &format!("user_{headed_user_name}/managed_robot_build.stderr"),
+            "rcc_headed/build.bat",
             #[cfg(windows)]
-            &format!("user_{headed_user_name}/managed_robot_build.stdout"),
+            "rcc_headed/build.exit_code",
             #[cfg(windows)]
-            &format!("user_{headed_user_name}/rcc_headed_build.bat"),
+            "rcc_headed/build.stderr",
             #[cfg(windows)]
-            &format!("user_{headed_user_name}/rcc_headed_build.exit_code"),
-            #[cfg(windows)]
-            &format!("user_{headed_user_name}/rcc_headed_build.stderr"),
-            #[cfg(windows)]
-            &format!("user_{headed_user_name}/rcc_headed_build.stdout"),
+            "rcc_headed/build.stdout",
+            "rcc_headless",
+            "rcc_headless/build.stderr",
+            "rcc_headless/build.stdout",
         ]
     );
     #[cfg(windows)]
     assert_permissions(
         working_directory
             .join("environment_building")
-            .join(format!("user_{headed_user_name}")),
+            .join("rcc_headed"),
+        &format!("{headed_user_name}:(OI)(CI)(F)"),
+    )
+    .await?;
+    #[cfg(windows)]
+    assert_permissions(
+        working_directory
+            .join("environment_building")
+            .join("managed_robot"),
         &format!("{headed_user_name}:(OI)(CI)(F)"),
     )
     .await?;

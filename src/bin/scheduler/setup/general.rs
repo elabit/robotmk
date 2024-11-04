@@ -139,14 +139,18 @@ fn setup_rcc_working_directories(
     working_directory: &Utf8Path,
     plans: Vec<Plan>,
 ) -> (Vec<Plan>, Vec<SetupFailure>) {
-    let (rcc_plans, system_plans): (Vec<Plan>, Vec<Plan>) = plans
-        .into_iter()
-        .partition(|plan| matches!(plan.environment, Environment::Rcc(_)));
-    let (surviving_plans, environment_failures) = setup_with_one_directory_per_user(
-        &environment_building_directory(working_directory),
-        rcc_plans,
-        "environment building",
-    );
+    let mut rcc_plans_and_env_build_dirs = Vec::new();
+    let mut system_plans = Vec::new();
+    for plan in plans.into_iter() {
+        match plan.environment.clone() {
+            Environment::Rcc(rcc_env) => {
+                rcc_plans_and_env_build_dirs.push((plan, rcc_env.build_runtime_directory))
+            }
+            _ => system_plans.push(plan),
+        }
+    }
+    let (surviving_plans, environment_failures) =
+        setup_environment_building_directories(rcc_plans_and_env_build_dirs);
 
     #[cfg(unix)]
     let (mut surviving_plans, rcc_setup_failures) = setup_with_one_directory_per_user(
@@ -181,6 +185,61 @@ fn setup_rcc_working_directories(
             .chain(rcc_setup_failures)
             .collect(),
     )
+}
+
+fn setup_environment_building_directories(
+    rcc_plans_and_env_build_dirs: Vec<(Plan, Utf8PathBuf)>,
+) -> (Vec<Plan>, Vec<SetupFailure>) {
+    let mut surviving_plans = Vec::new();
+    let mut failures = vec![];
+    for (plan, env_build_dir) in rcc_plans_and_env_build_dirs.into_iter() {
+        if let Err(e) = create_dir_all(&env_build_dir) {
+            let error = anyhow!(e);
+            error!(
+                "Plan {}: Failed to create environment building directory. Plan won't be scheduled.
+                 Error: {error:?}",
+                plan.id
+            );
+            failures.push(SetupFailure {
+                plan_id: plan.id.clone(),
+                summary: "Failed to create environment building directory".to_string(),
+                details: format!("{error:?}"),
+            });
+            continue;
+        }
+
+        #[cfg(windows)]
+        {
+            use super::windows_permissions::grant_full_access;
+            use log::info;
+            use robotmk::session::Session;
+
+            if let Session::User(user_session) = &plan.session {
+                info!(
+                    "Granting full access for {} to user `{}`.",
+                    &env_build_dir, &user_session.user_name
+                );
+                if let Err(e) = grant_full_access(&user_session.user_name, &env_build_dir) {
+                    let error = anyhow!(e);
+                    error!(
+                        "Plan {}: Failed to set permissions for environment building directory. \
+                         Plan won't be scheduled.
+                         Error: {error:?}",
+                        plan.id
+                    );
+                    failures.push(SetupFailure {
+                        plan_id: plan.id.clone(),
+                        summary: "Failed to set permissions for environment building directory"
+                            .to_string(),
+                        details: format!("{error:?}"),
+                    });
+                    continue;
+                };
+            }
+        }
+        surviving_plans.push(plan);
+    }
+    (surviving_plans, failures)
 }
 
 fn setup_with_one_directory_per_user(

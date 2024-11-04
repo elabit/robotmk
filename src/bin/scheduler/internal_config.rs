@@ -125,7 +125,7 @@ pub fn from_external_config(
                     &external_config.rcc_config.binary_path,
                     &plan_config.environment_config,
                     &environment_building_directory(&external_config.working_directory)
-                        .join(Session::new(&plan_config.session_config).id()),
+                        .join(&plan_config.id),
                 ),
                 session: Session::new(&plan_config.session_config),
                 working_directory_cleanup_config: plan_config.working_directory_cleanup_config,
@@ -328,9 +328,7 @@ mod tests {
                 controller: "robotmk".into(),
                 space: "rcc".into(),
                 build_timeout: 300,
-                build_runtime_directory: Utf8PathBuf::from(
-                    "/working/environment_building/current_user"
-                )
+                build_runtime_directory: Utf8PathBuf::from("/working/environment_building/rcc")
             })
         );
         assert_eq!(
