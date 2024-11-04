@@ -13,7 +13,6 @@ use camino::{Utf8Path, Utf8PathBuf};
 use tokio_util::sync::CancellationToken;
 
 pub struct GlobalConfig {
-    #[allow(dead_code)]
     pub runtime_base_directory: Utf8PathBuf,
     pub working_directory: Utf8PathBuf,
     pub results_directory: Utf8PathBuf,
