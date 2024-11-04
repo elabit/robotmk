@@ -55,8 +55,8 @@ fn run() -> Result<(), Terminate> {
         return Ok(());
     }
 
-    let (plans, general_setup_failures) = setup::general::setup(&global_config, plans)?;
-    info!("General setup completed");
+    let (plans, general_setup_failures) = setup::directories::setup(&global_config, plans)?;
+    info!("Directories setup completed");
 
     write_phase(&SchedulerPhase::ManagedRobots, &global_config)?;
     let (plans, unpacking_managed_failures) = setup::unpack_managed::setup(plans);
