@@ -141,6 +141,7 @@ mod tests {
                 "my_plan",
                 "/bin/rcc".into(),
                 &EnvironmentConfig::System,
+                &Utf8PathBuf::default(),
             ),
             session: &Session::Current(CurrentSession {}),
             runtime_base_path: Utf8PathBuf::from("/working/my_plan/rebot"),

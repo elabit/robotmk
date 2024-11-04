@@ -124,6 +124,8 @@ pub fn from_external_config(
                     &plan_config.id,
                     &external_config.rcc_config.binary_path,
                     &plan_config.environment_config,
+                    &environment_building_directory(&external_config.working_directory)
+                        .join(Session::new(&plan_config.session_config).id()),
                 ),
                 session: Session::new(&plan_config.session_config),
                 working_directory_cleanup_config: plan_config.working_directory_cleanup_config,
@@ -163,6 +165,9 @@ pub fn sort_plans_by_grouping(plans: &mut [Plan]) {
 
 pub fn plans_working_directory(working_directory: &Utf8Path) -> Utf8PathBuf {
     working_directory.join("plans")
+}
+pub fn environment_building_directory(working_directory: &Utf8Path) -> Utf8PathBuf {
+    working_directory.join("environment_building")
 }
 
 #[cfg(test)]
@@ -323,6 +328,9 @@ mod tests {
                 controller: "robotmk".into(),
                 space: "rcc".into(),
                 build_timeout: 300,
+                build_runtime_directory: Utf8PathBuf::from(
+                    "/working/environment_building/current_user"
+                )
             })
         );
         assert_eq!(
