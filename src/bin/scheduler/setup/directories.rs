@@ -34,7 +34,11 @@ pub fn setup(
     create_dir_all(&global_config.runtime_base_directory)?;
     ownership_setter.transfer_ownership_non_recursive(&global_config.runtime_base_directory)?;
     create_dir_all(&global_config.working_directory)?;
+    ownership_setter.transfer_ownership_non_recursive(&global_config.working_directory)?;
     create_dir_all(plans_working_directory(&global_config.working_directory))?;
+    ownership_setter.transfer_ownership_non_recursive(&plans_working_directory(
+        &global_config.working_directory,
+    ))?;
     for working_sub_dir in [
         rcc_setup_working_directory(&global_config.working_directory),
         environment_building_directory(&global_config.working_directory),
@@ -56,7 +60,7 @@ pub fn setup(
 
     let (surviving_plans, managed_dir_failures) = setup_managed_directories(plans);
     let (mut surviving_plans, working_dir_failures) =
-        setup_working_directories(global_config, surviving_plans);
+        setup_working_directories(global_config, surviving_plans, &ownership_setter);
 
     sort_plans_by_grouping(&mut surviving_plans);
     Ok((
@@ -71,8 +75,9 @@ pub fn setup(
 fn setup_working_directories(
     global_config: &GlobalConfig,
     plans: Vec<Plan>,
+    ownership_setter: &OwnershipSetter,
 ) -> (Vec<Plan>, Vec<SetupFailure>) {
-    let (surviving_plans, plan_failures) = setup_plan_working_directories(plans);
+    let (surviving_plans, plan_failures) = setup_plan_working_directories(plans, ownership_setter);
     let (surviving_plans, rcc_failures) =
         setup_rcc_working_directories(&global_config.working_directory, surviving_plans);
     (
@@ -81,7 +86,10 @@ fn setup_working_directories(
     )
 }
 
-fn setup_plan_working_directories(plans: Vec<Plan>) -> (Vec<Plan>, Vec<SetupFailure>) {
+fn setup_plan_working_directories(
+    plans: Vec<Plan>,
+    ownership_setter: &OwnershipSetter,
+) -> (Vec<Plan>, Vec<SetupFailure>) {
     let mut surviving_plans = Vec::new();
     let mut failures = vec![];
     for plan in plans.into_iter() {
@@ -99,6 +107,21 @@ fn setup_plan_working_directories(plans: Vec<Plan>) -> (Vec<Plan>, Vec<SetupFail
             });
             continue;
         }
+        if let Err(e) = ownership_setter.transfer_ownership_non_recursive(&plan.working_directory) {
+            let error = anyhow!(e);
+            error!(
+                "Plan {}: Failed to set ownership of working directory. Plan won't be scheduled.
+                 Error: {error:?}",
+                plan.id
+            );
+            failures.push(SetupFailure {
+                plan_id: plan.id.clone(),
+                summary: "Failed to set ownership of working directory".to_string(),
+                details: format!("{error:?}"),
+            });
+            continue;
+        }
+
         #[cfg(windows)]
         {
             use super::windows_permissions::{grant_full_access, reset_access};
