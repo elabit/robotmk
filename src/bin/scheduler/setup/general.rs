@@ -57,7 +57,7 @@ fn setup_working_directories(
     global_config: &GlobalConfig,
     plans: Vec<Plan>,
 ) -> (Vec<Plan>, Vec<SetupFailure>) {
-    let (surviving_plans, plan_failures) = setup_plans_working_directory(plans);
+    let (surviving_plans, plan_failures) = setup_plan_working_directories(plans);
     let (surviving_plans, rcc_failures) =
         setup_rcc_working_directories(&global_config.working_directory, surviving_plans);
     (
@@ -66,7 +66,7 @@ fn setup_working_directories(
     )
 }
 
-fn setup_plans_working_directory(plans: Vec<Plan>) -> (Vec<Plan>, Vec<SetupFailure>) {
+fn setup_plan_working_directories(plans: Vec<Plan>) -> (Vec<Plan>, Vec<SetupFailure>) {
     let mut surviving_plans = Vec::new();
     let mut failures = vec![];
     for plan in plans.into_iter() {
