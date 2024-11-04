@@ -58,7 +58,7 @@ pub fn run_attempts_with_rebot(
         plan_id: id,
         environment,
         session,
-        base_path: output_directory.join("rebot"),
+        runtime_base_path: output_directory.join("rebot"),
         cancellation_token,
         input_paths: &output_paths,
         path_xml: &output_directory.join("rebot.xml"),
@@ -84,7 +84,7 @@ fn run_attempt(
         .run(&RunSpec {
             id: &format!("robotmk_plan_{}_attempt_{}", id, attempt.index),
             command_spec: &environment.wrap(attempt.command_spec),
-            base_path: &output_directory.join(attempt.index.to_string()),
+            runtime_base_path: &output_directory.join(attempt.index.to_string()),
             timeout,
             cancellation_token,
         })

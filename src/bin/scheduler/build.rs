@@ -86,13 +86,13 @@ fn run_build_commands(
     session: &Session,
     start_time: DateTime<Utc>,
     cancellation_token: &CancellationToken,
-    base_path: &Utf8Path,
+    runtime_base_path: &Utf8Path,
 ) -> Result<BuildOutcome, Cancelled> {
     if let Some(command_spec) = &build_instructions.import_command_spec {
         let import_run_spec = RunSpec {
             id: &format!("robotmk_env_import_{id}"),
             command_spec,
-            base_path,
+            runtime_base_path,
             timeout: build_instructions.timeout,
             cancellation_token,
         };
@@ -103,7 +103,7 @@ fn run_build_commands(
             Ok(Outcome::Completed(_exit_code)) => {
                 error!("Environment import not successful, plan {id} will be dropped");
                 return Ok(BuildOutcome::Error(format!(
-                    "Environment import not successful, see {base_path} for stdio logs"
+                    "Environment import not successful, see {runtime_base_path} for stdio logs"
                 )));
             }
             Ok(Outcome::Timeout) => {
@@ -116,8 +116,7 @@ fn run_build_commands(
             }
             Err(e) => {
                 let log_error = e.context(anyhow!(
-                    "Environment import failed, plan {id} will be dropped. See {} for stdio logs",
-                    base_path,
+                    "Environment import failed, plan {id} will be dropped. See {runtime_base_path} for stdio logs",
                 ));
                 error!("{log_error:?}");
                 return Ok(BuildOutcome::Error(format!("{log_error:?}")));
@@ -134,7 +133,7 @@ fn run_build_commands(
     let build_run_spec = RunSpec {
         id: &format!("robotmk_env_building_{id}"),
         command_spec: &build_instructions.build_command_spec,
-        base_path,
+        runtime_base_path,
         timeout: build_instructions.timeout - elapsed,
         cancellation_token,
     };
@@ -147,7 +146,7 @@ fn run_build_commands(
         Ok(Outcome::Completed(_exit_code)) => {
             error!("Environment building not successful, plan {id} will be dropped");
             Ok(BuildOutcome::Error(format!(
-                "Environment building not successful, see {base_path} for stdio logs",
+                "Environment building not successful, see {runtime_base_path} for stdio logs",
             )))
         }
         Ok(Outcome::Timeout) => {
@@ -160,8 +159,7 @@ fn run_build_commands(
         }
         Err(e) => {
             let log_error = e.context(anyhow!(
-                "Environment building failed, plan {id} will be dropped. See {} for stdio logs",
-                base_path,
+                "Environment building failed, plan {id} will be dropped. See {runtime_base_path} for stdio logs",
             ));
             error!("{log_error:?}");
             Ok(BuildOutcome::Error(format!("{log_error:?}")))

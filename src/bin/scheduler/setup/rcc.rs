@@ -204,7 +204,7 @@ fn holotree_disable_sharing(
         let run_spec = &RunSpec {
             id: &format!("robotmk_{name}_{}", session.id()),
             command_spec: &command_spec,
-            base_path: &rcc_setup_working_directory(&global_config.working_directory)
+            runtime_base_path: &rcc_setup_working_directory(&global_config.working_directory)
                 .join(session.id())
                 .join(name),
             timeout: 120,
@@ -224,13 +224,13 @@ fn holotree_disable_sharing(
                     error!(
                         "Plan {}: Disabling RCC shared holotree exited non-successfully, see {} \
                          for stdio logs. Plan won't be scheduled.",
-                        plan.id, run_spec.base_path
+                        plan.id, run_spec.runtime_base_path
                     );
                     failures.push(SetupFailure {
                         plan_id: plan.id.clone(),
                         summary: "Disabling RCC shared holotree exited non-successfully"
                             .to_string(),
-                        details: format!("See {} for stdio logs", run_spec.base_path),
+                        details: format!("See {} for stdio logs", run_spec.runtime_base_path),
                     });
                 }
             }
@@ -285,16 +285,15 @@ fn run_command_spec_once_in_current_session(
 ) -> Result<(Vec<Plan>, Vec<SetupFailure>), Cancelled> {
     use robotmk::session::CurrentSession;
     let session = Session::Current(CurrentSession {});
-    let base_path = &rcc_setup_working_directory(&global_config.working_directory)
-        .join(session.id())
-        .join(id);
     Ok(
         match execute_run_spec_in_session(
             &session,
             &RunSpec {
                 id: &format!("robotmk_{id}"),
                 command_spec,
-                base_path,
+                runtime_base_path: &rcc_setup_working_directory(&global_config.working_directory)
+                    .join(session.id())
+                    .join(id),
                 timeout: 120,
                 cancellation_token: &global_config.cancellation_token,
             },
@@ -331,16 +330,15 @@ fn run_command_spec_per_session(
     let mut failures = vec![];
 
     for (session, plans) in plans_by_sessions(plans) {
-        let base_path = &rcc_setup_working_directory(&global_config.working_directory)
-            .join(session.id())
-            .join(id);
         debug!("Running {} for `{}`", command_spec, &session);
         match execute_run_spec_in_session(
             &session,
             &RunSpec {
                 id: &format!("robotmk_{id}"),
                 command_spec,
-                base_path,
+                runtime_base_path: &rcc_setup_working_directory(&global_config.working_directory)
+                    .join(session.id())
+                    .join(id),
                 timeout: 120,
                 cancellation_token: &global_config.cancellation_token,
             },
@@ -401,7 +399,7 @@ fn execute_run_spec_in_session(
         );
         Ok(Some(format!(
             "Non-zero exit code, see {} for stdio logs",
-            run_spec.base_path
+            run_spec.runtime_base_path
         )))
     }
 }

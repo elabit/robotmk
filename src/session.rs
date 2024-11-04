@@ -73,7 +73,7 @@ impl Display for UserSession {
 pub struct RunSpec<'a> {
     pub id: &'a str,
     pub command_spec: &'a CommandSpec,
-    pub base_path: &'a Utf8Path,
+    pub runtime_base_path: &'a Utf8Path,
     pub timeout: u64,
     pub cancellation_token: &'a CancellationToken,
 }
@@ -83,8 +83,8 @@ impl CurrentSession {
         match (ChildProcessSupervisor {
             command_spec: spec.command_spec,
             stdio_paths: Some(StdioPaths {
-                stdout: Utf8PathBuf::from(format!("{}.stdout", spec.base_path)),
-                stderr: Utf8PathBuf::from(format!("{}.stderr", spec.base_path)),
+                stdout: Utf8PathBuf::from(format!("{}.stdout", spec.runtime_base_path)),
+                stderr: Utf8PathBuf::from(format!("{}.stderr", spec.runtime_base_path)),
             }),
             timeout: spec.timeout,
             cancellation_token: spec.cancellation_token,
@@ -112,7 +112,7 @@ impl UserSession {
             task_name: spec.id,
             command_spec: spec.command_spec,
             user_name: &self.user_name,
-            base_path: spec.base_path,
+            runtime_base_path: spec.runtime_base_path,
             timeout: spec.timeout,
             cancellation_token: spec.cancellation_token,
         })

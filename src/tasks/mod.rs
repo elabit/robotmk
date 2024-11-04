@@ -11,7 +11,7 @@ pub struct TaskSpec<'a> {
     pub task_name: &'a str,
     pub command_spec: &'a CommandSpec,
     pub user_name: &'a str,
-    pub base_path: &'a Utf8Path,
+    pub runtime_base_path: &'a Utf8Path,
     pub timeout: u64,
     pub cancellation_token: &'a CancellationToken,
 }
