@@ -20,6 +20,19 @@ pub fn setup(
     global_config: &GlobalConfig,
     plans: Vec<Plan>,
 ) -> Result<(Vec<Plan>, Vec<SetupFailure>), Terminate> {
+    let ownership_setter = {
+        #[cfg(unix)]
+        {
+            OwnershipSetter::make_for_current_user()
+        }
+        #[cfg(windows)]
+        {
+            OwnershipSetter {}
+        }
+    };
+
+    create_dir_all(&global_config.runtime_base_directory)?;
+    ownership_setter.transfer_ownership_non_recursive(&global_config.runtime_base_directory)?;
     create_dir_all(&global_config.working_directory)?;
     create_dir_all(plans_working_directory(&global_config.working_directory))?;
     for working_sub_dir in [
