@@ -1,5 +1,3 @@
-#![allow(dead_code)]
-
 use super::plans_by_sessions;
 use super::rcc::rcc_setup_working_directory;
 use crate::internal_config::{
@@ -56,8 +54,8 @@ pub fn setup(
         remove_dir_all(&global_config.managed_directory)?;
     }
     create_dir_all(&global_config.managed_directory)?;
-    setup_results_directories(global_config, &plans)?;
 
+    setup_results_directories(global_config, &plans, &ownership_setter)?;
     let (surviving_plans, managed_dir_failures) = setup_managed_directories(plans);
     let (mut surviving_plans, working_dir_failures) =
         setup_working_directories(global_config, surviving_plans, &ownership_setter);
@@ -390,9 +388,14 @@ fn setup_with_one_directory_for_current_session(
     }
 }
 
-fn setup_results_directories(global_config: &GlobalConfig, plans: &[Plan]) -> AnyhowResult<()> {
+fn setup_results_directories(
+    global_config: &GlobalConfig,
+    plans: &[Plan],
+    ownership_setter: &OwnershipSetter,
+) -> AnyhowResult<()> {
     create_dir_all(&global_config.results_directory)?;
     create_dir_all(plan_results_directory(&global_config.results_directory))?;
+    ownership_setter.transfer_directory_ownership_recursive(&global_config.results_directory)?;
     clean_up_results_directory(global_config, plans).context("Failed to clean up results directory")
 }
 
