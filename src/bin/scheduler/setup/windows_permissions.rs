@@ -10,22 +10,6 @@ use robotmk::config::{RCCConfig, RCCProfileConfig};
 use robotmk::results::SetupFailure;
 use robotmk::session::Session;
 
-pub fn run_icacls_command<'a>(arguments: impl IntoIterator<Item = &'a str>) -> anyhow::Result<()> {
-    let mut command = Command::new("icacls.exe");
-    command.args(arguments);
-    let output = command
-        .output()
-        .context(format!("Calling icacls.exe failed. Command:\n{command:?}"))?;
-    if !output.status.success() {
-        bail!(
-            "icacls.exe exited non-successfully.\n\nCommand:\n{command:?}\n\nStdout:\n{}\n\nStderr:\n{}",
-            String::from_utf8_lossy(&output.stdout),
-            String::from_utf8_lossy(&output.stderr)
-        )
-    }
-    Ok(())
-}
-
 pub fn grant_permissions_to_all_plan_users(
     path: &Utf8Path,
     plans: Vec<Plan>,
@@ -134,4 +118,51 @@ pub fn adjust_rcc_file_permissions(
             .chain(rcc_profile_file_permissions_failures)
             .collect(),
     )
+}
+
+pub fn transfer_ownership_to_admin_group_non_recursive(
+    target_path: &Utf8Path,
+) -> anyhow::Result<()> {
+    run_takeown_command(["/a", "/f", target_path.as_str()]).map_err(|e| {
+        e.context(format!(
+            "Transfering ownership of {target_path} to administrator group failed (non-recursive)"
+        ))
+    })
+}
+
+pub fn transfer_directory_ownership_to_admin_group_recursive(
+    target_path: &Utf8Path,
+) -> anyhow::Result<()> {
+    run_takeown_command(["/a", "/r", "/f", target_path.as_str()]).map_err(|e| {
+        e.context(format!(
+            "Transfering ownership of {target_path} to administrator group failed (recursive)"
+        ))
+    })
+}
+
+fn run_command<'a>(
+    program: &'a str,
+    arguments: impl IntoIterator<Item = &'a str>,
+) -> anyhow::Result<()> {
+    let mut command = Command::new(program);
+    command.args(arguments);
+    let output = command
+        .output()
+        .context(format!("Calling {program} failed. Command:\n{command:?}"))?;
+    if !output.status.success() {
+        bail!(
+            "{program} exited non-successfully.\n\nCommand:\n{command:?}\n\nStdout:\n{}\n\nStderr:\n{}",
+            String::from_utf8_lossy(&output.stdout),
+            String::from_utf8_lossy(&output.stderr)
+        )
+    }
+    Ok(())
+}
+
+fn run_icacls_command<'a>(arguments: impl IntoIterator<Item = &'a str>) -> anyhow::Result<()> {
+    run_command("icacls.exe", arguments)
+}
+
+fn run_takeown_command<'a>(arguments: impl IntoIterator<Item = &'a str>) -> anyhow::Result<()> {
+    run_command("takeown.exe", arguments)
 }
