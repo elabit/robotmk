@@ -110,13 +110,14 @@ fn rcc_main(rcc_binary_path: Utf8PathBuf) -> AnyhowResult<()> {
         controller: "termination_rcc".into(),
         space: "termination_rcc".into(),
         build_timeout: 1200,
+        build_runtime_directory: test_dir.clone(),
     });
     let session = Session::Current(CurrentSession {});
     let build_instructions = rcc_environment.build_instructions().unwrap();
     let run_spec = RunSpec {
         id: "unused_id",
         command_spec: &build_instructions.build_command_spec,
-        runtime_base_path: &test_dir,
+        runtime_base_path: &build_instructions.runtime_directory,
         timeout: build_instructions.timeout,
         cancellation_token: &CancellationToken::new(),
     };

@@ -1,8 +1,8 @@
 use super::plans_by_sessions;
 use super::rcc::rcc_setup_working_directory;
-use crate::build::environment_building_working_directory;
 use crate::internal_config::{
-    plans_working_directory, sort_plans_by_grouping, GlobalConfig, Plan, Source,
+    environment_building_directory, plans_working_directory, sort_plans_by_grouping, GlobalConfig,
+    Plan, Source,
 };
 
 use anyhow::{anyhow, Context, Result as AnyhowResult};
@@ -22,7 +22,7 @@ pub fn setup(
     create_dir_all(plans_working_directory(&global_config.working_directory))?;
     for working_sub_dir in [
         rcc_setup_working_directory(&global_config.working_directory),
-        environment_building_working_directory(&global_config.working_directory),
+        environment_building_directory(&global_config.working_directory),
     ] {
         if working_sub_dir.exists() {
             remove_dir_all(&working_sub_dir)?;
@@ -143,7 +143,7 @@ fn setup_rcc_working_directories(
         .into_iter()
         .partition(|plan| matches!(plan.environment, Environment::Rcc(_)));
     let (surviving_plans, environment_failures) = setup_with_one_directory_per_user(
-        &environment_building_working_directory(working_directory),
+        &environment_building_directory(working_directory),
         rcc_plans,
         "environment building",
     );

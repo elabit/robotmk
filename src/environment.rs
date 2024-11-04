@@ -10,6 +10,7 @@ pub enum ResultCode {
 }
 
 #[derive(Clone, Debug, PartialEq)]
+#[allow(clippy::large_enum_variant)]
 pub enum Environment {
     System(SystemEnvironment),
     Rcc(RCCEnvironment),
@@ -27,6 +28,7 @@ pub struct RCCEnvironment {
     pub controller: String,
     pub space: String,
     pub build_timeout: u64,
+    pub build_runtime_directory: Utf8PathBuf,
 }
 
 impl Environment {
@@ -35,6 +37,7 @@ impl Environment {
         plan_id: &str,
         rcc_binary_path: &Utf8Path,
         environment_config: &EnvironmentConfig,
+        build_runtime_directory: &Utf8Path,
     ) -> Self {
         match environment_config {
             EnvironmentConfig::System => Self::System(SystemEnvironment {}),
@@ -46,6 +49,7 @@ impl Environment {
                 controller: String::from("robotmk"),
                 space: plan_id.to_string(),
                 build_timeout: rcc_environment_config.build_timeout,
+                build_runtime_directory: build_runtime_directory.to_path_buf(),
             }),
         }
     }
@@ -127,6 +131,7 @@ impl RCCEnvironment {
             import_command_spec,
             build_command_spec,
             timeout: self.build_timeout,
+            runtime_directory: self.build_runtime_directory.clone(),
         })
     }
 
@@ -184,6 +189,7 @@ pub struct BuildInstructions {
     pub import_command_spec: Option<CommandSpec>,
     pub build_command_spec: CommandSpec,
     pub timeout: u64,
+    pub runtime_directory: Utf8PathBuf,
 }
 
 #[cfg(test)]
@@ -217,6 +223,7 @@ mod tests {
                 controller: String::from("robotmk"),
                 space: String::from("my_plan"),
                 build_timeout: 123,
+                build_runtime_directory: Utf8PathBuf::from("/runtime")
             }
             .build_instructions()
             .unwrap(),
@@ -224,6 +231,7 @@ mod tests {
                 import_command_spec: None,
                 build_command_spec: expected_command_spec,
                 timeout: 123,
+                runtime_directory: Utf8PathBuf::from("/runtime")
             }
         )
     }
@@ -275,6 +283,7 @@ mod tests {
                 controller: String::from("robotmk"),
                 space: String::from("my_plan"),
                 build_timeout: 600,
+                build_runtime_directory: Utf8PathBuf::default()
             }
             .wrap(command_spec_for_wrap()),
             expected

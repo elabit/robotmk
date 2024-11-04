@@ -13,10 +13,6 @@ use log::{error, info};
 use std::collections::HashMap;
 use tokio_util::sync::CancellationToken;
 
-pub fn environment_building_working_directory(working_directory: &Utf8Path) -> Utf8PathBuf {
-    working_directory.join("environment_building")
-}
-
 pub fn build_environments(
     global_config: &GlobalConfig,
     plans: Vec<Plan>,
@@ -26,9 +22,6 @@ pub fn build_environments(
         &global_config.results_directory,
         &global_config.results_directory_locker,
     )?;
-    let working_directory =
-        environment_building_working_directory(&global_config.working_directory);
-
     let mut completed_plans = Vec::new();
     for plan in plans.into_iter() {
         let outcome = build_environment(
@@ -37,7 +30,6 @@ pub fn build_environments(
             &plan.session,
             &global_config.cancellation_token,
             &mut build_stage_reporter,
-            &working_directory,
         )?;
         match outcome {
             BuildOutcome::NotNeeded | BuildOutcome::Success(_) => completed_plans.push(plan),
@@ -53,7 +45,6 @@ fn build_environment(
     session: &Session,
     cancellation_token: &CancellationToken,
     build_stage_reporter: &mut BuildStageReporter,
-    working_directory: &Utf8Path,
 ) -> Result<BuildOutcome, Terminate> {
     let Some(build_instructions) = environment.build_instructions() else {
         let outcome = BuildOutcome::NotNeeded;
@@ -61,7 +52,6 @@ fn build_environment(
         build_stage_reporter.update(id, EnvironmentBuildStage::Complete(outcome.clone()))?;
         return Ok(outcome);
     };
-    let base_path = &working_directory.join(session.id()).join(id);
     info!("Building environment for plan {id}");
     let start_time = Utc::now();
     build_stage_reporter.update(
@@ -74,7 +64,6 @@ fn build_environment(
         session,
         start_time,
         cancellation_token,
-        base_path,
     )?;
     build_stage_reporter.update(id, EnvironmentBuildStage::Complete(outcome.clone()))?;
     Ok(outcome)
@@ -86,13 +75,12 @@ fn run_build_commands(
     session: &Session,
     start_time: DateTime<Utc>,
     cancellation_token: &CancellationToken,
-    runtime_base_path: &Utf8Path,
 ) -> Result<BuildOutcome, Cancelled> {
     if let Some(command_spec) = &build_instructions.import_command_spec {
         let import_run_spec = RunSpec {
             id: &format!("robotmk_env_import_{id}"),
             command_spec,
-            runtime_base_path,
+            runtime_base_path: &build_instructions.runtime_directory.join(id),
             timeout: build_instructions.timeout,
             cancellation_token,
         };
@@ -103,7 +91,8 @@ fn run_build_commands(
             Ok(Outcome::Completed(_exit_code)) => {
                 error!("Environment import not successful, plan {id} will be dropped");
                 return Ok(BuildOutcome::Error(format!(
-                    "Environment import not successful, see {runtime_base_path} for stdio logs"
+                    "Environment import not successful, see {} for stdio logs",
+                    build_instructions.runtime_directory
                 )));
             }
             Ok(Outcome::Timeout) => {
@@ -116,7 +105,8 @@ fn run_build_commands(
             }
             Err(e) => {
                 let log_error = e.context(anyhow!(
-                    "Environment import failed, plan {id} will be dropped. See {runtime_base_path} for stdio logs",
+                    "Environment import failed, plan {id} will be dropped. See {} for stdio logs",
+                    build_instructions.runtime_directory
                 ));
                 error!("{log_error:?}");
                 return Ok(BuildOutcome::Error(format!("{log_error:?}")));
@@ -133,7 +123,7 @@ fn run_build_commands(
     let build_run_spec = RunSpec {
         id: &format!("robotmk_env_building_{id}"),
         command_spec: &build_instructions.build_command_spec,
-        runtime_base_path,
+        runtime_base_path: &build_instructions.runtime_directory.join(id),
         timeout: build_instructions.timeout - elapsed,
         cancellation_token,
     };
@@ -146,7 +136,8 @@ fn run_build_commands(
         Ok(Outcome::Completed(_exit_code)) => {
             error!("Environment building not successful, plan {id} will be dropped");
             Ok(BuildOutcome::Error(format!(
-                "Environment building not successful, see {runtime_base_path} for stdio logs",
+                "Environment building not successful, see {} for stdio logs",
+                build_instructions.runtime_directory
             )))
         }
         Ok(Outcome::Timeout) => {
@@ -159,7 +150,8 @@ fn run_build_commands(
         }
         Err(e) => {
             let log_error = e.context(anyhow!(
-                "Environment building failed, plan {id} will be dropped. See {runtime_base_path} for stdio logs",
+                "Environment building failed, plan {id} will be dropped. See {} for stdio logs",
+                build_instructions.runtime_directory
             ));
             error!("{log_error:?}");
             Ok(BuildOutcome::Error(format!("{log_error:?}")))
