@@ -1,3 +1,5 @@
+#![allow(dead_code)]
+
 use super::plans_by_sessions;
 use super::rcc::rcc_setup_working_directory;
 use crate::internal_config::{
@@ -425,6 +427,77 @@ fn clean_up_results_directory(
         top_level_files(&plan_results_directory(&global_config.results_directory))?.iter(),
     )?;
     Ok(results_directory_lock.release()?)
+}
+
+#[cfg(unix)]
+struct OwnershipSetter {
+    user_id: u32,
+    group_id: u32,
+}
+
+#[cfg(windows)]
+struct OwnershipSetter {}
+
+impl OwnershipSetter {
+    #[cfg(unix)]
+    pub fn make_for_current_user() -> Self {
+        Self {
+            user_id: unsafe { libc::getuid() },
+            group_id: unsafe { libc::getgid() },
+        }
+    }
+
+    pub fn transfer_ownership_non_recursive(&self, target: &Utf8Path) -> AnyhowResult<()> {
+        #[cfg(unix)]
+        {
+            self.take_ownership_non_recursive(target).context(format!(
+                "Failed to set ownership of {target} to `{}:{}` (non-recursive)",
+                self.user_id, self.group_id
+            ))
+        }
+        #[cfg(windows)]
+        {
+            super::windows_permissions::transfer_ownership_to_admin_group_non_recursive(target)
+        }
+    }
+
+    pub fn transfer_directory_ownership_recursive(&self, target: &Utf8Path) -> AnyhowResult<()> {
+        #[cfg(unix)]
+        {
+            self.take_ownership_recursive(target).context(format!(
+                "Failed to set ownership of {target} to `{}:{}` (recursive)",
+                self.user_id, self.group_id
+            ))
+        }
+        #[cfg(windows)]
+        {
+            super::windows_permissions::transfer_directory_ownership_to_admin_group_recursive(
+                target,
+            )
+        }
+    }
+
+    #[cfg(unix)]
+    fn take_ownership_non_recursive(&self, target: &Utf8Path) -> std::io::Result<()> {
+        std::os::unix::fs::lchown(target, Some(self.user_id), Some(self.group_id))
+    }
+
+    #[cfg(unix)]
+    fn take_ownership_recursive(&self, target: &Utf8Path) -> std::io::Result<()> {
+        self.take_ownership_non_recursive(target)?;
+
+        if target.is_symlink() {
+            return Ok(());
+        }
+
+        if target.is_dir() {
+            for entry in target.read_dir_utf8()? {
+                self.take_ownership_recursive(entry?.path())?;
+            }
+        }
+
+        Ok(())
+    }
 }
 
 fn top_level_directories(directory: &Utf8Path) -> AnyhowResult<Vec<Utf8PathBuf>> {
