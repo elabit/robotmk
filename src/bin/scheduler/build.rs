@@ -80,7 +80,9 @@ fn run_build_commands(
         let import_run_spec = RunSpec {
             id: &format!("robotmk_env_import_{id}"),
             command_spec,
-            runtime_base_path: &build_instructions.runtime_directory.join(id),
+            runtime_base_path: &build_instructions
+                .runtime_directory
+                .join(format!("{id}_import")),
             timeout: build_instructions.timeout,
             cancellation_token,
         };
@@ -123,7 +125,9 @@ fn run_build_commands(
     let build_run_spec = RunSpec {
         id: &format!("robotmk_env_building_{id}"),
         command_spec: &build_instructions.build_command_spec,
-        runtime_base_path: &build_instructions.runtime_directory.join(id),
+        runtime_base_path: &build_instructions
+            .runtime_directory
+            .join(format!("{id}_build")),
         timeout: build_instructions.timeout - elapsed,
         cancellation_token,
     };
