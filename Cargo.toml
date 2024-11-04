@@ -15,6 +15,7 @@ ctrlc = { version = "3.4.2", features = ["termination"] }
 flate2 = "1.0.30"
 flexi_logger = "0.27.3"
 fs4 = "0.7.0"
+libc = "0.2.161"
 log = "0.4.20"
 nix = { version = "0.29.0", features = ["signal"] }
 serde = { version = "1.0.194", features = ["derive"] }
