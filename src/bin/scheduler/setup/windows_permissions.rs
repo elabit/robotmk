@@ -30,7 +30,6 @@ pub fn grant_permissions_to_all_plan_users(
     path: &Utf8Path,
     plans: Vec<Plan>,
     permissions: &str,
-    additional_icacls_args: &[&str],
     description_for_failure_reporting: &str,
 ) -> (Vec<Plan>, Vec<SetupFailure>) {
     let mut surviving_plans = vec![];
@@ -38,11 +37,14 @@ pub fn grant_permissions_to_all_plan_users(
 
     for (session, plans_in_session) in plans_by_sessions(plans) {
         if let Session::User(user_session) = session {
-            let icacls_permission_arg = format!("{}:{}", user_session.user_name, permissions);
-            let mut icacls_args = vec![path.as_str(), "/grant", &icacls_permission_arg];
-            icacls_args.extend(additional_icacls_args);
-
-            match run_icacls_command(icacls_args).context(format!(
+            match run_icacls_command([
+                path.as_str(),
+                "/grant",
+                &format!("{}:{}", user_session.user_name, permissions),
+                "/T",
+                "/L",
+            ])
+            .context(format!(
                 "Adjusting permissions of {path} for user `{}` failed",
                 user_session.user_name
             )) {
@@ -79,6 +81,7 @@ pub fn grant_full_access(user: &str, target_path: &Utf8Path) -> anyhow::Result<(
         "/grant",
         &format!("{user}:(OI)(CI)F"),
         "/T",
+        "/L",
     ];
     run_icacls_command(arguments).map_err(|e| {
         let message = format!("Adjusting permissions of {target_path} for user `{user}` failed");
@@ -87,7 +90,7 @@ pub fn grant_full_access(user: &str, target_path: &Utf8Path) -> anyhow::Result<(
 }
 
 pub fn reset_access(target_path: &Utf8Path) -> anyhow::Result<()> {
-    let arguments = [target_path.as_ref(), "/reset", "/T"];
+    let arguments = [target_path.as_ref(), "/reset", "/T", "/L"];
     run_icacls_command(arguments).map_err(|e| {
         let message = format!("Resetting permissions of {target_path} failed");
         e.context(message)
@@ -107,7 +110,6 @@ pub fn adjust_rcc_file_permissions(
             &rcc_config.binary_path,
             rcc_plans,
             "(RX)",
-            &[],
             "RCC binary",
         );
 
@@ -122,7 +124,6 @@ pub fn adjust_rcc_file_permissions(
                 &custom_rcc_profile_config.path,
                 surviving_rcc_plans,
                 "(R)",
-                &[],
                 "RCC profile file",
             );
     }
