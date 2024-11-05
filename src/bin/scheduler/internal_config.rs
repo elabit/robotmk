@@ -96,6 +96,7 @@ pub fn from_external_config(
                     )
                 }
             };
+            let session = Session::new(&plan_config.session_config);
             plans.push(Plan {
                 id: plan_config.id.clone(),
                 source,
@@ -132,13 +133,14 @@ pub fn from_external_config(
                 ),
                 environment: Environment::new(
                     &plan_source_dir,
+                    &session.robocorp_home(&global_config.rcc_config.robocorp_home_base),
                     &plan_config.id,
                     &global_config.rcc_config.binary_path,
                     &plan_config.environment_config,
                     &environment_building_directory(&global_config.working_directory)
                         .join(&plan_config.id),
                 ),
-                session: Session::new(&plan_config.session_config),
+                session,
                 working_directory_cleanup_config: plan_config.working_directory_cleanup_config,
                 cancellation_token: cancellation_token.clone(),
                 host: plan_config.host,
@@ -329,7 +331,15 @@ mod tests {
                 controller: "robotmk".into(),
                 space: "rcc".into(),
                 build_timeout: 300,
-                build_runtime_directory: Utf8PathBuf::from("/working/environment_building/rcc")
+                build_runtime_directory: Utf8PathBuf::from("/working/environment_building/rcc"),
+                #[cfg(unix)]
+                robocorp_home: Utf8PathBuf::from("/rc_home_base")
+                    .join("current_user")
+                    .to_string(),
+                #[cfg(windows)]
+                robocorp_home: Utf8PathBuf::from("/rc_home_base")
+                    .join("user_user")
+                    .to_string(),
             })
         );
         assert_eq!(

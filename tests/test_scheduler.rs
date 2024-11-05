@@ -568,7 +568,15 @@ async fn assert_rcc(
 ) -> AnyhowResult<()> {
     #[cfg(windows)]
     assert_rcc_files_permissions(rcc_config, headed_user_name).await?;
-    assert_rcc_configuration(rcc_config).await?;
+    assert_rcc_configuration(
+        rcc_config,
+        rcc_config
+            .robocorp_home_base
+            .join("current_user")
+            .to_string()
+            .as_str(),
+    )
+    .await?;
     #[cfg(windows)]
     assert_rcc_longpath_support_enabled(&rcc_config.binary_path).await?;
     Ok(())
@@ -590,8 +598,8 @@ async fn assert_rcc_files_permissions(
     .await
 }
 
-async fn assert_rcc_configuration(rcc_config: &RCCConfig) -> AnyhowResult<()> {
-    let diagnostics = read_configuration_diagnostics(&rcc_config.binary_path)?;
+async fn assert_rcc_configuration(rcc_config: &RCCConfig, robocorp_home: &str) -> AnyhowResult<()> {
+    let diagnostics = read_configuration_diagnostics(&rcc_config.binary_path, robocorp_home)?;
     assert_eq!(
         diagnostics
             .details

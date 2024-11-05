@@ -111,6 +111,7 @@ fn rcc_main(rcc_binary_path: Utf8PathBuf) -> AnyhowResult<()> {
         space: "termination_rcc".into(),
         build_timeout: 1200,
         build_runtime_directory: test_dir.clone(),
+        robocorp_home: test_dir.join("robocorp_home").to_string(),
     });
     let session = Session::Current(CurrentSession {});
     let build_instructions = rcc_environment.build_instructions().unwrap();
