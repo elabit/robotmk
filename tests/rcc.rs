@@ -10,12 +10,14 @@ pub struct ConfigurationDiagnostics {
 
 pub fn read_configuration_diagnostics(
     binary_path: &Utf8Path,
+    robocorp_home: &str,
 ) -> anyhow::Result<ConfigurationDiagnostics> {
     let mut config_diag_command = Command::new(binary_path);
     config_diag_command
         .arg("configuration")
         .arg("diagnostics")
-        .arg("--json");
+        .arg("--json")
+        .env("ROBOCORP_HOME", robocorp_home);
     let stdout = String::from_utf8(config_diag_command.output()?.stdout)?;
     let diagnostics: ConfigurationDiagnostics = serde_json::from_str(&stdout)?;
     Ok(diagnostics)

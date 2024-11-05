@@ -39,6 +39,10 @@ impl Session {
             Self::User(session) => session.id(),
         }
     }
+
+    pub fn robocorp_home(&self, robocorp_home_base: &Utf8Path) -> Utf8PathBuf {
+        robocorp_home_base.join(self.id())
+    }
 }
 
 impl Display for Session {

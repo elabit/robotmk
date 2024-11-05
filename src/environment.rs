@@ -29,11 +29,13 @@ pub struct RCCEnvironment {
     pub space: String,
     pub build_timeout: u64,
     pub build_runtime_directory: Utf8PathBuf,
+    pub robocorp_home: String,
 }
 
 impl Environment {
     pub fn new(
         base_dir: &Utf8Path,
+        robocorp_home: &Utf8Path,
         plan_id: &str,
         rcc_binary_path: &Utf8Path,
         environment_config: &EnvironmentConfig,
@@ -50,6 +52,7 @@ impl Environment {
                 space: plan_id.to_string(),
                 build_timeout: rcc_environment_config.build_timeout,
                 build_runtime_directory: build_runtime_directory.to_path_buf(),
+                robocorp_home: robocorp_home.to_string(),
             }),
         }
     }
@@ -94,22 +97,25 @@ impl SystemEnvironment {
 }
 
 impl RCCEnvironment {
-    pub fn bundled_command_spec(binary_path: &Utf8Path) -> CommandSpec {
+    pub fn bundled_command_spec(binary_path: &Utf8Path, robocorp_home: String) -> CommandSpec {
         let mut command_spec = CommandSpec::new(binary_path);
         command_spec.add_argument("--bundled");
+        command_spec.add_env("ROBOCORP_HOME".to_string(), robocorp_home);
         command_spec
     }
 
-    fn build_instructions(&self) -> Option<BuildInstructions> {
+    pub fn build_instructions(&self) -> Option<BuildInstructions> {
         let import_command_spec = self.catalog_zip.as_ref().map(|zip| {
-            let mut spec = Self::bundled_command_spec(&self.binary_path);
+            let mut spec =
+                Self::bundled_command_spec(&self.binary_path, self.robocorp_home.clone());
             spec.add_argument("holotree")
                 .add_argument("import")
                 .add_argument(zip);
             spec
         });
 
-        let mut build_command_spec = Self::bundled_command_spec(&self.binary_path);
+        let mut build_command_spec =
+            Self::bundled_command_spec(&self.binary_path, self.robocorp_home.clone());
         build_command_spec
             .add_argument("task")
             .add_argument("script");
@@ -134,7 +140,8 @@ impl RCCEnvironment {
     }
 
     fn wrap(&self, command_spec: CommandSpec) -> CommandSpec {
-        let mut wrapped_spec = Self::bundled_command_spec(&self.binary_path);
+        let mut wrapped_spec =
+            Self::bundled_command_spec(&self.binary_path, self.robocorp_home.clone());
         wrapped_spec
             .add_argument("task")
             .add_argument("script")
@@ -213,7 +220,8 @@ mod tests {
                 "true",
                 #[cfg(windows)]
                 "cmd.exe",
-            );
+            )
+            .add_env(String::from("ROBOCORP_HOME"), String::from("~/.robocorp/"));
 
         assert_eq!(
             RCCEnvironment {
@@ -224,7 +232,8 @@ mod tests {
                 controller: String::from("robotmk"),
                 space: String::from("my_plan"),
                 build_timeout: 123,
-                build_runtime_directory: Utf8PathBuf::from("/runtime")
+                build_runtime_directory: Utf8PathBuf::from("/runtime"),
+                robocorp_home: String::from("~/.robocorp/"),
             }
             .build_instructions()
             .unwrap(),
@@ -274,7 +283,8 @@ mod tests {
             .add_argument("arg1")
             .add_argument("--flag")
             .add_argument("--option")
-            .add_argument("option_value");
+            .add_argument("option_value")
+            .add_env(String::from("ROBOCORP_HOME"), String::from("~/.robocorp/"));
         assert_eq!(
             RCCEnvironment {
                 binary_path: Utf8PathBuf::from("C:\\bin\\z.exe"),
@@ -284,7 +294,8 @@ mod tests {
                 controller: String::from("robotmk"),
                 space: String::from("my_plan"),
                 build_timeout: 600,
-                build_runtime_directory: Utf8PathBuf::default()
+                build_runtime_directory: Utf8PathBuf::default(),
+                robocorp_home: String::from("~/.robocorp/"),
             }
             .wrap(command_spec_for_wrap()),
             expected

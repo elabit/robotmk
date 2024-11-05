@@ -1,6 +1,7 @@
 use super::plans_by_sessions;
 use crate::internal_config::{sort_plans_by_grouping, GlobalConfig, Plan};
 use crate::logging::log_and_return_error;
+#[cfg(windows)]
 use robotmk::command_spec::CommandSpec;
 use robotmk::environment::{Environment, RCCEnvironment};
 use robotmk::results::SetupFailure;
@@ -89,13 +90,10 @@ fn disable_rcc_telemetry(
     global_config: &GlobalConfig,
     plans: Vec<Plan>,
 ) -> Result<(Vec<Plan>, Vec<SetupFailure>), Cancelled> {
-    let mut command_spec =
-        RCCEnvironment::bundled_command_spec(&global_config.rcc_config.binary_path);
-    command_spec.add_arguments(["configure", "identity", "--do-not-track"]);
-    run_command_spec_per_session(
+    run_rcc_per_session(
         global_config,
         plans,
-        &command_spec,
+        ["configure", "identity", "--do-not-track"],
         "telemetry_disabling",
         "Disabling RCC telemetry failed",
     )
@@ -117,13 +115,10 @@ fn configure_default_rcc_profile(
     global_config: &GlobalConfig,
     plans: Vec<Plan>,
 ) -> Result<(Vec<Plan>, Vec<SetupFailure>), Cancelled> {
-    let mut command_spec =
-        RCCEnvironment::bundled_command_spec(&global_config.rcc_config.binary_path);
-    command_spec.add_arguments(["configuration", "switch", "--noprofile"]);
-    run_command_spec_per_session(
+    run_rcc_per_session(
         global_config,
         plans,
-        &command_spec,
+        ["configuration", "switch", "--noprofile"],
         "default_profile_switch",
         "Switching to default RCC profile failed",
     )
@@ -134,33 +129,27 @@ fn configure_custom_rcc_profile(
     global_config: &GlobalConfig,
     plans: Vec<Plan>,
 ) -> Result<(Vec<Plan>, Vec<SetupFailure>), Cancelled> {
-    let mut command_spec_import =
-        RCCEnvironment::bundled_command_spec(&global_config.rcc_config.binary_path);
-    command_spec_import.add_arguments([
-        "configuration",
-        "import",
-        "--filename",
-        custom_rcc_profile_config.path.as_str(),
-    ]);
-    let (sucessful_plans_import, failures_import) = run_command_spec_per_session(
+    let (sucessful_plans_import, failures_import) = run_rcc_per_session(
         global_config,
         plans,
-        &command_spec_import,
+        [
+            "configuration",
+            "import",
+            "--filename",
+            custom_rcc_profile_config.path.as_str(),
+        ],
         "custom_profile_import",
         "Importing custom RCC profile failed",
     )?;
-    let mut command_spec_switch =
-        RCCEnvironment::bundled_command_spec(&global_config.rcc_config.binary_path);
-    command_spec_switch.add_arguments([
-        "configuration",
-        "switch",
-        "--profile",
-        custom_rcc_profile_config.name.as_str(),
-    ]);
-    let (sucessful_plans_switch, failures_switch) = run_command_spec_per_session(
+    let (sucessful_plans_switch, failures_switch) = run_rcc_per_session(
         global_config,
         sucessful_plans_import,
-        &command_spec_switch,
+        [
+            "configuration",
+            "switch",
+            "--profile",
+            custom_rcc_profile_config.name.as_str(),
+        ],
         "custom_profile_switch",
         "Switching to custom RCC porfile failed",
     )?;
@@ -176,8 +165,14 @@ fn enable_long_path_support(
     global_config: &GlobalConfig,
     plans: Vec<Plan>,
 ) -> Result<(Vec<Plan>, Vec<SetupFailure>), Cancelled> {
-    let mut command_spec =
-        RCCEnvironment::bundled_command_spec(&global_config.rcc_config.binary_path);
+    use robotmk::session::CurrentSession;
+    let session = Session::Current(CurrentSession {});
+    let mut command_spec = RCCEnvironment::bundled_command_spec(
+        &global_config.rcc_config.binary_path,
+        session
+            .robocorp_home(&global_config.rcc_config.robocorp_home_base)
+            .to_string(),
+    );
     command_spec.add_arguments(["configure", "longpaths", "--enable"]);
     run_command_spec_once_in_current_session(
         global_config,
@@ -192,13 +187,17 @@ fn holotree_disable_sharing(
     global_config: &GlobalConfig,
     plans: Vec<Plan>,
 ) -> Result<(Vec<Plan>, Vec<SetupFailure>), Cancelled> {
-    let mut command_spec =
-        RCCEnvironment::bundled_command_spec(&global_config.rcc_config.binary_path);
-    command_spec.add_arguments(["holotree", "init", "--revoke"]);
     let mut succesful_plans = vec![];
     let mut failures = vec![];
 
     for (session, plans) in plans_by_sessions(plans) {
+        let mut command_spec = RCCEnvironment::bundled_command_spec(
+            &global_config.rcc_config.binary_path,
+            session
+                .robocorp_home(&global_config.rcc_config.robocorp_home_base)
+                .to_string(),
+        );
+        command_spec.add_arguments(["holotree", "init", "--revoke"]);
         debug!("Running {} for `{}`", command_spec, &session);
         let name = "holotree_disabling_sharing";
         let run_spec = &RunSpec {
@@ -319,23 +318,33 @@ fn run_command_spec_once_in_current_session(
     )
 }
 
-fn run_command_spec_per_session(
+fn run_rcc_per_session<T>(
     global_config: &GlobalConfig,
     plans: Vec<Plan>,
-    command_spec: &CommandSpec,
+    arguments: impl IntoIterator<Item = T> + Copy,
     id: &str,
     failure_summary: &str,
-) -> Result<(Vec<Plan>, Vec<SetupFailure>), Cancelled> {
+) -> Result<(Vec<Plan>, Vec<SetupFailure>), Cancelled>
+where
+    T: AsRef<str>,
+{
     let mut succesful_plans = vec![];
     let mut failures = vec![];
 
     for (session, plans) in plans_by_sessions(plans) {
+        let mut command_spec = RCCEnvironment::bundled_command_spec(
+            &global_config.rcc_config.binary_path,
+            session
+                .robocorp_home(&global_config.rcc_config.robocorp_home_base)
+                .to_string(),
+        );
+        command_spec.add_arguments(arguments);
         debug!("Running {} for `{}`", command_spec, &session);
         match execute_run_spec_in_session(
             &session,
             &RunSpec {
                 id: &format!("robotmk_{id}"),
-                command_spec,
+                command_spec: &command_spec,
                 runtime_base_path: &rcc_setup_working_directory(&global_config.working_directory)
                     .join(session.id())
                     .join(id),
