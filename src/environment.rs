@@ -118,14 +118,12 @@ impl RCCEnvironment {
             build_command_spec
                 .add_env(String::from("RCC_REMOTE_ORIGIN"), remote_origin.to_string());
         }
-
-        let mut version_command_spec = Self::bundled_command_spec(&self.binary_path);
-        version_command_spec.add_argument("-v");
-
-        build_command_spec
-            .add_argument("--")
-            .add_argument(version_command_spec.executable)
-            .add_arguments(version_command_spec.arguments);
+        build_command_spec.add_argument("--").add_argument(
+            #[cfg(unix)]
+            "true",
+            #[cfg(windows)]
+            "cmd.exe",
+        );
 
         Some(BuildInstructions {
             import_command_spec,
@@ -210,9 +208,12 @@ mod tests {
             .add_argument("--space")
             .add_argument("my_plan")
             .add_argument("--")
-            .add_argument("/bin/rcc")
-            .add_argument("--bundled")
-            .add_argument("-v");
+            .add_argument(
+                #[cfg(unix)]
+                "true",
+                #[cfg(windows)]
+                "cmd.exe",
+            );
 
         assert_eq!(
             RCCEnvironment {
