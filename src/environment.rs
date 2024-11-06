@@ -98,13 +98,12 @@ impl RCCEnvironment {
             .add_argument("script");
         self.apply_current_settings(&mut build_command_spec);
 
-        let mut version_command_spec = Self::bundled_command_spec(&self.binary_path);
-        version_command_spec.add_argument("-v");
-
-        build_command_spec
-            .add_argument("--")
-            .add_argument(version_command_spec.executable)
-            .add_arguments(version_command_spec.arguments);
+        build_command_spec.add_argument("--").add_argument(
+            #[cfg(unix)]
+            "true",
+            #[cfg(windows)]
+            "cmd.exe",
+        );
 
         Some(BuildInstructions {
             command_spec: build_command_spec,
@@ -185,9 +184,12 @@ mod tests {
             .add_argument("--space")
             .add_argument("my_plan")
             .add_argument("--")
-            .add_argument("/bin/rcc")
-            .add_argument("--bundled")
-            .add_argument("-v");
+            .add_argument(
+                #[cfg(unix)]
+                "true",
+                #[cfg(windows)]
+                "cmd.exe",
+            );
 
         assert_eq!(
             RCCEnvironment {
