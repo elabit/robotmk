@@ -1,6 +1,6 @@
 pub mod helper;
 pub mod rcc;
-use crate::helper::{await_plan_results, directory_entries};
+use crate::helper::{await_plan_results, directory_entries, var};
 use crate::rcc::read_configuration_diagnostics;
 use anyhow::{bail, Result as AnyhowResult};
 use assert_cmd::cargo::cargo_bin;
@@ -15,7 +15,6 @@ use robotmk::config::{
 use robotmk::results::results_directory;
 use robotmk::section::Host;
 use serde_json::to_string;
-use std::env::var;
 #[cfg(windows)]
 use std::ffi::OsStr;
 use std::fs::{create_dir_all, remove_file, write};
