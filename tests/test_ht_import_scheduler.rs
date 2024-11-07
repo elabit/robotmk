@@ -1,6 +1,6 @@
 #![cfg(unix)]
 pub mod helper;
-use crate::helper::{await_plan_results, directory_entries};
+use crate::helper::{await_plan_results, directory_entries, var};
 use anyhow::{bail, Result as AnyhowResult};
 use assert_cmd::cargo::cargo_bin;
 use camino::{Utf8Path, Utf8PathBuf};
@@ -12,7 +12,6 @@ use robotmk::config::{
 use robotmk::results::results_directory;
 use robotmk::section::Host;
 use serde_json::to_string;
-use std::env::var;
 use std::fs::{create_dir_all, remove_file, write};
 use std::time::Duration;
 use tokio::{

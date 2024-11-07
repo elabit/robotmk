@@ -1,10 +1,19 @@
+use anyhow::Context;
 use camino::Utf8PathBuf;
 use robotmk::config::Config;
 use robotmk::results::{plan_results_directory, results_directory};
+use std::ffi::OsStr;
 use std::path::Path;
 use std::time::Duration;
 use tokio::time::sleep;
 use walkdir::WalkDir;
+
+pub fn var<K: AsRef<OsStr>>(key: K) -> anyhow::Result<String> {
+    std::env::var(key.as_ref()).context(format!(
+        "Could not read: {}",
+        key.as_ref().to_string_lossy()
+    ))
+}
 
 pub async fn await_plan_results(config: &Config) {
     let expected_result_files: Vec<Utf8PathBuf> = config
