@@ -152,7 +152,7 @@ async fn run_scheduler(
             if let Err(e) = remove_file(&run_flag_path) {
                 eprintln!("Removing run file failed: {e}");
             }
-            bail!(format!("No plan result files appeared with {n_seconds_run_max} seconds"))
+            bail!(format!("Not all plan result files appeared within {n_seconds_run_max} seconds"))
         },
     };
     remove_file(&run_flag_path)?;

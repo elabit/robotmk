@@ -359,7 +359,7 @@ async fn run_scheduler(
             bail!("Scheduler terminated unexpectedly")
         },
         _ = sleep(Duration::from_secs(n_seconds_run_max)) => {
-            bail!(format!("No plan result files appeared with {n_seconds_run_max} seconds"))
+            bail!(format!("Not all plan result files appeared within {n_seconds_run_max} seconds"))
         },
     };
     remove_file(&run_flag_path)?;
