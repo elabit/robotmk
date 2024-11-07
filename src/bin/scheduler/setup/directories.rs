@@ -56,18 +56,109 @@ pub fn setup(
     create_dir_all(&global_config.managed_directory)?;
 
     setup_results_directories(global_config, &plans, &ownership_setter)?;
+
     let (surviving_plans, managed_dir_failures) = setup_managed_directories(plans);
+    #[cfg(windows)]
+    let (surviving_plans, robocorp_home_failures) =
+        setup_robocorp_home_directories(global_config, surviving_plans);
     let (mut surviving_plans, working_dir_failures) =
         setup_working_directories(global_config, surviving_plans, &ownership_setter);
 
     sort_plans_by_grouping(&mut surviving_plans);
-    Ok((
-        surviving_plans,
-        managed_dir_failures
-            .into_iter()
-            .chain(working_dir_failures)
-            .collect(),
-    ))
+    #[cfg(windows)]
+    let failures = managed_dir_failures
+        .into_iter()
+        .chain(working_dir_failures)
+        .chain(robocorp_home_failures)
+        .collect();
+    #[cfg(unix)]
+    let failures = managed_dir_failures
+        .into_iter()
+        .chain(working_dir_failures)
+        .collect();
+    Ok((surviving_plans, failures))
+}
+
+#[cfg(windows)]
+fn setup_robocorp_home_directories(
+    global_config: &GlobalConfig,
+    plans: Vec<Plan>,
+) -> (Vec<Plan>, Vec<SetupFailure>) {
+    use super::windows_permissions::grant_full_access;
+    use log::info;
+    use robotmk::session::Session;
+
+    let mut rcc_plans = Vec::new();
+    let mut surviving_plans = Vec::new();
+    for plan in plans.into_iter() {
+        match plan.environment {
+            Environment::Rcc(_) => rcc_plans.push(plan),
+            _ => surviving_plans.push(plan),
+        }
+    }
+    let mut failures = Vec::new();
+
+    if let Err(e) = create_dir_all(&global_config.rcc_config.robocorp_home_base) {
+        let error = anyhow!(e);
+        for plan in rcc_plans {
+            error!(
+                "Plan {}: Failed to create {}. Plan won't be scheduled.
+                 Error: {error:?}",
+                plan.id, &global_config.rcc_config.robocorp_home_base,
+            );
+            failures.push(SetupFailure {
+                plan_id: plan.id.clone(),
+                summary: "Failed to create ROBOCORP_HOME base directory".to_string(),
+                details: format!("{error:?}"),
+            });
+        }
+        return (surviving_plans, failures);
+    }
+
+    for (session, plans_in_session) in plans_by_sessions(rcc_plans) {
+        let robocorp_home = session.robocorp_home(&global_config.rcc_config.robocorp_home_base);
+        if let Err(e) = create_dir_all(&robocorp_home) {
+            let error = anyhow!(e);
+            for plan in plans_in_session {
+                error!(
+                    "Plan {}: Failed to {robocorp_home}. Plan won't be scheduled.
+                     Error: {error:?}",
+                    plan.id
+                );
+                failures.push(SetupFailure {
+                    plan_id: plan.id.clone(),
+                    summary: "Failed to create ROBOCORP_HOME".to_string(),
+                    details: format!("{error:?}"),
+                });
+            }
+            continue;
+        }
+        if let Session::User(user_session) = session {
+            info!(
+                "Granting full access for {} to user `{}`.",
+                &robocorp_home, &user_session.user_name
+            );
+            if let Err(e) = grant_full_access(&user_session.user_name, &robocorp_home) {
+                let error = anyhow!(e);
+                for plan in plans_in_session {
+                    error!(
+                        "Plan {}: Failed to set permissions for {robocorp_home}. \
+                         Plan won't be scheduled.
+                         Error: {error:?}",
+                        plan.id
+                    );
+                    failures.push(SetupFailure {
+                        plan_id: plan.id.clone(),
+                        summary: "Failed to set permissions for ROBOCORP_HOME".to_string(),
+                        details: format!("{error:?}"),
+                    });
+                }
+                continue;
+            };
+        }
+        surviving_plans.extend(plans_in_session);
+    }
+    (surviving_plans, failures)
 }
 
 fn setup_working_directories(
