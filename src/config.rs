@@ -20,6 +20,7 @@ pub struct Config {
 pub struct RCCConfig {
     pub binary_path: Utf8PathBuf,
     pub profile_config: RCCProfileConfig,
+    pub robocorp_home_base: Utf8PathBuf,
 }
 
 #[derive(Clone, Debug, Deserialize, PartialEq, Serialize)]

@@ -61,6 +61,7 @@ async fn test_ht_import_scheduler() -> AnyhowResult<()> {
         RCCConfig {
             binary_path: rcc_binary,
             profile_config: RCCProfileConfig::Default,
+            robocorp_home_base: test_dir.join("rc_home_base"),
         },
     );
 
