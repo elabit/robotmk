@@ -60,7 +60,7 @@ pub fn setup(
     let (surviving_plans, managed_dir_failures) = setup_managed_directories(plans);
     #[cfg(windows)]
     let (surviving_plans, robocorp_home_failures) =
-        setup_robocorp_home_directories(global_config, surviving_plans);
+        setup_robocorp_home_directories(global_config, surviving_plans, &ownership_setter);
     let (mut surviving_plans, working_dir_failures) =
         setup_working_directories(global_config, surviving_plans, &ownership_setter);
 
@@ -83,6 +83,7 @@ pub fn setup(
 fn setup_robocorp_home_directories(
     global_config: &GlobalConfig,
     plans: Vec<Plan>,
+    ownership_setter: &OwnershipSetter,
 ) -> (Vec<Plan>, Vec<SetupFailure>) {
     use super::windows_permissions::grant_full_access;
     use log::info;
@@ -98,7 +99,10 @@ fn setup_robocorp_home_directories(
     }
     let mut failures = Vec::new();
 
-    if let Err(e) = create_dir_all(&global_config.rcc_config.robocorp_home_base) {
+    if let Err(e) = create_dir_all(&global_config.rcc_config.robocorp_home_base).and_then(|()| {
+        ownership_setter
+            .transfer_ownership_non_recursive(&global_config.rcc_config.robocorp_home_base)
+    }) {
         let error = anyhow!(e);
         for plan in rcc_plans {
             error!(
