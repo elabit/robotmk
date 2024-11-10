@@ -64,6 +64,7 @@ async fn test_scheduler() -> AnyhowResult<()> {
         RCCConfig {
             binary_path: var("RCC_BINARY_PATH")?.into(),
             profile_config: RCCProfileConfig::Custom(create_custom_rcc_profile(&test_dir)?),
+            robocorp_home_base: test_dir.join("rc_home_base"),
         },
         #[cfg(windows)]
         &current_user_name,

@@ -273,6 +273,7 @@ mod tests {
                         name: "Robotmk".into(),
                         path: "/rcc_profile_robotmk.yaml".into(),
                     }),
+                    robocorp_home_base: Utf8PathBuf::from("/rc_home_base"),
                 },
                 plan_groups: vec![
                     SequentialPlanGroup {
@@ -298,6 +299,7 @@ mod tests {
                     name: "Robotmk".into(),
                     path: "/rcc_profile_robotmk.yaml".into(),
                 }),
+                robocorp_home_base: Utf8PathBuf::from("/rc_home_base"),
             }
         );
         assert_eq!(plans.len(), 2);

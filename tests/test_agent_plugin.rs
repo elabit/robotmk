@@ -49,6 +49,7 @@ fn create_config(runtime_dir: &Utf8Path) -> Config {
         rcc_config: RCCConfig {
             binary_path: "".into(),
             profile_config: RCCProfileConfig::Default,
+            robocorp_home_base: "".into(),
         },
         plan_groups: vec![],
     }
