@@ -5,7 +5,7 @@ on:
   workflow_call: {}
 
 env:
-  RCC_TAG: "v17.18.0"  # Update omd/Licenses.csv in the Checkmk repo when changing this.
+  RCC_REF: "v17.29.1_micromamba_v1.5.8_from_github"  # Update omd/Licenses.csv in the Checkmk repo when changing this.
   GO_VERSION: "1.20.x"
   RUBY_VERSION: "2.7"
 
@@ -32,7 +32,7 @@ jobs:
       - id: restore-from-cache
         uses: actions/cache/restore@v4
         with:
-          key: rcc-${{ env.RCC_TAG }}-${{ env.GO_VERSION }}-${{ env.RUBY_VERSION }}
+          key: rcc-${{ env.RCC_REF }}-${{ env.GO_VERSION }}-${{ env.RUBY_VERSION }}
           path: build
           lookup-only: true
 
@@ -45,8 +45,8 @@ jobs:
     steps:
       - uses: actions/checkout@v4
         with:
-          repository: robocorp/rcc
-          ref: ${{ env.RCC_TAG }}
+          repository: elabit/rcc
+          ref: ${{ env.RCC_REF }}
       - uses: actions/setup-go@v3
         with:
           go-version: ${{ env.GO_VERSION }}
@@ -57,7 +57,7 @@ jobs:
       - run: rake test
       - uses: actions/cache/save@v4
         with:
-          key: rcc-${{ env.RCC_TAG }}-${{ env.GO_VERSION }}-${{ env.RUBY_VERSION }}
+          key: rcc-${{ env.RCC_REF }}-${{ env.GO_VERSION }}-${{ env.RUBY_VERSION }}
           path: build
 
   upload:
@@ -72,7 +72,7 @@ jobs:
       - uses: actions/cache/restore@v4
         with:
           path: build
-          key: rcc-${{ env.RCC_TAG }}-${{ env.GO_VERSION }}-${{ env.RUBY_VERSION }}
+          key: rcc-${{ env.RCC_REF }}-${{ env.GO_VERSION }}-${{ env.RUBY_VERSION }}
           fail-on-cache-miss: true
       - uses: actions/upload-artifact@v4
         with:
