@@ -5,27 +5,19 @@ use crate::internal_config::{
     Plan, Source,
 };
 
+use super::api::{self, log_plan_not_scheduled, run_steps, skip, SetupStep, StepWithPlans};
 #[cfg(windows)]
 use super::windows_permissions::{grant_full_access, reset_access};
 use anyhow::{anyhow, Context, Result as AnyhowResult};
 use camino::{Utf8Path, Utf8PathBuf};
-use log::error;
 #[cfg(windows)]
 use log::info;
 use robotmk::environment::Environment;
 use robotmk::fs::{create_dir_all, remove_dir_all, remove_file};
 use robotmk::results::{plan_results_directory, SetupFailure};
-#[cfg(windows)]
 use robotmk::session::Session;
 use robotmk::termination::Terminate;
 use std::collections::HashSet;
-
-fn log_plan_not_scheduled(error: &anyhow::Error, plan: &Plan, summary: &str) {
-    error!(
-        "Plan {}: {summary}. Plan won't be scheduled.\nCaused by: {error:?}",
-        plan.id
-    );
-}
 
 pub fn setup(
     global_config: &GlobalConfig,
@@ -70,7 +62,8 @@ pub fn setup(
 
     setup_results_directories(global_config, &plans, &ownership_setter)?;
 
-    let (surviving_plans, managed_dir_failures) = setup_managed_directories(plans);
+    let setup_steps = gather_managed_directories(global_config, plans);
+    let (surviving_plans, managed_dir_failures) = run_steps(setup_steps);
     #[cfg(windows)]
     let (surviving_plans, robocorp_home_failures) =
         setup_robocorp_home_directories(global_config, surviving_plans, &ownership_setter);
@@ -152,10 +145,7 @@ fn setup_robocorp_home_directories(
                 let error = anyhow!(e);
                 let summary = format!("Failed to set permissions for {robocorp_home}");
                 for plan in plans_in_session {
-                    error!(
-                        "Plan {}: Failed to set permissions for {robocorp_home}. Plan won't be scheduled.\n Caused by: {error:?}",
-                        plan.id
-                    );
+                    log_plan_not_scheduled(&error, &plan, &summary);
                     failures.push(SetupFailure {
                         plan_id: plan.id.clone(),
                         summary: summary.clone(),
@@ -447,46 +437,58 @@ fn setup_results_directories(
     clean_up_results_directory(global_config, plans).context("Failed to clean up results directory")
 }
 
-fn setup_managed_directories(plans: Vec<Plan>) -> (Vec<Plan>, Vec<SetupFailure>) {
-    let mut surviving_plans = Vec::new();
-    let mut failures = vec![];
-    for plan in plans {
-        if let Source::Managed { target, .. } = &plan.source {
-            if let Err(e) = create_dir_all(target) {
-                let error = anyhow!(e);
-                let summary = format!("Failed to create {target}");
-                log_plan_not_scheduled(&error, &plan, &summary);
-                failures.push(SetupFailure {
-                    plan_id: plan.id.clone(),
-                    summary,
-                    details: format!("{error:?}"),
-                });
-                continue;
-            }
-            #[cfg(windows)]
-            {
-                if let Session::User(user_session) = &plan.session {
-                    if let Err(error) = grant_full_access(&user_session.user_name, target) {
-                        let error = anyhow!(error);
-                        let summary = format!("Failed to set permissions for {target}");
-                        log_plan_not_scheduled(&error, &plan, &summary);
-                        failures.push(SetupFailure {
-                            plan_id: plan.id.clone(),
-                            summary,
-                            details: format!("{error:?}"),
-                        });
-                        continue;
-                    }
-                    info!(
-                        "Adjusted permissions for {} for user `{}`.",
-                        target, &user_session.user_name
-                    );
-                }
-            }
+struct StepManaged {
+    target: Utf8PathBuf,
+    session: Session,
+}
+
+impl SetupStep for StepManaged {
+    fn setup(&self) -> Result<(), api::Error> {
+        if let Err(err) = create_dir_all(&self.target) {
+            return Err(api::Error::new(
+                format!("Failed to create {}", self.target),
+                err,
+            ));
         }
-        surviving_plans.push(plan)
+        if let Session::User(user_session) = &self.session {
+            #[cfg(windows)]
+            if let Err(err) = grant_full_access(&user_session.user_name, &self.target) {
+                return Err(api::Error::new(
+                    format!("Failed to set permissions for {}", self.target),
+                    err,
+                ));
+            }
+            log::info!(
+                "Adjusted permissions for {} for user `{}`.",
+                &self.target,
+                user_session.user_name
+            );
+        }
+        Ok(())
     }
-    (surviving_plans, failures)
+}
+
+fn gather_managed_directories(
+    _global_config: &GlobalConfig,
+    plans: Vec<Plan>,
+) -> Vec<StepWithPlans> {
+    let mut setup_steps: Vec<StepWithPlans> = Vec::new();
+    let mut unaffected_plans = Vec::new();
+    for plan in plans.into_iter() {
+        if let Source::Managed { target, .. } = &plan.source {
+            setup_steps.push((
+                Box::new(StepManaged {
+                    target: target.clone(),
+                    session: plan.session.clone(),
+                }),
+                vec![plan],
+            ));
+        } else {
+            unaffected_plans.push(plan);
+        }
+    }
+    setup_steps.push(skip(unaffected_plans));
+    setup_steps
 }
 
 fn clean_up_results_directory(
