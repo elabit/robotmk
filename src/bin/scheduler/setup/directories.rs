@@ -14,6 +14,13 @@ use robotmk::results::{plan_results_directory, SetupFailure};
 use robotmk::termination::Terminate;
 use std::collections::HashSet;
 
+fn log_plan_not_scheduled(error: &anyhow::Error, plan: &Plan, summary: &str) {
+    error!(
+        "Plan {}: {summary}. Plan won't be scheduled.\nCaused by: {error:?}",
+        plan.id
+    );
+}
+
 pub fn setup(
     global_config: &GlobalConfig,
     plans: Vec<Plan>,
@@ -104,15 +111,15 @@ fn setup_robocorp_home_directories(
             .transfer_ownership_non_recursive(&global_config.rcc_config.robocorp_home_base)
     }) {
         let error = anyhow!(e);
+        let summary = format!(
+            "Failed to create {}",
+            &global_config.rcc_config.robocorp_home_base
+        );
         for plan in rcc_plans {
-            error!(
-                "Plan {}: Failed to create {}. Plan won't be scheduled.
-                 Error: {error:?}",
-                plan.id, &global_config.rcc_config.robocorp_home_base,
-            );
+            log_plan_not_scheduled(&error, &plan, &summary);
             failures.push(SetupFailure {
                 plan_id: plan.id.clone(),
-                summary: "Failed to create ROBOCORP_HOME base directory".to_string(),
+                summary: summary.clone(),
                 details: format!("{error:?}"),
             });
         }
@@ -123,15 +130,12 @@ fn setup_robocorp_home_directories(
         let robocorp_home = session.robocorp_home(&global_config.rcc_config.robocorp_home_base);
         if let Err(e) = create_dir_all(&robocorp_home) {
             let error = anyhow!(e);
+            let summary = format!("Failed to create {}", robocorp_home);
             for plan in plans_in_session {
-                error!(
-                    "Plan {}: Failed to {robocorp_home}. Plan won't be scheduled.
-                     Error: {error:?}",
-                    plan.id
-                );
+                log_plan_not_scheduled(&error, &plan, &summary);
                 failures.push(SetupFailure {
                     plan_id: plan.id.clone(),
-                    summary: "Failed to create ROBOCORP_HOME".to_string(),
+                    summary: summary.clone(),
                     details: format!("{error:?}"),
                 });
             }
@@ -144,16 +148,15 @@ fn setup_robocorp_home_directories(
             );
             if let Err(e) = grant_full_access(&user_session.user_name, &robocorp_home) {
                 let error = anyhow!(e);
+                let summary = format!("Failed to set permissions for {robocorp_home}");
                 for plan in plans_in_session {
                     error!(
-                        "Plan {}: Failed to set permissions for {robocorp_home}. \
-                         Plan won't be scheduled.
-                         Error: {error:?}",
+                        "Plan {}: Failed to set permissions for {robocorp_home}. Plan won't be scheduled.\n Caused by: {error:?}",
                         plan.id
                     );
                     failures.push(SetupFailure {
                         plan_id: plan.id.clone(),
-                        summary: "Failed to set permissions for ROBOCORP_HOME".to_string(),
+                        summary: summary.clone(),
                         details: format!("{error:?}"),
                     });
                 }
@@ -188,28 +191,22 @@ fn setup_plan_working_directories(
     for plan in plans.into_iter() {
         if let Err(e) = create_dir_all(&plan.working_directory) {
             let error = anyhow!(e);
-            error!(
-                "Plan {}: Failed to create working directory. Plan won't be scheduled.
-                 Error: {error:?}",
-                plan.id
-            );
+            let summary = format!("Failed to create {}", &plan.working_directory);
+            log_plan_not_scheduled(&error, &plan, &summary);
             failures.push(SetupFailure {
                 plan_id: plan.id.clone(),
-                summary: "Failed to create working directory".to_string(),
+                summary: summary.clone(),
                 details: format!("{error:?}"),
             });
             continue;
         }
         if let Err(e) = ownership_setter.transfer_ownership_non_recursive(&plan.working_directory) {
             let error = anyhow!(e);
-            error!(
-                "Plan {}: Failed to set ownership of working directory. Plan won't be scheduled.
-                 Error: {error:?}",
-                plan.id
-            );
+            let summary = format!("Failed to set ownership for {}", &plan.working_directory);
+            log_plan_not_scheduled(&error, &plan, &summary);
             failures.push(SetupFailure {
                 plan_id: plan.id.clone(),
-                summary: "Failed to set ownership of working directory".to_string(),
+                summary,
                 details: format!("{error:?}"),
             });
             continue;
@@ -224,15 +221,14 @@ fn setup_plan_working_directories(
             info!("Resetting permissions for {}", &plan.working_directory);
             if let Err(e) = reset_access(&plan.working_directory) {
                 let error = anyhow!(e);
-                error!(
-                    "Plan {}: Failed to reset permissions for working directory. \
-                     Plan won't be scheduled.
-                     Error: {error:?}",
-                    plan.id
+                let summary = format!(
+                    "Failed to reset permissions for {}",
+                    &plan.working_directory
                 );
+                log_plan_not_scheduled(&error, &plan, &summary);
                 failures.push(SetupFailure {
                     plan_id: plan.id.clone(),
-                    summary: "Failed to reset permissions for working directory".to_string(),
+                    summary,
                     details: format!("{error:?}"),
                 });
                 continue;
@@ -246,15 +242,12 @@ fn setup_plan_working_directories(
                 if let Err(e) = grant_full_access(&user_session.user_name, &plan.working_directory)
                 {
                     let error = anyhow!(e);
-                    error!(
-                        "Plan {}: Failed to set permissions for working directory. \
-                         Plan won't be scheduled.
-                         Error: {error:?}",
-                        plan.id
-                    );
+                    let summary =
+                        format!("Failed to set permissions for {}", &plan.working_directory);
+                    log_plan_not_scheduled(&error, &plan, &summary);
                     failures.push(SetupFailure {
                         plan_id: plan.id.clone(),
-                        summary: "Failed to set permissions for working directory".to_string(),
+                        summary,
                         details: format!("{error:?}"),
                     });
                     continue;
@@ -287,20 +280,17 @@ fn setup_rcc_working_directories(
     let (mut surviving_plans, rcc_setup_failures) = setup_with_one_directory_per_user(
         &rcc_setup_working_directory(working_directory),
         surviving_plans,
-        "RCC setup",
     );
     #[cfg(windows)]
     let (mut surviving_plans, rcc_setup_failures) = {
         let (surviving_plans, rcc_setup_failures) = setup_with_one_directory_per_user(
             &rcc_setup_working_directory(working_directory),
             surviving_plans,
-            "RCC setup",
         );
         let (surviving_plans, rcc_setup_failures_long_path_support) =
             setup_with_one_directory_for_current_session(
                 &rcc_setup_working_directory(working_directory),
                 surviving_plans,
-                "RCC setup (long path support)",
             );
         (
             surviving_plans,
@@ -326,14 +316,11 @@ fn setup_environment_building_directories(
     for (plan, env_build_dir) in rcc_plans_and_env_build_dirs.into_iter() {
         if let Err(e) = create_dir_all(&env_build_dir) {
             let error = anyhow!(e);
-            error!(
-                "Plan {}: Failed to create environment building directory. Plan won't be scheduled.
-                 Error: {error:?}",
-                plan.id
-            );
+            let summary = format!("Failed to create {env_build_dir}");
+            log_plan_not_scheduled(&error, &plan, &summary);
             failures.push(SetupFailure {
                 plan_id: plan.id.clone(),
-                summary: "Failed to create environment building directory".to_string(),
+                summary,
                 details: format!("{error:?}"),
             });
             continue;
@@ -352,16 +339,11 @@ fn setup_environment_building_directories(
                 );
                 if let Err(e) = grant_full_access(&user_session.user_name, &env_build_dir) {
                     let error = anyhow!(e);
-                    error!(
-                        "Plan {}: Failed to set permissions for environment building directory. \
-                         Plan won't be scheduled.
-                         Error: {error:?}",
-                        plan.id
-                    );
+                    let summary = format!("Failed to set permissions for {env_build_dir}");
+                    log_plan_not_scheduled(&error, &plan, &summary);
                     failures.push(SetupFailure {
                         plan_id: plan.id.clone(),
-                        summary: "Failed to set permissions for environment building directory"
-                            .to_string(),
+                        summary,
                         details: format!("{error:?}"),
                     });
                     continue;
@@ -376,22 +358,17 @@ fn setup_environment_building_directories(
 fn setup_with_one_directory_per_user(
     target: &Utf8Path,
     plans: Vec<Plan>,
-    description_for_failure_reporting: &str,
 ) -> (Vec<Plan>, Vec<SetupFailure>) {
     let mut surviving_plans = Vec::new();
     let mut failures = vec![];
     if let Err(e) = create_dir_all(target) {
         let error = anyhow!(e);
+        let summary = format!("Failed to create {target}");
         for plan in plans {
-            error!(
-                "Plan {}: Failed to create {description_for_failure_reporting} directory. \
-                 Plan won't be scheduled.
-                 Error: {error:?}",
-                plan.id
-            );
+            log_plan_not_scheduled(&error, &plan, &summary);
             failures.push(SetupFailure {
                 plan_id: plan.id.clone(),
-                summary: format!("Failed to create {description_for_failure_reporting} directory"),
+                summary: summary.clone(),
                 details: format!("{error:?}"),
             });
         }
@@ -401,16 +378,12 @@ fn setup_with_one_directory_per_user(
         let user_target = &target.join(session.id());
         if let Err(e) = create_dir_all(user_target) {
             let error = anyhow!(e);
+            let summary = format!("Failed to create {user_target}");
             for plan in plans_in_session {
-                error!(
-                    "Plan {}: Failed to create user-specific {description_for_failure_reporting} \
-                     directory. Plan won't be scheduled.
-                     Error: {error:?}",
-                    plan.id
-                );
+                log_plan_not_scheduled(&error, &plan, &summary);
                 failures.push(SetupFailure {
                     plan_id: plan.id.clone(),
-                    summary: format!("Failed to create user-specific {description_for_failure_reporting} directory"),
+                    summary: summary.clone(),
                     details: format!("{error:?}"),
                 });
             }
@@ -429,16 +402,12 @@ fn setup_with_one_directory_per_user(
                 );
                 if let Err(e) = grant_full_access(&user_session.user_name, user_target) {
                     let error = anyhow!(e);
+                    let summary = format!("Failed to set permissions for {user_target}");
                     for plan in plans_in_session {
-                        error!(
-                            "Plan {}: Failed to adjust permissions for user-specific \
-                             {description_for_failure_reporting} directory. Plan won't be scheduled.
-                             Error: {error:?}",
-                            plan.id
-                        );
+                        log_plan_not_scheduled(&error, &plan, &summary);
                         failures.push(SetupFailure {
                             plan_id: plan.id.clone(),
-                            summary: format!("Failed to adjust permissions for user-specific {description_for_failure_reporting} directory"),
+                            summary: summary.clone(),
                             details: format!("{error:?}"),
                         });
                     }
@@ -455,26 +424,20 @@ fn setup_with_one_directory_per_user(
 fn setup_with_one_directory_for_current_session(
     target: &Utf8Path,
     plans: Vec<Plan>,
-    description_for_failure_reporting: &str,
 ) -> (Vec<Plan>, Vec<SetupFailure>) {
     use robotmk::session::CurrentSession;
 
-    match create_dir_all(target.join(CurrentSession {}.id())) {
+    let target_dir = target.join(CurrentSession {}.id());
+    match create_dir_all(&target_dir) {
         Ok(()) => (plans, vec![]),
         Err(error) => {
             let mut failures = vec![];
+            let summary = format!("Failed to create {}", target_dir);
             for plan in plans {
-                error!(
-                    "Plan {}: Failed to create {description_for_failure_reporting} directory. \
-                     Plan won't be scheduled.
-                     Error: {error:?}",
-                    plan.id
-                );
+                log_plan_not_scheduled(&error, &plan, &summary);
                 failures.push(SetupFailure {
                     plan_id: plan.id.clone(),
-                    summary: format!(
-                        "Failed to create {description_for_failure_reporting} directory"
-                    ),
+                    summary: summary.clone(),
                     details: format!("{error:?}"),
                 });
             }
@@ -501,14 +464,11 @@ fn setup_managed_directories(plans: Vec<Plan>) -> (Vec<Plan>, Vec<SetupFailure>)
         if let Source::Managed { target, .. } = &plan.source {
             if let Err(e) = create_dir_all(target) {
                 let error = anyhow!(e);
-                error!(
-                    "Plan {}: Failed to create managed directory. Plan won't be scheduled.
-                     Error: {error:?}",
-                    plan.id
-                );
+                let summary = format!("Failed to create {target}");
+                log_plan_not_scheduled(&error, &plan, &summary);
                 failures.push(SetupFailure {
                     plan_id: plan.id.clone(),
-                    summary: "Failed to create managed directory".to_string(),
+                    summary,
                     details: format!("{error:?}"),
                 });
                 continue;
@@ -521,15 +481,12 @@ fn setup_managed_directories(plans: Vec<Plan>) -> (Vec<Plan>, Vec<SetupFailure>)
 
                 if let Session::User(user_session) = &plan.session {
                     if let Err(error) = grant_full_access(&user_session.user_name, target) {
-                        error!(
-                            "Plan {}: Failed to adjust permissions of managed directory. Plan won't be scheduled.
-                             Error: {error:?}",
-                            plan.id
-                        );
+                        let error = anyhow!(error);
+                        let summary = format!("Failed to set permissions for {target}");
+                        log_plan_not_scheduled(&error, &plan, &summary);
                         failures.push(SetupFailure {
                             plan_id: plan.id.clone(),
-                            summary: "Failed to adjust permissions of managed directory"
-                                .to_string(),
+                            summary,
                             details: format!("{error:?}"),
                         });
                         continue;
