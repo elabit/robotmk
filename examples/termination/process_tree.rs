@@ -1,5 +1,5 @@
 use std::collections::{HashMap, HashSet};
-use sysinfo::{Pid, Process, System};
+use sysinfo::{Pid, Process, ProcessesToUpdate, System};
 
 fn get_children(processes: &HashMap<Pid, Process>, pid: &Pid) -> HashSet<Pid> {
     processes
@@ -47,7 +47,7 @@ fn get_tree_size(processes: &HashMap<Pid, Process>, pid: Pid) -> usize {
 }
 
 pub fn check_tree_size(system: &mut System, pid: Pid) -> usize {
-    system.refresh_processes();
+    system.refresh_processes(ProcessesToUpdate::All, true);
     let processes = system.processes();
     println!("Process tree");
     print_process_tree(0, processes, pid, 5);

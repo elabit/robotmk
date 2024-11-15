@@ -9,9 +9,9 @@ use std::fs;
 use std::time::Duration;
 use tokio::task::yield_now;
 use tokio_util::sync::CancellationToken;
-use windows::core::{ComInterface, Result as WinApiResult, BSTR, HRESULT};
+use windows::core::{Interface, Result as WinApiResult, BSTR, HRESULT};
 use windows::Win32::Foundation::VARIANT_FALSE;
-use windows::Win32::System::{Com, TaskScheduler, Variant::VARIANT};
+use windows::Win32::System::{Com, TaskScheduler};
 
 pub fn run_task(task_spec: &TaskSpec) -> AnyhowResult<Outcome<i32>> {
     debug!(
@@ -131,12 +131,7 @@ impl TaskManager {
         unsafe {
             let task_service: TaskScheduler::ITaskService =
                 Com::CoCreateInstance(&TaskScheduler::TaskScheduler, None, Com::CLSCTX_ALL)?;
-            task_service.Connect(
-                VARIANT::default(),
-                VARIANT::default(),
-                VARIANT::default(),
-                VARIANT::default(),
-            )?;
+            task_service.Connect(None, None, None, None)?;
             let task_folder = task_service.GetFolder(&BSTR::from("\\"))?;
             Ok(Self {
                 task_service,
@@ -172,10 +167,10 @@ impl TaskManager {
                 &BSTR::from(name),
                 &task_definition,
                 TaskScheduler::TASK_CREATE_OR_UPDATE.0,
-                VARIANT::default(),
-                VARIANT::default(),
+                None,
+                None,
                 TaskScheduler::TASK_LOGON_INTERACTIVE_TOKEN,
-                VARIANT::default(),
+                None,
             )
         }
     }
@@ -190,7 +185,7 @@ impl TaskManager {
         let (name, running_task) = unsafe {
             let name = task.Name()?;
             debug!("Starting task {}", name);
-            (name, task.Run(VARIANT::default())?)
+            (name, task.Run(None)?)
         };
         debug!("Waiting for task {name} to complete");
         let outcome = waited(

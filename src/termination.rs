@@ -1,7 +1,7 @@
 use std::collections::HashSet;
 use std::future::Future;
 use std::time::Duration;
-use sysinfo::{Pid, Process, System};
+use sysinfo::{Pid, Process, ProcessesToUpdate, System};
 use thiserror::Error;
 use tokio::time::sleep;
 use tokio_util::sync::CancellationToken;
@@ -51,7 +51,7 @@ where
 // (there is no SIGTERM on Windows), so we instead kill the entire tree.
 pub fn kill_process_tree(top_pid: &Pid) {
     let mut system = System::new();
-    system.refresh_processes();
+    system.refresh_processes(ProcessesToUpdate::All, true);
     let processes = system.processes();
 
     match processes.get(top_pid) {
