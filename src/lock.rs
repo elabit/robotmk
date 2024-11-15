@@ -1,6 +1,6 @@
 use crate::termination::Terminate;
 use camino::{Utf8Path, Utf8PathBuf};
-use fs4::FileExt;
+use fs4::fs_std::FileExt;
 use log::debug;
 use std::fs::File;
 use std::io;
