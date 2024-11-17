@@ -75,6 +75,8 @@ pub fn setup(
     };
     let setup_steps = gather_plan_working_directories(global_config, surviving_plans);
     let (surviving_plans, plan_failures) = run_steps(setup_steps);
+    let setup_steps = gather_environment_building_directories(global_config, surviving_plans);
+    let (surviving_plans, building_directory_failures) = run_steps(setup_steps);
     let (mut surviving_plans, rcc_failures) =
         setup_rcc_working_directories(&global_config.working_directory, surviving_plans);
 
@@ -83,6 +85,7 @@ pub fn setup(
     let failures = managed_dir_failures
         .into_iter()
         .chain(plan_failures)
+        .chain(building_directory_failures)
         .chain(rcc_failures)
         .chain(robocorp_home_base_failures)
         .chain(robocorp_home_user_failures)
@@ -90,6 +93,7 @@ pub fn setup(
     #[cfg(unix)]
     let failures = managed_dir_failures
         .into_iter()
+        .chain(building_directory_failures)
         .chain(plan_failures)
         .chain(rcc_failures)
         .collect();
@@ -254,33 +258,77 @@ fn gather_plan_working_directories(
         .collect()
 }
 
+struct StepEnvironmentBuildDirectory {
+    target: Utf8PathBuf,
+    session: Session,
+}
+
+impl SetupStep for StepEnvironmentBuildDirectory {
+    fn setup(&self) -> Result<(), api::Error> {
+        if let Err(err) = create_dir_all(&self.target) {
+            return Err(api::Error::new(
+                format!("Failed to create {}", &self.target),
+                err,
+            ));
+        }
+        if let Session::User(user_session) = &self.session {
+            log::info!(
+                "Granting full access for {} to user `{}`.",
+                &self.target,
+                &user_session.user_name
+            );
+            #[cfg(windows)]
+            if let Err(err) = grant_full_access(&user_session.user_name, &self.target) {
+                return Err(api::Error::new(
+                    format!("Failed to set permissions for {}", &self.target),
+                    err,
+                ));
+            };
+        }
+        Ok(())
+    }
+}
+
+fn gather_environment_building_directories(
+    _config: &GlobalConfig,
+    plans: Vec<Plan>,
+) -> Vec<StepWithPlans> {
+    let mut setup_steps: Vec<StepWithPlans> = Vec::new();
+    let mut system_plans = Vec::new();
+    for plan in plans.into_iter() {
+        match &plan.environment {
+            Environment::Rcc(rcc_env) => setup_steps.push((
+                Box::new(StepEnvironmentBuildDirectory {
+                    target: rcc_env.build_runtime_directory.clone(),
+                    session: plan.session.clone(),
+                }),
+                vec![plan],
+            )),
+            _ => system_plans.push(plan),
+        }
+    }
+    setup_steps.push(skip(system_plans));
+    setup_steps
+}
+
 fn setup_rcc_working_directories(
     working_directory: &Utf8Path,
     plans: Vec<Plan>,
 ) -> (Vec<Plan>, Vec<SetupFailure>) {
-    let mut rcc_plans_and_env_build_dirs = Vec::new();
-    let mut system_plans = Vec::new();
-    for plan in plans.into_iter() {
-        match plan.environment.clone() {
-            Environment::Rcc(rcc_env) => {
-                rcc_plans_and_env_build_dirs.push((plan, rcc_env.build_runtime_directory))
-            }
-            _ => system_plans.push(plan),
-        }
-    }
-    let (surviving_plans, environment_failures) =
-        setup_environment_building_directories(rcc_plans_and_env_build_dirs);
+    let (rcc_plans, system_plans): (Vec<Plan>, Vec<Plan>) = plans
+        .into_iter()
+        .partition(|plan| matches!(plan.environment, Environment::Rcc(_)));
 
     #[cfg(unix)]
     let (mut surviving_plans, rcc_setup_failures) = setup_with_one_directory_per_user(
         &rcc_setup_working_directory(working_directory),
-        surviving_plans,
+        rcc_plans,
     );
     #[cfg(windows)]
     let (mut surviving_plans, rcc_setup_failures) = {
         let (surviving_plans, rcc_setup_failures) = setup_with_one_directory_per_user(
             &rcc_setup_working_directory(working_directory),
-            surviving_plans,
+            rcc_plans,
         );
         let (surviving_plans, rcc_setup_failures_long_path_support) =
             setup_with_one_directory_for_current_session(
@@ -294,57 +342,7 @@ fn setup_rcc_working_directories(
     };
 
     surviving_plans.extend(system_plans);
-    (
-        surviving_plans,
-        environment_failures
-            .into_iter()
-            .chain(rcc_setup_failures)
-            .collect(),
-    )
-}
-
-fn setup_environment_building_directories(
-    rcc_plans_and_env_build_dirs: Vec<(Plan, Utf8PathBuf)>,
-) -> (Vec<Plan>, Vec<SetupFailure>) {
-    let mut surviving_plans = Vec::new();
-    let mut failures = vec![];
-    for (plan, env_build_dir) in rcc_plans_and_env_build_dirs.into_iter() {
-        if let Err(e) = create_dir_all(&env_build_dir) {
-            let error = anyhow!(e);
-            let summary = format!("Failed to create {env_build_dir}");
-            log_plan_not_scheduled(&error, &plan, &summary);
-            failures.push(SetupFailure {
-                plan_id: plan.id.clone(),
-                summary,
-                details: format!("{error:?}"),
-            });
-            continue;
-        }
-
-        #[cfg(windows)]
-        {
-            if let Session::User(user_session) = &plan.session {
-                log::info!(
-                    "Granting full access for {} to user `{}`.",
-                    &env_build_dir,
-                    &user_session.user_name
-                );
-                if let Err(e) = grant_full_access(&user_session.user_name, &env_build_dir) {
-                    let error = anyhow!(e);
-                    let summary = format!("Failed to set permissions for {env_build_dir}");
-                    log_plan_not_scheduled(&error, &plan, &summary);
-                    failures.push(SetupFailure {
-                        plan_id: plan.id.clone(),
-                        summary,
-                        details: format!("{error:?}"),
-                    });
-                    continue;
-                };
-            }
-        }
-        surviving_plans.push(plan);
-    }
-    (surviving_plans, failures)
+    (surviving_plans, rcc_setup_failures)
 }
 
 fn setup_with_one_directory_per_user(
