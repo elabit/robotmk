@@ -10,7 +10,6 @@ use super::api::{self, log_plan_not_scheduled, run_steps, skip, SetupStep, StepW
 use super::windows_permissions::{grant_full_access, reset_access};
 use anyhow::{anyhow, Context, Result as AnyhowResult};
 use camino::{Utf8Path, Utf8PathBuf};
-#[cfg(windows)]
 use log::info;
 use robotmk::environment::Environment;
 use robotmk::fs::{create_dir_all, remove_dir_all, remove_file};
@@ -74,21 +73,25 @@ pub fn setup(
         let setup_steps = gather_robocorp_home_per_user(global_config, surviving_plans);
         run_steps(setup_steps)
     };
-    let (mut surviving_plans, working_dir_failures) =
-        setup_working_directories(global_config, surviving_plans, &ownership_setter);
+    let setup_steps = gather_plan_working_directories(global_config, surviving_plans);
+    let (surviving_plans, plan_failures) = run_steps(setup_steps);
+    let (mut surviving_plans, rcc_failures) =
+        setup_rcc_working_directories(&global_config.working_directory, surviving_plans);
 
     sort_plans_by_grouping(&mut surviving_plans);
     #[cfg(windows)]
     let failures = managed_dir_failures
         .into_iter()
-        .chain(working_dir_failures)
+        .chain(plan_failures)
+        .chain(rcc_failures)
         .chain(robocorp_home_base_failures)
         .chain(robocorp_home_user_failures)
         .collect();
     #[cfg(unix)]
     let failures = managed_dir_failures
         .into_iter()
-        .chain(working_dir_failures)
+        .chain(plan_failures)
+        .chain(rcc_failures)
         .collect();
     Ok((surviving_plans, failures))
 }
@@ -183,91 +186,72 @@ fn gather_robocorp_home_per_user(config: &GlobalConfig, plans: Vec<Plan>) -> Vec
     setup_steps
 }
 
-fn setup_working_directories(
-    global_config: &GlobalConfig,
-    plans: Vec<Plan>,
-    ownership_setter: &OwnershipSetter,
-) -> (Vec<Plan>, Vec<SetupFailure>) {
-    let (surviving_plans, plan_failures) = setup_plan_working_directories(plans, ownership_setter);
-    let (surviving_plans, rcc_failures) =
-        setup_rcc_working_directories(&global_config.working_directory, surviving_plans);
-    (
-        surviving_plans,
-        plan_failures.into_iter().chain(rcc_failures).collect(),
-    )
+struct StepPlanWorkingDirectory {
+    target: Utf8PathBuf,
+    session: Session,
 }
 
-fn setup_plan_working_directories(
-    plans: Vec<Plan>,
-    ownership_setter: &OwnershipSetter,
-) -> (Vec<Plan>, Vec<SetupFailure>) {
-    let mut surviving_plans = Vec::new();
-    let mut failures = vec![];
-    for plan in plans.into_iter() {
-        if let Err(e) = create_dir_all(&plan.working_directory) {
-            let error = anyhow!(e);
-            let summary = format!("Failed to create {}", &plan.working_directory);
-            log_plan_not_scheduled(&error, &plan, &summary);
-            failures.push(SetupFailure {
-                plan_id: plan.id.clone(),
-                summary: summary.clone(),
-                details: format!("{error:?}"),
-            });
-            continue;
+impl SetupStep for StepPlanWorkingDirectory {
+    fn setup(&self) -> Result<(), api::Error> {
+        #[cfg(unix)]
+        let ownership_setter = OwnershipSetter::make_for_current_user();
+        #[cfg(windows)]
+        let ownership_setter = OwnershipSetter {};
+        if let Err(err) = create_dir_all(&self.target) {
+            return Err(api::Error::new(
+                format!("Failed to create {}", &self.target),
+                err,
+            ));
         }
-        if let Err(e) = ownership_setter.transfer_ownership_non_recursive(&plan.working_directory) {
-            let error = anyhow!(e);
-            let summary = format!("Failed to set ownership for {}", &plan.working_directory);
-            log_plan_not_scheduled(&error, &plan, &summary);
-            failures.push(SetupFailure {
-                plan_id: plan.id.clone(),
-                summary,
-                details: format!("{error:?}"),
-            });
-            continue;
+        if let Err(err) = ownership_setter.transfer_ownership_non_recursive(&self.target) {
+            return Err(api::Error::new(
+                format!("Failed to set ownership for {}", &self.target),
+                err,
+            ));
         }
-
         #[cfg(windows)]
         {
-            info!("Resetting permissions for {}", &plan.working_directory);
-            if let Err(e) = reset_access(&plan.working_directory) {
-                let error = anyhow!(e);
-                let summary = format!(
-                    "Failed to reset permissions for {}",
-                    &plan.working_directory
-                );
-                log_plan_not_scheduled(&error, &plan, &summary);
-                failures.push(SetupFailure {
-                    plan_id: plan.id.clone(),
-                    summary,
-                    details: format!("{error:?}"),
-                });
-                continue;
+            info!("Resetting permissions for {}", &self.target);
+            if let Err(err) = reset_access(&self.target) {
+                return Err(api::Error::new(
+                    format!("Failed to reset permissions for {}", &self.target),
+                    err,
+                ));
             };
-
-            if let Session::User(user_session) = &plan.session {
-                info!(
-                    "Granting full access for {} to user `{}`.",
-                    &plan.working_directory, &user_session.user_name
-                );
-                if let Err(e) = grant_full_access(&user_session.user_name, &plan.working_directory)
-                {
-                    let error = anyhow!(e);
-                    let summary =
-                        format!("Failed to set permissions for {}", &plan.working_directory);
-                    log_plan_not_scheduled(&error, &plan, &summary);
-                    failures.push(SetupFailure {
-                        plan_id: plan.id.clone(),
-                        summary,
-                        details: format!("{error:?}"),
-                    });
-                    continue;
-                };
-            }
         }
-        surviving_plans.push(plan);
+        if let Session::User(user_session) = &self.session {
+            info!(
+                "Granting full access for {} to user `{}`.",
+                &self.target, &user_session.user_name
+            );
+            #[cfg(windows)]
+            if let Err(err) = grant_full_access(&user_session.user_name, &self.target) {
+                return Err(api::Error::new(
+                    format!("Failed to set permissions for {}", &self.target),
+                    err,
+                ));
+            };
+        }
+        Ok(())
     }
-    (surviving_plans, failures)
+}
+
+fn gather_plan_working_directories(
+    _global_config: &GlobalConfig,
+    plans: Vec<Plan>,
+) -> Vec<StepWithPlans> {
+    plans
+        .into_iter()
+        .map(|p| {
+            (
+                Box::new(StepPlanWorkingDirectory {
+                    target: p.working_directory.clone(),
+                    session: p.session.clone(),
+                }) as Box<dyn SetupStep>,
+                vec![p],
+            )
+        })
+        .collect()
 }
 
 fn setup_rcc_working_directories(
@@ -340,9 +324,10 @@ fn setup_environment_building_directories(
         #[cfg(windows)]
         {
             if let Session::User(user_session) = &plan.session {
-                info!(
+                log::info!(
                     "Granting full access for {} to user `{}`.",
-                    &env_build_dir, &user_session.user_name
+                    &env_build_dir,
+                    &user_session.user_name
                 );
                 if let Err(e) = grant_full_access(&user_session.user_name, &env_build_dir) {
                     let error = anyhow!(e);
