@@ -41,7 +41,12 @@ pub fn run_steps(steps: Vec<StepWithPlans>) -> (Vec<Plan>, Vec<SetupFailure>) {
             }
             Err(err) => {
                 for plan in &plans {
-                    log_plan_not_scheduled(&err.cause, plan, &err.summary);
+                    log::error!(
+                        "Plan {}: {}. Plan won't be scheduled.\nCaused by: {:?}",
+                        plan.id,
+                        err.summary,
+                        err.cause,
+                    );
                     errors.push(SetupFailure {
                         plan_id: plan.id.clone(),
                         summary: err.summary.clone(),
@@ -52,11 +57,4 @@ pub fn run_steps(steps: Vec<StepWithPlans>) -> (Vec<Plan>, Vec<SetupFailure>) {
         }
     }
     (plans, errors)
-}
-
-pub fn log_plan_not_scheduled(error: &anyhow::Error, plan: &Plan, summary: &str) {
-    log::error!(
-        "Plan {}: {summary}. Plan won't be scheduled.\nCaused by: {error:?}",
-        plan.id
-    );
 }
