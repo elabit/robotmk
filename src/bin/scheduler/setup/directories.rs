@@ -22,25 +22,12 @@ pub fn setup(
     global_config: &GlobalConfig,
     plans: Vec<Plan>,
 ) -> Result<(Vec<Plan>, Vec<SetupFailure>), Terminate> {
-    let ownership_setter = {
-        #[cfg(unix)]
-        {
-            OwnershipSetter::make_for_current_user()
-        }
-        #[cfg(windows)]
-        {
-            OwnershipSetter {}
-        }
-    };
-
     create_dir_all(&global_config.runtime_base_directory)?;
-    ownership_setter.transfer_ownership_non_recursive(&global_config.runtime_base_directory)?;
+    transfer_ownership_non_recursive(&global_config.runtime_base_directory)?;
     create_dir_all(&global_config.working_directory)?;
-    ownership_setter.transfer_ownership_non_recursive(&global_config.working_directory)?;
+    transfer_ownership_non_recursive(&global_config.working_directory)?;
     create_dir_all(plans_working_directory(&global_config.working_directory))?;
-    ownership_setter.transfer_ownership_non_recursive(&plans_working_directory(
-        &global_config.working_directory,
-    ))?;
+    transfer_ownership_non_recursive(&plans_working_directory(&global_config.working_directory))?;
     for working_sub_dir in [
         rcc_setup_working_directory(&global_config.working_directory),
         environment_building_directory(&global_config.working_directory),
@@ -59,7 +46,7 @@ pub fn setup(
     }
     create_dir_all(&global_config.managed_directory)?;
 
-    setup_results_directories(global_config, &plans, &ownership_setter)?;
+    setup_results_directories(global_config, &plans)?;
 
     Ok(run_setup(global_config, plans))
 }
@@ -105,9 +92,8 @@ struct StepRobocorpHomeBase {
 #[cfg(windows)]
 impl SetupStep for StepRobocorpHomeBase {
     fn setup(&self) -> Result<(), api::Error> {
-        let ownership_setter = OwnershipSetter {};
-        if let Err(err) = create_dir_all(&self.base)
-            .and_then(|()| ownership_setter.transfer_ownership_non_recursive(&self.base))
+        if let Err(err) =
+            create_dir_all(&self.base).and_then(|()| transfer_ownership_non_recursive(&self.base))
         {
             return Err(api::Error::new(
                 format!("Failed to create {}", self.base),
@@ -194,17 +180,13 @@ struct StepPlanWorkingDirectory {
 
 impl SetupStep for StepPlanWorkingDirectory {
     fn setup(&self) -> Result<(), api::Error> {
-        #[cfg(unix)]
-        let ownership_setter = OwnershipSetter::make_for_current_user();
-        #[cfg(windows)]
-        let ownership_setter = OwnershipSetter {};
         if let Err(err) = create_dir_all(&self.target) {
             return Err(api::Error::new(
                 format!("Failed to create {}", &self.target),
                 err,
             ));
         }
-        if let Err(err) = ownership_setter.transfer_ownership_non_recursive(&self.target) {
+        if let Err(err) = transfer_ownership_non_recursive(&self.target) {
             return Err(api::Error::new(
                 format!("Failed to set ownership for {}", &self.target),
                 err,
@@ -424,14 +406,10 @@ fn gather_rcc_longpath_directory(config: &GlobalConfig, plans: Vec<Plan>) -> Vec
     ]
 }
 
-fn setup_results_directories(
-    global_config: &GlobalConfig,
-    plans: &[Plan],
-    ownership_setter: &OwnershipSetter,
-) -> AnyhowResult<()> {
+fn setup_results_directories(global_config: &GlobalConfig, plans: &[Plan]) -> AnyhowResult<()> {
     create_dir_all(&global_config.results_directory)?;
     create_dir_all(plan_results_directory(&global_config.results_directory))?;
-    ownership_setter.transfer_directory_ownership_recursive(&global_config.results_directory)?;
+    transfer_ownership_recursive(&global_config.results_directory)?;
     clean_up_results_directory(global_config, plans).context("Failed to clean up results directory")
 }
 
@@ -507,74 +485,42 @@ fn clean_up_results_directory(
 }
 
 #[cfg(unix)]
-struct OwnershipSetter {
-    user_id: u32,
-    group_id: u32,
+pub fn transfer_ownership_non_recursive(target: &Utf8Path) -> AnyhowResult<()> {
+    let user_id = unsafe { libc::getuid() };
+    let group_id = unsafe { libc::getgid() };
+    lchown(target, user_id, group_id)
+}
+
+#[cfg(unix)]
+fn lchown(target: &Utf8Path, user_id: u32, group_id: u32) -> anyhow::Result<()> {
+    std::os::unix::fs::lchown(target, Some(user_id), Some(group_id)).context(format!(
+        "Failed to set ownership of {target} to `{}:{}` (non-recursive)",
+        user_id, group_id
+    ))
+}
+
+#[cfg(unix)]
+pub fn transfer_ownership_recursive(target: &Utf8Path) -> AnyhowResult<()> {
+    let user_id = unsafe { libc::getuid() };
+    let group_id = unsafe { libc::getgid() };
+    let mut targets: Vec<Utf8PathBuf> = vec![target.into()];
+    while let Some(target) = targets.pop() {
+        lchown(&target, user_id, group_id)?;
+        if target.is_dir() && !target.is_symlink() {
+            targets.extend(top_level_directory_entries(&target)?);
+        }
+    }
+    Ok(())
 }
 
 #[cfg(windows)]
-struct OwnershipSetter {}
+pub fn transfer_ownership_non_recursive(target: &Utf8Path) -> AnyhowResult<()> {
+    super::windows_permissions::transfer_ownership_to_admin_group_non_recursive(target)
+}
 
-impl OwnershipSetter {
-    #[cfg(unix)]
-    pub fn make_for_current_user() -> Self {
-        Self {
-            user_id: unsafe { libc::getuid() },
-            group_id: unsafe { libc::getgid() },
-        }
-    }
-
-    pub fn transfer_ownership_non_recursive(&self, target: &Utf8Path) -> AnyhowResult<()> {
-        #[cfg(unix)]
-        {
-            self.take_ownership_non_recursive(target).context(format!(
-                "Failed to set ownership of {target} to `{}:{}` (non-recursive)",
-                self.user_id, self.group_id
-            ))
-        }
-        #[cfg(windows)]
-        {
-            super::windows_permissions::transfer_ownership_to_admin_group_non_recursive(target)
-        }
-    }
-
-    pub fn transfer_directory_ownership_recursive(&self, target: &Utf8Path) -> AnyhowResult<()> {
-        #[cfg(unix)]
-        {
-            self.take_ownership_recursive(target).context(format!(
-                "Failed to set ownership of {target} to `{}:{}` (recursive)",
-                self.user_id, self.group_id
-            ))
-        }
-        #[cfg(windows)]
-        {
-            super::windows_permissions::transfer_directory_ownership_to_admin_group_recursive(
-                target,
-            )
-        }
-    }
-
-    #[cfg(unix)]
-    fn take_ownership_non_recursive(&self, target: &Utf8Path) -> std::io::Result<()> {
-        std::os::unix::fs::lchown(target, Some(self.user_id), Some(self.group_id))
-    }
-
-    #[cfg(unix)]
-    fn take_ownership_recursive(&self, target: &Utf8Path) -> std::io::Result<()> {
-        self.take_ownership_non_recursive(target)?;
-
-        if target.is_symlink() {
-            return Ok(());
-        }
-
-        if target.is_dir() {
-            for entry in target.read_dir_utf8()? {
-                self.take_ownership_recursive(entry?.path())?;
-            }
-        }
-
-        Ok(())
-    }
+#[cfg(windows)]
+pub fn transfer_ownership_recursive(target: &Utf8Path) -> AnyhowResult<()> {
+    super::windows_permissions::transfer_directory_ownership_to_admin_group_recursive(target)
 }
 
 fn top_level_directories(directory: &Utf8Path) -> AnyhowResult<Vec<Utf8PathBuf>> {
