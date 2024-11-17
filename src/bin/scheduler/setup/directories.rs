@@ -10,7 +10,6 @@ use super::api::{self, run_steps, skip, SetupStep, StepWithPlans};
 use super::windows_permissions::{grant_full_access, reset_access};
 use anyhow::{Context, Result as AnyhowResult};
 use camino::{Utf8Path, Utf8PathBuf};
-use log::info;
 use robotmk::environment::Environment;
 use robotmk::fs::{create_dir_all, remove_dir_all, remove_file};
 use robotmk::results::{plan_results_directory, SetupFailure};
@@ -84,23 +83,61 @@ fn run_setup(config: &GlobalConfig, mut plans: Vec<Plan>) -> (Vec<Plan>, Vec<Set
     (plans, failures)
 }
 
+struct StepCreate {
+    target: Utf8PathBuf,
+}
+
+impl SetupStep for StepCreate {
+    fn setup(&self) -> Result<(), api::Error> {
+        create_dir_all(&self.target)
+            .map_err(|err| api::Error::new(format!("Failed to create {}", self.target), err))
+    }
+}
+
+struct StepCreateWithAccess {
+    target: Utf8PathBuf,
+    session: Session,
+}
+
+impl SetupStep for StepCreateWithAccess {
+    fn setup(&self) -> Result<(), api::Error> {
+        StepCreate {
+            target: self.target.clone(),
+        }
+        .setup()?;
+        if let Session::User(user_session) = &self.session {
+            log::info!(
+                "Granting full access for {} to user `{}`.",
+                &self.target,
+                &user_session.user_name
+            );
+            #[cfg(windows)]
+            grant_full_access(&user_session.user_name, &self.target).map_err(|err| {
+                api::Error::new(
+                    format!("Failed to set permissions for {}", self.target),
+                    err,
+                )
+            })?;
+        }
+        Ok(())
+    }
+}
+
 #[cfg(windows)]
 struct StepRobocorpHomeBase {
-    base: Utf8PathBuf,
+    target: Utf8PathBuf,
 }
 
 #[cfg(windows)]
 impl SetupStep for StepRobocorpHomeBase {
     fn setup(&self) -> Result<(), api::Error> {
-        if let Err(err) =
-            create_dir_all(&self.base).and_then(|()| transfer_ownership_non_recursive(&self.base))
-        {
-            return Err(api::Error::new(
-                format!("Failed to create {}", self.base),
-                err,
-            ));
+        StepCreate {
+            target: self.target.clone(),
         }
-        Ok(())
+        .setup()?;
+        transfer_ownership_non_recursive(&self.target).map_err(|err| {
+            api::Error::new(format!("Failed to transfer ownership {}", self.target), err)
+        })
     }
 }
 
@@ -112,46 +149,12 @@ fn gather_robocorp_home_base(config: &GlobalConfig, plans: Vec<Plan>) -> Vec<Ste
     vec![
         (
             Box::new(StepRobocorpHomeBase {
-                base: config.rcc_config.robocorp_home_base.clone(),
+                target: config.rcc_config.robocorp_home_base.clone(),
             }),
             rcc_plans,
         ),
         skip(system_plans),
     ]
-}
-
-#[cfg(windows)]
-struct StepRobocorpHomePerUser {
-    base: Utf8PathBuf,
-    session: Session,
-}
-
-#[cfg(windows)]
-impl SetupStep for StepRobocorpHomePerUser {
-    fn setup(&self) -> Result<(), api::Error> {
-        let robocorp_home = self.session.robocorp_home(&self.base);
-        if let Err(err) = create_dir_all(&robocorp_home) {
-            return Err(api::Error::new(
-                format!("Failed to create {robocorp_home}"),
-                err,
-            ));
-        }
-        if let Session::User(user_session) = &self.session {
-            log::info!(
-                "Granting full access for {} to user `{}`.",
-                &robocorp_home,
-                &user_session.user_name
-            );
-            #[cfg(windows)]
-            if let Err(err) = grant_full_access(&user_session.user_name, &robocorp_home) {
-                return Err(api::Error::new(
-                    format!("Failed to set permissions for {robocorp_home}"),
-                    err,
-                ));
-            };
-        }
-        Ok(())
-    }
 }
 
 #[cfg(windows)]
@@ -162,8 +165,8 @@ fn gather_robocorp_home_per_user(config: &GlobalConfig, plans: Vec<Plan>) -> Vec
     let mut setup_steps: Vec<StepWithPlans> = Vec::new();
     for (session, plans_in_session) in plans_by_sessions(rcc_plans) {
         setup_steps.push((
-            Box::new(StepRobocorpHomePerUser {
-                base: config.rcc_config.robocorp_home_base.clone(),
+            Box::new(StepCreateWithAccess {
+                target: session.robocorp_home(&config.rcc_config.robocorp_home_base),
                 session,
             }),
             plans_in_session,
@@ -180,21 +183,9 @@ struct StepPlanWorkingDirectory {
 
 impl SetupStep for StepPlanWorkingDirectory {
     fn setup(&self) -> Result<(), api::Error> {
-        if let Err(err) = create_dir_all(&self.target) {
-            return Err(api::Error::new(
-                format!("Failed to create {}", &self.target),
-                err,
-            ));
-        }
-        if let Err(err) = transfer_ownership_non_recursive(&self.target) {
-            return Err(api::Error::new(
-                format!("Failed to set ownership for {}", &self.target),
-                err,
-            ));
-        }
         #[cfg(windows)]
-        {
-            info!("Resetting permissions for {}", &self.target);
+        if self.target.exists() {
+            log::info!("Resetting permissions for {}", &self.target);
             if let Err(err) = reset_access(&self.target) {
                 return Err(api::Error::new(
                     format!("Failed to reset permissions for {}", &self.target),
@@ -202,20 +193,14 @@ impl SetupStep for StepPlanWorkingDirectory {
                 ));
             };
         }
-        if let Session::User(user_session) = &self.session {
-            info!(
-                "Granting full access for {} to user `{}`.",
-                &self.target, &user_session.user_name
-            );
-            #[cfg(windows)]
-            if let Err(err) = grant_full_access(&user_session.user_name, &self.target) {
-                return Err(api::Error::new(
-                    format!("Failed to set permissions for {}", &self.target),
-                    err,
-                ));
-            };
+        StepCreateWithAccess {
+            target: self.target.clone(),
+            session: self.session.clone(),
         }
-        Ok(())
+        .setup()?;
+        transfer_ownership_non_recursive(&self.target).map_err(|err| {
+            api::Error::new(format!("Failed to transfer ownership {}", self.target), err)
+        })
     }
 }
 
@@ -237,37 +222,6 @@ fn gather_plan_working_directories(
         .collect()
 }
 
-struct StepEnvironmentBuildDirectory {
-    target: Utf8PathBuf,
-    session: Session,
-}
-
-impl SetupStep for StepEnvironmentBuildDirectory {
-    fn setup(&self) -> Result<(), api::Error> {
-        if let Err(err) = create_dir_all(&self.target) {
-            return Err(api::Error::new(
-                format!("Failed to create {}", &self.target),
-                err,
-            ));
-        }
-        if let Session::User(user_session) = &self.session {
-            log::info!(
-                "Granting full access for {} to user `{}`.",
-                &self.target,
-                &user_session.user_name
-            );
-            #[cfg(windows)]
-            if let Err(err) = grant_full_access(&user_session.user_name, &self.target) {
-                return Err(api::Error::new(
-                    format!("Failed to set permissions for {}", &self.target),
-                    err,
-                ));
-            };
-        }
-        Ok(())
-    }
-}
-
 fn gather_environment_building_directories(
     _config: &GlobalConfig,
     plans: Vec<Plan>,
@@ -277,7 +231,7 @@ fn gather_environment_building_directories(
     for plan in plans.into_iter() {
         match &plan.environment {
             Environment::Rcc(rcc_env) => setup_steps.push((
-                Box::new(StepEnvironmentBuildDirectory {
+                Box::new(StepCreateWithAccess {
                     target: rcc_env.build_runtime_directory.clone(),
                     session: plan.session.clone(),
                 }),
@@ -290,65 +244,19 @@ fn gather_environment_building_directories(
     setup_steps
 }
 
-struct StepRCCWorkingBase {
-    target: Utf8PathBuf,
-}
-
-impl SetupStep for StepRCCWorkingBase {
-    fn setup(&self) -> Result<(), api::Error> {
-        if let Err(err) = create_dir_all(&self.target) {
-            return Err(api::Error::new(
-                format!("Failed to create {}", &self.target),
-                err,
-            ));
-        }
-        Ok(())
-    }
-}
-
 fn gather_rcc_working_base(config: &GlobalConfig, plans: Vec<Plan>) -> Vec<StepWithPlans> {
     let (rcc_plans, system_plans): (Vec<Plan>, Vec<Plan>) = plans
         .into_iter()
         .partition(|plan| matches!(plan.environment, Environment::Rcc(_)));
     vec![
         (
-            Box::new(StepRCCWorkingBase {
+            Box::new(StepCreate {
                 target: rcc_setup_working_directory(&config.working_directory),
             }),
             rcc_plans,
         ),
         skip(system_plans),
     ]
-}
-
-struct StepRCCWorkingPerUser {
-    target: Utf8PathBuf,
-    session: Session,
-}
-
-impl SetupStep for StepRCCWorkingPerUser {
-    fn setup(&self) -> Result<(), api::Error> {
-        if let Err(err) = create_dir_all(&self.target) {
-            return Err(api::Error::new(
-                format!("Failed to create {}", &self.target),
-                err,
-            ));
-        }
-        if let Session::User(user_session) = &self.session {
-            info!(
-                "Granting full access for {} to user `{}`.",
-                self.target, &user_session.user_name
-            );
-            #[cfg(windows)]
-            if let Err(err) = grant_full_access(&user_session.user_name, &self.target) {
-                return Err(api::Error::new(
-                    format!("Failed to set permissions for {}", &self.target),
-                    err,
-                ));
-            };
-        }
-        Ok(())
-    }
 }
 
 fn gather_rcc_working_per_user(config: &GlobalConfig, plans: Vec<Plan>) -> Vec<StepWithPlans> {
@@ -359,7 +267,7 @@ fn gather_rcc_working_per_user(config: &GlobalConfig, plans: Vec<Plan>) -> Vec<S
     let base = rcc_setup_working_directory(&config.working_directory);
     for (session, plans_in_session) in plans_by_sessions(rcc_plans) {
         setup_steps.push((
-            Box::new(StepRCCWorkingPerUser {
+            Box::new(StepCreateWithAccess {
                 target: base.join(session.id()),
                 session,
             }),
@@ -371,24 +279,6 @@ fn gather_rcc_working_per_user(config: &GlobalConfig, plans: Vec<Plan>) -> Vec<S
 }
 
 #[cfg(windows)]
-struct StepRCCLongPathDirectory {
-    target: Utf8PathBuf,
-}
-
-#[cfg(windows)]
-impl SetupStep for StepRCCLongPathDirectory {
-    fn setup(&self) -> Result<(), api::Error> {
-        if let Err(err) = create_dir_all(&self.target) {
-            return Err(api::Error::new(
-                format!("Failed to create {}", &self.target),
-                err,
-            ));
-        }
-        Ok(())
-    }
-}
-
-#[cfg(windows)]
 fn gather_rcc_longpath_directory(config: &GlobalConfig, plans: Vec<Plan>) -> Vec<StepWithPlans> {
     use robotmk::session::CurrentSession;
     let (rcc_plans, system_plans): (Vec<Plan>, Vec<Plan>) = plans
@@ -396,7 +286,7 @@ fn gather_rcc_longpath_directory(config: &GlobalConfig, plans: Vec<Plan>) -> Vec
         .partition(|plan| matches!(plan.environment, Environment::Rcc(_)));
     vec![
         (
-            Box::new(StepRCCLongPathDirectory {
+            Box::new(StepCreate {
                 target: rcc_setup_working_directory(&config.working_directory)
                     .join(CurrentSession {}.id()),
             }),
@@ -413,37 +303,6 @@ fn setup_results_directories(global_config: &GlobalConfig, plans: &[Plan]) -> An
     clean_up_results_directory(global_config, plans).context("Failed to clean up results directory")
 }
 
-struct StepManaged {
-    target: Utf8PathBuf,
-    session: Session,
-}
-
-impl SetupStep for StepManaged {
-    fn setup(&self) -> Result<(), api::Error> {
-        if let Err(err) = create_dir_all(&self.target) {
-            return Err(api::Error::new(
-                format!("Failed to create {}", self.target),
-                err,
-            ));
-        }
-        if let Session::User(user_session) = &self.session {
-            #[cfg(windows)]
-            if let Err(err) = grant_full_access(&user_session.user_name, &self.target) {
-                return Err(api::Error::new(
-                    format!("Failed to set permissions for {}", self.target),
-                    err,
-                ));
-            }
-            log::info!(
-                "Adjusted permissions for {} for user `{}`.",
-                &self.target,
-                user_session.user_name
-            );
-        }
-        Ok(())
-    }
-}
-
 fn gather_managed_directories(
     _global_config: &GlobalConfig,
     plans: Vec<Plan>,
@@ -453,7 +312,7 @@ fn gather_managed_directories(
     for plan in plans.into_iter() {
         if let Source::Managed { target, .. } = &plan.source {
             setup_steps.push((
-                Box::new(StepManaged {
+                Box::new(StepCreateWithAccess {
                     target: target.clone(),
                     session: plan.session.clone(),
                 }),
