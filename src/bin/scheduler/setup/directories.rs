@@ -65,8 +65,15 @@ pub fn setup(
     let setup_steps = gather_managed_directories(global_config, plans);
     let (surviving_plans, managed_dir_failures) = run_steps(setup_steps);
     #[cfg(windows)]
-    let (surviving_plans, robocorp_home_failures) =
-        setup_robocorp_home_directories(global_config, surviving_plans, &ownership_setter);
+    let (surviving_plans, robocorp_home_base_failures) = {
+        let setup_steps = gather_robocorp_home_base(global_config, surviving_plans);
+        run_steps(setup_steps)
+    };
+    #[cfg(windows)]
+    let (surviving_plans, robocorp_home_user_failures) = {
+        let setup_steps = gather_robocorp_home_per_user(global_config, surviving_plans);
+        run_steps(setup_steps)
+    };
     let (mut surviving_plans, working_dir_failures) =
         setup_working_directories(global_config, surviving_plans, &ownership_setter);
 
@@ -75,7 +82,8 @@ pub fn setup(
     let failures = managed_dir_failures
         .into_iter()
         .chain(working_dir_failures)
-        .chain(robocorp_home_failures)
+        .chain(robocorp_home_base_failures)
+        .chain(robocorp_home_user_failures)
         .collect();
     #[cfg(unix)]
     let failures = managed_dir_failures
@@ -86,78 +94,93 @@ pub fn setup(
 }
 
 #[cfg(windows)]
-fn setup_robocorp_home_directories(
-    global_config: &GlobalConfig,
-    plans: Vec<Plan>,
-    ownership_setter: &OwnershipSetter,
-) -> (Vec<Plan>, Vec<SetupFailure>) {
-    let mut rcc_plans = Vec::new();
-    let mut surviving_plans = Vec::new();
-    for plan in plans.into_iter() {
-        match plan.environment {
-            Environment::Rcc(_) => rcc_plans.push(plan),
-            _ => surviving_plans.push(plan),
-        }
-    }
-    let mut failures = Vec::new();
+struct StepRobocorpHomeBase {
+    base: Utf8PathBuf,
+}
 
-    if let Err(e) = create_dir_all(&global_config.rcc_config.robocorp_home_base).and_then(|()| {
-        ownership_setter
-            .transfer_ownership_non_recursive(&global_config.rcc_config.robocorp_home_base)
-    }) {
-        let error = anyhow!(e);
-        let summary = format!(
-            "Failed to create {}",
-            &global_config.rcc_config.robocorp_home_base
-        );
-        for plan in rcc_plans {
-            log_plan_not_scheduled(&error, &plan, &summary);
-            failures.push(SetupFailure {
-                plan_id: plan.id.clone(),
-                summary: summary.clone(),
-                details: format!("{error:?}"),
-            });
+#[cfg(windows)]
+impl SetupStep for StepRobocorpHomeBase {
+    fn setup(&self) -> Result<(), api::Error> {
+        let ownership_setter = OwnershipSetter {};
+        if let Err(err) = create_dir_all(&self.base)
+            .and_then(|()| ownership_setter.transfer_ownership_non_recursive(&self.base))
+        {
+            return Err(api::Error::new(
+                format!("Failed to create {}", self.base),
+                err,
+            ));
         }
-        return (surviving_plans, failures);
+        Ok(())
     }
+}
 
-    for (session, plans_in_session) in plans_by_sessions(rcc_plans) {
-        let robocorp_home = session.robocorp_home(&global_config.rcc_config.robocorp_home_base);
-        if let Err(e) = create_dir_all(&robocorp_home) {
-            let error = anyhow!(e);
-            let summary = format!("Failed to create {}", robocorp_home);
-            for plan in plans_in_session {
-                log_plan_not_scheduled(&error, &plan, &summary);
-                failures.push(SetupFailure {
-                    plan_id: plan.id.clone(),
-                    summary: summary.clone(),
-                    details: format!("{error:?}"),
-                });
-            }
-            continue;
+#[cfg(windows)]
+fn gather_robocorp_home_base(config: &GlobalConfig, plans: Vec<Plan>) -> Vec<StepWithPlans> {
+    let (rcc_plans, system_plans): (Vec<Plan>, Vec<Plan>) = plans
+        .into_iter()
+        .partition(|plan| matches!(plan.environment, Environment::Rcc(_)));
+    vec![
+        (
+            Box::new(StepRobocorpHomeBase {
+                base: config.rcc_config.robocorp_home_base.clone(),
+            }),
+            rcc_plans,
+        ),
+        skip(system_plans),
+    ]
+}
+
+#[cfg(windows)]
+struct StepRobocorpHomePerUser {
+    base: Utf8PathBuf,
+    session: Session,
+}
+
+#[cfg(windows)]
+impl SetupStep for StepRobocorpHomePerUser {
+    fn setup(&self) -> Result<(), api::Error> {
+        let robocorp_home = self.session.robocorp_home(&self.base);
+        if let Err(err) = create_dir_all(&robocorp_home) {
+            return Err(api::Error::new(
+                format!("Failed to create {robocorp_home}"),
+                err,
+            ));
         }
-        if let Session::User(user_session) = session {
-            info!(
+        if let Session::User(user_session) = &self.session {
+            log::info!(
                 "Granting full access for {} to user `{}`.",
-                &robocorp_home, &user_session.user_name
+                &robocorp_home,
+                &user_session.user_name
             );
-            if let Err(e) = grant_full_access(&user_session.user_name, &robocorp_home) {
-                let error = anyhow!(e);
-                let summary = format!("Failed to set permissions for {robocorp_home}");
-                for plan in plans_in_session {
-                    log_plan_not_scheduled(&error, &plan, &summary);
-                    failures.push(SetupFailure {
-                        plan_id: plan.id.clone(),
-                        summary: summary.clone(),
-                        details: format!("{error:?}"),
-                    });
-                }
-                continue;
+            #[cfg(windows)]
+            if let Err(err) = grant_full_access(&user_session.user_name, &robocorp_home) {
+                return Err(api::Error::new(
+                    format!("Failed to set permissions for {robocorp_home}"),
+                    err,
+                ));
             };
         }
-        surviving_plans.extend(plans_in_session);
+        Ok(())
     }
-    (surviving_plans, failures)
+}
+
+#[cfg(windows)]
+fn gather_robocorp_home_per_user(config: &GlobalConfig, plans: Vec<Plan>) -> Vec<StepWithPlans> {
+    let (rcc_plans, system_plans): (Vec<Plan>, Vec<Plan>) = plans
+        .into_iter()
+        .partition(|plan| matches!(plan.environment, Environment::Rcc(_)));
+    let mut setup_steps: Vec<StepWithPlans> = Vec::new();
+    for (session, plans_in_session) in plans_by_sessions(rcc_plans) {
+        setup_steps.push((
+            Box::new(StepRobocorpHomePerUser {
+                base: config.rcc_config.robocorp_home_base.clone(),
+                session,
+            }),
+            plans_in_session,
+        ));
+    }
+    setup_steps.push(skip(system_plans));
+    setup_steps
 }
 
 fn setup_working_directories(
