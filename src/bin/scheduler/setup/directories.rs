@@ -61,53 +61,40 @@ pub fn setup(
 
     setup_results_directories(global_config, &plans, &ownership_setter)?;
 
-    let setup_steps = gather_managed_directories(global_config, plans);
-    let (surviving_plans, managed_dir_failures) = run_steps(setup_steps);
-    #[cfg(windows)]
-    let (surviving_plans, robocorp_home_base_failures) = {
-        let setup_steps = gather_robocorp_home_base(global_config, surviving_plans);
-        run_steps(setup_steps)
-    };
-    #[cfg(windows)]
-    let (surviving_plans, robocorp_home_user_failures) = {
-        let setup_steps = gather_robocorp_home_per_user(global_config, surviving_plans);
-        run_steps(setup_steps)
-    };
-    let setup_steps = gather_plan_working_directories(global_config, surviving_plans);
-    let (surviving_plans, plan_failures) = run_steps(setup_steps);
-    let setup_steps = gather_environment_building_directories(global_config, surviving_plans);
-    let (surviving_plans, building_directory_failures) = run_steps(setup_steps);
-    let setup_steps = gather_rcc_working_base(global_config, surviving_plans);
-    let (surviving_plans, rcc_working_base_failures) = run_steps(setup_steps);
-    #[cfg(windows)]
-    let (surviving_plans, longpath_directory_failures) = {
-        let setup_steps = gather_rcc_longpath_directory(global_config, surviving_plans);
-        run_steps(setup_steps)
-    };
-    let setup_steps = gather_rcc_working_per_user(global_config, surviving_plans);
-    let (mut surviving_plans, rcc_working_per_user_failures) = run_steps(setup_steps);
+    Ok(run_setup(global_config, plans))
+}
 
-    sort_plans_by_grouping(&mut surviving_plans);
-    #[cfg(windows)]
-    let failures = managed_dir_failures
-        .into_iter()
-        .chain(plan_failures)
-        .chain(building_directory_failures)
-        .chain(rcc_working_base_failures)
-        .chain(rcc_working_per_user_failures)
-        .chain(longpath_directory_failures)
-        .chain(robocorp_home_base_failures)
-        .chain(robocorp_home_user_failures)
-        .collect();
-    #[cfg(unix)]
-    let failures = managed_dir_failures
-        .into_iter()
-        .chain(building_directory_failures)
-        .chain(plan_failures)
-        .chain(rcc_working_base_failures)
-        .chain(rcc_working_per_user_failures)
-        .collect();
-    Ok((surviving_plans, failures))
+fn run_setup(config: &GlobalConfig, mut plans: Vec<Plan>) -> (Vec<Plan>, Vec<SetupFailure>) {
+    let gather_requirements = [
+        gather_managed_directories,
+        #[cfg(windows)]
+        gather_robocorp_home_base,
+        #[cfg(windows)]
+        gather_robocorp_home_per_user,
+        gather_plan_working_directories,
+        gather_environment_building_directories,
+        gather_rcc_working_base,
+        #[cfg(windows)]
+        gather_rcc_longpath_directory,
+        gather_rcc_working_per_user,
+    ];
+
+    let mut failures = Vec::new();
+    for gather in gather_requirements.iter() {
+        plans = {
+            let plan_count = plans.len();
+            let setup_steps = gather(config, plans);
+            assert_eq!(
+                plan_count,
+                setup_steps.iter().map(|s| s.1.len()).sum::<usize>()
+            );
+            let (surviving_plans, current_errors) = run_steps(setup_steps);
+            failures.extend(current_errors);
+            surviving_plans
+        };
+    }
+    sort_plans_by_grouping(&mut plans);
+    (plans, failures)
 }
 
 #[cfg(windows)]
