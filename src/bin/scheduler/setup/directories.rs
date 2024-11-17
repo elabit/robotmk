@@ -5,12 +5,18 @@ use crate::internal_config::{
     Plan, Source,
 };
 
+#[cfg(windows)]
+use super::windows_permissions::{grant_full_access, reset_access};
 use anyhow::{anyhow, Context, Result as AnyhowResult};
 use camino::{Utf8Path, Utf8PathBuf};
 use log::error;
+#[cfg(windows)]
+use log::info;
 use robotmk::environment::Environment;
 use robotmk::fs::{create_dir_all, remove_dir_all, remove_file};
 use robotmk::results::{plan_results_directory, SetupFailure};
+#[cfg(windows)]
+use robotmk::session::Session;
 use robotmk::termination::Terminate;
 use std::collections::HashSet;
 
@@ -92,10 +98,6 @@ fn setup_robocorp_home_directories(
     plans: Vec<Plan>,
     ownership_setter: &OwnershipSetter,
 ) -> (Vec<Plan>, Vec<SetupFailure>) {
-    use super::windows_permissions::grant_full_access;
-    use log::info;
-    use robotmk::session::Session;
-
     let mut rcc_plans = Vec::new();
     let mut surviving_plans = Vec::new();
     for plan in plans.into_iter() {
@@ -214,10 +216,6 @@ fn setup_plan_working_directories(
 
         #[cfg(windows)]
         {
-            use super::windows_permissions::{grant_full_access, reset_access};
-            use log::info;
-            use robotmk::session::Session;
-
             info!("Resetting permissions for {}", &plan.working_directory);
             if let Err(e) = reset_access(&plan.working_directory) {
                 let error = anyhow!(e);
@@ -328,10 +326,6 @@ fn setup_environment_building_directories(
 
         #[cfg(windows)]
         {
-            use super::windows_permissions::grant_full_access;
-            use log::info;
-            use robotmk::session::Session;
-
             if let Session::User(user_session) = &plan.session {
                 info!(
                     "Granting full access for {} to user `{}`.",
@@ -391,10 +385,6 @@ fn setup_with_one_directory_per_user(
         }
         #[cfg(windows)]
         {
-            use super::windows_permissions::grant_full_access;
-            use log::info;
-            use robotmk::session::Session;
-
             if let Session::User(user_session) = &session {
                 info!(
                     "Granting full access for {} to user `{}`.",
@@ -475,10 +465,6 @@ fn setup_managed_directories(plans: Vec<Plan>) -> (Vec<Plan>, Vec<SetupFailure>)
             }
             #[cfg(windows)]
             {
-                use super::windows_permissions::grant_full_access;
-                use log::info;
-                use robotmk::session::Session;
-
                 if let Session::User(user_session) = &plan.session {
                     if let Err(error) = grant_full_access(&user_session.user_name, target) {
                         let error = anyhow!(error);
