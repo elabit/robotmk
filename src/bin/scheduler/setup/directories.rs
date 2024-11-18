@@ -23,6 +23,8 @@ pub fn setup(
 ) -> Result<(Vec<Plan>, Vec<SetupFailure>), Terminate> {
     create_dir_all(&global_config.runtime_base_directory)?;
     transfer_directory_ownership_recursive(&global_config.runtime_base_directory)?;
+    #[cfg(windows)]
+    reset_access(&global_config.runtime_base_directory)?;
     create_dir_all(&global_config.working_directory)?;
     create_dir_all(plans_working_directory(&global_config.working_directory))?;
     for working_sub_dir in [
@@ -138,7 +140,14 @@ impl SetupStep for StepRobocorpHomeBase {
                 format!("Failed to transfer ownership of {}", self.target),
                 err,
             )
-        })
+        })?;
+        reset_access(&self.target).map_err(|err| {
+            api::Error::new(
+                format!("Failed to reset permissions of {}", self.target),
+                err,
+            )
+        })?;
+        Ok(())
     }
 }
 
@@ -177,31 +186,6 @@ fn gather_robocorp_home_per_user(config: &GlobalConfig, plans: Vec<Plan>) -> Vec
     setup_steps
 }
 
-struct StepPlanWorkingDirectory {
-    target: Utf8PathBuf,
-    session: Session,
-}
-
-impl SetupStep for StepPlanWorkingDirectory {
-    fn setup(&self) -> Result<(), api::Error> {
-        #[cfg(windows)]
-        if self.target.exists() {
-            log::info!("Resetting permissions for {}", &self.target);
-            if let Err(err) = reset_access(&self.target) {
-                return Err(api::Error::new(
-                    format!("Failed to reset permissions for {}", &self.target),
-                    err,
-                ));
-            };
-        }
-        StepCreateWithAccess {
-            target: self.target.clone(),
-            session: self.session.clone(),
-        }
-        .setup()
-    }
-}
-
 fn gather_plan_working_directories(
     _global_config: &GlobalConfig,
     plans: Vec<Plan>,
@@ -210,7 +194,7 @@ fn gather_plan_working_directories(
         .into_iter()
         .map(|p| {
             (
-                Box::new(StepPlanWorkingDirectory {
+                Box::new(StepCreateWithAccess {
                     target: p.working_directory.clone(),
                     session: p.session.clone(),
                 }) as Box<dyn SetupStep>,
