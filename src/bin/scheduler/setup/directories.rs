@@ -22,11 +22,9 @@ pub fn setup(
     plans: Vec<Plan>,
 ) -> Result<(Vec<Plan>, Vec<SetupFailure>), Terminate> {
     create_dir_all(&global_config.runtime_base_directory)?;
-    transfer_ownership_non_recursive(&global_config.runtime_base_directory)?;
+    transfer_directory_ownership_recursive(&global_config.runtime_base_directory)?;
     create_dir_all(&global_config.working_directory)?;
-    transfer_ownership_non_recursive(&global_config.working_directory)?;
     create_dir_all(plans_working_directory(&global_config.working_directory))?;
-    transfer_ownership_non_recursive(&plans_working_directory(&global_config.working_directory))?;
     for working_sub_dir in [
         rcc_setup_working_directory(&global_config.working_directory),
         environment_building_directory(&global_config.working_directory),
@@ -135,8 +133,11 @@ impl SetupStep for StepRobocorpHomeBase {
             target: self.target.clone(),
         }
         .setup()?;
-        transfer_ownership_non_recursive(&self.target).map_err(|err| {
-            api::Error::new(format!("Failed to transfer ownership {}", self.target), err)
+        transfer_directory_ownership_recursive(&self.target).map_err(|err| {
+            api::Error::new(
+                format!("Failed to transfer ownership of {}", self.target),
+                err,
+            )
         })
     }
 }
@@ -197,10 +198,7 @@ impl SetupStep for StepPlanWorkingDirectory {
             target: self.target.clone(),
             session: self.session.clone(),
         }
-        .setup()?;
-        transfer_ownership_non_recursive(&self.target).map_err(|err| {
-            api::Error::new(format!("Failed to transfer ownership {}", self.target), err)
-        })
+        .setup()
     }
 }
 
@@ -299,7 +297,6 @@ fn gather_rcc_longpath_directory(config: &GlobalConfig, plans: Vec<Plan>) -> Vec
 fn setup_results_directories(global_config: &GlobalConfig, plans: &[Plan]) -> AnyhowResult<()> {
     create_dir_all(&global_config.results_directory)?;
     create_dir_all(plan_results_directory(&global_config.results_directory))?;
-    transfer_ownership_recursive(&global_config.results_directory)?;
     clean_up_results_directory(global_config, plans).context("Failed to clean up results directory")
 }
 
@@ -344,27 +341,14 @@ fn clean_up_results_directory(
 }
 
 #[cfg(unix)]
-pub fn transfer_ownership_non_recursive(target: &Utf8Path) -> AnyhowResult<()> {
-    let user_id = unsafe { libc::getuid() };
-    let group_id = unsafe { libc::getgid() };
-    lchown(target, user_id, group_id)
-}
-
-#[cfg(unix)]
-fn lchown(target: &Utf8Path, user_id: u32, group_id: u32) -> anyhow::Result<()> {
-    std::os::unix::fs::lchown(target, Some(user_id), Some(group_id)).context(format!(
-        "Failed to set ownership of {target} to `{}:{}` (non-recursive)",
-        user_id, group_id
-    ))
-}
-
-#[cfg(unix)]
-pub fn transfer_ownership_recursive(target: &Utf8Path) -> AnyhowResult<()> {
+pub fn transfer_directory_ownership_recursive(target: &Utf8Path) -> AnyhowResult<()> {
     let user_id = unsafe { libc::getuid() };
     let group_id = unsafe { libc::getgid() };
     let mut targets: Vec<Utf8PathBuf> = vec![target.into()];
     while let Some(target) = targets.pop() {
-        lchown(&target, user_id, group_id)?;
+        std::os::unix::fs::lchown(&target, Some(user_id), Some(group_id)).context(format!(
+            "Failed to set ownership of {target} to `{user_id}:{group_id}`",
+        ))?;
         if target.is_dir() && !target.is_symlink() {
             targets.extend(top_level_directory_entries(&target)?);
         }
@@ -373,12 +357,7 @@ pub fn transfer_ownership_recursive(target: &Utf8Path) -> AnyhowResult<()> {
 }
 
 #[cfg(windows)]
-pub fn transfer_ownership_non_recursive(target: &Utf8Path) -> AnyhowResult<()> {
-    super::windows_permissions::transfer_ownership_to_admin_group_non_recursive(target)
-}
-
-#[cfg(windows)]
-pub fn transfer_ownership_recursive(target: &Utf8Path) -> AnyhowResult<()> {
+pub fn transfer_directory_ownership_recursive(target: &Utf8Path) -> AnyhowResult<()> {
     super::windows_permissions::transfer_directory_ownership_to_admin_group_recursive(target)
 }
 
