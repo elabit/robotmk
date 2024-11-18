@@ -1,60 +1,10 @@
 #![cfg(windows)]
-use super::plans_by_sessions;
 use anyhow::{bail, Context};
-use log::{debug, error};
+use camino::Utf8Path;
 use std::process::Command;
 
-use crate::internal_config::Plan;
-use camino::Utf8Path;
-use robotmk::config::{RCCConfig, RCCProfileConfig};
-use robotmk::results::SetupFailure;
-use robotmk::session::Session;
-
-pub fn grant_permissions_to_all_plan_users(
-    path: &Utf8Path,
-    plans: Vec<Plan>,
-    permissions: &str,
-    additional_icacls_args: &[&str],
-    description_for_failure_reporting: &str,
-) -> (Vec<Plan>, Vec<SetupFailure>) {
-    let mut surviving_plans = vec![];
-    let mut failures = vec![];
-
-    for (session, plans_in_session) in plans_by_sessions(plans) {
-        if let Session::User(user_session) = session {
-            let icacls_permission_arg = format!("{}:{}", user_session.user_name, permissions);
-            let mut icacls_args = vec![path.as_str(), "/grant", &icacls_permission_arg];
-            icacls_args.extend(additional_icacls_args);
-
-            match run_icacls_command(icacls_args).context(format!(
-                "Adjusting permissions of {path} for user `{}` failed",
-                user_session.user_name
-            )) {
-                Ok(_) => surviving_plans.extend(plans_in_session),
-                Err(error) => {
-                    for plan in plans_in_session {
-                        error!(
-                            "Plan {}: Failed to adjust permissions of \
-                             {description_for_failure_reporting} for plan user. Plan won't be scheduled.
-                             Error: {error:?}",
-                            plan.id
-                        );
-                        failures.push(SetupFailure {
-                            plan_id: plan.id.clone(),
-                            summary: format!(
-                                "Failed to adjust permissions of {description_for_failure_reporting} for plan user"
-                            ),
-                            details: format!("{error:?}"),
-                        });
-                    }
-                }
-            }
-        } else {
-            surviving_plans.extend(plans_in_session);
-        }
-    }
-
-    (surviving_plans, failures)
+pub fn run_icacls_command<'a>(arguments: impl IntoIterator<Item = &'a str>) -> anyhow::Result<()> {
+    run_command("icacls.exe", arguments)
 }
 
 pub fn grant_full_access(user: &str, target_path: &Utf8Path) -> anyhow::Result<()> {
@@ -76,48 +26,6 @@ pub fn reset_access(target_path: &Utf8Path) -> anyhow::Result<()> {
         let message = format!("Resetting permissions of {target_path} failed");
         e.context(message)
     })
-}
-
-pub fn adjust_rcc_file_permissions(
-    rcc_config: &RCCConfig,
-    rcc_plans: Vec<Plan>,
-) -> (Vec<Plan>, Vec<SetupFailure>) {
-    debug!(
-        "Granting all plan users read and execute access to {}",
-        rcc_config.binary_path
-    );
-    let (mut surviving_rcc_plans, rcc_binary_permissions_failures) =
-        grant_permissions_to_all_plan_users(
-            &rcc_config.binary_path,
-            rcc_plans,
-            "(RX)",
-            &[],
-            "RCC binary",
-        );
-
-    let mut rcc_profile_file_permissions_failures = vec![];
-    if let RCCProfileConfig::Custom(custom_rcc_profile_config) = &rcc_config.profile_config {
-        debug!(
-            "Granting all plan users read access to {}",
-            custom_rcc_profile_config.path
-        );
-        (surviving_rcc_plans, rcc_profile_file_permissions_failures) =
-            grant_permissions_to_all_plan_users(
-                &custom_rcc_profile_config.path,
-                surviving_rcc_plans,
-                "(R)",
-                &[],
-                "RCC profile file",
-            );
-    }
-
-    (
-        surviving_rcc_plans,
-        rcc_binary_permissions_failures
-            .into_iter()
-            .chain(rcc_profile_file_permissions_failures)
-            .collect(),
-    )
 }
 
 pub fn transfer_directory_ownership_to_admin_group_recursive(
@@ -147,10 +55,6 @@ fn run_command<'a>(
         )
     }
     Ok(())
-}
-
-fn run_icacls_command<'a>(arguments: impl IntoIterator<Item = &'a str>) -> anyhow::Result<()> {
-    run_command("icacls.exe", arguments)
 }
 
 fn run_takeown_command<'a>(arguments: impl IntoIterator<Item = &'a str>) -> anyhow::Result<()> {
