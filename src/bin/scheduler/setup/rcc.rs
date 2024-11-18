@@ -1,4 +1,9 @@
+use super::api::{self, run_steps};
+#[cfg(windows)]
+use super::api::{skip, SetupStep, StepWithPlans};
 use super::plans_by_sessions;
+#[cfg(windows)]
+use super::windows_permissions::run_icacls_command;
 use crate::internal_config::{sort_plans_by_grouping, GlobalConfig, Plan};
 use crate::logging::log_and_return_error;
 #[cfg(windows)]
@@ -18,7 +23,9 @@ pub fn setup(
     global_config: &GlobalConfig,
     plans: Vec<Plan>,
 ) -> Result<(Vec<Plan>, Vec<SetupFailure>), Cancelled> {
-    let (rcc_plans, mut system_plans): (Vec<Plan>, Vec<Plan>) = plans
+    let (surviving_plans, failures) = run_setup_steps(global_config, plans);
+
+    let (rcc_plans, mut system_plans): (Vec<Plan>, Vec<Plan>) = surviving_plans
         .into_iter()
         .partition(|plan| matches!(plan.environment, Environment::Rcc(_)));
 
@@ -27,16 +34,7 @@ pub fn setup(
         return Ok((system_plans, vec![]));
     }
 
-    #[cfg(windows)]
-    let (surviving_rcc_plans, rcc_file_permissions_failures) = {
-        use super::windows_permissions::adjust_rcc_file_permissions;
-        adjust_rcc_file_permissions(&global_config.rcc_config, rcc_plans)
-    };
-    #[cfg(unix)]
-    let (surviving_rcc_plans, rcc_file_permissions_failures) = (rcc_plans, vec![]);
-
-    let (surviving_rcc_plans, further_rcc_setup_failures) =
-        rcc_setup(global_config, surviving_rcc_plans)?;
+    let (surviving_rcc_plans, further_rcc_setup_failures) = rcc_setup(global_config, rcc_plans)?;
 
     let mut surviving_plans = vec![];
     surviving_plans.extend(surviving_rcc_plans);
@@ -44,7 +42,7 @@ pub fn setup(
     sort_plans_by_grouping(&mut surviving_plans);
     Ok((
         surviving_plans,
-        rcc_file_permissions_failures
+        failures
             .into_iter()
             .chain(further_rcc_setup_failures)
             .collect(),
@@ -53,6 +51,116 @@ pub fn setup(
 
 pub fn rcc_setup_working_directory(working_directory: &Utf8Path) -> Utf8PathBuf {
     working_directory.join("rcc_setup")
+}
+
+fn run_setup_steps(config: &GlobalConfig, mut plans: Vec<Plan>) -> (Vec<Plan>, Vec<SetupFailure>) {
+    // needed to avoid clippy::type_complexity below
+    type Gatherer = fn(&GlobalConfig, Vec<Plan>) -> Vec<(Box<dyn api::SetupStep>, Vec<Plan>)>;
+    let gather_requirements: Vec<Gatherer> = vec![
+        #[cfg(windows)]
+        gather_rcc_binary_permissions,
+        #[cfg(windows)]
+        gather_rcc_profile_permissions,
+    ];
+
+    let mut failures = Vec::new();
+    for gather in gather_requirements.iter() {
+        plans = {
+            let plan_count = plans.len();
+            let setup_steps = gather(config, plans);
+            assert_eq!(
+                plan_count,
+                setup_steps.iter().map(|s| s.1.len()).sum::<usize>()
+            );
+            let (surviving_plans, current_errors) = run_steps(setup_steps);
+            failures.extend(current_errors);
+            surviving_plans
+        };
+    }
+    sort_plans_by_grouping(&mut plans);
+    (plans, failures)
+}
+
+#[cfg(windows)]
+struct StepFilePermissions {
+    target: Utf8PathBuf,
+    session: Session,
+    icacls_permissions: String,
+}
+
+#[cfg(windows)]
+impl SetupStep for StepFilePermissions {
+    fn setup(&self) -> Result<(), api::Error> {
+        if let Session::User(user_session) = &self.session {
+            log::info!(
+                "Granting user `{user}` {permissions} access to {target}.",
+                user = &user_session.user_name,
+                permissions = &self.icacls_permissions,
+                target = &self.target,
+            );
+            run_icacls_command([
+                self.target.as_str(),
+                "/grant",
+                &format!("{}:{}", &user_session.user_name, self.icacls_permissions),
+            ])
+            .map_err(|err| {
+                api::Error::new(
+                    format!(
+                        "Adjusting permissions of {} for user `{}` failed",
+                        self.target, &user_session.user_name
+                    ),
+                    err,
+                )
+            })?;
+        }
+        Ok(())
+    }
+}
+
+#[cfg(windows)]
+fn gather_rcc_binary_permissions(config: &GlobalConfig, plans: Vec<Plan>) -> Vec<StepWithPlans> {
+    let (rcc_plans, system_plans): (Vec<Plan>, Vec<Plan>) = plans
+        .into_iter()
+        .partition(|plan| matches!(plan.environment, Environment::Rcc(_)));
+    let mut steps: Vec<StepWithPlans> = Vec::new();
+    for (session, plans_in_session) in plans_by_sessions(rcc_plans) {
+        steps.push((
+            Box::new(StepFilePermissions {
+                target: config.rcc_config.binary_path.clone(),
+                session,
+                icacls_permissions: "(RX)".to_string(),
+            }),
+            plans_in_session,
+        ));
+    }
+    steps.push(skip(system_plans));
+    steps
+}
+
+#[cfg(windows)]
+fn gather_rcc_profile_permissions(config: &GlobalConfig, plans: Vec<Plan>) -> Vec<StepWithPlans> {
+    let (rcc_plans, system_plans): (Vec<Plan>, Vec<Plan>) = plans
+        .into_iter()
+        .partition(|plan| matches!(plan.environment, Environment::Rcc(_)));
+    let mut steps: Vec<StepWithPlans> = Vec::new();
+
+    match &config.rcc_config.profile_config {
+        RCCProfileConfig::Default => steps.push(skip(rcc_plans)),
+        RCCProfileConfig::Custom(custom_profile) => {
+            for (session, plans_in_session) in plans_by_sessions(rcc_plans) {
+                steps.push((
+                    Box::new(StepFilePermissions {
+                        target: custom_profile.path.clone(),
+                        session,
+                        icacls_permissions: "(R)".to_string(),
+                    }),
+                    plans_in_session,
+                ));
+            }
+        }
+    }
+    steps.push(skip(system_plans));
+    steps
 }
 
 fn rcc_setup(
