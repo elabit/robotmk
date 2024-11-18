@@ -1,6 +1,4 @@
-use super::api::{self, run_steps};
-#[cfg(windows)]
-use super::api::{skip, SetupStep, StepWithPlans};
+use super::api::{self, run_steps, skip, SetupStep, StepWithPlans};
 use super::plans_by_sessions;
 #[cfg(windows)]
 use super::windows_permissions::run_icacls_command;
@@ -13,11 +11,12 @@ use robotmk::results::SetupFailure;
 use robotmk::session::{RunSpec, Session};
 use robotmk::termination::{Cancelled, Outcome};
 
-use anyhow::Context;
+use anyhow::{anyhow, Context};
 use camino::{Utf8Path, Utf8PathBuf};
 use log::{debug, error};
 use robotmk::config::{CustomRCCProfileConfig, RCCProfileConfig};
 use std::vec;
+use tokio_util::sync::CancellationToken;
 
 pub fn setup(
     global_config: &GlobalConfig,
@@ -54,13 +53,12 @@ pub fn rcc_setup_working_directory(working_directory: &Utf8Path) -> Utf8PathBuf 
 }
 
 fn run_setup_steps(config: &GlobalConfig, mut plans: Vec<Plan>) -> (Vec<Plan>, Vec<SetupFailure>) {
-    // needed to avoid clippy::type_complexity below
-    type Gatherer = fn(&GlobalConfig, Vec<Plan>) -> Vec<(Box<dyn api::SetupStep>, Vec<Plan>)>;
-    let gather_requirements: Vec<Gatherer> = vec![
+    let gather_requirements = [
         #[cfg(windows)]
         gather_rcc_binary_permissions,
         #[cfg(windows)]
         gather_rcc_profile_permissions,
+        gather_disable_rcc_telemetry,
     ];
 
     let mut failures = Vec::new();
@@ -117,6 +115,72 @@ impl SetupStep for StepFilePermissions {
     }
 }
 
+struct StepRCCCommand {
+    binary_path: Utf8PathBuf,
+    robocorp_home_base: Utf8PathBuf,
+    working_directory: Utf8PathBuf,
+    session: Session,
+    cancellation_token: CancellationToken,
+    arguments: Vec<String>,
+    id: String,
+    summary_if_failure: String,
+}
+
+impl StepRCCCommand {
+    fn new_from_config(
+        config: &GlobalConfig,
+        session: Session,
+        arguments: &[&str],
+        id: &str,
+        summary_if_failure: &str,
+    ) -> Self {
+        Self {
+            binary_path: config.rcc_config.binary_path.clone(),
+            robocorp_home_base: config.rcc_config.robocorp_home_base.clone(),
+            working_directory: config.working_directory.clone(),
+            session,
+            cancellation_token: config.cancellation_token.clone(),
+            arguments: arguments.iter().map(|s| s.to_string()).collect(),
+            id: id.into(),
+            summary_if_failure: summary_if_failure.into(),
+        }
+    }
+}
+
+impl SetupStep for StepRCCCommand {
+    fn setup(&self) -> Result<(), api::Error> {
+        let mut command_spec = RCCEnvironment::bundled_command_spec(
+            &self.binary_path,
+            self.session
+                .robocorp_home(&self.robocorp_home_base)
+                .to_string(),
+        );
+        command_spec.add_arguments(&self.arguments);
+        debug!("Running {} for `{}`", command_spec, &self.session);
+        match execute_run_spec_in_session(
+            &self.session,
+            &RunSpec {
+                id: &format!("robotmk_{}", self.id),
+                command_spec: &command_spec,
+                runtime_base_path: &rcc_setup_working_directory(&self.working_directory)
+                    .join(self.session.id())
+                    .join(&self.id),
+                timeout: 120,
+                cancellation_token: &self.cancellation_token,
+            },
+        )
+        .map_err(|_cancelled| {
+            api::Error::new(self.summary_if_failure.clone(), anyhow!("Cancelled"))
+        })? {
+            Some(error_msg) => Err(api::Error::new(
+                self.summary_if_failure.clone(),
+                anyhow!(error_msg),
+            )),
+            None => Ok(()),
+        }
+    }
+}
+
 #[cfg(windows)]
 fn gather_rcc_binary_permissions(config: &GlobalConfig, plans: Vec<Plan>) -> Vec<StepWithPlans> {
     let (rcc_plans, system_plans): (Vec<Plan>, Vec<Plan>) = plans
@@ -163,6 +227,27 @@ fn gather_rcc_profile_permissions(config: &GlobalConfig, plans: Vec<Plan>) -> Ve
     steps
 }
 
+fn gather_disable_rcc_telemetry(config: &GlobalConfig, plans: Vec<Plan>) -> Vec<StepWithPlans> {
+    let (rcc_plans, system_plans): (Vec<Plan>, Vec<Plan>) = plans
+        .into_iter()
+        .partition(|plan| matches!(plan.environment, Environment::Rcc(_)));
+    let mut steps: Vec<StepWithPlans> = Vec::new();
+    for (session, plans_in_session) in plans_by_sessions(rcc_plans) {
+        steps.push((
+            Box::new(StepRCCCommand::new_from_config(
+                config,
+                session,
+                &["configure", "identity", "--do-not-track"],
+                "telemetry_disabling",
+                "Disabling RCC telemetry failed",
+            )),
+            plans_in_session,
+        ));
+    }
+    steps.push(skip(system_plans));
+    steps
+}
+
 fn rcc_setup(
     global_config: &GlobalConfig,
     rcc_plans: Vec<Plan>,
@@ -171,12 +256,8 @@ fn rcc_setup(
     let mut all_failures = vec![];
     let mut current_failures: Vec<SetupFailure>;
 
-    debug!("Disabling RCC telemetry");
-    (sucessful_plans, current_failures) = disable_rcc_telemetry(global_config, rcc_plans)?;
-    all_failures.extend(current_failures);
-
     debug!("Configuring RCC profile");
-    (sucessful_plans, current_failures) = configure_rcc_profile(global_config, sucessful_plans)?;
+    (sucessful_plans, current_failures) = configure_rcc_profile(global_config, rcc_plans)?;
     all_failures.extend(current_failures);
 
     #[cfg(windows)]
@@ -192,19 +273,6 @@ fn rcc_setup(
     all_failures.extend(current_failures);
 
     Ok((sucessful_plans, all_failures))
-}
-
-fn disable_rcc_telemetry(
-    global_config: &GlobalConfig,
-    plans: Vec<Plan>,
-) -> Result<(Vec<Plan>, Vec<SetupFailure>), Cancelled> {
-    run_rcc_per_session(
-        global_config,
-        plans,
-        ["configure", "identity", "--do-not-track"],
-        "telemetry_disabling",
-        "Disabling RCC telemetry failed",
-    )
 }
 
 fn configure_rcc_profile(
