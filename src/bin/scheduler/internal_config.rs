@@ -12,6 +12,7 @@ use robotmk::session::Session;
 use camino::{Utf8Path, Utf8PathBuf};
 use tokio_util::sync::CancellationToken;
 
+#[derive(Clone)]
 pub struct GlobalConfig {
     pub runtime_base_directory: Utf8PathBuf,
     pub working_directory: Utf8PathBuf,
