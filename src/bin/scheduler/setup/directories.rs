@@ -25,32 +25,65 @@ pub fn setup(
     transfer_directory_ownership_recursive(&global_config.runtime_base_directory)?;
     #[cfg(windows)]
     reset_access(&global_config.runtime_base_directory)?;
-    create_dir_all(&global_config.working_directory)?;
-    create_dir_all(plans_working_directory(&global_config.working_directory))?;
-    for working_sub_dir in [
-        rcc_setup_working_directory(&global_config.working_directory),
-        environment_building_directory(&global_config.working_directory),
-    ] {
-        if working_sub_dir.exists() {
-            remove_dir_all(&working_sub_dir)?;
-        }
-        create_dir_all(&working_sub_dir)?;
-    }
-    clean_up_file_system_entries(
-        plans.iter().map(|plan| &plan.working_directory),
-        top_level_directories(&plans_working_directory(&global_config.working_directory))?.iter(),
-    )?;
-    if global_config.managed_directory.exists() {
-        remove_dir_all(&global_config.managed_directory)?;
-    }
-    create_dir_all(&global_config.managed_directory)?;
 
-    setup_results_directories(global_config, &plans)?;
+    setup_working_directory(&global_config.working_directory, &plans)?;
+    setup_managed_directory(&global_config.managed_directory)?;
+    setup_results_directory(global_config, &plans)?;
 
-    Ok(run_setup(global_config, plans))
+    Ok(run_setup_steps(global_config, plans))
 }
 
-fn run_setup(config: &GlobalConfig, mut plans: Vec<Plan>) -> (Vec<Plan>, Vec<SetupFailure>) {
+fn setup_working_directory(working_directory: &Utf8Path, plans: &[Plan]) -> AnyhowResult<()> {
+    create_dir_all(working_directory)?;
+    create_dir_all(plans_working_directory(working_directory))?;
+    clean_up_file_system_entries(
+        plans.iter().map(|plan| &plan.working_directory),
+        top_level_directories(&plans_working_directory(working_directory))?.iter(),
+    )?;
+    for dir_to_be_reset in [
+        rcc_setup_working_directory(working_directory),
+        environment_building_directory(working_directory),
+    ] {
+        if dir_to_be_reset.exists() {
+            remove_dir_all(&dir_to_be_reset)?;
+        }
+        create_dir_all(&dir_to_be_reset)?;
+    }
+    Ok(())
+}
+
+fn setup_managed_directory(managed_directory: &Utf8Path) -> AnyhowResult<()> {
+    if managed_directory.exists() {
+        remove_dir_all(managed_directory)?;
+    }
+    create_dir_all(managed_directory)?;
+    Ok(())
+}
+
+fn setup_results_directory(global_config: &GlobalConfig, plans: &[Plan]) -> AnyhowResult<()> {
+    create_dir_all(&global_config.results_directory)?;
+    create_dir_all(plan_results_directory(&global_config.results_directory))?;
+    clean_up_results_directory(global_config, plans).context("Failed to clean up results directory")
+}
+
+fn clean_up_results_directory(
+    global_config: &GlobalConfig,
+    plans: &[Plan],
+) -> Result<(), Terminate> {
+    let results_directory_lock = global_config
+        .results_directory_locker
+        .wait_for_write_lock()?;
+    for path in top_level_files(&global_config.results_directory)? {
+        remove_file(path)?;
+    }
+    clean_up_file_system_entries(
+        plans.iter().map(|plan| &plan.results_file),
+        top_level_files(&plan_results_directory(&global_config.results_directory))?.iter(),
+    )?;
+    Ok(results_directory_lock.release()?)
+}
+
+fn run_setup_steps(config: &GlobalConfig, mut plans: Vec<Plan>) -> (Vec<Plan>, Vec<SetupFailure>) {
     let gather_requirements = [
         gather_managed_directories,
         #[cfg(windows)]
@@ -278,12 +311,6 @@ fn gather_rcc_longpath_directory(config: &GlobalConfig, plans: Vec<Plan>) -> Vec
     ]
 }
 
-fn setup_results_directories(global_config: &GlobalConfig, plans: &[Plan]) -> AnyhowResult<()> {
-    create_dir_all(&global_config.results_directory)?;
-    create_dir_all(plan_results_directory(&global_config.results_directory))?;
-    clean_up_results_directory(global_config, plans).context("Failed to clean up results directory")
-}
-
 fn gather_managed_directories(
     _global_config: &GlobalConfig,
     plans: Vec<Plan>,
@@ -305,23 +332,6 @@ fn gather_managed_directories(
     }
     setup_steps.push(skip(unaffected_plans));
     setup_steps
-}
-
-fn clean_up_results_directory(
-    global_config: &GlobalConfig,
-    plans: &[Plan],
-) -> Result<(), Terminate> {
-    let results_directory_lock = global_config
-        .results_directory_locker
-        .wait_for_write_lock()?;
-    for path in top_level_files(&global_config.results_directory)? {
-        remove_file(path)?;
-    }
-    clean_up_file_system_entries(
-        plans.iter().map(|plan| &plan.results_file),
-        top_level_files(&plan_results_directory(&global_config.results_directory))?.iter(),
-    )?;
-    Ok(results_directory_lock.release()?)
 }
 
 #[cfg(unix)]
