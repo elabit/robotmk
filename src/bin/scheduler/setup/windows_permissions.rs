@@ -120,16 +120,6 @@ pub fn adjust_rcc_file_permissions(
     )
 }
 
-pub fn transfer_ownership_to_admin_group_non_recursive(
-    target_path: &Utf8Path,
-) -> anyhow::Result<()> {
-    run_takeown_command(["/a", "/f", target_path.as_str()]).map_err(|e| {
-        e.context(format!(
-            "Transfering ownership of {target_path} to administrator group failed (non-recursive)"
-        ))
-    })
-}
-
 pub fn transfer_directory_ownership_to_admin_group_recursive(
     target_path: &Utf8Path,
 ) -> anyhow::Result<()> {
