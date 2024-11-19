@@ -1,10 +1,10 @@
 use super::api::{self, skip, SetupStep, StepWithPlans};
 use super::plans_by_sessions;
-#[cfg(windows)]
-use super::windows_permissions::run_icacls_command;
 
 use crate::internal_config::{GlobalConfig, Plan};
 use crate::logging::log_and_return_error;
+#[cfg(windows)]
+use crate::setup::windows_permissions::run_icacls_command;
 
 use robotmk::config::RCCProfileConfig;
 use robotmk::environment::{Environment, RCCEnvironment};

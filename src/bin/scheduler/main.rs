@@ -65,7 +65,7 @@ fn run() -> Result<(), Terminate> {
     info!("Base setup completed");
 
     write_phase(&SchedulerPhase::Setup, &global_config)?;
-    let (plans, setup_failures) = setup::steps::run(&global_config, plans)?;
+    let (plans, setup_failures) = setup::steps::run::run(&global_config, plans)?;
     info!("Setup steps completed");
 
     write_phase(&SchedulerPhase::ManagedRobots, &global_config)?;

@@ -1,11 +1,11 @@
 use super::api::{self, skip, SetupStep, StepWithPlans};
-#[cfg(windows)]
-use super::ownership::transfer_directory_ownership_recursive;
 use super::plans_by_sessions;
-#[cfg(windows)]
-use super::windows_permissions::{grant_full_access, reset_access};
 
 use crate::internal_config::{GlobalConfig, Plan, Source};
+#[cfg(windows)]
+use crate::setup::ownership::transfer_directory_ownership_recursive;
+#[cfg(windows)]
+use crate::setup::windows_permissions::{grant_full_access, reset_access};
 
 use camino::Utf8PathBuf;
 use robotmk::environment::Environment;
