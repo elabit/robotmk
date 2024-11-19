@@ -55,6 +55,9 @@ fn run() -> Result<(), Terminate> {
         return Ok(());
     }
 
+    setup::base_directories::setup(&global_config, &plans)?;
+    info!("Base setup completed");
+
     let (plans, general_setup_failures) = setup::directories::setup(&global_config, plans)?;
     info!("Directories setup completed");
 
