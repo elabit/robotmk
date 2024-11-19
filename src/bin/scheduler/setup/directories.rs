@@ -1,21 +1,23 @@
+use super::api::{self, run_steps, skip, SetupStep, StepWithPlans};
+use super::fs_entries::{clean_up_file_system_entries, top_level_directories, top_level_files};
+use super::ownership::transfer_directory_ownership_recursive;
 use super::plans_by_sessions;
 use super::rcc::rcc_setup_working_directory;
+#[cfg(windows)]
+use super::windows_permissions::{grant_full_access, reset_access};
+
 use crate::internal_config::{
     environment_building_directory, plans_working_directory, sort_plans_by_grouping, GlobalConfig,
     Plan, Source,
 };
 
-use super::api::{self, run_steps, skip, SetupStep, StepWithPlans};
-#[cfg(windows)]
-use super::windows_permissions::{grant_full_access, reset_access};
-use anyhow::{Context, Result as AnyhowResult};
+use anyhow::Result as AnyhowResult;
 use camino::{Utf8Path, Utf8PathBuf};
 use robotmk::environment::Environment;
 use robotmk::fs::{create_dir_all, remove_dir_all, remove_file};
 use robotmk::results::{plan_results_directory, SetupFailure};
 use robotmk::session::Session;
 use robotmk::termination::{Cancelled, ContextUnrecoverable, Terminate};
-use std::collections::HashSet;
 
 pub fn setup(
     global_config: &GlobalConfig,
@@ -337,78 +339,4 @@ fn gather_managed_directories(
     }
     setup_steps.push(skip(unaffected_plans));
     setup_steps
-}
-
-#[cfg(unix)]
-pub fn transfer_directory_ownership_recursive(target: &Utf8Path) -> AnyhowResult<()> {
-    let user_id = unsafe { libc::getuid() };
-    let group_id = unsafe { libc::getgid() };
-    let mut targets: Vec<Utf8PathBuf> = vec![target.into()];
-    while let Some(target) = targets.pop() {
-        std::os::unix::fs::lchown(&target, Some(user_id), Some(group_id)).context(format!(
-            "Failed to set ownership of {target} to `{user_id}:{group_id}`",
-        ))?;
-        if target.is_dir() && !target.is_symlink() {
-            targets.extend(top_level_directory_entries(&target)?);
-        }
-    }
-    Ok(())
-}
-
-#[cfg(windows)]
-pub fn transfer_directory_ownership_recursive(target: &Utf8Path) -> AnyhowResult<()> {
-    super::windows_permissions::transfer_directory_ownership_to_admin_group_recursive(target)
-}
-
-fn top_level_directories(directory: &Utf8Path) -> AnyhowResult<Vec<Utf8PathBuf>> {
-    Ok(top_level_directory_entries(directory)?
-        .into_iter()
-        .filter(|path| path.is_dir())
-        .collect())
-}
-
-fn top_level_files(directory: &Utf8Path) -> AnyhowResult<Vec<Utf8PathBuf>> {
-    Ok(top_level_directory_entries(directory)?
-        .into_iter()
-        .filter(|path| path.is_file())
-        .collect())
-}
-
-fn top_level_directory_entries(directory: &Utf8Path) -> AnyhowResult<Vec<Utf8PathBuf>> {
-    let mut entries = vec![];
-
-    for dir_entry in directory
-        .read_dir_utf8()
-        .context(format!("Failed to read entries of directory {directory}",))?
-    {
-        entries.push(
-            dir_entry
-                .context(format!("Failed to read entries of directory {directory}",))?
-                .path()
-                .to_path_buf(),
-        )
-    }
-
-    Ok(entries)
-}
-
-fn clean_up_file_system_entries<P>(
-    entries_to_keep: impl IntoIterator<Item = P>,
-    currently_present_entries: impl IntoIterator<Item = P>,
-) -> AnyhowResult<()>
-where
-    P: AsRef<Utf8Path>,
-    P: std::cmp::Eq,
-    P: std::hash::Hash,
-{
-    for entry in HashSet::<P>::from_iter(currently_present_entries)
-        .difference(&HashSet::from_iter(entries_to_keep))
-    {
-        if entry.as_ref().is_file() {
-            remove_file(entry)?
-        } else {
-            remove_dir_all(entry)?
-        }
-    }
-    Ok(())
 }
