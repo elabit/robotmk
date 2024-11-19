@@ -1,12 +1,9 @@
 use super::fs_entries::{clean_up_file_system_entries, top_level_directories, top_level_files};
 use super::ownership::transfer_directory_ownership_recursive;
-use super::rcc::rcc_setup_working_directory;
 #[cfg(windows)]
 use super::windows_permissions::reset_access;
 
-use crate::internal_config::{
-    environment_building_directory, plans_working_directory, GlobalConfig, Plan,
-};
+use crate::internal_config::{GlobalConfig, Plan};
 
 use anyhow::Result as AnyhowResult;
 use camino::Utf8Path;
@@ -20,28 +17,28 @@ pub fn setup(global_config: &GlobalConfig, plans: &[Plan]) -> Result<(), Termina
     #[cfg(windows)]
     reset_access(&global_config.runtime_base_directory)?;
 
-    setup_working_directory(&global_config.working_directory, plans)?;
+    setup_working_directory(global_config, plans)?;
     setup_managed_directory(&global_config.managed_directory)?;
     setup_results_directory(global_config, plans)?;
 
     Ok(())
 }
 
-fn setup_working_directory(working_directory: &Utf8Path, plans: &[Plan]) -> AnyhowResult<()> {
-    create_dir_all(working_directory)?;
-    create_dir_all(plans_working_directory(working_directory))?;
+fn setup_working_directory(global_config: &GlobalConfig, plans: &[Plan]) -> AnyhowResult<()> {
+    create_dir_all(&global_config.working_directory)?;
+    create_dir_all(&global_config.working_directory_plans)?;
     clean_up_file_system_entries(
         plans.iter().map(|plan| &plan.working_directory),
-        top_level_directories(&plans_working_directory(working_directory))?.iter(),
+        top_level_directories(&global_config.working_directory_plans)?.iter(),
     )?;
     for dir_to_be_reset in [
-        rcc_setup_working_directory(working_directory),
-        environment_building_directory(working_directory),
+        &global_config.working_directory_rcc_setup_steps,
+        &global_config.working_directory_environment_building,
     ] {
         if dir_to_be_reset.exists() {
-            remove_dir_all(&dir_to_be_reset)?;
+            remove_dir_all(dir_to_be_reset)?;
         }
-        create_dir_all(&dir_to_be_reset)?;
+        create_dir_all(dir_to_be_reset)?;
     }
     Ok(())
 }

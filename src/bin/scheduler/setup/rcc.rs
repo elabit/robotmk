@@ -13,7 +13,7 @@ use robotmk::termination::Cancelled;
 use robotmk::termination::Outcome;
 
 use anyhow::{anyhow, Context};
-use camino::{Utf8Path, Utf8PathBuf};
+use camino::Utf8PathBuf;
 use log::{debug, error};
 use robotmk::config::RCCProfileConfig;
 use std::vec;
@@ -24,10 +24,6 @@ pub fn setup(
     plans: Vec<Plan>,
 ) -> Result<(Vec<Plan>, Vec<SetupFailure>), Cancelled> {
     run_setup_steps(global_config, plans)
-}
-
-pub fn rcc_setup_working_directory(working_directory: &Utf8Path) -> Utf8PathBuf {
-    working_directory.join("rcc_setup")
 }
 
 fn run_setup_steps(
@@ -125,7 +121,7 @@ impl StepRCCCommand {
         Self {
             binary_path: config.rcc_config.binary_path.clone(),
             robocorp_home_base: config.rcc_config.robocorp_home_base.clone(),
-            working_directory: config.working_directory.clone(),
+            working_directory: config.working_directory_rcc_setup_steps.clone(),
             session,
             cancellation_token: config.cancellation_token.clone(),
             arguments: arguments.iter().map(|s| s.to_string()).collect(),
@@ -147,7 +143,8 @@ impl SetupStep for StepRCCCommand {
         let run_spec = RunSpec {
             id: &format!("robotmk_{}", self.id),
             command_spec: &command_spec,
-            runtime_base_path: &rcc_setup_working_directory(&self.working_directory)
+            runtime_base_path: &self
+                .working_directory
                 .join(self.session.id())
                 .join(&self.id),
             timeout: 120,
@@ -216,7 +213,7 @@ impl StepDisableSharedHolotree {
         Self {
             binary_path: config.rcc_config.binary_path.clone(),
             robocorp_home_base: config.rcc_config.robocorp_home_base.clone(),
-            working_directory: config.working_directory.clone(),
+            working_directory: config.working_directory_rcc_setup_steps.clone(),
             session,
             cancellation_token: config.cancellation_token.clone(),
         }
@@ -237,9 +234,7 @@ impl SetupStep for StepDisableSharedHolotree {
         let run_spec = &RunSpec {
             id: &format!("robotmk_{name}_{}", self.session.id()),
             command_spec: &command_spec,
-            runtime_base_path: &rcc_setup_working_directory(&self.working_directory)
-                .join(self.session.id())
-                .join(name),
+            runtime_base_path: &self.working_directory.join(self.session.id()).join(name),
             timeout: 120,
             cancellation_token: &self.cancellation_token,
         };
