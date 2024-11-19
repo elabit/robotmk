@@ -18,34 +18,8 @@ use robotmk::config::RCCProfileConfig;
 use std::vec;
 use tokio_util::sync::CancellationToken;
 
-pub fn setup(
-    global_config: &GlobalConfig,
-    plans: Vec<Plan>,
-) -> Result<(Vec<Plan>, Vec<SetupFailure>), Cancelled> {
-    let (surviving_plans, failures) = run_setup_steps(global_config, plans);
-
-    let (rcc_plans, mut system_plans): (Vec<Plan>, Vec<Plan>) = surviving_plans
-        .into_iter()
-        .partition(|plan| matches!(plan.environment, Environment::Rcc(_)));
-
-    if rcc_plans.is_empty() {
-        sort_plans_by_grouping(&mut system_plans);
-        return Ok((system_plans, vec![]));
-    }
-
-    let (surviving_rcc_plans, further_rcc_setup_failures) = rcc_setup(global_config, rcc_plans)?;
-
-    let mut surviving_plans = vec![];
-    surviving_plans.extend(surviving_rcc_plans);
-    surviving_plans.extend(system_plans);
-    sort_plans_by_grouping(&mut surviving_plans);
-    Ok((
-        surviving_plans,
-        failures
-            .into_iter()
-            .chain(further_rcc_setup_failures)
-            .collect(),
-    ))
+pub fn setup(global_config: &GlobalConfig, plans: Vec<Plan>) -> (Vec<Plan>, Vec<SetupFailure>) {
+    run_setup_steps(global_config, plans)
 }
 
 pub fn rcc_setup_working_directory(working_directory: &Utf8Path) -> Utf8PathBuf {
@@ -64,6 +38,7 @@ fn run_setup_steps(config: &GlobalConfig, mut plans: Vec<Plan>) -> (Vec<Plan>, V
         gather_switch_to_custom_rcc_profile,
         #[cfg(windows)]
         gather_enable_rcc_long_path_support,
+        gather_disable_rcc_shared_holotree,
     ];
 
     let mut failures = Vec::new();
@@ -182,6 +157,93 @@ impl SetupStep for StepRCCCommand {
                 anyhow!(error_msg),
             )),
             None => Ok(()),
+        }
+    }
+}
+
+struct StepDisableSharedHolotree {
+    binary_path: Utf8PathBuf,
+    robocorp_home_base: Utf8PathBuf,
+    working_directory: Utf8PathBuf,
+    session: Session,
+    cancellation_token: CancellationToken,
+}
+
+impl StepDisableSharedHolotree {
+    fn new_from_config(config: &GlobalConfig, session: Session) -> Self {
+        Self {
+            binary_path: config.rcc_config.binary_path.clone(),
+            robocorp_home_base: config.rcc_config.robocorp_home_base.clone(),
+            working_directory: config.working_directory.clone(),
+            session,
+            cancellation_token: config.cancellation_token.clone(),
+        }
+    }
+}
+
+impl SetupStep for StepDisableSharedHolotree {
+    fn setup(&self) -> Result<(), api::Error> {
+        let mut command_spec = RCCEnvironment::bundled_command_spec(
+            &self.binary_path,
+            self.session
+                .robocorp_home(&self.robocorp_home_base)
+                .to_string(),
+        );
+        command_spec.add_arguments(["holotree", "init", "--revoke"]);
+        debug!("Running {} for `{}`", command_spec, self.session);
+        let name = "holotree_disabling_sharing";
+        let run_spec = &RunSpec {
+            id: &format!("robotmk_{name}_{}", self.session.id()),
+            command_spec: &command_spec,
+            runtime_base_path: &rcc_setup_working_directory(&self.working_directory)
+                .join(self.session.id())
+                .join(name),
+            timeout: 120,
+            cancellation_token: &self.cancellation_token,
+        };
+        match self.session.run(run_spec) {
+            Ok(Outcome::Completed(0)) => {
+                debug!(
+                    "{} for `{}` successful",
+                    run_spec.command_spec, self.session
+                );
+                Ok(())
+            }
+            Ok(Outcome::Completed(5)) => {
+                debug!(
+                    "`{}` not using shared holotree. Don't need to disable.",
+                    self.session
+                );
+                Ok(())
+            }
+            Ok(Outcome::Completed(_)) => Err(api::Error::new(
+                "Disabling RCC shared holotree exited non-successfully".into(),
+                anyhow!(
+                    "Disabling RCC shared holotree exited non-successfully, see {} for stdio logs.",
+                    run_spec.runtime_base_path
+                ),
+            )),
+            Ok(Outcome::Timeout) => Err(api::Error::new(
+                "Disabling shared holotree timed out".into(),
+                anyhow!("Timeout"),
+            )),
+            Ok(Outcome::Cancel) => {
+                error!("{} for `{}` cancelled", run_spec.command_spec, self.session);
+                Err(api::Error::new(
+                    "Disabling shared holotree cancelled".into(),
+                    anyhow!("Cancelled"),
+                ))
+            }
+            Err(error) => {
+                let error = error.context(format!(
+                    "Failed to run {} for `{}`",
+                    run_spec.command_spec, self.session
+                ));
+                Err(api::Error::new(
+                    "Disabling shared holotree failed".into(),
+                    error,
+                ))
+            }
         }
     }
 }
@@ -370,104 +432,25 @@ fn gather_enable_rcc_long_path_support(
     ]
 }
 
-fn rcc_setup(
-    global_config: &GlobalConfig,
-    rcc_plans: Vec<Plan>,
-) -> Result<(Vec<Plan>, Vec<SetupFailure>), Cancelled> {
-    debug!("Disabling shared holotree");
-    let (sucessful_plans, failures) = holotree_disable_sharing(global_config, rcc_plans)?;
-    Ok((sucessful_plans, failures))
-}
-
-fn holotree_disable_sharing(
+fn gather_disable_rcc_shared_holotree(
     global_config: &GlobalConfig,
     plans: Vec<Plan>,
-) -> Result<(Vec<Plan>, Vec<SetupFailure>), Cancelled> {
-    let mut succesful_plans = vec![];
-    let mut failures = vec![];
-
-    for (session, plans) in plans_by_sessions(plans) {
-        let mut command_spec = RCCEnvironment::bundled_command_spec(
-            &global_config.rcc_config.binary_path,
-            session
-                .robocorp_home(&global_config.rcc_config.robocorp_home_base)
-                .to_string(),
-        );
-        command_spec.add_arguments(["holotree", "init", "--revoke"]);
-        debug!("Running {} for `{}`", command_spec, &session);
-        let name = "holotree_disabling_sharing";
-        let run_spec = &RunSpec {
-            id: &format!("robotmk_{name}_{}", session.id()),
-            command_spec: &command_spec,
-            runtime_base_path: &rcc_setup_working_directory(&global_config.working_directory)
-                .join(session.id())
-                .join(name),
-            timeout: 120,
-            cancellation_token: &global_config.cancellation_token,
-        };
-        match session.run(run_spec) {
-            Ok(Outcome::Completed(0)) => {
-                debug!("{} for `{session}` successful", run_spec.command_spec);
-                succesful_plans.extend(plans);
-            }
-            Ok(Outcome::Completed(5)) => {
-                debug!("`{session}` not using shared holotree. Don't need to disable.");
-                succesful_plans.extend(plans);
-            }
-            Ok(Outcome::Completed(_)) => {
-                for plan in plans {
-                    error!(
-                        "Plan {}: Disabling RCC shared holotree exited non-successfully, see {} \
-                         for stdio logs. Plan won't be scheduled.",
-                        plan.id, run_spec.runtime_base_path
-                    );
-                    failures.push(SetupFailure {
-                        plan_id: plan.id.clone(),
-                        summary: "Disabling RCC shared holotree exited non-successfully"
-                            .to_string(),
-                        details: format!("See {} for stdio logs", run_spec.runtime_base_path),
-                    });
-                }
-            }
-            Ok(Outcome::Timeout) => {
-                for plan in plans {
-                    error!(
-                        "Plan {}: Disabling RCC shared holotree timed out. Plan won't be scheduled.",
-                        plan.id
-                    );
-                    failures.push(SetupFailure {
-                        plan_id: plan.id.clone(),
-                        summary: "Disabling RCC shared holotree timed out".to_string(),
-                        details: format!("{} took longer than 120 seconds", run_spec.command_spec),
-                    });
-                }
-            }
-            Ok(Outcome::Cancel) => {
-                error!("{} for `{session}` cancelled", run_spec.command_spec);
-                return Err(Cancelled {});
-            }
-            Err(error) => {
-                let error = error.context(format!(
-                    "Failed to run {} for `{session}`",
-                    run_spec.command_spec
-                ));
-                for plan in plans {
-                    error!(
-                        "Plan {}: Disabling RCC shared holotree failed. Plan won't be scheduled.
-                         Error: {error:?}",
-                        plan.id,
-                    );
-                    failures.push(SetupFailure {
-                        plan_id: plan.id.clone(),
-                        summary: "Disabling RCC shared holotree failed".to_string(),
-                        details: format!("{error:?}"),
-                    });
-                }
-            }
-        }
+) -> Vec<StepWithPlans> {
+    let (rcc_plans, system_plans): (Vec<Plan>, Vec<Plan>) = plans
+        .into_iter()
+        .partition(|plan| matches!(plan.environment, Environment::Rcc(_)));
+    let mut steps: Vec<StepWithPlans> = Vec::new();
+    for (session, plans_in_session) in plans_by_sessions(rcc_plans) {
+        steps.push((
+            Box::new(StepDisableSharedHolotree::new_from_config(
+                global_config,
+                session.clone(),
+            )),
+            plans_in_session,
+        ));
     }
-
-    Ok((succesful_plans, failures))
+    steps.push(skip(system_plans));
+    steps
 }
 
 fn execute_run_spec_in_session(
