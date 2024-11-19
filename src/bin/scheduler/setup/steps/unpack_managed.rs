@@ -42,6 +42,14 @@ struct StepUnpackManaged {
 }
 
 impl SetupStep for StepUnpackManaged {
+    fn label(&self) -> String {
+        format!(
+            "Unpack managed robot {archive_path} to {target_dir}",
+            archive_path = self.tar_gz_path,
+            target_dir = self.target_dir
+        )
+    }
+
     fn setup(&self) -> Result<(), api::Error> {
         unpack_into(&self.tar_gz_path, &self.target_dir, self.size_limit)
             .map_err(|err| api::Error::new("Failed to unpack managed robot archive".into(), err))

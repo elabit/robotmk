@@ -1,4 +1,5 @@
 use crate::internal_config::Plan;
+use log::{debug, error};
 use robotmk::results::SetupFailure;
 use robotmk::termination::Cancelled;
 use tokio_util::sync::CancellationToken;
@@ -16,21 +17,26 @@ impl Error {
 }
 
 pub trait SetupStep {
+    fn label(&self) -> String;
     fn setup(&self) -> Result<(), Error>;
 }
 
 pub type StepWithPlans = (Box<dyn SetupStep>, Vec<Plan>);
 
-struct SetupStepSuccess {}
+struct SetupStepNoOp {}
 
-impl SetupStep for SetupStepSuccess {
+impl SetupStep for SetupStepNoOp {
+    fn label(&self) -> String {
+        "No-op".into()
+    }
+
     fn setup(&self) -> Result<(), Error> {
         Ok(())
     }
 }
 
 pub fn skip(plans: Vec<Plan>) -> StepWithPlans {
-    (Box::new(SetupStepSuccess {}), plans)
+    (Box::new(SetupStepNoOp {}), plans)
 }
 
 pub fn run_steps(
@@ -44,19 +50,27 @@ pub fn run_steps(
             return Err(Cancelled);
         }
         if affected_plans.is_empty() {
+            debug!("Setup step `{}` affects no plans, skipping", step.label());
             continue;
         }
+        debug!(
+            "Plan(s) {plan_ids}: {label}",
+            label = step.label(),
+            plan_ids = affected_plans
+                .iter()
+                .map(|plan| plan.id.as_str())
+                .collect::<Vec<&str>>()
+                .join(", ")
+        );
         match step.setup() {
             Ok(()) => {
                 plans.extend(affected_plans);
             }
             Err(err) => {
                 for plan in &plans {
-                    log::error!(
+                    error!(
                         "Plan {}: {}. Plan won't be scheduled.\nCaused by: {:?}",
-                        plan.id,
-                        err.summary,
-                        err.cause,
+                        plan.id, err.summary, err.cause,
                     );
                     errors.push(SetupFailure {
                         plan_id: plan.id.clone(),

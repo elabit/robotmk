@@ -1,6 +1,7 @@
 use super::api::{run_steps, StepWithPlans};
 use super::{directories, rcc, unpack_managed};
 use crate::internal_config::{sort_plans_by_grouping, GlobalConfig, Plan};
+use log::info;
 use robotmk::results::SetupFailure;
 use robotmk::termination::Cancelled;
 
@@ -9,7 +10,8 @@ pub fn run(
     mut plans: Vec<Plan>,
 ) -> Result<(Vec<Plan>, Vec<SetupFailure>), Cancelled> {
     let mut failures = Vec::new();
-    for gatherer in STEPS {
+    for (gatherer, stage) in STEPS {
+        info!("Running setup stage: {stage}");
         plans = {
             let plan_count = plans.len();
             let setup_steps = gatherer(config, plans);
@@ -29,32 +31,74 @@ pub fn run(
 
 type Gatherer = fn(&GlobalConfig, Vec<Plan>) -> Vec<StepWithPlans>;
 #[cfg(unix)]
-type Steps = [Gatherer; 11];
+type Steps = [(Gatherer, &'static str); 11];
 #[cfg(windows)]
-type Steps = [Gatherer; 17];
+type Steps = [(Gatherer, &'static str); 17];
 
 const STEPS: Steps = [
-    directories::gather_managed_directories,
+    (
+        directories::gather_managed_directories,
+        "Managed directories",
+    ),
     #[cfg(windows)]
-    directories::gather_robocorp_home_base,
+    (
+        directories::gather_robocorp_home_base,
+        "ROBOCORP_HOME base directory",
+    ),
     #[cfg(windows)]
-    directories::gather_robocorp_home_per_user,
-    directories::gather_plan_working_directories,
-    directories::gather_environment_building_directories,
-    directories::gather_rcc_working_base,
+    (
+        directories::gather_robocorp_home_per_user,
+        "User-specific ROBOCORP_HOME directories",
+    ),
+    (
+        directories::gather_plan_working_directories,
+        "Plan working directories",
+    ),
+    (
+        directories::gather_environment_building_directories,
+        "Environment building directories",
+    ),
+    (
+        directories::gather_rcc_working_base,
+        "Base working directory for RCC setup steps",
+    ),
     #[cfg(windows)]
-    directories::gather_rcc_longpath_directory,
-    directories::gather_rcc_working_per_user,
+    (
+        directories::gather_rcc_longpath_directory,
+        "Working directory for enabling RCC long path support",
+    ),
+    (
+        directories::gather_rcc_working_per_user,
+        "User-specififc working directories for RCC setup steps",
+    ),
     #[cfg(windows)]
-    rcc::gather_rcc_binary_permissions,
+    (rcc::gather_rcc_binary_permissions, "RCC binary permissions"),
     #[cfg(windows)]
-    rcc::gather_rcc_profile_permissions,
-    rcc::gather_disable_rcc_telemetry,
-    rcc::gather_configure_default_rcc_profile,
-    rcc::gather_import_custom_rcc_profile,
-    rcc::gather_switch_to_custom_rcc_profile,
+    (
+        rcc::gather_rcc_profile_permissions,
+        "RCC profile permissions",
+    ),
+    (rcc::gather_disable_rcc_telemetry, "Disable RCC telemetry"),
+    (
+        rcc::gather_configure_default_rcc_profile,
+        "Configure default RCC profile",
+    ),
+    (
+        rcc::gather_import_custom_rcc_profile,
+        "Import custom RCC profile",
+    ),
+    (
+        rcc::gather_switch_to_custom_rcc_profile,
+        "Switch to custom RCC profile",
+    ),
     #[cfg(windows)]
-    rcc::gather_enable_rcc_long_path_support,
-    rcc::gather_disable_rcc_shared_holotree,
-    unpack_managed::gather,
+    (
+        rcc::gather_enable_rcc_long_path_support,
+        "Enable RCC long path support",
+    ),
+    (
+        rcc::gather_disable_rcc_shared_holotree,
+        "Disable RCC shared holotrees",
+    ),
+    (unpack_managed::gather, "Unpack managed robots"),
 ];

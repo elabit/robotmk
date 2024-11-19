@@ -17,7 +17,7 @@ use robotmk::termination::Outcome;
 
 use anyhow::{anyhow, Context};
 use camino::Utf8PathBuf;
-use log::{debug, error};
+use log::debug;
 use std::vec;
 use tokio_util::sync::CancellationToken;
 
@@ -30,6 +30,15 @@ struct StepFilePermissions {
 
 #[cfg(windows)]
 impl SetupStep for StepFilePermissions {
+    fn label(&self) -> String {
+        format!(
+            "Grant SID {sid} permissions `{permissions}` for {target}",
+            sid = self.sid,
+            permissions = &self.icacls_permissions,
+            target = &self.target,
+        )
+    }
+
     fn setup(&self) -> Result<(), api::Error> {
         run_icacls_command([
             self.target.as_str(),
@@ -81,6 +90,14 @@ impl StepRCCCommand {
 }
 
 impl SetupStep for StepRCCCommand {
+    fn label(&self) -> String {
+        format!(
+            "Execute RCC with arguments `{arguments:?}` in session `{session}`",
+            arguments = &self.arguments,
+            session = &self.session,
+        )
+    }
+
     fn setup(&self) -> Result<(), api::Error> {
         let mut command_spec = RCCEnvironment::bundled_command_spec(
             &self.binary_path,
@@ -100,7 +117,6 @@ impl SetupStep for StepRCCCommand {
             timeout: 120,
             cancellation_token: &self.cancellation_token,
         };
-        debug!("Running {} for `{}`", command_spec, &self.session);
         let run_outcome = match self.session.run(&run_spec).context(format!(
             "Failed to run {} for `{}`",
             run_spec.command_spec, self.session
@@ -114,14 +130,12 @@ impl SetupStep for StepRCCCommand {
         let exit_code = match run_outcome {
             Outcome::Completed(exit_code) => exit_code,
             Outcome::Timeout => {
-                error!("{} for `{}` timed out", run_spec.command_spec, self.session);
                 return Err(api::Error::new(
                     self.summary_if_failure.clone(),
                     anyhow!("Timeout"),
                 ));
             }
             Outcome::Cancel => {
-                error!("{} for `{}` cancelled", run_spec.command_spec, self.session);
                 return Err(api::Error::new(
                     self.summary_if_failure.clone(),
                     anyhow!("Cancelled"),
@@ -129,16 +143,8 @@ impl SetupStep for StepRCCCommand {
             }
         };
         if exit_code == 0 {
-            debug!(
-                "{} for `{}` successful",
-                run_spec.command_spec, self.session
-            );
             Ok(())
         } else {
-            error!(
-                "{} for `{}` exited non-successfully",
-                run_spec.command_spec, self.session
-            );
             Err(api::Error::new(
                 self.summary_if_failure.clone(),
                 anyhow!(
@@ -171,6 +177,10 @@ impl StepDisableSharedHolotree {
 }
 
 impl SetupStep for StepDisableSharedHolotree {
+    fn label(&self) -> String {
+        format!("Disable shared holotree in session `{}`", &self.session)
+    }
+
     fn setup(&self) -> Result<(), api::Error> {
         let mut command_spec = RCCEnvironment::bundled_command_spec(
             &self.binary_path,
@@ -179,7 +189,6 @@ impl SetupStep for StepDisableSharedHolotree {
                 .to_string(),
         );
         command_spec.add_arguments(["holotree", "init", "--revoke"]);
-        debug!("Running {} for `{}`", command_spec, self.session);
         let name = "holotree_disabling_sharing";
         let run_spec = &RunSpec {
             id: &format!("robotmk_{name}_{}", self.session.id()),
@@ -193,13 +202,7 @@ impl SetupStep for StepDisableSharedHolotree {
             cancellation_token: &self.cancellation_token,
         };
         match self.session.run(run_spec) {
-            Ok(Outcome::Completed(0)) => {
-                debug!(
-                    "{} for `{}` successful",
-                    run_spec.command_spec, self.session
-                );
-                Ok(())
-            }
+            Ok(Outcome::Completed(0)) => Ok(()),
             Ok(Outcome::Completed(5)) => {
                 debug!(
                     "`{}` not using shared holotree. Don't need to disable.",
@@ -218,13 +221,10 @@ impl SetupStep for StepDisableSharedHolotree {
                 "Disabling shared holotree timed out".into(),
                 anyhow!("Timeout"),
             )),
-            Ok(Outcome::Cancel) => {
-                error!("{} for `{}` cancelled", run_spec.command_spec, self.session);
-                Err(api::Error::new(
-                    "Disabling shared holotree cancelled".into(),
-                    anyhow!("Cancelled"),
-                ))
-            }
+            Ok(Outcome::Cancel) => Err(api::Error::new(
+                "Disabling shared holotree cancelled".into(),
+                anyhow!("Cancelled"),
+            )),
             Err(error) => {
                 let error = error.context(format!(
                     "Failed to run {} for `{}`",
