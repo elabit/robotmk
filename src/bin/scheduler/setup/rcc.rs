@@ -9,7 +9,7 @@ use robotmk::results::SetupFailure;
 #[cfg(windows)]
 use robotmk::session::CurrentSession;
 use robotmk::session::{RunSpec, Session};
-use robotmk::termination::{Cancelled, Outcome};
+use robotmk::termination::Outcome;
 
 use anyhow::{anyhow, Context};
 use camino::{Utf8Path, Utf8PathBuf};
@@ -136,27 +136,61 @@ impl SetupStep for StepRCCCommand {
                 .to_string(),
         );
         command_spec.add_arguments(&self.arguments);
+        let run_spec = RunSpec {
+            id: &format!("robotmk_{}", self.id),
+            command_spec: &command_spec,
+            runtime_base_path: &rcc_setup_working_directory(&self.working_directory)
+                .join(self.session.id())
+                .join(&self.id),
+            timeout: 120,
+            cancellation_token: &self.cancellation_token,
+        };
         debug!("Running {} for `{}`", command_spec, &self.session);
-        match execute_run_spec_in_session(
-            &self.session,
-            &RunSpec {
-                id: &format!("robotmk_{}", self.id),
-                command_spec: &command_spec,
-                runtime_base_path: &rcc_setup_working_directory(&self.working_directory)
-                    .join(self.session.id())
-                    .join(&self.id),
-                timeout: 120,
-                cancellation_token: &self.cancellation_token,
-            },
-        )
-        .map_err(|_cancelled| {
-            api::Error::new(self.summary_if_failure.clone(), anyhow!("Cancelled"))
-        })? {
-            Some(error_msg) => Err(api::Error::new(
+        let run_outcome = match self.session.run(&run_spec).context(format!(
+            "Failed to run {} for `{}`",
+            run_spec.command_spec, self.session
+        )) {
+            Ok(run_outcome) => run_outcome,
+            Err(error) => {
+                let error = log_and_return_error(error);
+                return Err(api::Error::new(self.summary_if_failure.clone(), error));
+            }
+        };
+        let exit_code = match run_outcome {
+            Outcome::Completed(exit_code) => exit_code,
+            Outcome::Timeout => {
+                error!("{} for `{}` timed out", run_spec.command_spec, self.session);
+                return Err(api::Error::new(
+                    self.summary_if_failure.clone(),
+                    anyhow!("Timeout"),
+                ));
+            }
+            Outcome::Cancel => {
+                error!("{} for `{}` cancelled", run_spec.command_spec, self.session);
+                return Err(api::Error::new(
+                    self.summary_if_failure.clone(),
+                    anyhow!("Cancelled"),
+                ));
+            }
+        };
+        if exit_code == 0 {
+            debug!(
+                "{} for `{}` successful",
+                run_spec.command_spec, self.session
+            );
+            Ok(())
+        } else {
+            error!(
+                "{} for `{}` exited non-successfully",
+                run_spec.command_spec, self.session
+            );
+            Err(api::Error::new(
                 self.summary_if_failure.clone(),
-                anyhow!(error_msg),
-            )),
-            None => Ok(()),
+                anyhow!(
+                    "Non-zero exit code, see {} for stdio logs",
+                    run_spec.runtime_base_path
+                ),
+            ))
         }
     }
 }
@@ -451,44 +485,4 @@ fn gather_disable_rcc_shared_holotree(
     }
     steps.push(skip(system_plans));
     steps
-}
-
-fn execute_run_spec_in_session(
-    session: &Session,
-    run_spec: &RunSpec,
-) -> Result<Option<String>, Cancelled> {
-    let run_outcome = match session.run(run_spec).context(format!(
-        "Failed to run {} for `{session}`",
-        run_spec.command_spec
-    )) {
-        Ok(run_outcome) => run_outcome,
-        Err(error) => {
-            let error = log_and_return_error(error);
-            return Ok(Some(format!("{error:?}")));
-        }
-    };
-    let exit_code = match run_outcome {
-        Outcome::Completed(exit_code) => exit_code,
-        Outcome::Timeout => {
-            error!("{} for `{session}` timed out", run_spec.command_spec);
-            return Ok(Some("Timeout".into()));
-        }
-        Outcome::Cancel => {
-            error!("{} for `{session}` cancelled", run_spec.command_spec);
-            return Err(Cancelled {});
-        }
-    };
-    if exit_code == 0 {
-        debug!("{} for `{session}` successful", run_spec.command_spec);
-        Ok(None)
-    } else {
-        error!(
-            "{} for `{session}` exited non-successfully",
-            run_spec.command_spec
-        );
-        Ok(Some(format!(
-            "Non-zero exit code, see {} for stdio logs",
-            run_spec.runtime_base_path
-        )))
-    }
 }
