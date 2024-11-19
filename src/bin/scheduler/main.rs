@@ -55,6 +55,12 @@ fn run() -> Result<(), Terminate> {
         return Ok(());
     }
 
+    if let Some(grace_period) = args.grace_period {
+        info!("Grace period: Sleeping for {grace_period} seconds");
+        write_phase(&SchedulerPhase::GracePeriod(grace_period), &global_config)?;
+        await_grace_period(grace_period, &cancellation_token);
+    }
+
     setup::base_directories::setup(&global_config, &plans)?;
     info!("Base setup completed");
 
@@ -64,12 +70,6 @@ fn run() -> Result<(), Terminate> {
     write_phase(&SchedulerPhase::ManagedRobots, &global_config)?;
     let (plans, unpacking_managed_failures) = setup::unpack_managed::setup(plans);
     info!("Managed robot setup completed");
-
-    if let Some(grace_period) = args.grace_period {
-        info!("Grace period: Sleeping for {grace_period} seconds");
-        write_phase(&SchedulerPhase::GracePeriod(grace_period), &global_config)?;
-        await_grace_period(grace_period, &cancellation_token);
-    }
 
     if global_config.cancellation_token.is_cancelled() {
         info!("Terminated");
