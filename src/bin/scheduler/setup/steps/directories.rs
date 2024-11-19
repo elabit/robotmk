@@ -19,6 +19,10 @@ struct StepCreate {
 }
 
 impl SetupStep for StepCreate {
+    fn label(&self) -> String {
+        format!("Create directory {}", self.target)
+    }
+
     fn setup(&self) -> Result<(), api::Error> {
         create_dir_all(&self.target)
             .map_err(|err| api::Error::new(format!("Failed to create {}", self.target), err))
@@ -31,18 +35,27 @@ struct StepCreateWithAccess {
 }
 
 impl SetupStep for StepCreateWithAccess {
+    fn label(&self) -> String {
+        let mut label = StepCreate {
+            target: self.target.clone(),
+        }
+        .label();
+        if let Session::User(user_session) = &self.session {
+            label = format!(
+                "{label} and grant user {user} full access",
+                user = user_session.user_name
+            );
+        }
+        label
+    }
+
     fn setup(&self) -> Result<(), api::Error> {
         StepCreate {
             target: self.target.clone(),
         }
         .setup()?;
+        #[cfg(windows)]
         if let Session::User(user_session) = &self.session {
-            log::info!(
-                "Granting full access for {} to user `{}`.",
-                &self.target,
-                &user_session.user_name
-            );
-            #[cfg(windows)]
             grant_full_access(&user_session.user_name, &self.target).map_err(|err| {
                 api::Error::new(
                     format!("Failed to set permissions for {}", self.target),
@@ -61,6 +74,13 @@ struct StepRobocorpHomeBase {
 
 #[cfg(windows)]
 impl SetupStep for StepRobocorpHomeBase {
+    fn label(&self) -> String {
+        format!(
+            "Create ROBOCORP_HOME base directory {} and restrict to Administrator group only",
+            self.target
+        )
+    }
+
     fn setup(&self) -> Result<(), api::Error> {
         StepCreate {
             target: self.target.clone(),
