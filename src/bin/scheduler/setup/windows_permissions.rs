@@ -7,15 +7,15 @@ pub fn run_icacls_command<'a>(arguments: impl IntoIterator<Item = &'a str>) -> a
     run_command("icacls.exe", arguments)
 }
 
-pub fn grant_full_access(user: &str, target_path: &Utf8Path) -> anyhow::Result<()> {
+pub fn grant_full_access(sid: &str, target_path: &Utf8Path) -> anyhow::Result<()> {
     let arguments = [
         target_path.as_ref(),
         "/grant",
-        &format!("{user}:(OI)(CI)F"),
+        &format!("{sid}:(OI)(CI)F"),
         "/T",
     ];
     run_icacls_command(arguments).map_err(|e| {
-        let message = format!("Adjusting permissions of {target_path} for user `{user}` failed");
+        let message = format!("Adjusting permissions of {target_path} for SID `{sid}` failed");
         e.context(message)
     })
 }
