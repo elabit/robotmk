@@ -2,7 +2,6 @@ use super::api::{self, run_steps, skip, SetupStep, StepWithPlans};
 #[cfg(windows)]
 use super::ownership::transfer_directory_ownership_recursive;
 use super::plans_by_sessions;
-use super::rcc::rcc_setup_working_directory;
 #[cfg(windows)]
 use super::windows_permissions::{grant_full_access, reset_access};
 
@@ -209,7 +208,7 @@ fn gather_rcc_working_base(config: &GlobalConfig, plans: Vec<Plan>) -> Vec<StepW
     vec![
         (
             Box::new(StepCreate {
-                target: rcc_setup_working_directory(&config.working_directory),
+                target: config.working_directory_rcc_setup_steps.clone(),
             }),
             rcc_plans,
         ),
@@ -222,11 +221,10 @@ fn gather_rcc_working_per_user(config: &GlobalConfig, plans: Vec<Plan>) -> Vec<S
         .into_iter()
         .partition(|plan| matches!(plan.environment, Environment::Rcc(_)));
     let mut setup_steps: Vec<StepWithPlans> = Vec::new();
-    let base = rcc_setup_working_directory(&config.working_directory);
     for (session, plans_in_session) in plans_by_sessions(rcc_plans) {
         setup_steps.push((
             Box::new(StepCreateWithAccess {
-                target: base.join(session.id()),
+                target: config.working_directory_rcc_setup_steps.join(session.id()),
                 session,
             }),
             plans_in_session,
@@ -245,7 +243,8 @@ fn gather_rcc_longpath_directory(config: &GlobalConfig, plans: Vec<Plan>) -> Vec
     vec![
         (
             Box::new(StepCreate {
-                target: rcc_setup_working_directory(&config.working_directory)
+                target: config
+                    .working_directory_rcc_setup_steps
                     .join(CurrentSession {}.id()),
             }),
             rcc_plans,

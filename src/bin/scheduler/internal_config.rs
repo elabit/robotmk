@@ -9,7 +9,7 @@ use robotmk::rf::robot::Robot;
 use robotmk::section::Host;
 use robotmk::session::Session;
 
-use camino::{Utf8Path, Utf8PathBuf};
+use camino::Utf8PathBuf;
 use tokio_util::sync::CancellationToken;
 
 #[derive(Clone)]
@@ -18,6 +18,9 @@ pub struct GlobalConfig {
     pub working_directory: Utf8PathBuf,
     pub results_directory: Utf8PathBuf,
     pub managed_directory: Utf8PathBuf,
+    pub working_directory_plans: Utf8PathBuf,
+    pub working_directory_environment_building: Utf8PathBuf,
+    pub working_directory_rcc_setup_steps: Utf8PathBuf,
     pub rcc_config: RCCConfig,
     pub cancellation_token: CancellationToken,
     pub results_directory_locker: Locker,
@@ -64,18 +67,21 @@ pub fn from_external_config(
     cancellation_token: &CancellationToken,
     results_directory_locker: &Locker,
 ) -> (GlobalConfig, Vec<Plan>) {
-    let mut plans = vec![];
-
+    let working_directory = external_config.runtime_directory.join("working");
     let global_config = GlobalConfig {
         runtime_base_directory: external_config.runtime_directory.clone(),
-        working_directory: external_config.runtime_directory.join("working"),
+        working_directory: working_directory.clone(),
         results_directory: results_directory(&external_config.runtime_directory),
         managed_directory: external_config.runtime_directory.join("managed"),
+        working_directory_plans: working_directory.join("plans"),
+        working_directory_environment_building: working_directory.join("environment_building"),
+        working_directory_rcc_setup_steps: working_directory.join("rcc_setup"),
         rcc_config: external_config.rcc_config,
         cancellation_token: cancellation_token.clone(),
         results_directory_locker: results_directory_locker.clone(),
     };
 
+    let mut plans = vec![];
     for (group_index, sequential_group) in external_config.plan_groups.into_iter().enumerate() {
         for (plan_index, plan_config) in sequential_group.plans.into_iter().enumerate() {
             let (plan_source_dir, source) = match &plan_config.source {
@@ -101,8 +107,7 @@ pub fn from_external_config(
             plans.push(Plan {
                 id: plan_config.id.clone(),
                 source,
-                working_directory: plans_working_directory(&global_config.working_directory)
-                    .join(&plan_config.id),
+                working_directory: global_config.working_directory_plans.join(&plan_config.id),
                 results_file: plan_results_directory(&global_config.results_directory)
                     .join(format!("{}.json", plan_config.id)),
                 timeout: plan_config.execution_config.timeout,
@@ -138,7 +143,8 @@ pub fn from_external_config(
                     &plan_config.id,
                     &global_config.rcc_config.binary_path,
                     &plan_config.environment_config,
-                    &environment_building_directory(&global_config.working_directory)
+                    &global_config
+                        .working_directory_environment_building
                         .join(&plan_config.id),
                 ),
                 session,
@@ -165,13 +171,6 @@ pub fn sort_plans_by_grouping(plans: &mut [Plan]) {
             plan.group_affiliation.position_in_group,
         )
     });
-}
-
-pub fn plans_working_directory(working_directory: &Utf8Path) -> Utf8PathBuf {
-    working_directory.join("plans")
-}
-pub fn environment_building_directory(working_directory: &Utf8Path) -> Utf8PathBuf {
-    working_directory.join("environment_building")
 }
 
 #[cfg(test)]
