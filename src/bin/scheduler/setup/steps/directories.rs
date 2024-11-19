@@ -7,7 +7,7 @@ use crate::internal_config::{GlobalConfig, Plan, Source};
 #[cfg(windows)]
 use crate::setup::ownership::transfer_directory_ownership_recursive;
 #[cfg(windows)]
-use crate::setup::windows_permissions::{grant_full_access, reset_access};
+use crate::setup::windows_permissions::{grant_full_access, reset_access, run_icacls_command};
 
 use camino::Utf8PathBuf;
 use robotmk::environment::Environment;
@@ -75,6 +75,25 @@ impl SetupStep for StepRobocorpHomeBase {
         reset_access(&self.target).map_err(|err| {
             api::Error::new(
                 format!("Failed to reset permissions of {}", self.target),
+                err,
+            )
+        })?;
+        run_icacls_command([self.target.as_str(), "/inheritancelevel:r"]).map_err(|err| {
+            api::Error::new(
+                format!(
+                    "Failed to set remove permission inheritance for {}",
+                    self.target
+                ),
+                err,
+            )
+        })?;
+        grant_full_access(
+            "*S-1-5-32-544", // Administrators (https://learn.microsoft.com/en-us/windows-server/identity/ad-ds/manage/understand-security-identifiers)
+            &self.target,
+        )
+        .map_err(|err| {
+            api::Error::new(
+                format!("Failed to set permissions for {}", self.target),
                 err,
             )
         })?;
