@@ -19,6 +19,8 @@ use serde_json::to_string;
 use std::ffi::OsStr;
 use std::fs::{create_dir_all, remove_file, write};
 use std::path::Path;
+#[cfg(windows)]
+use std::process::Output;
 use std::time::Duration;
 use tokio::{
     process::Command,
@@ -115,6 +117,12 @@ async fn test_scheduler() -> AnyhowResult<()> {
             .join("plans")
             .join(&config.plan_groups[0].plans[1].id),
     );
+    assert_robocorp_home(
+        &config.rcc_config.robocorp_home_base,
+        #[cfg(windows)]
+        &current_user_name,
+    )
+    .await?;
 
     Ok(())
 }
@@ -518,11 +526,19 @@ async fn assert_working_directory(
 }
 
 #[cfg(windows)]
-async fn get_permissions(path: impl AsRef<OsStr>) -> AnyhowResult<String> {
+async fn run_icacls<I, S>(args: I) -> std::io::Result<Output>
+where
+    I: IntoIterator<Item = S>,
+    S: AsRef<OsStr>,
+{
     let mut icacls_command = Command::new("icacls.exe");
-    icacls_command.arg(path);
-    let permissions = String::from_utf8(icacls_command.output().await?.stdout)?;
-    Ok(permissions)
+    icacls_command.args(args);
+    icacls_command.output().await
+}
+
+#[cfg(windows)]
+async fn get_permissions(path: impl AsRef<OsStr>) -> AnyhowResult<String> {
+    Ok(String::from_utf8(run_icacls(&[path]).await?.stdout)?)
 }
 
 #[cfg(windows)]
@@ -659,4 +675,47 @@ fn assert_sequentiality(
     dir_entries_first_plan.sort();
     dir_entries_second_plan.sort();
     assert!(dir_entries_first_plan[0] < dir_entries_second_plan[0]);
+}
+
+async fn assert_robocorp_home(
+    robocorp_home_base: &Utf8Path,
+    #[cfg(windows)] headed_user_name: &str,
+) -> AnyhowResult<()> {
+    assert!(robocorp_home_base.is_dir());
+    assert_eq!(
+        directory_entries(robocorp_home_base, 1),
+        [
+            "current_user",
+            #[cfg(windows)]
+            &format!("user_{headed_user_name}"),
+        ]
+    );
+    #[cfg(windows)]
+    {
+        let permissions_robocorp_home_base = get_permissions(robocorp_home_base).await?;
+        assert_eq!(
+            permissions_robocorp_home_base
+                .lines()
+                .collect::<Vec<&str>>()
+                .len(),
+            3 // Administrator group + empty line + success message (suppressing the latter with /q does not seem to work)
+        );
+        assert!(
+            run_icacls([robocorp_home_base.as_str(), "/findsid", "*S-1-5-32-544"])
+                .await?
+                .status
+                .success()
+        );
+        assert!(
+            get_permissions(robocorp_home_base.join(format!("user_{headed_user_name}")))
+                .await?
+                .contains(&format!("{headed_user_name}:(OI)(CI)(F)",))
+        );
+        assert!(
+            get_permissions(robocorp_home_base.join(format!("user_{headed_user_name}")))
+                .await?
+                .contains(&format!("{headed_user_name}:(OI)(CI)(F)",))
+        );
+    }
+    Ok(())
 }
