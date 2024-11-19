@@ -14,7 +14,7 @@ use robotmk::termination::{Cancelled, Outcome};
 use anyhow::{anyhow, Context};
 use camino::{Utf8Path, Utf8PathBuf};
 use log::{debug, error};
-use robotmk::config::{CustomRCCProfileConfig, RCCProfileConfig};
+use robotmk::config::RCCProfileConfig;
 use std::vec;
 use tokio_util::sync::CancellationToken;
 
@@ -59,6 +59,9 @@ fn run_setup_steps(config: &GlobalConfig, mut plans: Vec<Plan>) -> (Vec<Plan>, V
         #[cfg(windows)]
         gather_rcc_profile_permissions,
         gather_disable_rcc_telemetry,
+        gather_configure_default_rcc_profile,
+        gather_import_custom_rcc_profile,
+        gather_switch_to_custom_rcc_profile,
     ];
 
     let mut failures = Vec::new();
@@ -248,92 +251,123 @@ fn gather_disable_rcc_telemetry(config: &GlobalConfig, plans: Vec<Plan>) -> Vec<
     steps
 }
 
+fn gather_configure_default_rcc_profile(
+    config: &GlobalConfig,
+    plans: Vec<Plan>,
+) -> Vec<StepWithPlans> {
+    if !matches!(config.rcc_config.profile_config, RCCProfileConfig::Default) {
+        return vec![skip(plans)];
+    }
+    let (rcc_plans, system_plans): (Vec<Plan>, Vec<Plan>) = plans
+        .into_iter()
+        .partition(|plan| matches!(plan.environment, Environment::Rcc(_)));
+    let mut steps: Vec<StepWithPlans> = Vec::new();
+    for (session, plans_in_session) in plans_by_sessions(rcc_plans) {
+        steps.push((
+            Box::new(StepRCCCommand::new_from_config(
+                config,
+                session,
+                &["configuration", "switch", "--noprofile"],
+                "default_profile_switch",
+                "Switching to default RCC profile failed",
+            )),
+            plans_in_session,
+        ));
+    }
+    steps.push(skip(system_plans));
+    steps
+}
+
+fn gather_import_custom_rcc_profile(config: &GlobalConfig, plans: Vec<Plan>) -> Vec<StepWithPlans> {
+    let custom_rcc_profile_path = match &config.rcc_config.profile_config {
+        RCCProfileConfig::Default => return vec![skip(plans)],
+        RCCProfileConfig::Custom(custom_rcc_profile_config) => {
+            custom_rcc_profile_config.path.clone()
+        }
+    };
+    let (rcc_plans, system_plans): (Vec<Plan>, Vec<Plan>) = plans
+        .into_iter()
+        .partition(|plan| matches!(plan.environment, Environment::Rcc(_)));
+    let mut steps: Vec<StepWithPlans> = Vec::new();
+    for (session, plans_in_session) in plans_by_sessions(rcc_plans) {
+        steps.push((
+            Box::new(StepRCCCommand::new_from_config(
+                config,
+                session.clone(),
+                &[
+                    "configuration",
+                    "import",
+                    "--filename",
+                    custom_rcc_profile_path.as_str(),
+                ],
+                "custom_profile_import",
+                "Importing custom RCC profile failed",
+            )),
+            plans_in_session,
+        ));
+    }
+    steps.push(skip(system_plans));
+    steps
+}
+
+fn gather_switch_to_custom_rcc_profile(
+    config: &GlobalConfig,
+    plans: Vec<Plan>,
+) -> Vec<StepWithPlans> {
+    let custom_rcc_profile_name = match &config.rcc_config.profile_config {
+        RCCProfileConfig::Default => return vec![skip(plans)],
+        RCCProfileConfig::Custom(custom_rcc_profile_config) => {
+            custom_rcc_profile_config.name.clone()
+        }
+    };
+    let (rcc_plans, system_plans): (Vec<Plan>, Vec<Plan>) = plans
+        .into_iter()
+        .partition(|plan| matches!(plan.environment, Environment::Rcc(_)));
+    let mut steps: Vec<StepWithPlans> = Vec::new();
+    for (session, plans_in_session) in plans_by_sessions(rcc_plans) {
+        steps.push((
+            Box::new(StepRCCCommand::new_from_config(
+                config,
+                session,
+                &[
+                    "configuration",
+                    "switch",
+                    "--profile",
+                    custom_rcc_profile_name.as_str(),
+                ],
+                "custom_profile_switch",
+                "Switching to custom RCC porfile failed",
+            )),
+            plans_in_session,
+        ));
+    }
+    steps.push(skip(system_plans));
+    steps
+}
+
 fn rcc_setup(
     global_config: &GlobalConfig,
     rcc_plans: Vec<Plan>,
 ) -> Result<(Vec<Plan>, Vec<SetupFailure>), Cancelled> {
-    let mut sucessful_plans: Vec<Plan>;
     let mut all_failures = vec![];
-    let mut current_failures: Vec<SetupFailure>;
-
-    debug!("Configuring RCC profile");
-    (sucessful_plans, current_failures) = configure_rcc_profile(global_config, rcc_plans)?;
-    all_failures.extend(current_failures);
 
     #[cfg(windows)]
-    {
+    let successful_plans = {
         debug!("Enabling support for long paths");
-        (sucessful_plans, current_failures) =
-            enable_long_path_support(global_config, sucessful_plans)?;
+        let (successful_plans, current_failures) =
+            enable_long_path_support(global_config, rcc_plans)?;
         all_failures.extend(current_failures);
-    }
+        successful_plans
+    };
+    #[cfg(unix)]
+    let successful_plans = rcc_plans;
 
     debug!("Disabling shared holotree");
-    (sucessful_plans, current_failures) = holotree_disable_sharing(global_config, sucessful_plans)?;
+    let (sucessful_plans, current_failures) =
+        holotree_disable_sharing(global_config, successful_plans)?;
     all_failures.extend(current_failures);
 
     Ok((sucessful_plans, all_failures))
-}
-
-fn configure_rcc_profile(
-    global_config: &GlobalConfig,
-    plans: Vec<Plan>,
-) -> Result<(Vec<Plan>, Vec<SetupFailure>), Cancelled> {
-    match &global_config.rcc_config.profile_config {
-        RCCProfileConfig::Default => configure_default_rcc_profile(global_config, plans),
-        RCCProfileConfig::Custom(custom_rcc_profile_config) => {
-            configure_custom_rcc_profile(custom_rcc_profile_config, global_config, plans)
-        }
-    }
-}
-
-fn configure_default_rcc_profile(
-    global_config: &GlobalConfig,
-    plans: Vec<Plan>,
-) -> Result<(Vec<Plan>, Vec<SetupFailure>), Cancelled> {
-    run_rcc_per_session(
-        global_config,
-        plans,
-        ["configuration", "switch", "--noprofile"],
-        "default_profile_switch",
-        "Switching to default RCC profile failed",
-    )
-}
-
-fn configure_custom_rcc_profile(
-    custom_rcc_profile_config: &CustomRCCProfileConfig,
-    global_config: &GlobalConfig,
-    plans: Vec<Plan>,
-) -> Result<(Vec<Plan>, Vec<SetupFailure>), Cancelled> {
-    let (sucessful_plans_import, failures_import) = run_rcc_per_session(
-        global_config,
-        plans,
-        [
-            "configuration",
-            "import",
-            "--filename",
-            custom_rcc_profile_config.path.as_str(),
-        ],
-        "custom_profile_import",
-        "Importing custom RCC profile failed",
-    )?;
-    let (sucessful_plans_switch, failures_switch) = run_rcc_per_session(
-        global_config,
-        sucessful_plans_import,
-        [
-            "configuration",
-            "switch",
-            "--profile",
-            custom_rcc_profile_config.name.as_str(),
-        ],
-        "custom_profile_switch",
-        "Switching to custom RCC porfile failed",
-    )?;
-
-    Ok((
-        sucessful_plans_switch,
-        failures_import.into_iter().chain(failures_switch).collect(),
-    ))
 }
 
 #[cfg(windows)]
@@ -492,61 +526,6 @@ fn run_command_spec_once_in_current_session(
             }
         },
     )
-}
-
-fn run_rcc_per_session<T>(
-    global_config: &GlobalConfig,
-    plans: Vec<Plan>,
-    arguments: impl IntoIterator<Item = T> + Copy,
-    id: &str,
-    failure_summary: &str,
-) -> Result<(Vec<Plan>, Vec<SetupFailure>), Cancelled>
-where
-    T: AsRef<str>,
-{
-    let mut succesful_plans = vec![];
-    let mut failures = vec![];
-
-    for (session, plans) in plans_by_sessions(plans) {
-        let mut command_spec = RCCEnvironment::bundled_command_spec(
-            &global_config.rcc_config.binary_path,
-            session
-                .robocorp_home(&global_config.rcc_config.robocorp_home_base)
-                .to_string(),
-        );
-        command_spec.add_arguments(arguments);
-        debug!("Running {} for `{}`", command_spec, &session);
-        match execute_run_spec_in_session(
-            &session,
-            &RunSpec {
-                id: &format!("robotmk_{id}"),
-                command_spec: &command_spec,
-                runtime_base_path: &rcc_setup_working_directory(&global_config.working_directory)
-                    .join(session.id())
-                    .join(id),
-                timeout: 120,
-                cancellation_token: &global_config.cancellation_token,
-            },
-        )? {
-            Some(error_msg) => {
-                for plan in plans {
-                    error!(
-                        "Plan {}: {failure_summary}. Plan won't be scheduled.
-                         Error: {error_msg}",
-                        plan.id
-                    );
-                    failures.push(SetupFailure {
-                        plan_id: plan.id.clone(),
-                        summary: failure_summary.to_string(),
-                        details: error_msg.clone(),
-                    });
-                }
-            }
-            None => succesful_plans.extend(plans),
-        }
-    }
-
-    Ok((succesful_plans, failures))
 }
 
 fn execute_run_spec_in_session(
