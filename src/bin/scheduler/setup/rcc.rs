@@ -4,10 +4,10 @@ use super::plans_by_sessions;
 use super::windows_permissions::run_icacls_command;
 use crate::internal_config::{sort_plans_by_grouping, GlobalConfig, Plan};
 use crate::logging::log_and_return_error;
-#[cfg(windows)]
-use robotmk::command_spec::CommandSpec;
 use robotmk::environment::{Environment, RCCEnvironment};
 use robotmk::results::SetupFailure;
+#[cfg(windows)]
+use robotmk::session::CurrentSession;
 use robotmk::session::{RunSpec, Session};
 use robotmk::termination::{Cancelled, Outcome};
 
@@ -62,6 +62,8 @@ fn run_setup_steps(config: &GlobalConfig, mut plans: Vec<Plan>) -> (Vec<Plan>, V
         gather_configure_default_rcc_profile,
         gather_import_custom_rcc_profile,
         gather_switch_to_custom_rcc_profile,
+        #[cfg(windows)]
+        gather_enable_rcc_long_path_support,
     ];
 
     let mut failures = Vec::new();
@@ -345,52 +347,36 @@ fn gather_switch_to_custom_rcc_profile(
     steps
 }
 
+#[cfg(windows)]
+fn gather_enable_rcc_long_path_support(
+    config: &GlobalConfig,
+    plans: Vec<Plan>,
+) -> Vec<StepWithPlans> {
+    let (rcc_plans, system_plans): (Vec<Plan>, Vec<Plan>) = plans
+        .into_iter()
+        .partition(|plan| matches!(plan.environment, Environment::Rcc(_)));
+    vec![
+        (
+            Box::new(StepRCCCommand::new_from_config(
+                config,
+                Session::Current(CurrentSession {}),
+                &["configure", "longpaths", "--enable"],
+                "long_path_support_enabling",
+                "Enabling RCC long path support failed",
+            )),
+            rcc_plans,
+        ),
+        skip(system_plans),
+    ]
+}
+
 fn rcc_setup(
     global_config: &GlobalConfig,
     rcc_plans: Vec<Plan>,
 ) -> Result<(Vec<Plan>, Vec<SetupFailure>), Cancelled> {
-    let mut all_failures = vec![];
-
-    #[cfg(windows)]
-    let successful_plans = {
-        debug!("Enabling support for long paths");
-        let (successful_plans, current_failures) =
-            enable_long_path_support(global_config, rcc_plans)?;
-        all_failures.extend(current_failures);
-        successful_plans
-    };
-    #[cfg(unix)]
-    let successful_plans = rcc_plans;
-
     debug!("Disabling shared holotree");
-    let (sucessful_plans, current_failures) =
-        holotree_disable_sharing(global_config, successful_plans)?;
-    all_failures.extend(current_failures);
-
-    Ok((sucessful_plans, all_failures))
-}
-
-#[cfg(windows)]
-fn enable_long_path_support(
-    global_config: &GlobalConfig,
-    plans: Vec<Plan>,
-) -> Result<(Vec<Plan>, Vec<SetupFailure>), Cancelled> {
-    use robotmk::session::CurrentSession;
-    let session = Session::Current(CurrentSession {});
-    let mut command_spec = RCCEnvironment::bundled_command_spec(
-        &global_config.rcc_config.binary_path,
-        session
-            .robocorp_home(&global_config.rcc_config.robocorp_home_base)
-            .to_string(),
-    );
-    command_spec.add_arguments(["configure", "longpaths", "--enable"]);
-    run_command_spec_once_in_current_session(
-        global_config,
-        plans,
-        &command_spec,
-        "long_path_support_enabling",
-        "Enabling RCC long path support failed",
-    )
+    let (sucessful_plans, failures) = holotree_disable_sharing(global_config, rcc_plans)?;
+    Ok((sucessful_plans, failures))
 }
 
 fn holotree_disable_sharing(
@@ -482,50 +468,6 @@ fn holotree_disable_sharing(
     }
 
     Ok((succesful_plans, failures))
-}
-
-#[cfg(windows)]
-fn run_command_spec_once_in_current_session(
-    global_config: &GlobalConfig,
-    plans: Vec<Plan>,
-    command_spec: &CommandSpec,
-    id: &str,
-    failure_summary: &str,
-) -> Result<(Vec<Plan>, Vec<SetupFailure>), Cancelled> {
-    use robotmk::session::CurrentSession;
-    let session = Session::Current(CurrentSession {});
-    Ok(
-        match execute_run_spec_in_session(
-            &session,
-            &RunSpec {
-                id: &format!("robotmk_{id}"),
-                command_spec,
-                runtime_base_path: &rcc_setup_working_directory(&global_config.working_directory)
-                    .join(session.id())
-                    .join(id),
-                timeout: 120,
-                cancellation_token: &global_config.cancellation_token,
-            },
-        )? {
-            None => (plans, vec![]),
-            Some(error_msg) => {
-                let mut failures = vec![];
-                for plan in plans {
-                    error!(
-                        "Plan {}: {failure_summary}. Plan won't be scheduled.
-                         Error: {error_msg}",
-                        plan.id
-                    );
-                    failures.push(SetupFailure {
-                        plan_id: plan.id.clone(),
-                        summary: failure_summary.to_string(),
-                        details: error_msg.clone(),
-                    });
-                }
-                (vec![], failures)
-            }
-        },
-    )
 }
 
 fn execute_run_spec_in_session(
