@@ -64,29 +64,23 @@ fn run() -> Result<(), Terminate> {
     setup::base_directories::setup(&global_config, &plans)?;
     info!("Base setup completed");
 
-    let (plans, general_setup_failures) = setup::directories::setup(&global_config, plans)?;
-    info!("Directories setup completed");
+    write_phase(&SchedulerPhase::Setup, &global_config)?;
+    let (plans, setup_failures) = setup::steps::run(&global_config, plans)?;
+    info!("Setup steps completed");
 
     write_phase(&SchedulerPhase::ManagedRobots, &global_config)?;
     let (plans, unpacking_managed_failures) = setup::unpack_managed::setup(plans);
     info!("Managed robot setup completed");
 
+    write_setup_failures(
+        setup_failures.into_iter().chain(unpacking_managed_failures),
+        &global_config,
+    )?;
+
     if global_config.cancellation_token.is_cancelled() {
         info!("Terminated");
         return Ok(());
     }
-
-    write_phase(&SchedulerPhase::RCCSetup, &global_config)?;
-    info!("RCC-specific setup started");
-    let (plans, rcc_setup_failures) = setup::rcc::setup(&global_config, plans)?;
-    write_setup_failures(
-        general_setup_failures
-            .into_iter()
-            .chain(unpacking_managed_failures)
-            .chain(rcc_setup_failures),
-        &global_config,
-    )?;
-    info!("RCC-specific setup completed");
 
     info!("Starting environment building");
     write_phase(&SchedulerPhase::EnvironmentBuilding, &global_config)?;

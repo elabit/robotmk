@@ -16,7 +16,7 @@ pub fn plan_results_directory(results_directory: &Utf8Path) -> Utf8PathBuf {
 pub enum SchedulerPhase {
     ManagedRobots,
     GracePeriod(u64),
-    RCCSetup,
+    Setup,
     EnvironmentBuilding,
     Scheduling,
 }

@@ -1,9 +1,10 @@
 mod api;
 pub mod base_directories;
-pub mod directories;
+mod directories;
 mod fs_entries;
 mod ownership;
-pub mod rcc;
+mod rcc;
+pub mod steps;
 pub mod unpack_managed;
 mod windows_permissions;
 
