@@ -1,8 +1,10 @@
-pub mod api;
+mod api;
 pub mod directories;
+mod fs_entries;
+mod ownership;
 pub mod rcc;
 pub mod unpack_managed;
-pub mod windows_permissions;
+mod windows_permissions;
 
 use crate::internal_config::Plan;
 use robotmk::session::Session;
