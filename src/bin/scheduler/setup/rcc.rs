@@ -1,67 +1,23 @@
-use super::api::{self, run_steps, skip, SetupStep, StepWithPlans};
+use super::api::{self, skip, SetupStep, StepWithPlans};
 use super::plans_by_sessions;
 #[cfg(windows)]
 use super::windows_permissions::run_icacls_command;
-use crate::internal_config::{sort_plans_by_grouping, GlobalConfig, Plan};
+
+use crate::internal_config::{GlobalConfig, Plan};
 use crate::logging::log_and_return_error;
+
+use robotmk::config::RCCProfileConfig;
 use robotmk::environment::{Environment, RCCEnvironment};
-use robotmk::results::SetupFailure;
 #[cfg(windows)]
 use robotmk::session::CurrentSession;
 use robotmk::session::{RunSpec, Session};
-use robotmk::termination::Cancelled;
 use robotmk::termination::Outcome;
 
 use anyhow::{anyhow, Context};
 use camino::Utf8PathBuf;
 use log::{debug, error};
-use robotmk::config::RCCProfileConfig;
 use std::vec;
 use tokio_util::sync::CancellationToken;
-
-pub fn setup(
-    global_config: &GlobalConfig,
-    plans: Vec<Plan>,
-) -> Result<(Vec<Plan>, Vec<SetupFailure>), Cancelled> {
-    run_setup_steps(global_config, plans)
-}
-
-fn run_setup_steps(
-    config: &GlobalConfig,
-    mut plans: Vec<Plan>,
-) -> Result<(Vec<Plan>, Vec<SetupFailure>), Cancelled> {
-    let gather_requirements = [
-        #[cfg(windows)]
-        gather_rcc_binary_permissions,
-        #[cfg(windows)]
-        gather_rcc_profile_permissions,
-        gather_disable_rcc_telemetry,
-        gather_configure_default_rcc_profile,
-        gather_import_custom_rcc_profile,
-        gather_switch_to_custom_rcc_profile,
-        #[cfg(windows)]
-        gather_enable_rcc_long_path_support,
-        gather_disable_rcc_shared_holotree,
-    ];
-
-    let mut failures = Vec::new();
-    for gather in gather_requirements.iter() {
-        plans = {
-            let plan_count = plans.len();
-            let setup_steps = gather(config, plans);
-            assert_eq!(
-                plan_count,
-                setup_steps.iter().map(|s| s.1.len()).sum::<usize>()
-            );
-            let (surviving_plans, current_errors) =
-                run_steps(setup_steps, &config.cancellation_token)?;
-            failures.extend(current_errors);
-            surviving_plans
-        };
-    }
-    sort_plans_by_grouping(&mut plans);
-    Ok((plans, failures))
-}
 
 #[cfg(windows)]
 struct StepFilePermissions {
@@ -286,7 +242,10 @@ impl SetupStep for StepDisableSharedHolotree {
 }
 
 #[cfg(windows)]
-fn gather_rcc_binary_permissions(config: &GlobalConfig, plans: Vec<Plan>) -> Vec<StepWithPlans> {
+pub fn gather_rcc_binary_permissions(
+    config: &GlobalConfig,
+    plans: Vec<Plan>,
+) -> Vec<StepWithPlans> {
     let (rcc_plans, system_plans): (Vec<Plan>, Vec<Plan>) = plans
         .into_iter()
         .partition(|plan| matches!(plan.environment, Environment::Rcc(_)));
@@ -306,7 +265,10 @@ fn gather_rcc_binary_permissions(config: &GlobalConfig, plans: Vec<Plan>) -> Vec
 }
 
 #[cfg(windows)]
-fn gather_rcc_profile_permissions(config: &GlobalConfig, plans: Vec<Plan>) -> Vec<StepWithPlans> {
+pub fn gather_rcc_profile_permissions(
+    config: &GlobalConfig,
+    plans: Vec<Plan>,
+) -> Vec<StepWithPlans> {
     let (rcc_plans, system_plans): (Vec<Plan>, Vec<Plan>) = plans
         .into_iter()
         .partition(|plan| matches!(plan.environment, Environment::Rcc(_)));
@@ -331,7 +293,7 @@ fn gather_rcc_profile_permissions(config: &GlobalConfig, plans: Vec<Plan>) -> Ve
     steps
 }
 
-fn gather_disable_rcc_telemetry(config: &GlobalConfig, plans: Vec<Plan>) -> Vec<StepWithPlans> {
+pub fn gather_disable_rcc_telemetry(config: &GlobalConfig, plans: Vec<Plan>) -> Vec<StepWithPlans> {
     let (rcc_plans, system_plans): (Vec<Plan>, Vec<Plan>) = plans
         .into_iter()
         .partition(|plan| matches!(plan.environment, Environment::Rcc(_)));
@@ -352,7 +314,7 @@ fn gather_disable_rcc_telemetry(config: &GlobalConfig, plans: Vec<Plan>) -> Vec<
     steps
 }
 
-fn gather_configure_default_rcc_profile(
+pub fn gather_configure_default_rcc_profile(
     config: &GlobalConfig,
     plans: Vec<Plan>,
 ) -> Vec<StepWithPlans> {
@@ -379,7 +341,10 @@ fn gather_configure_default_rcc_profile(
     steps
 }
 
-fn gather_import_custom_rcc_profile(config: &GlobalConfig, plans: Vec<Plan>) -> Vec<StepWithPlans> {
+pub fn gather_import_custom_rcc_profile(
+    config: &GlobalConfig,
+    plans: Vec<Plan>,
+) -> Vec<StepWithPlans> {
     let custom_rcc_profile_path = match &config.rcc_config.profile_config {
         RCCProfileConfig::Default => return vec![skip(plans)],
         RCCProfileConfig::Custom(custom_rcc_profile_config) => {
@@ -411,7 +376,7 @@ fn gather_import_custom_rcc_profile(config: &GlobalConfig, plans: Vec<Plan>) -> 
     steps
 }
 
-fn gather_switch_to_custom_rcc_profile(
+pub fn gather_switch_to_custom_rcc_profile(
     config: &GlobalConfig,
     plans: Vec<Plan>,
 ) -> Vec<StepWithPlans> {
@@ -447,7 +412,7 @@ fn gather_switch_to_custom_rcc_profile(
 }
 
 #[cfg(windows)]
-fn gather_enable_rcc_long_path_support(
+pub fn gather_enable_rcc_long_path_support(
     config: &GlobalConfig,
     plans: Vec<Plan>,
 ) -> Vec<StepWithPlans> {
@@ -469,7 +434,7 @@ fn gather_enable_rcc_long_path_support(
     ]
 }
 
-fn gather_disable_rcc_shared_holotree(
+pub fn gather_disable_rcc_shared_holotree(
     global_config: &GlobalConfig,
     plans: Vec<Plan>,
 ) -> Vec<StepWithPlans> {

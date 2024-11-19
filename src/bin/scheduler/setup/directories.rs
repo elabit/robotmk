@@ -1,62 +1,16 @@
-use super::api::{self, run_steps, skip, SetupStep, StepWithPlans};
+use super::api::{self, skip, SetupStep, StepWithPlans};
 #[cfg(windows)]
 use super::ownership::transfer_directory_ownership_recursive;
 use super::plans_by_sessions;
 #[cfg(windows)]
 use super::windows_permissions::{grant_full_access, reset_access};
 
-use crate::internal_config::{sort_plans_by_grouping, GlobalConfig, Plan, Source};
+use crate::internal_config::{GlobalConfig, Plan, Source};
 
 use camino::Utf8PathBuf;
 use robotmk::environment::Environment;
 use robotmk::fs::create_dir_all;
-use robotmk::results::SetupFailure;
 use robotmk::session::Session;
-use robotmk::termination::Cancelled;
-
-pub fn setup(
-    global_config: &GlobalConfig,
-    plans: Vec<Plan>,
-) -> Result<(Vec<Plan>, Vec<SetupFailure>), Cancelled> {
-    run_setup_steps(global_config, plans)
-}
-
-fn run_setup_steps(
-    config: &GlobalConfig,
-    mut plans: Vec<Plan>,
-) -> Result<(Vec<Plan>, Vec<SetupFailure>), Cancelled> {
-    let gather_requirements = [
-        gather_managed_directories,
-        #[cfg(windows)]
-        gather_robocorp_home_base,
-        #[cfg(windows)]
-        gather_robocorp_home_per_user,
-        gather_plan_working_directories,
-        gather_environment_building_directories,
-        gather_rcc_working_base,
-        #[cfg(windows)]
-        gather_rcc_longpath_directory,
-        gather_rcc_working_per_user,
-    ];
-
-    let mut failures = Vec::new();
-    for gather in gather_requirements.iter() {
-        plans = {
-            let plan_count = plans.len();
-            let setup_steps = gather(config, plans);
-            assert_eq!(
-                plan_count,
-                setup_steps.iter().map(|s| s.1.len()).sum::<usize>()
-            );
-            let (surviving_plans, current_errors) =
-                run_steps(setup_steps, &config.cancellation_token)?;
-            failures.extend(current_errors);
-            surviving_plans
-        };
-    }
-    sort_plans_by_grouping(&mut plans);
-    Ok((plans, failures))
-}
 
 struct StepCreate {
     target: Utf8PathBuf,
@@ -127,7 +81,7 @@ impl SetupStep for StepRobocorpHomeBase {
 }
 
 #[cfg(windows)]
-fn gather_robocorp_home_base(config: &GlobalConfig, plans: Vec<Plan>) -> Vec<StepWithPlans> {
+pub fn gather_robocorp_home_base(config: &GlobalConfig, plans: Vec<Plan>) -> Vec<StepWithPlans> {
     let (rcc_plans, system_plans): (Vec<Plan>, Vec<Plan>) = plans
         .into_iter()
         .partition(|plan| matches!(plan.environment, Environment::Rcc(_)));
@@ -143,7 +97,10 @@ fn gather_robocorp_home_base(config: &GlobalConfig, plans: Vec<Plan>) -> Vec<Ste
 }
 
 #[cfg(windows)]
-fn gather_robocorp_home_per_user(config: &GlobalConfig, plans: Vec<Plan>) -> Vec<StepWithPlans> {
+pub fn gather_robocorp_home_per_user(
+    config: &GlobalConfig,
+    plans: Vec<Plan>,
+) -> Vec<StepWithPlans> {
     let (rcc_plans, system_plans): (Vec<Plan>, Vec<Plan>) = plans
         .into_iter()
         .partition(|plan| matches!(plan.environment, Environment::Rcc(_)));
@@ -161,7 +118,7 @@ fn gather_robocorp_home_per_user(config: &GlobalConfig, plans: Vec<Plan>) -> Vec
     setup_steps
 }
 
-fn gather_plan_working_directories(
+pub fn gather_plan_working_directories(
     _global_config: &GlobalConfig,
     plans: Vec<Plan>,
 ) -> Vec<StepWithPlans> {
@@ -179,7 +136,7 @@ fn gather_plan_working_directories(
         .collect()
 }
 
-fn gather_environment_building_directories(
+pub fn gather_environment_building_directories(
     _config: &GlobalConfig,
     plans: Vec<Plan>,
 ) -> Vec<StepWithPlans> {
@@ -201,7 +158,7 @@ fn gather_environment_building_directories(
     setup_steps
 }
 
-fn gather_rcc_working_base(config: &GlobalConfig, plans: Vec<Plan>) -> Vec<StepWithPlans> {
+pub fn gather_rcc_working_base(config: &GlobalConfig, plans: Vec<Plan>) -> Vec<StepWithPlans> {
     let (rcc_plans, system_plans): (Vec<Plan>, Vec<Plan>) = plans
         .into_iter()
         .partition(|plan| matches!(plan.environment, Environment::Rcc(_)));
@@ -216,7 +173,7 @@ fn gather_rcc_working_base(config: &GlobalConfig, plans: Vec<Plan>) -> Vec<StepW
     ]
 }
 
-fn gather_rcc_working_per_user(config: &GlobalConfig, plans: Vec<Plan>) -> Vec<StepWithPlans> {
+pub fn gather_rcc_working_per_user(config: &GlobalConfig, plans: Vec<Plan>) -> Vec<StepWithPlans> {
     let (rcc_plans, system_plans): (Vec<Plan>, Vec<Plan>) = plans
         .into_iter()
         .partition(|plan| matches!(plan.environment, Environment::Rcc(_)));
@@ -235,7 +192,10 @@ fn gather_rcc_working_per_user(config: &GlobalConfig, plans: Vec<Plan>) -> Vec<S
 }
 
 #[cfg(windows)]
-fn gather_rcc_longpath_directory(config: &GlobalConfig, plans: Vec<Plan>) -> Vec<StepWithPlans> {
+pub fn gather_rcc_longpath_directory(
+    config: &GlobalConfig,
+    plans: Vec<Plan>,
+) -> Vec<StepWithPlans> {
     use robotmk::session::CurrentSession;
     let (rcc_plans, system_plans): (Vec<Plan>, Vec<Plan>) = plans
         .into_iter()
@@ -253,7 +213,7 @@ fn gather_rcc_longpath_directory(config: &GlobalConfig, plans: Vec<Plan>) -> Vec
     ]
 }
 
-fn gather_managed_directories(
+pub fn gather_managed_directories(
     _global_config: &GlobalConfig,
     plans: Vec<Plan>,
 ) -> Vec<StepWithPlans> {
