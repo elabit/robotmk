@@ -43,6 +43,9 @@ pub fn run_steps(
         if cancellation_token.is_cancelled() {
             return Err(Cancelled);
         }
+        if affected_plans.is_empty() {
+            continue;
+        }
         match step.setup() {
             Ok(()) => {
                 plans.extend(affected_plans);
