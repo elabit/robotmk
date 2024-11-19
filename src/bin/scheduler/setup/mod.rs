@@ -1,4 +1,5 @@
 mod api;
+pub mod base_directories;
 pub mod directories;
 mod fs_entries;
 mod ownership;
