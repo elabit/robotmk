@@ -9,6 +9,7 @@ use robotmk::results::SetupFailure;
 #[cfg(windows)]
 use robotmk::session::CurrentSession;
 use robotmk::session::{RunSpec, Session};
+use robotmk::termination::Cancelled;
 use robotmk::termination::Outcome;
 
 use anyhow::{anyhow, Context};
@@ -18,7 +19,10 @@ use robotmk::config::RCCProfileConfig;
 use std::vec;
 use tokio_util::sync::CancellationToken;
 
-pub fn setup(global_config: &GlobalConfig, plans: Vec<Plan>) -> (Vec<Plan>, Vec<SetupFailure>) {
+pub fn setup(
+    global_config: &GlobalConfig,
+    plans: Vec<Plan>,
+) -> Result<(Vec<Plan>, Vec<SetupFailure>), Cancelled> {
     run_setup_steps(global_config, plans)
 }
 
@@ -26,7 +30,10 @@ pub fn rcc_setup_working_directory(working_directory: &Utf8Path) -> Utf8PathBuf 
     working_directory.join("rcc_setup")
 }
 
-fn run_setup_steps(config: &GlobalConfig, mut plans: Vec<Plan>) -> (Vec<Plan>, Vec<SetupFailure>) {
+fn run_setup_steps(
+    config: &GlobalConfig,
+    mut plans: Vec<Plan>,
+) -> Result<(Vec<Plan>, Vec<SetupFailure>), Cancelled> {
     let gather_requirements = [
         #[cfg(windows)]
         gather_rcc_binary_permissions,
@@ -50,13 +57,14 @@ fn run_setup_steps(config: &GlobalConfig, mut plans: Vec<Plan>) -> (Vec<Plan>, V
                 plan_count,
                 setup_steps.iter().map(|s| s.1.len()).sum::<usize>()
             );
-            let (surviving_plans, current_errors) = run_steps(setup_steps);
+            let (surviving_plans, current_errors) =
+                run_steps(setup_steps, &config.cancellation_token)?;
             failures.extend(current_errors);
             surviving_plans
         };
     }
     sort_plans_by_grouping(&mut plans);
-    (plans, failures)
+    Ok((plans, failures))
 }
 
 #[cfg(windows)]

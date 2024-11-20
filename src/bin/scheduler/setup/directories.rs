@@ -14,6 +14,7 @@ use robotmk::environment::Environment;
 use robotmk::fs::{create_dir_all, remove_dir_all, remove_file};
 use robotmk::results::{plan_results_directory, SetupFailure};
 use robotmk::session::Session;
+use robotmk::termination::Cancelled;
 use robotmk::termination::Terminate;
 use std::collections::HashSet;
 
@@ -30,7 +31,7 @@ pub fn setup(
     setup_managed_directory(&global_config.managed_directory)?;
     setup_results_directory(global_config, &plans)?;
 
-    Ok(run_setup_steps(global_config, plans))
+    Ok(run_setup_steps(global_config, plans)?)
 }
 
 fn setup_working_directory(working_directory: &Utf8Path, plans: &[Plan]) -> AnyhowResult<()> {
@@ -83,7 +84,10 @@ fn clean_up_results_directory(
     Ok(results_directory_lock.release()?)
 }
 
-fn run_setup_steps(config: &GlobalConfig, mut plans: Vec<Plan>) -> (Vec<Plan>, Vec<SetupFailure>) {
+fn run_setup_steps(
+    config: &GlobalConfig,
+    mut plans: Vec<Plan>,
+) -> Result<(Vec<Plan>, Vec<SetupFailure>), Cancelled> {
     let gather_requirements = [
         gather_managed_directories,
         #[cfg(windows)]
@@ -107,13 +111,14 @@ fn run_setup_steps(config: &GlobalConfig, mut plans: Vec<Plan>) -> (Vec<Plan>, V
                 plan_count,
                 setup_steps.iter().map(|s| s.1.len()).sum::<usize>()
             );
-            let (surviving_plans, current_errors) = run_steps(setup_steps);
+            let (surviving_plans, current_errors) =
+                run_steps(setup_steps, &config.cancellation_token)?;
             failures.extend(current_errors);
             surviving_plans
         };
     }
     sort_plans_by_grouping(&mut plans);
-    (plans, failures)
+    Ok((plans, failures))
 }
 
 struct StepCreate {

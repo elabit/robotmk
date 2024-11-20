@@ -1,5 +1,7 @@
 use crate::internal_config::Plan;
 use robotmk::results::SetupFailure;
+use robotmk::termination::Cancelled;
+use tokio_util::sync::CancellationToken;
 
 #[derive(Debug)]
 pub struct Error {
@@ -31,10 +33,16 @@ pub fn skip(plans: Vec<Plan>) -> (Box<dyn SetupStep>, Vec<Plan>) {
     (Box::new(SetupStepSuccess {}), plans)
 }
 
-pub fn run_steps(steps: Vec<StepWithPlans>) -> (Vec<Plan>, Vec<SetupFailure>) {
+pub fn run_steps(
+    steps: Vec<StepWithPlans>,
+    cancellation_token: &CancellationToken,
+) -> Result<(Vec<Plan>, Vec<SetupFailure>), Cancelled> {
     let mut plans = Vec::new();
     let mut errors = Vec::new();
     for (step, affected_plans) in steps.into_iter() {
+        if cancellation_token.is_cancelled() {
+            return Err(Cancelled);
+        }
         match step.setup() {
             Ok(()) => {
                 plans.extend(affected_plans);
@@ -56,5 +64,5 @@ pub fn run_steps(steps: Vec<StepWithPlans>) -> (Vec<Plan>, Vec<SetupFailure>) {
             }
         }
     }
-    (plans, errors)
+    Ok((plans, errors))
 }

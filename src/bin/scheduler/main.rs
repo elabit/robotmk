@@ -75,7 +75,7 @@ fn run() -> Result<(), Terminate> {
 
     write_phase(&SchedulerPhase::RCCSetup, &global_config)?;
     info!("RCC-specific setup started");
-    let (plans, rcc_setup_failures) = setup::rcc::setup(&global_config, plans);
+    let (plans, rcc_setup_failures) = setup::rcc::setup(&global_config, plans)?;
     write_setup_failures(
         general_setup_failures
             .into_iter()
