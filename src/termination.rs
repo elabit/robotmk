@@ -1,4 +1,5 @@
 use std::collections::HashSet;
+use std::fmt::Display;
 use std::future::Future;
 use std::time::Duration;
 use sysinfo::{Pid, Process, ProcessesToUpdate, System};
@@ -12,6 +13,24 @@ pub enum Terminate {
     Cancelled,
     #[error(transparent)]
     Unrecoverable(#[from] anyhow::Error),
+}
+
+pub trait ContextUnrecoverable<T> {
+    fn context_unrecoverable<C>(self, context: C) -> Result<T, Terminate>
+    where
+        C: Display + Send + Sync + 'static;
+}
+
+impl<T> ContextUnrecoverable<T> for Result<T, Terminate> {
+    fn context_unrecoverable<C>(self, context: C) -> Result<T, Terminate>
+    where
+        C: Display + Send + Sync + 'static,
+    {
+        self.map_err(|err| match err {
+            Terminate::Unrecoverable(any) => Terminate::Unrecoverable(any.context(context)),
+            Terminate::Cancelled => Terminate::Cancelled,
+        })
+    }
 }
 
 #[derive(Error, Debug, Clone)]

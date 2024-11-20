@@ -3,13 +3,14 @@ use crate::logging::TIMESTAMP_FORMAT;
 use robotmk::plans::run_attempts_with_rebot;
 use robotmk::results::{AttemptsConfig, PlanExecutionReport};
 
-use anyhow::{Context, Result as AnyhowResult};
+use anyhow::Context;
 use chrono::Utc;
 use log::info;
 use robotmk::section::WritePiggybackSection;
+use robotmk::termination::{ContextUnrecoverable, Terminate};
 use std::fs::create_dir_all;
 
-pub fn run_plan(plan: &Plan) -> AnyhowResult<()> {
+pub fn run_plan(plan: &Plan) -> Result<(), Terminate> {
     info!(
         "Running plan {} ({})",
         &plan.id,
@@ -21,7 +22,7 @@ pub fn run_plan(plan: &Plan) -> AnyhowResult<()> {
             plan.host.clone(),
             &plan.results_directory_locker,
         )
-        .context("Reporting plan results failed")?;
+        .context_unrecoverable("Reporting plan results failed")?;
     info!("Plan {} finished", &plan.id);
 
     Ok(())
@@ -48,7 +49,7 @@ fn format_source_for_logging(source: &Source) -> String {
     }
 }
 
-fn produce_plan_results(plan: &Plan) -> AnyhowResult<PlanExecutionReport> {
+fn produce_plan_results(plan: &Plan) -> Result<PlanExecutionReport, Terminate> {
     let timestamp = Utc::now();
     let output_directory = plan
         .working_directory
@@ -68,7 +69,8 @@ fn produce_plan_results(plan: &Plan) -> AnyhowResult<PlanExecutionReport> {
         &plan.cancellation_token,
         &output_directory,
     )
-    .context("Received termination signal while running plan")?;
+    .map_err(|cancelled| cancelled.into())
+    .context_unrecoverable("Received termination signal while running plan")?;
 
     Ok(PlanExecutionReport {
         plan_id: plan.id.clone(),

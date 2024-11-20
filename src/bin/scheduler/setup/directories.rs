@@ -14,8 +14,7 @@ use robotmk::environment::Environment;
 use robotmk::fs::{create_dir_all, remove_dir_all, remove_file};
 use robotmk::results::{plan_results_directory, SetupFailure};
 use robotmk::session::Session;
-use robotmk::termination::Cancelled;
-use robotmk::termination::Terminate;
+use robotmk::termination::{Cancelled, ContextUnrecoverable, Terminate};
 use std::collections::HashSet;
 
 pub fn setup(
@@ -61,10 +60,11 @@ fn setup_managed_directory(managed_directory: &Utf8Path) -> AnyhowResult<()> {
     Ok(())
 }
 
-fn setup_results_directory(global_config: &GlobalConfig, plans: &[Plan]) -> AnyhowResult<()> {
+fn setup_results_directory(global_config: &GlobalConfig, plans: &[Plan]) -> Result<(), Terminate> {
     create_dir_all(&global_config.results_directory)?;
     create_dir_all(plan_results_directory(&global_config.results_directory))?;
-    clean_up_results_directory(global_config, plans).context("Failed to clean up results directory")
+    clean_up_results_directory(global_config, plans)
+        .context_unrecoverable("Failed to clean up results directory")
 }
 
 fn clean_up_results_directory(
