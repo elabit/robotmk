@@ -1,10 +1,10 @@
-use anyhow::Error;
 use camino::Utf8PathBuf;
 use flexi_logger::{
     Age, Cleanup, Criterion, DeferredNow, FileSpec, FlexiLoggerError, LogSpecification, Logger,
     LoggerHandle, Naming, Record,
 };
 use log::error;
+use std::fmt::Debug;
 
 pub const TIMESTAMP_FORMAT: &str = "%Y-%m-%dT%H.%M.%S%.f%z";
 
@@ -43,7 +43,10 @@ pub fn init(
     .start()
 }
 
-pub fn log_and_return_error(error: Error) -> Error {
+pub fn log_and_return_error<T>(error: T) -> T
+where
+    T: Debug,
+{
     error!("{error:?}");
     error
 }
