@@ -14,7 +14,6 @@ pub fn plan_results_directory(results_directory: &Utf8Path) -> Utf8PathBuf {
 
 #[derive(Serialize)]
 pub enum SchedulerPhase {
-    ManagedRobots,
     GracePeriod(u64),
     Setup,
     EnvironmentBuilding,

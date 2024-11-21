@@ -1,42 +1,51 @@
-use crate::internal_config::{Plan, Source};
+use super::api::{self, skip, SetupStep, StepWithPlans};
+use crate::internal_config::{GlobalConfig, Plan, Source};
 use anyhow::Context;
-use camino::Utf8Path;
+use camino::{Utf8Path, Utf8PathBuf};
 use flate2::read::GzDecoder;
-use log::{error, info};
-use robotmk::results::SetupFailure;
+use log::info;
 use std::fs::File;
 use tar::Archive;
 
 const SIZE_LIMIT: u64 = 50 * 1024 * 1024;
 
-pub fn setup(plans: Vec<Plan>) -> (Vec<Plan>, Vec<SetupFailure>) {
-    let mut surviving_plans = Vec::new();
-    let mut failures = vec![];
-    for plan in plans.into_iter() {
-        if let Source::Managed {
-            tar_gz_path,
-            target,
-            ..
-        } = &plan.source
-        {
-            if let Err(error) = unpack_into(tar_gz_path, target, SIZE_LIMIT) {
-                error!(
-                    "Plan {}: Failed to unpack managed source archive. Plan won't be scheduled.
-                     Error: {error:?}",
-                    plan.id
-                );
-                failures.push(SetupFailure {
-                    plan_id: plan.id.clone(),
-                    summary: "Failed to unpack managed source archive".to_string(),
-                    details: format!("{error:?}"),
-                });
-                continue;
+pub fn gather(_config: &GlobalConfig, plans: Vec<Plan>) -> Vec<StepWithPlans> {
+    let mut steps: Vec<StepWithPlans> = vec![];
+    let mut manual_robots = vec![];
+    for plan in plans {
+        match &plan.source {
+            Source::Managed {
+                tar_gz_path,
+                target,
+                ..
+            } => steps.push((
+                Box::new(StepUnpackManaged {
+                    tar_gz_path: tar_gz_path.clone(),
+                    target_dir: target.clone(),
+                    size_limit: SIZE_LIMIT,
+                }),
+                vec![plan],
+            )),
+            Source::Manual => {
+                manual_robots.push(plan);
             }
-            info!("Unpacked {} into `{}`.", tar_gz_path, target);
         }
-        surviving_plans.push(plan);
     }
-    (surviving_plans, failures)
+    steps.push(skip(manual_robots));
+    steps
+}
+
+struct StepUnpackManaged {
+    tar_gz_path: Utf8PathBuf,
+    target_dir: Utf8PathBuf,
+    size_limit: u64,
+}
+
+impl SetupStep for StepUnpackManaged {
+    fn setup(&self) -> Result<(), api::Error> {
+        unpack_into(&self.tar_gz_path, &self.target_dir, self.size_limit)
+            .map_err(|err| api::Error::new("Failed to unpack managed robot archive".into(), err))
+    }
 }
 
 fn unpack_into(

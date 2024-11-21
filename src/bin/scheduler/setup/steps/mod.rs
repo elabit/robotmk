@@ -2,6 +2,7 @@ mod api;
 mod directories;
 mod rcc;
 pub mod run;
+mod unpack_managed;
 
 use crate::internal_config::Plan;
 

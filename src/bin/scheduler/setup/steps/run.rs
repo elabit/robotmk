@@ -1,5 +1,5 @@
 use super::api::{run_steps, StepWithPlans};
-use super::{directories, rcc};
+use super::{directories, rcc, unpack_managed};
 use crate::internal_config::{sort_plans_by_grouping, GlobalConfig, Plan};
 use robotmk::results::SetupFailure;
 use robotmk::termination::Cancelled;
@@ -29,9 +29,9 @@ pub fn run(
 
 type Gatherer = fn(&GlobalConfig, Vec<Plan>) -> Vec<StepWithPlans>;
 #[cfg(unix)]
-type Steps = [Gatherer; 10];
+type Steps = [Gatherer; 11];
 #[cfg(windows)]
-type Steps = [Gatherer; 16];
+type Steps = [Gatherer; 17];
 
 const STEPS: Steps = [
     directories::gather_managed_directories,
@@ -56,4 +56,5 @@ const STEPS: Steps = [
     #[cfg(windows)]
     rcc::gather_enable_rcc_long_path_support,
     rcc::gather_disable_rcc_shared_holotree,
+    unpack_managed::gather,
 ];
