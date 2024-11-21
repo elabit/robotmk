@@ -66,16 +66,8 @@ fn run() -> Result<(), Terminate> {
 
     write_phase(&SchedulerPhase::Setup, &global_config)?;
     let (plans, setup_failures) = setup::steps::run::run(&global_config, plans)?;
+    write_setup_failures(setup_failures.into_iter(), &global_config)?;
     info!("Setup steps completed");
-
-    write_phase(&SchedulerPhase::ManagedRobots, &global_config)?;
-    let (plans, unpacking_managed_failures) = setup::unpack_managed::setup(plans);
-    info!("Managed robot setup completed");
-
-    write_setup_failures(
-        setup_failures.into_iter().chain(unpacking_managed_failures),
-        &global_config,
-    )?;
 
     if global_config.cancellation_token.is_cancelled() {
         info!("Terminated");
