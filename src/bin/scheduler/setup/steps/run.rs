@@ -1,4 +1,4 @@
-use super::api::{run_steps, SetupStep};
+use super::api::{run_steps, StepWithPlans};
 use super::{directories, rcc};
 use crate::internal_config::{sort_plans_by_grouping, GlobalConfig, Plan};
 use robotmk::results::SetupFailure;
@@ -27,7 +27,7 @@ pub fn run(
     Ok((plans, failures))
 }
 
-type Gatherer = fn(&GlobalConfig, Vec<Plan>) -> Vec<(Box<dyn SetupStep>, Vec<Plan>)>;
+type Gatherer = fn(&GlobalConfig, Vec<Plan>) -> Vec<StepWithPlans>;
 #[cfg(unix)]
 type Steps = [Gatherer; 10];
 #[cfg(windows)]

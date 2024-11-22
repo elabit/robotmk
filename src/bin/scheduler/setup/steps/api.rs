@@ -29,7 +29,7 @@ impl SetupStep for SetupStepSuccess {
     }
 }
 
-pub fn skip(plans: Vec<Plan>) -> (Box<dyn SetupStep>, Vec<Plan>) {
+pub fn skip(plans: Vec<Plan>) -> StepWithPlans {
     (Box::new(SetupStepSuccess {}), plans)
 }
 
