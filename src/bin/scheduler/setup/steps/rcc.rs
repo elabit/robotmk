@@ -1,5 +1,5 @@
 use super::api::{self, skip, SetupStep, StepWithPlans};
-use super::plans_by_sessions;
+use super::{partition_into_rcc_and_system_plans, plans_by_sessions};
 
 use crate::internal_config::{GlobalConfig, Plan};
 use crate::logging::log_and_return_error;
@@ -7,7 +7,7 @@ use crate::logging::log_and_return_error;
 use crate::setup::windows_permissions::run_icacls_command;
 
 use robotmk::config::RCCProfileConfig;
-use robotmk::environment::{Environment, RCCEnvironment};
+use robotmk::environment::RCCEnvironment;
 #[cfg(windows)]
 use robotmk::session::CurrentSession;
 use robotmk::session::{RunSpec, Session};
@@ -246,9 +246,8 @@ pub fn gather_rcc_binary_permissions(
     config: &GlobalConfig,
     plans: Vec<Plan>,
 ) -> Vec<StepWithPlans> {
-    let (rcc_plans, system_plans): (Vec<Plan>, Vec<Plan>) = plans
-        .into_iter()
-        .partition(|plan| matches!(plan.environment, Environment::Rcc(_)));
+    let (rcc_plans, system_plans): (Vec<Plan>, Vec<Plan>) =
+        partition_into_rcc_and_system_plans(plans);
     let mut steps: Vec<StepWithPlans> = Vec::new();
     for (session, plans_in_session) in plans_by_sessions(rcc_plans) {
         steps.push((
@@ -269,9 +268,8 @@ pub fn gather_rcc_profile_permissions(
     config: &GlobalConfig,
     plans: Vec<Plan>,
 ) -> Vec<StepWithPlans> {
-    let (rcc_plans, system_plans): (Vec<Plan>, Vec<Plan>) = plans
-        .into_iter()
-        .partition(|plan| matches!(plan.environment, Environment::Rcc(_)));
+    let (rcc_plans, system_plans): (Vec<Plan>, Vec<Plan>) =
+        partition_into_rcc_and_system_plans(plans);
     let mut steps: Vec<StepWithPlans> = Vec::new();
 
     match &config.rcc_config.profile_config {
@@ -294,9 +292,8 @@ pub fn gather_rcc_profile_permissions(
 }
 
 pub fn gather_disable_rcc_telemetry(config: &GlobalConfig, plans: Vec<Plan>) -> Vec<StepWithPlans> {
-    let (rcc_plans, system_plans): (Vec<Plan>, Vec<Plan>) = plans
-        .into_iter()
-        .partition(|plan| matches!(plan.environment, Environment::Rcc(_)));
+    let (rcc_plans, system_plans): (Vec<Plan>, Vec<Plan>) =
+        partition_into_rcc_and_system_plans(plans);
     let mut steps: Vec<StepWithPlans> = Vec::new();
     for (session, plans_in_session) in plans_by_sessions(rcc_plans) {
         steps.push((
@@ -321,9 +318,8 @@ pub fn gather_configure_default_rcc_profile(
     if !matches!(config.rcc_config.profile_config, RCCProfileConfig::Default) {
         return vec![skip(plans)];
     }
-    let (rcc_plans, system_plans): (Vec<Plan>, Vec<Plan>) = plans
-        .into_iter()
-        .partition(|plan| matches!(plan.environment, Environment::Rcc(_)));
+    let (rcc_plans, system_plans): (Vec<Plan>, Vec<Plan>) =
+        partition_into_rcc_and_system_plans(plans);
     let mut steps: Vec<StepWithPlans> = Vec::new();
     for (session, plans_in_session) in plans_by_sessions(rcc_plans) {
         steps.push((
@@ -351,9 +347,8 @@ pub fn gather_import_custom_rcc_profile(
             custom_rcc_profile_config.path.clone()
         }
     };
-    let (rcc_plans, system_plans): (Vec<Plan>, Vec<Plan>) = plans
-        .into_iter()
-        .partition(|plan| matches!(plan.environment, Environment::Rcc(_)));
+    let (rcc_plans, system_plans): (Vec<Plan>, Vec<Plan>) =
+        partition_into_rcc_and_system_plans(plans);
     let mut steps: Vec<StepWithPlans> = Vec::new();
     for (session, plans_in_session) in plans_by_sessions(rcc_plans) {
         steps.push((
@@ -386,9 +381,8 @@ pub fn gather_switch_to_custom_rcc_profile(
             custom_rcc_profile_config.name.clone()
         }
     };
-    let (rcc_plans, system_plans): (Vec<Plan>, Vec<Plan>) = plans
-        .into_iter()
-        .partition(|plan| matches!(plan.environment, Environment::Rcc(_)));
+    let (rcc_plans, system_plans): (Vec<Plan>, Vec<Plan>) =
+        partition_into_rcc_and_system_plans(plans);
     let mut steps: Vec<StepWithPlans> = Vec::new();
     for (session, plans_in_session) in plans_by_sessions(rcc_plans) {
         steps.push((
@@ -416,9 +410,8 @@ pub fn gather_enable_rcc_long_path_support(
     config: &GlobalConfig,
     plans: Vec<Plan>,
 ) -> Vec<StepWithPlans> {
-    let (rcc_plans, system_plans): (Vec<Plan>, Vec<Plan>) = plans
-        .into_iter()
-        .partition(|plan| matches!(plan.environment, Environment::Rcc(_)));
+    let (rcc_plans, system_plans): (Vec<Plan>, Vec<Plan>) =
+        partition_into_rcc_and_system_plans(plans);
     vec![
         (
             Box::new(StepRCCCommand::new_from_config(
@@ -438,9 +431,8 @@ pub fn gather_disable_rcc_shared_holotree(
     global_config: &GlobalConfig,
     plans: Vec<Plan>,
 ) -> Vec<StepWithPlans> {
-    let (rcc_plans, system_plans): (Vec<Plan>, Vec<Plan>) = plans
-        .into_iter()
-        .partition(|plan| matches!(plan.environment, Environment::Rcc(_)));
+    let (rcc_plans, system_plans): (Vec<Plan>, Vec<Plan>) =
+        partition_into_rcc_and_system_plans(plans);
     let mut steps: Vec<StepWithPlans> = Vec::new();
     for (session, plans_in_session) in plans_by_sessions(rcc_plans) {
         steps.push((
