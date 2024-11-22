@@ -1,5 +1,7 @@
 use super::api::{self, skip, SetupStep, StepWithPlans};
-use super::{partition_into_rcc_and_system_plans, plans_by_sessions};
+use super::{
+    partition_into_rcc_and_system_plans, plans_by_sessions, rcc_working_directory_for_session,
+};
 
 use crate::internal_config::{GlobalConfig, Plan};
 use crate::logging::log_and_return_error;
@@ -99,10 +101,11 @@ impl SetupStep for StepRCCCommand {
         let run_spec = RunSpec {
             id: &format!("robotmk_{}", self.id),
             command_spec: &command_spec,
-            runtime_base_path: &self
-                .working_directory
-                .join(self.session.id())
-                .join(&self.id),
+            runtime_base_path: &rcc_working_directory_for_session(
+                &self.working_directory,
+                &self.session,
+            )
+            .join(&self.id),
             timeout: 120,
             cancellation_token: &self.cancellation_token,
         };
@@ -190,7 +193,11 @@ impl SetupStep for StepDisableSharedHolotree {
         let run_spec = &RunSpec {
             id: &format!("robotmk_{name}_{}", self.session.id()),
             command_spec: &command_spec,
-            runtime_base_path: &self.working_directory.join(self.session.id()).join(name),
+            runtime_base_path: &rcc_working_directory_for_session(
+                &self.working_directory,
+                &self.session,
+            )
+            .join(name),
             timeout: 120,
             cancellation_token: &self.cancellation_token,
         };
