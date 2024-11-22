@@ -1,5 +1,5 @@
 use super::api::{self, skip, SetupStep, StepWithPlans};
-use super::plans_by_sessions;
+use super::{partition_into_rcc_and_system_plans, plans_by_sessions};
 
 use crate::internal_config::{GlobalConfig, Plan, Source};
 #[cfg(windows)]
@@ -82,9 +82,8 @@ impl SetupStep for StepRobocorpHomeBase {
 
 #[cfg(windows)]
 pub fn gather_robocorp_home_base(config: &GlobalConfig, plans: Vec<Plan>) -> Vec<StepWithPlans> {
-    let (rcc_plans, system_plans): (Vec<Plan>, Vec<Plan>) = plans
-        .into_iter()
-        .partition(|plan| matches!(plan.environment, Environment::Rcc(_)));
+    let (rcc_plans, system_plans): (Vec<Plan>, Vec<Plan>) =
+        partition_into_rcc_and_system_plans(plans);
     vec![
         (
             Box::new(StepRobocorpHomeBase {
@@ -101,9 +100,8 @@ pub fn gather_robocorp_home_per_user(
     config: &GlobalConfig,
     plans: Vec<Plan>,
 ) -> Vec<StepWithPlans> {
-    let (rcc_plans, system_plans): (Vec<Plan>, Vec<Plan>) = plans
-        .into_iter()
-        .partition(|plan| matches!(plan.environment, Environment::Rcc(_)));
+    let (rcc_plans, system_plans): (Vec<Plan>, Vec<Plan>) =
+        partition_into_rcc_and_system_plans(plans);
     let mut setup_steps: Vec<StepWithPlans> = Vec::new();
     for (session, plans_in_session) in plans_by_sessions(rcc_plans) {
         setup_steps.push((
@@ -159,9 +157,8 @@ pub fn gather_environment_building_directories(
 }
 
 pub fn gather_rcc_working_base(config: &GlobalConfig, plans: Vec<Plan>) -> Vec<StepWithPlans> {
-    let (rcc_plans, system_plans): (Vec<Plan>, Vec<Plan>) = plans
-        .into_iter()
-        .partition(|plan| matches!(plan.environment, Environment::Rcc(_)));
+    let (rcc_plans, system_plans): (Vec<Plan>, Vec<Plan>) =
+        partition_into_rcc_and_system_plans(plans);
     vec![
         (
             Box::new(StepCreate {
@@ -174,9 +171,8 @@ pub fn gather_rcc_working_base(config: &GlobalConfig, plans: Vec<Plan>) -> Vec<S
 }
 
 pub fn gather_rcc_working_per_user(config: &GlobalConfig, plans: Vec<Plan>) -> Vec<StepWithPlans> {
-    let (rcc_plans, system_plans): (Vec<Plan>, Vec<Plan>) = plans
-        .into_iter()
-        .partition(|plan| matches!(plan.environment, Environment::Rcc(_)));
+    let (rcc_plans, system_plans): (Vec<Plan>, Vec<Plan>) =
+        partition_into_rcc_and_system_plans(plans);
     let mut setup_steps: Vec<StepWithPlans> = Vec::new();
     for (session, plans_in_session) in plans_by_sessions(rcc_plans) {
         setup_steps.push((
@@ -197,9 +193,8 @@ pub fn gather_rcc_longpath_directory(
     plans: Vec<Plan>,
 ) -> Vec<StepWithPlans> {
     use robotmk::session::CurrentSession;
-    let (rcc_plans, system_plans): (Vec<Plan>, Vec<Plan>) = plans
-        .into_iter()
-        .partition(|plan| matches!(plan.environment, Environment::Rcc(_)));
+    let (rcc_plans, system_plans): (Vec<Plan>, Vec<Plan>) =
+        partition_into_rcc_and_system_plans(plans);
     vec![
         (
             Box::new(StepCreate {
