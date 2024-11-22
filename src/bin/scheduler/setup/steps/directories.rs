@@ -102,7 +102,7 @@ pub fn gather_robocorp_home_per_user(
 ) -> Vec<StepWithPlans> {
     let (rcc_plans, system_plans): (Vec<Plan>, Vec<Plan>) =
         partition_into_rcc_and_system_plans(plans);
-    let mut setup_steps: Vec<StepWithPlans> = Vec::new();
+    let mut setup_steps: Vec<StepWithPlans> = vec![skip(system_plans)];
     for (session, plans_in_session) in plans_by_sessions(rcc_plans) {
         setup_steps.push((
             Box::new(StepCreateWithAccess {
@@ -112,7 +112,6 @@ pub fn gather_robocorp_home_per_user(
             plans_in_session,
         ));
     }
-    setup_steps.push(skip(system_plans));
     setup_steps
 }
 
@@ -173,7 +172,7 @@ pub fn gather_rcc_working_base(config: &GlobalConfig, plans: Vec<Plan>) -> Vec<S
 pub fn gather_rcc_working_per_user(config: &GlobalConfig, plans: Vec<Plan>) -> Vec<StepWithPlans> {
     let (rcc_plans, system_plans): (Vec<Plan>, Vec<Plan>) =
         partition_into_rcc_and_system_plans(plans);
-    let mut setup_steps: Vec<StepWithPlans> = Vec::new();
+    let mut setup_steps: Vec<StepWithPlans> = vec![skip(system_plans)];
     for (session, plans_in_session) in plans_by_sessions(rcc_plans) {
         setup_steps.push((
             Box::new(StepCreateWithAccess {
@@ -183,7 +182,6 @@ pub fn gather_rcc_working_per_user(config: &GlobalConfig, plans: Vec<Plan>) -> V
             plans_in_session,
         ));
     }
-    setup_steps.push(skip(system_plans));
     setup_steps
 }
 
