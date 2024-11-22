@@ -31,7 +31,7 @@ type Gatherer = fn(&GlobalConfig, Vec<Plan>) -> Vec<StepWithPlans>;
 #[cfg(unix)]
 type Steps = [Gatherer; 10];
 #[cfg(windows)]
-type Steps = [Gatherer; 16];
+type Steps = [Gatherer; 18];
 
 const STEPS: Steps = [
     directories::gather_managed_directories,
@@ -46,9 +46,13 @@ const STEPS: Steps = [
     directories::gather_rcc_longpath_directory,
     directories::gather_rcc_working_per_user,
     #[cfg(windows)]
-    rcc::gather_rcc_binary_permissions,
+    rcc::gather_reset_rcc_binary_permissions,
     #[cfg(windows)]
-    rcc::gather_rcc_profile_permissions,
+    rcc::gather_reset_rcc_profile_permissions,
+    #[cfg(windows)]
+    rcc::gather_grant_rcc_binary_permissions,
+    #[cfg(windows)]
+    rcc::gather_grant_rcc_profile_permissions,
     rcc::gather_disable_rcc_telemetry,
     rcc::gather_configure_default_rcc_profile,
     rcc::gather_import_custom_rcc_profile,

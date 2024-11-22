@@ -6,7 +6,7 @@ use super::{
 use crate::internal_config::{GlobalConfig, Plan};
 use crate::logging::log_and_return_error;
 #[cfg(windows)]
-use crate::setup::windows_permissions::run_icacls_command;
+use crate::setup::windows_permissions::{reset_access, run_icacls_command};
 
 use robotmk::config::RCCProfileConfig;
 use robotmk::environment::RCCEnvironment;
@@ -22,14 +22,32 @@ use std::vec;
 use tokio_util::sync::CancellationToken;
 
 #[cfg(windows)]
-struct StepFilePermissions {
+struct StepResetFilePermissions {
+    target: Utf8PathBuf,
+}
+
+#[cfg(windows)]
+impl SetupStep for StepResetFilePermissions {
+    fn setup(&self) -> Result<(), api::Error> {
+        log::info!("Resetting permissions of {}.", self.target);
+        reset_access(&self.target).map_err(|err| {
+            api::Error::new(
+                format!("Resetting permissions of {} failed", self.target),
+                err,
+            )
+        })
+    }
+}
+
+#[cfg(windows)]
+struct StepGrantFilePermissions {
     target: Utf8PathBuf,
     session: Session,
     icacls_permissions: String,
 }
 
 #[cfg(windows)]
-impl SetupStep for StepFilePermissions {
+impl SetupStep for StepGrantFilePermissions {
     fn setup(&self) -> Result<(), api::Error> {
         if let Session::User(user_session) = &self.session {
             log::info!(
@@ -249,7 +267,47 @@ impl SetupStep for StepDisableSharedHolotree {
 }
 
 #[cfg(windows)]
-pub fn gather_rcc_binary_permissions(
+pub fn gather_reset_rcc_binary_permissions(
+    config: &GlobalConfig,
+    plans: Vec<Plan>,
+) -> Vec<StepWithPlans> {
+    let (rcc_plans, system_plans): (Vec<Plan>, Vec<Plan>) =
+        partition_into_rcc_and_system_plans(plans);
+    vec![
+        (
+            Box::new(StepResetFilePermissions {
+                target: config.rcc_config.binary_path.clone(),
+            }),
+            rcc_plans,
+        ),
+        skip(system_plans),
+    ]
+}
+
+#[cfg(windows)]
+pub fn gather_reset_rcc_profile_permissions(
+    config: &GlobalConfig,
+    plans: Vec<Plan>,
+) -> Vec<StepWithPlans> {
+    let (rcc_plans, system_plans): (Vec<Plan>, Vec<Plan>) =
+        partition_into_rcc_and_system_plans(plans);
+    let mut steps: Vec<StepWithPlans> = vec![skip(system_plans)];
+    match &config.rcc_config.profile_config {
+        RCCProfileConfig::Default => steps.push(skip(rcc_plans)),
+        RCCProfileConfig::Custom(custom_profile) => {
+            steps.push((
+                Box::new(StepResetFilePermissions {
+                    target: custom_profile.path.clone(),
+                }),
+                rcc_plans,
+            ));
+        }
+    }
+    steps
+}
+
+#[cfg(windows)]
+pub fn gather_grant_rcc_binary_permissions(
     config: &GlobalConfig,
     plans: Vec<Plan>,
 ) -> Vec<StepWithPlans> {
@@ -258,7 +316,7 @@ pub fn gather_rcc_binary_permissions(
     let mut steps: Vec<StepWithPlans> = vec![skip(system_plans)];
     for (session, plans_in_session) in plans_by_sessions(rcc_plans) {
         steps.push((
-            Box::new(StepFilePermissions {
+            Box::new(StepGrantFilePermissions {
                 target: config.rcc_config.binary_path.clone(),
                 session,
                 icacls_permissions: "(RX)".to_string(),
@@ -270,7 +328,7 @@ pub fn gather_rcc_binary_permissions(
 }
 
 #[cfg(windows)]
-pub fn gather_rcc_profile_permissions(
+pub fn gather_grant_rcc_profile_permissions(
     config: &GlobalConfig,
     plans: Vec<Plan>,
 ) -> Vec<StepWithPlans> {
@@ -282,7 +340,7 @@ pub fn gather_rcc_profile_permissions(
         RCCProfileConfig::Custom(custom_profile) => {
             for (session, plans_in_session) in plans_by_sessions(rcc_plans) {
                 steps.push((
-                    Box::new(StepFilePermissions {
+                    Box::new(StepGrantFilePermissions {
                         target: custom_profile.path.clone(),
                         session,
                         icacls_permissions: "(R)".to_string(),
