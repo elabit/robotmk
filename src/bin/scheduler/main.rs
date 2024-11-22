@@ -63,6 +63,10 @@ fn run() -> Result<(), Terminate> {
     setup::base_directories::setup(&global_config, &plans)?;
     info!("Base setup completed");
 
+    if global_config.cancellation_token.is_cancelled() {
+        return Err(Terminate::Cancelled);
+    }
+
     write_phase(&SchedulerPhase::Setup, &global_config)?;
     let (plans, setup_failures) = setup::steps::run::run(&global_config, plans)?;
     write_setup_failures(setup_failures.into_iter(), &global_config)?;
