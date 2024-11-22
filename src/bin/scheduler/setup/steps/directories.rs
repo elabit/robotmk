@@ -1,5 +1,7 @@
 use super::api::{self, skip, SetupStep, StepWithPlans};
-use super::{partition_into_rcc_and_system_plans, plans_by_sessions};
+use super::{
+    partition_into_rcc_and_system_plans, plans_by_sessions, rcc_working_directory_for_session,
+};
 
 use crate::internal_config::{GlobalConfig, Plan, Source};
 #[cfg(windows)]
@@ -176,7 +178,10 @@ pub fn gather_rcc_working_per_user(config: &GlobalConfig, plans: Vec<Plan>) -> V
     for (session, plans_in_session) in plans_by_sessions(rcc_plans) {
         setup_steps.push((
             Box::new(StepCreateWithAccess {
-                target: config.working_directory_rcc_setup_steps.join(session.id()),
+                target: rcc_working_directory_for_session(
+                    &config.working_directory_rcc_setup_steps,
+                    &session,
+                ),
                 session,
             }),
             plans_in_session,
@@ -196,9 +201,10 @@ pub fn gather_rcc_longpath_directory(
     vec![
         (
             Box::new(StepCreate {
-                target: config
-                    .working_directory_rcc_setup_steps
-                    .join(CurrentSession {}.id()),
+                target: rcc_working_directory_for_session(
+                    &config.working_directory_rcc_setup_steps,
+                    &Session::Current(CurrentSession {}),
+                ),
             }),
             rcc_plans,
         ),
