@@ -248,7 +248,7 @@ pub fn gather_rcc_binary_permissions(
 ) -> Vec<StepWithPlans> {
     let (rcc_plans, system_plans): (Vec<Plan>, Vec<Plan>) =
         partition_into_rcc_and_system_plans(plans);
-    let mut steps: Vec<StepWithPlans> = Vec::new();
+    let mut steps: Vec<StepWithPlans> = vec![skip(system_plans)];
     for (session, plans_in_session) in plans_by_sessions(rcc_plans) {
         steps.push((
             Box::new(StepFilePermissions {
@@ -259,7 +259,6 @@ pub fn gather_rcc_binary_permissions(
             plans_in_session,
         ));
     }
-    steps.push(skip(system_plans));
     steps
 }
 
@@ -270,8 +269,7 @@ pub fn gather_rcc_profile_permissions(
 ) -> Vec<StepWithPlans> {
     let (rcc_plans, system_plans): (Vec<Plan>, Vec<Plan>) =
         partition_into_rcc_and_system_plans(plans);
-    let mut steps: Vec<StepWithPlans> = Vec::new();
-
+    let mut steps: Vec<StepWithPlans> = vec![skip(system_plans)];
     match &config.rcc_config.profile_config {
         RCCProfileConfig::Default => steps.push(skip(rcc_plans)),
         RCCProfileConfig::Custom(custom_profile) => {
@@ -287,14 +285,13 @@ pub fn gather_rcc_profile_permissions(
             }
         }
     }
-    steps.push(skip(system_plans));
     steps
 }
 
 pub fn gather_disable_rcc_telemetry(config: &GlobalConfig, plans: Vec<Plan>) -> Vec<StepWithPlans> {
     let (rcc_plans, system_plans): (Vec<Plan>, Vec<Plan>) =
         partition_into_rcc_and_system_plans(plans);
-    let mut steps: Vec<StepWithPlans> = Vec::new();
+    let mut steps: Vec<StepWithPlans> = vec![skip(system_plans)];
     for (session, plans_in_session) in plans_by_sessions(rcc_plans) {
         steps.push((
             Box::new(StepRCCCommand::new_from_config(
@@ -307,7 +304,6 @@ pub fn gather_disable_rcc_telemetry(config: &GlobalConfig, plans: Vec<Plan>) -> 
             plans_in_session,
         ));
     }
-    steps.push(skip(system_plans));
     steps
 }
 
@@ -320,7 +316,7 @@ pub fn gather_configure_default_rcc_profile(
     }
     let (rcc_plans, system_plans): (Vec<Plan>, Vec<Plan>) =
         partition_into_rcc_and_system_plans(plans);
-    let mut steps: Vec<StepWithPlans> = Vec::new();
+    let mut steps: Vec<StepWithPlans> = vec![skip(system_plans)];
     for (session, plans_in_session) in plans_by_sessions(rcc_plans) {
         steps.push((
             Box::new(StepRCCCommand::new_from_config(
@@ -333,7 +329,6 @@ pub fn gather_configure_default_rcc_profile(
             plans_in_session,
         ));
     }
-    steps.push(skip(system_plans));
     steps
 }
 
@@ -349,7 +344,7 @@ pub fn gather_import_custom_rcc_profile(
     };
     let (rcc_plans, system_plans): (Vec<Plan>, Vec<Plan>) =
         partition_into_rcc_and_system_plans(plans);
-    let mut steps: Vec<StepWithPlans> = Vec::new();
+    let mut steps: Vec<StepWithPlans> = vec![skip(system_plans)];
     for (session, plans_in_session) in plans_by_sessions(rcc_plans) {
         steps.push((
             Box::new(StepRCCCommand::new_from_config(
@@ -367,7 +362,6 @@ pub fn gather_import_custom_rcc_profile(
             plans_in_session,
         ));
     }
-    steps.push(skip(system_plans));
     steps
 }
 
@@ -383,7 +377,7 @@ pub fn gather_switch_to_custom_rcc_profile(
     };
     let (rcc_plans, system_plans): (Vec<Plan>, Vec<Plan>) =
         partition_into_rcc_and_system_plans(plans);
-    let mut steps: Vec<StepWithPlans> = Vec::new();
+    let mut steps: Vec<StepWithPlans> = vec![skip(system_plans)];
     for (session, plans_in_session) in plans_by_sessions(rcc_plans) {
         steps.push((
             Box::new(StepRCCCommand::new_from_config(
@@ -401,7 +395,6 @@ pub fn gather_switch_to_custom_rcc_profile(
             plans_in_session,
         ));
     }
-    steps.push(skip(system_plans));
     steps
 }
 
@@ -433,7 +426,7 @@ pub fn gather_disable_rcc_shared_holotree(
 ) -> Vec<StepWithPlans> {
     let (rcc_plans, system_plans): (Vec<Plan>, Vec<Plan>) =
         partition_into_rcc_and_system_plans(plans);
-    let mut steps: Vec<StepWithPlans> = Vec::new();
+    let mut steps: Vec<StepWithPlans> = vec![skip(system_plans)];
     for (session, plans_in_session) in plans_by_sessions(rcc_plans) {
         steps.push((
             Box::new(StepDisableSharedHolotree::new_from_config(
@@ -443,6 +436,5 @@ pub fn gather_disable_rcc_shared_holotree(
             plans_in_session,
         ));
     }
-    steps.push(skip(system_plans));
     steps
 }
