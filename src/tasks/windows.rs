@@ -236,7 +236,7 @@ impl TaskManager {
 
 fn build_task_script(task_name: &str, command_spec: &CommandSpec, paths: &Paths) -> String {
     let set_envs = command_spec
-        .envs
+        .envs_rendered_obfuscated
         .iter()
         .map(|(k, v)| format!("set \"{k}={v}\""))
         .collect::<Vec<_>>()
@@ -330,7 +330,7 @@ mod tests {
             .add_argument("--some-flag")
             .add_argument("--some-option")
             .add_argument("some-value");
-        command_spec.add_env(
+        command_spec.add_obfuscated_env(
             String::from("RCC_REMOTE_ORIGIN"),
             String::from("http://1.com"),
         );
