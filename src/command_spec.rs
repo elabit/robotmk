@@ -7,18 +7,29 @@ use std::process::Command;
 pub struct CommandSpec {
     pub executable: String,
     pub arguments: Vec<String>,
+    pub envs_rendered_plain: Vec<(String, String)>,
     pub envs_rendered_obfuscated: Vec<(String, String)>,
 }
 
 impl Display for CommandSpec {
     fn fmt(&self, f: &mut Formatter<'_>) -> Result {
-        let env_str = self
+        let rendered_plain_envs_iter = self
+            .envs_rendered_plain
+            .iter()
+            .map(|(k, v)| format!("{k}=\"{v}\""));
+        let rendered_obfuscated_envs_iter = self
             .envs_rendered_obfuscated
             .iter()
-            .map(|(k, _)| format!("{k}=***"))
-            .collect::<Vec<_>>()
-            .join(" ");
-        write!(f, "{env_str} {}", self.to_command_string())
+            .map(|(k, _)| format!("{k}=***"));
+        write!(
+            f,
+            "{env_str} {cmd_string}",
+            env_str = rendered_plain_envs_iter
+                .chain(rendered_obfuscated_envs_iter)
+                .collect::<Vec<_>>()
+                .join(" "),
+            cmd_string = self.to_command_string()
+        )
     }
 }
 
@@ -28,8 +39,9 @@ impl From<&CommandSpec> for Command {
         command.args(&command_spec.arguments);
         command.envs(
             command_spec
-                .envs_rendered_obfuscated
+                .envs_rendered_plain
                 .iter()
+                .chain(command_spec.envs_rendered_obfuscated.iter())
                 .map(|(k, v)| (OsString::from(&k), OsString::from(&v))),
         );
         command
@@ -47,6 +59,7 @@ impl CommandSpec {
         Self {
             executable: executable.as_ref().into(),
             arguments: vec![],
+            envs_rendered_plain: vec![],
             envs_rendered_obfuscated: vec![],
         }
     }
@@ -62,6 +75,15 @@ impl CommandSpec {
     {
         self.arguments
             .extend(arguments.into_iter().map(|s| s.as_ref().into()));
+        self
+    }
+
+    pub fn add_plain_env<T>(&mut self, key: T, value: T) -> &mut Self
+    where
+        T: AsRef<str>,
+    {
+        self.envs_rendered_plain
+            .push((key.as_ref().into(), value.as_ref().into()));
         self
     }
 
@@ -95,10 +117,11 @@ mod tests {
                 String::from("--option"),
                 String::from("value"),
             ],
+            envs_rendered_plain: vec![("ROBOCORP_HOME".into(), "/opt/rc_home".into())],
             envs_rendered_obfuscated: vec![("RCC_REMOTE_ORIGIN".into(), "http://1.com".into())],
         };
         let expected =
-            "RCC_REMOTE_ORIGIN=*** \"/my/binary\" \"mandatory\" \"--flag\" \"--option\" \"value\"";
+            "ROBOCORP_HOME=\"/opt/rc_home\" RCC_REMOTE_ORIGIN=*** \"/my/binary\" \"mandatory\" \"--flag\" \"--option\" \"value\"";
         assert_eq!(format!("{command_spec}"), expected);
     }
 
@@ -110,6 +133,7 @@ mod tests {
             .arg("--flag")
             .arg("--option")
             .arg("value")
+            .env("plain_key", "plain_val")
             .env("obfuscated_key", "obfuscated_val");
         let command = Command::from(&CommandSpec {
             executable: String::from("/my/binary"),
@@ -119,6 +143,7 @@ mod tests {
                 String::from("--option"),
                 String::from("value"),
             ],
+            envs_rendered_plain: vec![(String::from("plain_key"), String::from("plain_val"))],
             envs_rendered_obfuscated: vec![(
                 String::from("obfuscated_key"),
                 String::from("obfuscated_val"),
@@ -142,6 +167,7 @@ mod tests {
             CommandSpec {
                 executable: String::from("/my/binary"),
                 arguments: vec![],
+                envs_rendered_plain: vec![],
                 envs_rendered_obfuscated: vec![],
             }
         )
@@ -152,6 +178,7 @@ mod tests {
         let mut command_spec = CommandSpec {
             executable: String::from("/my/binary"),
             arguments: vec![],
+            envs_rendered_plain: vec![],
             envs_rendered_obfuscated: vec![],
         };
         command_spec.add_argument("arg");
@@ -160,8 +187,19 @@ mod tests {
             CommandSpec {
                 executable: String::from("/my/binary"),
                 arguments: vec!["arg".into()],
+                envs_rendered_plain: vec![],
                 envs_rendered_obfuscated: vec![],
             }
+        );
+    }
+
+    #[test]
+    fn add_plain_env() {
+        let mut command_spec = CommandSpec::new("/my/binary");
+        command_spec.add_plain_env("key", "val");
+        assert_eq!(
+            command_spec.envs_rendered_plain,
+            [(String::from("key"), String::from("val"))]
         );
     }
 
@@ -180,6 +218,7 @@ mod tests {
         let mut command_spec = CommandSpec {
             executable: String::from("/my/binary"),
             arguments: vec![],
+            envs_rendered_plain: vec![],
             envs_rendered_obfuscated: vec![],
         };
         command_spec.add_arguments(vec!["arg1", "arg2"]);
@@ -188,6 +227,7 @@ mod tests {
             CommandSpec {
                 executable: String::from("/my/binary"),
                 arguments: vec!["arg1".into(), "arg2".into()],
+                envs_rendered_plain: vec![],
                 envs_rendered_obfuscated: vec![],
             }
         );
