@@ -180,6 +180,7 @@ fn create_config(
                             variable_files: vec![],
                             argument_files: vec![],
                             exit_on_failure: false,
+                            environment_variables_rendered_obfuscated: vec![],
                         },
                         execution_config: ExecutionConfig {
                             n_attempts_max: 1,
@@ -219,6 +220,7 @@ fn create_config(
                             variable_files: vec![],
                             argument_files: vec![],
                             exit_on_failure: false,
+                            environment_variables_rendered_obfuscated: vec![],
                         },
                         execution_config: ExecutionConfig {
                             n_attempts_max: 1,
@@ -262,6 +264,7 @@ fn create_config(
                             variable_files: vec![],
                             argument_files: vec![],
                             exit_on_failure: false,
+                            environment_variables_rendered_obfuscated: vec![],
                         },
                         execution_config: ExecutionConfig {
                             n_attempts_max: 1,
@@ -313,6 +316,7 @@ fn create_config(
                         variable_files: vec![],
                         argument_files: vec![],
                         exit_on_failure: false,
+                        environment_variables_rendered_obfuscated: vec![],
                     },
                     execution_config: ExecutionConfig {
                         n_attempts_max: 1,

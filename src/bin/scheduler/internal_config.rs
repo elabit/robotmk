@@ -133,6 +133,9 @@ pub fn from_external_config(
                             .map(|f| plan_source_dir.join(f))
                             .collect(),
                         exit_on_failure: plan_config.robot_config.exit_on_failure,
+                        environment_variables_rendered_obfuscated: plan_config
+                            .robot_config
+                            .environment_variables_rendered_obfuscated,
                     },
                     plan_config.execution_config.n_attempts_max,
                     plan_config.execution_config.retry_strategy,
@@ -200,6 +203,7 @@ mod tests {
                 variable_files: vec![],
                 argument_files: vec!["args.txt".into(), "more_args.txt".into()],
                 exit_on_failure: false,
+                environment_variables_rendered_obfuscated: vec![],
             },
             execution_config: ExecutionConfig {
                 n_attempts_max: 1,
@@ -235,6 +239,7 @@ mod tests {
                 variable_files: vec!["vars.txt".into()],
                 argument_files: vec![],
                 exit_on_failure: false,
+                environment_variables_rendered_obfuscated: vec![],
             },
             execution_config: ExecutionConfig {
                 n_attempts_max: 1,
@@ -317,6 +322,7 @@ mod tests {
                     "--variablefile".into(),
                     "/synthetic_tests/rcc/vars.txt".into()
                 ],
+                envs_rendered_obfuscated: vec![],
                 n_attempts_max: 1,
                 retry_strategy: RetryStrategy::Complete,
             }
@@ -378,6 +384,7 @@ mod tests {
                     "--argumentfile".into(),
                     "/synthetic_tests/system/more_args.txt".into()
                 ],
+                envs_rendered_obfuscated: vec![],
                 n_attempts_max: 1,
                 retry_strategy: RetryStrategy::Incremental,
             }

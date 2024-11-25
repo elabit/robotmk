@@ -9,6 +9,7 @@ pub const PYTHON_EXECUTABLE: &str = "python";
 pub struct Robot {
     pub robot_target: Utf8PathBuf,
     pub command_line_args: Vec<String>,
+    pub envs_rendered_obfuscated: Vec<(String, String)>,
     pub n_attempts_max: usize,
     pub retry_strategy: RetryStrategy,
 }
@@ -28,6 +29,11 @@ impl Robot {
     ) -> Self {
         Self {
             robot_target: robot_config.robot_target.clone(),
+            envs_rendered_obfuscated: robot_config
+                .environment_variables_rendered_obfuscated
+                .iter()
+                .map(|var| (var.name.clone(), var.value.clone()))
+                .collect(),
             command_line_args: Self::config_to_command_line_args(robot_config),
             n_attempts_max,
             retry_strategy,
@@ -74,6 +80,9 @@ impl Robot {
             .add_argument("--report")
             .add_argument("NONE")
             .add_argument(&self.robot_target);
+        for (k, v) in &self.envs_rendered_obfuscated {
+            command_spec.add_obfuscated_env(k, v);
+        }
         command_spec
     }
 
@@ -121,10 +130,10 @@ impl Robot {
 #[cfg(test)]
 mod tests {
     use super::*;
-    use crate::config::RobotFrameworkVariable;
+    use crate::config::{RobotFrameworkObfuscatedEnvVar, RobotFrameworkVariable};
 
     #[test]
-    fn test_command_line_args_empty() {
+    fn test_new_command_line_args_empty() {
         assert!(Robot::new(
             RobotConfig {
                 robot_target: "/suite/tasks.robot".into(),
@@ -137,6 +146,7 @@ mod tests {
                 variable_files: vec![],
                 argument_files: vec![],
                 exit_on_failure: false,
+                environment_variables_rendered_obfuscated: vec![]
             },
             1,
             RetryStrategy::Incremental
@@ -146,7 +156,7 @@ mod tests {
     }
 
     #[test]
-    fn test_command_line_args_non_empty() {
+    fn test_new_command_line_args_non_empty() {
         assert_eq!(
             Robot::new(
                 RobotConfig {
@@ -175,6 +185,7 @@ mod tests {
                         "/suite/argfile2.txt".into()
                     ],
                     exit_on_failure: true,
+                    environment_variables_rendered_obfuscated: vec![],
                 },
                 1,
                 RetryStrategy::Incremental
@@ -217,6 +228,36 @@ mod tests {
     }
 
     #[test]
+    fn test_new_obfuscated_env_vars() {
+        assert_eq!(
+            Robot::new(
+                RobotConfig {
+                    robot_target: "/suite/tasks.robot".into(),
+                    top_level_suite_name: None,
+                    suites: vec![],
+                    tests: vec![],
+                    test_tags_include: vec![],
+                    test_tags_exclude: vec![],
+                    variables: vec![],
+                    variable_files: vec![],
+                    argument_files: vec![],
+                    exit_on_failure: false,
+                    environment_variables_rendered_obfuscated: vec![
+                        RobotFrameworkObfuscatedEnvVar {
+                            name: "NAME".into(),
+                            value: "value".into()
+                        }
+                    ]
+                },
+                1,
+                RetryStrategy::Incremental
+            )
+            .envs_rendered_obfuscated,
+            vec![("NAME".into(), "value".into())]
+        );
+    }
+
+    #[test]
     fn create_complete_command_spec() {
         // Assemble
         let robot = Robot {
@@ -228,6 +269,7 @@ mod tests {
                 "--variable".into(),
                 "k:v".into(),
             ],
+            envs_rendered_obfuscated: vec![],
             retry_strategy: RetryStrategy::Complete,
         };
         let output_directory =
@@ -267,6 +309,7 @@ mod tests {
                 "top_suite".into(),
                 "--exitonfailure".into(),
             ],
+            envs_rendered_obfuscated: vec![],
             retry_strategy: RetryStrategy::Incremental,
         };
         let output_directory =
@@ -301,6 +344,7 @@ mod tests {
             robot_target: "~/calculator_test/calculator.robot".into(),
             n_attempts_max: 2,
             command_line_args: vec![],
+            envs_rendered_obfuscated: vec![],
             retry_strategy: RetryStrategy::Incremental,
         };
         let output_directory =
@@ -328,12 +372,33 @@ mod tests {
     }
 
     #[test]
+    fn create_command_obfuscated_env_vars() {
+        assert_eq!(
+            Robot {
+                robot_target: "~/calculator_test/calculator.robot".into(),
+                n_attempts_max: 1,
+                command_line_args: vec![],
+                envs_rendered_obfuscated: vec![("NAME".into(), "value".into())],
+                retry_strategy: RetryStrategy::Complete,
+            }
+            .command_spec(
+                &Utf8PathBuf::default(),
+                &Utf8PathBuf::default().join("out.xml"),
+                1
+            )
+            .envs_rendered_obfuscated,
+            vec![("NAME".into(), "value".into())]
+        )
+    }
+
+    #[test]
     fn create_two_attempts() {
         // Assemble
         let robot = Robot {
             robot_target: "~/calculator_test/calculator.robot".into(),
             n_attempts_max: 2,
             command_line_args: vec![],
+            envs_rendered_obfuscated: vec![],
             retry_strategy: RetryStrategy::Incremental,
         };
         let output_directory =

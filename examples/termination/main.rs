@@ -46,6 +46,7 @@ fn system_main() -> AnyhowResult<()> {
             "--variable".into(),
             format!("RESOURCE:{resource_file}"),
         ],
+        envs_rendered_obfuscated: vec![],
         retry_strategy: RetryStrategy::Complete,
     };
     let token = CancellationToken::new();
@@ -100,6 +101,7 @@ fn rcc_main(rcc_binary_path: Utf8PathBuf) -> AnyhowResult<()> {
             "--variable".into(),
             format!("RESOURCE:{resource_file}"),
         ],
+        envs_rendered_obfuscated: vec![],
         retry_strategy: RetryStrategy::Complete,
     };
     let rcc_environment = Environment::Rcc(RCCEnvironment {

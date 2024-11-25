@@ -97,6 +97,7 @@ fn create_config(test_dir: &Utf8Path, suite_dir: &Utf8Path, rcc_config: RCCConfi
                     variable_files: vec![],
                     argument_files: vec![],
                     exit_on_failure: false,
+                    environment_variables_rendered_obfuscated: vec![],
                 },
                 execution_config: ExecutionConfig {
                     n_attempts_max: 1,

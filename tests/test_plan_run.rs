@@ -17,6 +17,7 @@ fn test_rebot_run() -> AnyhowResult<()> {
         robot_target: "tests/minimal_suite/tasks.robot".into(),
         n_attempts_max: 1,
         command_line_args: vec![],
+        envs_rendered_obfuscated: vec![],
         retry_strategy: RetryStrategy::Complete,
     };
     let (attempt_reports, rebot) = run_attempts_with_rebot(
@@ -45,6 +46,7 @@ fn test_timeout_process() -> AnyhowResult<()> {
         robot_target: "tests/timeout/tasks.robot".into(),
         n_attempts_max: 1,
         command_line_args: vec!["--variable".into(), format!("RESOURCE:{resource}")],
+        envs_rendered_obfuscated: vec![],
         retry_strategy: RetryStrategy::Complete,
     };
     let (attempt_reports, rebot) = run_attempts_with_rebot(
