@@ -330,10 +330,7 @@ mod tests {
             .add_argument("--some-flag")
             .add_argument("--some-option")
             .add_argument("some-value");
-        command_spec.add_obfuscated_env(
-            String::from("RCC_REMOTE_ORIGIN"),
-            String::from("http://1.com"),
-        );
+        command_spec.add_obfuscated_env("RCC_REMOTE_ORIGIN", "http://1.com");
         assert_eq!(
             build_task_script(
                 "robotmk_task",
