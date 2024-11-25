@@ -7,13 +7,13 @@ use std::process::Command;
 pub struct CommandSpec {
     pub executable: String,
     pub arguments: Vec<String>,
-    pub envs: Vec<(String, String)>,
+    pub envs_rendered_obfuscated: Vec<(String, String)>,
 }
 
 impl Display for CommandSpec {
     fn fmt(&self, f: &mut Formatter<'_>) -> Result {
         let env_str = self
-            .envs
+            .envs_rendered_obfuscated
             .iter()
             .map(|(k, _)| format!("{k}=***"))
             .collect::<Vec<_>>()
@@ -28,7 +28,7 @@ impl From<&CommandSpec> for Command {
         command.args(&command_spec.arguments);
         command.envs(
             command_spec
-                .envs
+                .envs_rendered_obfuscated
                 .iter()
                 .map(|(k, v)| (OsString::from(&k), OsString::from(&v))),
         );
@@ -47,7 +47,7 @@ impl CommandSpec {
         Self {
             executable: executable.as_ref().into(),
             arguments: vec![],
-            envs: vec![],
+            envs_rendered_obfuscated: vec![],
         }
     }
 
@@ -65,8 +65,8 @@ impl CommandSpec {
         self
     }
 
-    pub fn add_env(&mut self, key: String, value: String) -> &mut Self {
-        self.envs.push((key, value));
+    pub fn add_obfuscated_env(&mut self, key: String, value: String) -> &mut Self {
+        self.envs_rendered_obfuscated.push((key, value));
         self
     }
 
@@ -91,7 +91,7 @@ mod tests {
                 String::from("--option"),
                 String::from("value"),
             ],
-            envs: vec![("RCC_REMOTE_ORIGIN".into(), "http://1.com".into())],
+            envs_rendered_obfuscated: vec![("RCC_REMOTE_ORIGIN".into(), "http://1.com".into())],
         };
         let expected =
             "RCC_REMOTE_ORIGIN=*** \"/my/binary\" \"mandatory\" \"--flag\" \"--option\" \"value\"";
@@ -106,7 +106,7 @@ mod tests {
             .arg("--flag")
             .arg("--option")
             .arg("value")
-            .env("key", "val");
+            .env("obfuscated_key", "obfuscated_val");
         let command = Command::from(&CommandSpec {
             executable: String::from("/my/binary"),
             arguments: vec![
@@ -115,7 +115,10 @@ mod tests {
                 String::from("--option"),
                 String::from("value"),
             ],
-            envs: vec![(String::from("key"), String::from("val"))],
+            envs_rendered_obfuscated: vec![(
+                String::from("obfuscated_key"),
+                String::from("obfuscated_val"),
+            )],
         });
         assert_eq!(command.get_program(), expected.get_program());
         assert_eq!(
@@ -135,7 +138,7 @@ mod tests {
             CommandSpec {
                 executable: String::from("/my/binary"),
                 arguments: vec![],
-                envs: vec![],
+                envs_rendered_obfuscated: vec![],
             }
         )
     }
@@ -145,7 +148,7 @@ mod tests {
         let mut command_spec = CommandSpec {
             executable: String::from("/my/binary"),
             arguments: vec![],
-            envs: vec![],
+            envs_rendered_obfuscated: vec![],
         };
         command_spec.add_argument("arg");
         assert_eq!(
@@ -153,17 +156,17 @@ mod tests {
             CommandSpec {
                 executable: String::from("/my/binary"),
                 arguments: vec!["arg".into()],
-                envs: vec![],
+                envs_rendered_obfuscated: vec![],
             }
         );
     }
 
     #[test]
-    fn add_env() {
+    fn add_obfuscated_env() {
         let mut command_spec = CommandSpec::new("/my/binary");
-        command_spec.add_env("key".to_string(), "val".to_string());
+        command_spec.add_obfuscated_env("key".to_string(), "val".to_string());
         assert_eq!(
-            command_spec.envs,
+            command_spec.envs_rendered_obfuscated,
             [(String::from("key"), String::from("val"))]
         );
     }
@@ -173,7 +176,7 @@ mod tests {
         let mut command_spec = CommandSpec {
             executable: String::from("/my/binary"),
             arguments: vec![],
-            envs: vec![],
+            envs_rendered_obfuscated: vec![],
         };
         command_spec.add_arguments(vec!["arg1", "arg2"]);
         assert_eq!(
@@ -181,7 +184,7 @@ mod tests {
             CommandSpec {
                 executable: String::from("/my/binary"),
                 arguments: vec!["arg1".into(), "arg2".into()],
-                envs: vec![],
+                envs_rendered_obfuscated: vec![],
             }
         );
     }
