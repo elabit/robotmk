@@ -65,8 +65,12 @@ impl CommandSpec {
         self
     }
 
-    pub fn add_obfuscated_env(&mut self, key: String, value: String) -> &mut Self {
-        self.envs_rendered_obfuscated.push((key, value));
+    pub fn add_obfuscated_env<T>(&mut self, key: T, value: T) -> &mut Self
+    where
+        T: AsRef<str>,
+    {
+        self.envs_rendered_obfuscated
+            .push((key.as_ref().into(), value.as_ref().into()));
         self
     }
 
@@ -164,7 +168,7 @@ mod tests {
     #[test]
     fn add_obfuscated_env() {
         let mut command_spec = CommandSpec::new("/my/binary");
-        command_spec.add_obfuscated_env("key".to_string(), "val".to_string());
+        command_spec.add_obfuscated_env("key", "val");
         assert_eq!(
             command_spec.envs_rendered_obfuscated,
             [(String::from("key"), String::from("val"))]

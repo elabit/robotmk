@@ -100,7 +100,7 @@ impl RCCEnvironment {
     pub fn bundled_command_spec(binary_path: &Utf8Path, robocorp_home: String) -> CommandSpec {
         let mut command_spec = CommandSpec::new(binary_path);
         command_spec.add_argument("--bundled");
-        command_spec.add_obfuscated_env("ROBOCORP_HOME".to_string(), robocorp_home);
+        command_spec.add_obfuscated_env("ROBOCORP_HOME", &robocorp_home);
         command_spec
     }
 
@@ -121,8 +121,7 @@ impl RCCEnvironment {
             .add_argument("script");
         self.apply_current_settings(&mut build_command_spec);
         if let Some(remote_origin) = &self.remote_origin {
-            build_command_spec
-                .add_obfuscated_env(String::from("RCC_REMOTE_ORIGIN"), remote_origin.to_string());
+            build_command_spec.add_obfuscated_env("RCC_REMOTE_ORIGIN", remote_origin);
         }
         build_command_spec.add_argument("--").add_argument(
             #[cfg(unix)]
@@ -221,7 +220,7 @@ mod tests {
                 #[cfg(windows)]
                 "cmd.exe",
             )
-            .add_obfuscated_env(String::from("ROBOCORP_HOME"), String::from("~/.robocorp/"));
+            .add_obfuscated_env("ROBOCORP_HOME", "~/.robocorp/");
 
         assert_eq!(
             RCCEnvironment {
@@ -284,7 +283,7 @@ mod tests {
             .add_argument("--flag")
             .add_argument("--option")
             .add_argument("option_value")
-            .add_obfuscated_env(String::from("ROBOCORP_HOME"), String::from("~/.robocorp/"));
+            .add_obfuscated_env("ROBOCORP_HOME", "~/.robocorp/");
         assert_eq!(
             RCCEnvironment {
                 binary_path: Utf8PathBuf::from("C:\\bin\\z.exe"),
