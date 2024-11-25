@@ -78,10 +78,17 @@ pub struct RobotConfig {
     pub variable_files: Vec<Utf8PathBuf>,
     pub argument_files: Vec<Utf8PathBuf>,
     pub exit_on_failure: bool,
+    pub environment_variables_rendered_obfuscated: Vec<RobotFrameworkObfuscatedEnvVar>,
 }
 
 #[derive(Clone, Debug, Deserialize, PartialEq, Serialize)]
 pub struct RobotFrameworkVariable {
+    pub name: String,
+    pub value: String,
+}
+
+#[derive(Clone, Debug, Deserialize, PartialEq, Serialize)]
+pub struct RobotFrameworkObfuscatedEnvVar {
     pub name: String,
     pub value: String,
 }
