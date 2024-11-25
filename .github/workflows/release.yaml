@@ -33,7 +33,14 @@ jobs:
           name: rmk_linux64
           path: artifact/rmk_linux64/
 
-      - run: zip -r executables.zip artifact
+      - run: zip -r all_executables.zip artifact
+
+      - name: "Prepare RCC binaries for release"
+        run: |
+          cp artifact/rcc/linux64/rcc artifact/rcc/rcc_linux64
+          cp artifact/rcc/linux64/rccremote artifact/rcc/rccremote_linux64
+          cp artifact/rcc/windows64/rcc.exe artifact/rcc/rcc_windows64.exe
+          cp artifact/rcc/windows64/rccremote.exe artifact/rcc/rccremote_windows64.exe
 
       - name: "Compute release tag"
         id: compute-tag
@@ -54,7 +61,13 @@ jobs:
       - uses: ncipollo/release-action@v1
         with:
           allowUpdates: false
-          artifacts: "executables.zip,assets/robotmk_core-1.0.0.mkp"
+          artifacts: >
+            all_executables.zip,
+            assets/robotmk_core-1.0.0.mkp,
+            artifact/rcc/rcc_linux64,
+            artifact/rcc/rccremote_linux64,
+            artifact/rcc/rcc_windows64.exe,
+            artifact/rcc/rccremote_windows64.exe
           replacesArtifacts: true
           removeArtifacts: true
           prerelease: true
