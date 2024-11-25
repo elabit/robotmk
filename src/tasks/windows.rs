@@ -236,8 +236,9 @@ impl TaskManager {
 
 fn build_task_script(task_name: &str, command_spec: &CommandSpec, paths: &Paths) -> String {
     let set_envs = command_spec
-        .envs_rendered_obfuscated
+        .envs_rendered_plain
         .iter()
+        .chain(command_spec.envs_rendered_obfuscated.iter())
         .map(|(k, v)| format!("set \"{k}={v}\""))
         .collect::<Vec<_>>()
         .join("\n");
@@ -330,6 +331,7 @@ mod tests {
             .add_argument("--some-flag")
             .add_argument("--some-option")
             .add_argument("some-value");
+        command_spec.add_plain_env("ABC", "123");
         command_spec.add_obfuscated_env("RCC_REMOTE_ORIGIN", "http://1.com");
         assert_eq!(
             build_task_script(
@@ -340,6 +342,7 @@ mod tests {
             "@echo off
 setlocal
 echo Robotmk: running task robotmk_task. Please do not close this window.
+set \"ABC=123\"
 set \"RCC_REMOTE_ORIGIN=http://1.com\"
 \"C:\\\\somewhere\\\\rcc.exe\" \"mandatory\" \"--some-flag\" \"--some-option\" \"some-value\" > C:\\working\\plans\\my_plan\\123\\0.stdout 2> C:\\working\\plans\\my_plan\\123\\0.stderr\necho %errorlevel% > C:\\working\\plans\\my_plan\\123\\0.exit_code
 endlocal"
