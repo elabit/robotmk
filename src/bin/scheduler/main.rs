@@ -51,8 +51,7 @@ fn run() -> Result<(), Terminate> {
     );
 
     if global_config.cancellation_token.is_cancelled() {
-        info!("Terminated");
-        return Ok(());
+        return Err(Terminate::Cancelled);
     }
 
     if let Some(grace_period) = args.grace_period {
@@ -70,8 +69,7 @@ fn run() -> Result<(), Terminate> {
     info!("Setup steps completed");
 
     if global_config.cancellation_token.is_cancelled() {
-        info!("Terminated");
-        return Ok(());
+        return Err(Terminate::Cancelled);
     }
 
     info!("Starting environment building");
@@ -80,15 +78,14 @@ fn run() -> Result<(), Terminate> {
     info!("Environment building finished");
 
     if global_config.cancellation_token.is_cancelled() {
-        info!("Terminated");
-        return Ok(());
+        return Err(Terminate::Cancelled);
     }
 
     info!("Starting plan scheduling");
     write_phase(&SchedulerPhase::Scheduling, &global_config)?;
     scheduling::scheduler::run_plans_and_cleanup(&global_config, &plans);
-    info!("Terminated");
-    Ok(())
+
+    Err(Terminate::Cancelled)
 }
 
 fn write_phase(
