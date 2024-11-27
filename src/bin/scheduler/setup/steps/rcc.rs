@@ -24,36 +24,27 @@ use tokio_util::sync::CancellationToken;
 #[cfg(windows)]
 struct StepFilePermissions {
     target: Utf8PathBuf,
-    session: Session,
+    sid: String,
     icacls_permissions: String,
 }
 
 #[cfg(windows)]
 impl SetupStep for StepFilePermissions {
     fn setup(&self) -> Result<(), api::Error> {
-        if let Session::User(user_session) = &self.session {
-            log::info!(
-                "Granting user `{user}` {permissions} access to {target}.",
-                user = &user_session.user_name,
-                permissions = &self.icacls_permissions,
-                target = &self.target,
-            );
-            run_icacls_command([
-                self.target.as_str(),
-                "/grant",
-                &format!("{}:{}", &user_session.user_name, self.icacls_permissions),
-            ])
-            .map_err(|err| {
-                api::Error::new(
-                    format!(
-                        "Adjusting permissions of {} for user `{}` failed",
-                        self.target, &user_session.user_name
-                    ),
-                    err,
-                )
-            })?;
-        }
-        Ok(())
+        run_icacls_command([
+            self.target.as_str(),
+            "/grant",
+            &format!("{}:{}", &self.sid, self.icacls_permissions),
+        ])
+        .map_err(|err| {
+            api::Error::new(
+                format!(
+                    "Adjusting permissions of {} for SID `{}` failed",
+                    self.target, &self.sid
+                ),
+                err,
+            )
+        })
     }
 }
 
@@ -253,20 +244,11 @@ pub fn gather_rcc_binary_permissions(
     config: &GlobalConfig,
     plans: Vec<Plan>,
 ) -> Vec<StepWithPlans> {
-    let (rcc_plans, system_plans): (Vec<Plan>, Vec<Plan>) =
-        partition_into_rcc_and_system_plans(plans);
-    let mut steps: Vec<StepWithPlans> = vec![skip(system_plans)];
-    for (session, plans_in_session) in plans_by_sessions(rcc_plans) {
-        steps.push((
-            Box::new(StepFilePermissions {
-                target: config.rcc_config.binary_path.clone(),
-                session,
-                icacls_permissions: "(RX)".to_string(),
-            }),
-            plans_in_session,
-        ));
-    }
-    steps
+    gather_file_permissions_for_users_group(
+        config.rcc_config.binary_path.clone(),
+        "(RX)".into(),
+        plans,
+    )
 }
 
 #[cfg(windows)]
@@ -274,25 +256,14 @@ pub fn gather_rcc_profile_permissions(
     config: &GlobalConfig,
     plans: Vec<Plan>,
 ) -> Vec<StepWithPlans> {
-    let (rcc_plans, system_plans): (Vec<Plan>, Vec<Plan>) =
-        partition_into_rcc_and_system_plans(plans);
-    let mut steps: Vec<StepWithPlans> = vec![skip(system_plans)];
     match &config.rcc_config.profile_config {
-        RCCProfileConfig::Default => steps.push(skip(rcc_plans)),
-        RCCProfileConfig::Custom(custom_profile) => {
-            for (session, plans_in_session) in plans_by_sessions(rcc_plans) {
-                steps.push((
-                    Box::new(StepFilePermissions {
-                        target: custom_profile.path.clone(),
-                        session,
-                        icacls_permissions: "(R)".to_string(),
-                    }),
-                    plans_in_session,
-                ));
-            }
-        }
+        RCCProfileConfig::Default => vec![skip(plans)],
+        RCCProfileConfig::Custom(custom_profile) => gather_file_permissions_for_users_group(
+            custom_profile.path.clone(),
+            "(R)".into(),
+            plans,
+        ),
     }
-    steps
 }
 
 pub fn gather_disable_rcc_telemetry(config: &GlobalConfig, plans: Vec<Plan>) -> Vec<StepWithPlans> {
@@ -444,4 +415,30 @@ pub fn gather_disable_rcc_shared_holotree(
         ));
     }
     steps
+}
+
+#[cfg(windows)]
+fn gather_file_permissions_for_users_group(
+    target: Utf8PathBuf,
+    icacls_permissions: String,
+    plans: Vec<Plan>,
+) -> Vec<StepWithPlans> {
+    let (rcc_plans, system_plans): (Vec<Plan>, Vec<Plan>) =
+        partition_into_rcc_and_system_plans(plans);
+    let (rcc_plans_in_current_session, rcc_plans_in_other_session): (Vec<Plan>, Vec<Plan>) =
+        rcc_plans
+            .into_iter()
+            .partition(|plan| matches!(plan.session, Session::Current(_)));
+    vec![
+        skip(system_plans),
+        skip(rcc_plans_in_current_session),
+        (
+            Box::new(StepFilePermissions {
+                target,
+                sid: "*S-1-5-32-545".to_string(), // Users (https://learn.microsoft.com/en-us/windows-server/identity/ad-ds/manage/understand-security-identifiers)
+                icacls_permissions,
+            }),
+            rcc_plans_in_other_session,
+        ),
+    ]
 }
