@@ -97,12 +97,7 @@ async fn test_scheduler() -> AnyhowResult<()> {
         &current_user_name,
     )
     .await?;
-    assert_rcc(
-        &config.rcc_config,
-        #[cfg(windows)]
-        &current_user_name,
-    )
-    .await?;
+    assert_rcc(&config.rcc_config).await?;
     #[cfg(windows)]
     assert_tasks().await?;
     assert_sequentiality(
@@ -547,6 +542,14 @@ async fn assert_permissions(path: impl AsRef<OsStr>, permissions: &str) -> Anyho
     Ok(())
 }
 
+#[cfg(windows)]
+async fn dacl_exists_for_sid(path: &Utf8Path, sid: &str) -> AnyhowResult<bool> {
+    Ok(run_icacls([path.as_str(), "/findsid", sid])
+        .await?
+        .status
+        .success())
+}
+
 fn assert_results_directory(results_directory: &Utf8Path) {
     assert!(results_directory.is_dir());
     assert_eq!(
@@ -580,12 +583,9 @@ async fn assert_managed_directory(
     Ok(())
 }
 
-async fn assert_rcc(
-    rcc_config: &RCCConfig,
-    #[cfg(windows)] headed_user_name: &str,
-) -> AnyhowResult<()> {
+async fn assert_rcc(rcc_config: &RCCConfig) -> AnyhowResult<()> {
     #[cfg(windows)]
-    assert_rcc_files_permissions(rcc_config, headed_user_name).await?;
+    assert_rcc_files_permissions(rcc_config).await?;
     assert_rcc_configuration(
         rcc_config,
         rcc_config
@@ -601,19 +601,13 @@ async fn assert_rcc(
 }
 
 #[cfg(windows)]
-async fn assert_rcc_files_permissions(
-    rcc_config: &RCCConfig,
-    headed_user_name: &str,
-) -> AnyhowResult<()> {
-    assert_permissions(&rcc_config.binary_path, &format!("{headed_user_name}:(RX)")).await?;
+async fn assert_rcc_files_permissions(rcc_config: &RCCConfig) -> AnyhowResult<()> {
+    assert!(dacl_exists_for_sid(&rcc_config.binary_path, "*S-1-5-32-544").await?);
     let RCCProfileConfig::Custom(custom_rcc_profile_config) = &rcc_config.profile_config else {
         return Ok(());
     };
-    assert_permissions(
-        &custom_rcc_profile_config.path,
-        &format!("{headed_user_name}:(R)"),
-    )
-    .await
+    assert!(dacl_exists_for_sid(&custom_rcc_profile_config.path, "*S-1-5-32-544").await?);
+    Ok(())
 }
 
 async fn assert_rcc_configuration(rcc_config: &RCCConfig, robocorp_home: &str) -> AnyhowResult<()> {
@@ -700,12 +694,7 @@ async fn assert_robocorp_home(
                 .len(),
             3 // Administrator group + empty line + success message (suppressing the latter with /q does not seem to work)
         );
-        assert!(
-            run_icacls([robocorp_home_base.as_str(), "/findsid", "*S-1-5-32-544"])
-                .await?
-                .status
-                .success()
-        );
+        assert!(dacl_exists_for_sid(robocorp_home_base, "*S-1-5-32-544").await?);
         assert!(
             get_permissions(robocorp_home_base.join(format!("user_{headed_user_name}")))
                 .await?
