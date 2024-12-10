@@ -100,7 +100,7 @@ impl RCCEnvironment {
     pub fn bundled_command_spec(binary_path: &Utf8Path, robocorp_home: String) -> CommandSpec {
         let mut command_spec = CommandSpec::new(binary_path);
         command_spec.add_argument("--bundled");
-        command_spec.add_obfuscated_env("ROBOCORP_HOME", &robocorp_home);
+        command_spec.add_plain_env("ROBOCORP_HOME", &robocorp_home);
         command_spec
     }
 
@@ -220,7 +220,7 @@ mod tests {
                 #[cfg(windows)]
                 "cmd.exe",
             )
-            .add_obfuscated_env("ROBOCORP_HOME", "~/.robocorp/");
+            .add_plain_env("ROBOCORP_HOME", "~/.robocorp/");
 
         assert_eq!(
             RCCEnvironment {
@@ -283,7 +283,7 @@ mod tests {
             .add_argument("--flag")
             .add_argument("--option")
             .add_argument("option_value")
-            .add_obfuscated_env("ROBOCORP_HOME", "~/.robocorp/");
+            .add_plain_env("ROBOCORP_HOME", "~/.robocorp/");
         assert_eq!(
             RCCEnvironment {
                 binary_path: Utf8PathBuf::from("C:\\bin\\z.exe"),
