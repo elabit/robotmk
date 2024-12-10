@@ -202,8 +202,16 @@ mod tests {
 
     #[test]
     fn rcc_build_instructions() {
-        let mut expected_command_spec = CommandSpec::new("/bin/rcc");
-        expected_command_spec
+        let mut expected_import_command_spec = CommandSpec::new("/bin/rcc");
+        expected_import_command_spec
+            .add_argument("--bundled")
+            .add_argument("holotree")
+            .add_argument("import")
+            .add_argument("/catalog.zip")
+            .add_plain_env("ROBOCORP_HOME", "~/.robocorp/");
+
+        let mut expected_build_command_spec = CommandSpec::new("/bin/rcc");
+        expected_build_command_spec
             .add_argument("--bundled")
             .add_argument("task")
             .add_argument("script")
@@ -220,13 +228,14 @@ mod tests {
                 #[cfg(windows)]
                 "cmd.exe",
             )
-            .add_plain_env("ROBOCORP_HOME", "~/.robocorp/");
+            .add_plain_env("ROBOCORP_HOME", "~/.robocorp/")
+            .add_obfuscated_env("RCC_REMOTE_ORIGIN", "http://1.com");
 
         assert_eq!(
             RCCEnvironment {
                 binary_path: Utf8PathBuf::from("/bin/rcc"),
-                remote_origin: None,
-                catalog_zip: None,
+                remote_origin: Some("http://1.com".into()),
+                catalog_zip: Some("/catalog.zip".into()),
                 robot_yaml_path: Utf8PathBuf::from("/a/b/c/robot.yaml"),
                 controller: String::from("robotmk"),
                 space: String::from("my_plan"),
@@ -237,8 +246,8 @@ mod tests {
             .build_instructions()
             .unwrap(),
             BuildInstructions {
-                import_command_spec: None,
-                build_command_spec: expected_command_spec,
+                import_command_spec: Some(expected_import_command_spec),
+                build_command_spec: expected_build_command_spec,
                 timeout: 123,
                 runtime_directory: Utf8PathBuf::from("/runtime")
             }
