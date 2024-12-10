@@ -150,6 +150,12 @@ impl RCCEnvironment {
             .add_argument("--")
             .add_argument(command_spec.executable)
             .add_arguments(command_spec.arguments);
+        for (key, value) in command_spec.envs_rendered_plain {
+            wrapped_spec.add_plain_env(key, value);
+        }
+        for (key, value) in command_spec.envs_rendered_obfuscated {
+            wrapped_spec.add_obfuscated_env(key, value);
+        }
         wrapped_spec
     }
 
@@ -262,6 +268,9 @@ mod tests {
             .add_argument("--option")
             .add_argument("option_value");
         command_spec
+            .add_plain_env("PLAIN_KEY", "PLAIN_VALUE")
+            .add_obfuscated_env("OBFUSCATED_KEY", "OBFUSCATED_VALUE");
+        command_spec
     }
 
     #[test]
@@ -292,7 +301,9 @@ mod tests {
             .add_argument("--flag")
             .add_argument("--option")
             .add_argument("option_value")
-            .add_plain_env("ROBOCORP_HOME", "~/.robocorp/");
+            .add_plain_env("ROBOCORP_HOME", "~/.robocorp/")
+            .add_plain_env("PLAIN_KEY", "PLAIN_VALUE")
+            .add_obfuscated_env("OBFUSCATED_KEY", "OBFUSCATED_VALUE");
         assert_eq!(
             RCCEnvironment {
                 binary_path: Utf8PathBuf::from("C:\\bin\\z.exe"),
