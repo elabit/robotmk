@@ -41,6 +41,8 @@ jobs:
           cp artifact/rcc/linux64/rccremote artifact/rcc/rccremote_linux64
           cp artifact/rcc/windows64/rcc.exe artifact/rcc/rcc_windows64.exe
           cp artifact/rcc/windows64/rccremote.exe artifact/rcc/rccremote_windows64.exe
+          cp artifact/rcc/macos64/rcc artifact/rcc/rcc_macos64
+          cp artifact/rcc/macos64/rccremote artifact/rcc/rccremote_macos64
 
       - name: "Compute release tag"
         id: compute-tag
@@ -67,7 +69,9 @@ jobs:
             artifact/rcc/rcc_linux64,
             artifact/rcc/rccremote_linux64,
             artifact/rcc/rcc_windows64.exe,
-            artifact/rcc/rccremote_windows64.exe
+            artifact/rcc/rccremote_windows64.exe,
+            artifact/rcc/rcc_macos64,
+            artifact/rcc/rccremote_macos64
           replacesArtifacts: true
           removeArtifacts: true
           prerelease: true
