@@ -6,26 +6,26 @@ edition = "2021"
 # See more keys and their definitions at https://doc.rust-lang.org/cargo/reference/manifest.html
 
 [dependencies]
-anyhow = { version = "1.0.93", features = ["backtrace"] }
+anyhow = { version = "1.0.94", features = ["backtrace"] }
 base64 = "0.22.1"
 camino = { version = "1.1.9", features = ["serde1"] }
-chrono = "0.4.38"
-clap = { version = "4.5.21", features = ["derive"] }
+chrono = "0.4.39"
+clap = { version = "4.5.23", features = ["derive"] }
 ctrlc = { version = "3.4.5", features = ["termination"] }
 flate2 = "1.0.35"
-flexi_logger = "0.29.6"
-fs4 = "0.11.1"
-libc = "0.2.162"
+flexi_logger = "0.29.7"
+fs4 = "0.12.0"
+libc = "0.2.168"
 log = "0.4.22"
 nix = { version = "0.29.0", features = ["signal"] }
-serde = { version = "1.0.215", features = ["derive"] }
-serde_json = "1.0.132"
-sysinfo = "0.32.0"
+serde = { version = "1.0.216", features = ["derive"] }
+serde_json = "1.0.133"
+sysinfo = "0.33.0"
 tar = "0.4.43"
 tempfile = "3.14.0"
-thiserror = "2.0.3"
-tokio = { version = "1.41.1", features = ["full"] }
-tokio-util = { version = "0.7.12", features = ["full"] }
+thiserror = "2.0.7"
+tokio = { version = "1.42.0", features = ["full"] }
+tokio-util = { version = "0.7.13", features = ["full"] }
 walkdir = "2.5.0"
 winsafe = { version = "0.0.22", features = [ "ole" ] }
 [dependencies.windows]
