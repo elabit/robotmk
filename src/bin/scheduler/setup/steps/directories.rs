@@ -137,6 +137,68 @@ pub fn gather_robocorp_home_base(config: &GlobalConfig, plans: Vec<Plan>) -> Vec
 }
 
 #[cfg(windows)]
+struct StepRobocorpHomeBaseReadAccess {
+    target: Utf8PathBuf,
+    user_name: String,
+}
+
+#[cfg(windows)]
+impl SetupStep for StepRobocorpHomeBaseReadAccess {
+    fn label(&self) -> String {
+        format!(
+            "Grant user {user} read access to {target}",
+            user = self.user_name,
+            target = self.target
+        )
+    }
+
+    fn setup(&self) -> Result<(), api::Error> {
+        run_icacls_command([
+            self.target.as_str(),
+            "/grant",
+            &format!("{sid}:R", sid = self.user_name),
+        ])
+        .map_err(|err| {
+            api::Error::new(
+                format!(
+                    "Failed to grant user {user} read access to {target}",
+                    user = self.user_name,
+                    target = self.target
+                ),
+                err,
+            )
+        })
+    }
+}
+
+#[cfg(windows)]
+pub fn gather_robocorp_base_read_access(
+    config: &GlobalConfig,
+    plans: Vec<Plan>,
+) -> Vec<StepWithPlans> {
+    let (rcc_plans, system_plans): (Vec<Plan>, Vec<Plan>) =
+        partition_into_rcc_and_system_plans(plans);
+    let mut setup_steps: Vec<StepWithPlans> = vec![skip(system_plans)];
+    for (session, plans_in_session) in plans_by_sessions(rcc_plans) {
+        match session {
+            Session::User(user_session) => {
+                setup_steps.push((
+                    Box::new(StepRobocorpHomeBaseReadAccess {
+                        target: config.rcc_config.robocorp_home_base.clone(),
+                        user_name: user_session.user_name.clone(),
+                    }),
+                    plans_in_session,
+                ));
+            }
+            _ => {
+                setup_steps.push(skip(plans_in_session));
+            }
+        }
+    }
+    setup_steps
+}
+
+#[cfg(windows)]
 pub fn gather_robocorp_home_per_user(
     config: &GlobalConfig,
     plans: Vec<Plan>,

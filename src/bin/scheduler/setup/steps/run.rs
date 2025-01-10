@@ -33,7 +33,7 @@ type Gatherer = fn(&GlobalConfig, Vec<Plan>) -> Vec<StepWithPlans>;
 #[cfg(unix)]
 type Steps = [(Gatherer, &'static str); 11];
 #[cfg(windows)]
-type Steps = [(Gatherer, &'static str); 17];
+type Steps = [(Gatherer, &'static str); 18];
 
 const STEPS: Steps = [
     (
@@ -44,6 +44,23 @@ const STEPS: Steps = [
     (
         directories::gather_robocorp_home_base,
         "ROBOCORP_HOME base directory",
+    ),
+    // It is unclear why this is needed. Without it, non-admin users cannot build RCC environments
+    // (with ROBOCORP_HOME set). Micromamba crashes with the following error:
+    // info     libmamba ****************** Backtrace Start ******************
+    // debug    libmamba Loading configuration
+    // trace    libmamba Compute configurable 'create_base'
+    // trace    libmamba Compute configurable 'no_env'
+    // trace    libmamba Compute configurable 'no_rc'
+    // trace    libmamba Compute configurable 'rc_files'
+    // trace    libmamba Compute configurable 'root_prefix'
+    // trace    libmamba Compute configurable 'envs_dirs'
+    // critical libmamba weakly_canonical: Access is denied.: "C:\rmk\rcc_home\vagrant2\envs"
+    // info     libmamba ****************** Backtrace End ********************
+    #[cfg(windows)]
+    (
+        directories::gather_robocorp_base_read_access,
+        "Read access to ROBOCORP_HOME base directory",
     ),
     #[cfg(windows)]
     (
