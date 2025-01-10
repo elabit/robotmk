@@ -696,19 +696,15 @@ async fn assert_robocorp_home(
                 .lines()
                 .collect::<Vec<&str>>()
                 .len(),
-            3 // Administrator group + empty line + success message (suppressing the latter with /q does not seem to work)
+            4 // Administrator group + headed user name + empty line + success message (suppressing the latter with /q does not seem to work)
         );
         assert!(dacl_exists_for_sid(robocorp_home_base, "*S-1-5-32-544").await?);
-        assert!(
-            get_permissions(robocorp_home_base.join(format!("user_{headed_user_name}")))
-                .await?
-                .contains(&format!("{headed_user_name}:(OI)(CI)(F)",))
-        );
-        assert!(
-            get_permissions(robocorp_home_base.join(format!("user_{headed_user_name}")))
-                .await?
-                .contains(&format!("{headed_user_name}:(OI)(CI)(F)",))
-        );
+        assert_permissions(&robocorp_home_base, &format!("{headed_user_name}:(R)")).await?;
+        assert_permissions(
+            &robocorp_home_base.join(format!("user_{headed_user_name}")),
+            &format!("{headed_user_name}:(OI)(CI)(F)"),
+        )
+        .await?;
     }
     Ok(())
 }
