@@ -58,7 +58,7 @@ impl Locker {
         let lock_path = self.lock_path.clone();
         let file = with_cancellation(
             || {
-                file.lock_shared()
+                FileExt::lock_shared(&file)
                     .map(|_| file)
                     .map_err(|e| LockerError::Shared(lock_path, e))
             },
@@ -105,6 +105,6 @@ where
 
 impl Lock {
     pub fn release(self) -> Result<(), LockerError> {
-        self.0.unlock().map_err(|e| LockerError::Release(self.1, e))
+        FileExt::unlock(&self.0).map_err(|e| LockerError::Release(self.1, e))
     }
 }
