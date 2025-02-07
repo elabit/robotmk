@@ -30,7 +30,7 @@ jobs:
       - uses: actions/checkout@v4
       - uses: actions-rust-lang/setup-rust-toolchain@v1
         with:
-          target: x86_64-pc-windows-gnu
+          target: x86_64-pc-windows-msvc
           components: rustfmt, clippy
           # By default, setup-rust-toolchain sets "-D warnings". As a side effect, the settings in
           # .cargo/config.toml are ignored:
@@ -38,6 +38,6 @@ jobs:
           # "There are four mutually exclusive sources of extra flags"
           rustflags: ""
       - run: cargo fmt -- --check
-      - run: cargo test --all-targets --target x86_64-pc-windows-gnu -- --skip test_scheduler
-      - run: cargo clippy --all-targets --target x86_64-pc-windows-gnu -- --deny warnings
-      - run: cargo build --target x86_64-pc-windows-gnu
+      - run: cargo test --all-targets --target x86_64-pc-windows-msvc -- --skip test_scheduler
+      - run: cargo clippy --all-targets --target x86_64-pc-windows-msvc -- --deny warnings
+      - run: cargo build --target x86_64-pc-windows-msvc
