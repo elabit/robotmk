@@ -1,0 +1,5 @@
+# The channel defined here is taken into account by actions-rust-lang/setup-rust-toolchain when
+# setting up the CI environment.
+
+[toolchain]
+channel = "1.84"
