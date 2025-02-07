@@ -1,0 +1,11 @@
+# The channel and the targets defined here are taken into account by
+# actions-rust-lang/setup-rust-toolchain when setting up the CI environment.
+
+[toolchain]
+channel = "1.83"
+
+[toolchain.linux]
+targets = ["x86_64-unknown-linux-gnu"]
+
+[toolchain.windows]
+targets = ["x86_64-pc-windows-gnu"]
