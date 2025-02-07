@@ -14,7 +14,13 @@ jobs:
           path: C:\
       - uses: actions/checkout@v4
       - uses: actions-rust-lang/setup-rust-toolchain@v1.5.0
-      - run: cargo test --target=x86_64-pc-windows-gnu --test test_scheduler -- --nocapture --ignored
+        with:
+          # By default, setup-rust-toolchain sets "-D warnings". As a side effect, the settings in
+          # .cargo/config.toml are ignored:
+          # https://doc.rust-lang.org/cargo/reference/config.html#buildrustflags
+          # "There are four mutually exclusive sources of extra flags"
+          rustflags: ""
+      - run: cargo test --target=x86_64-pc-windows-msvc --test test_scheduler -- --nocapture --ignored
         env:
           TEST_DIR: C:\test_scheduler
           RCC_BINARY_PATH: C:\windows64\rcc.exe
