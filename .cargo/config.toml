@@ -1,0 +1,29 @@
+[build]
+# These targets are used by the language server powering the IDE, st. we have cross-platform
+# suport, at leat to some extent. They do not necessarily correspond to the targets used by the CI.
+target = ["x86_64-unknown-linux-gnu", "x86_64-pc-windows-gnu"]
+
+[target.x86_64-pc-windows-msvc]
+rustflags = [
+    "-C", "target-feature=+crt-static",
+    # see https://learn.microsoft.com/en-us/cpp/c-runtime-library/crt-library-features?view=msvc-170
+    # we disable as many as possible
+    "-C", "link-args=/DEFAULTLIB:libucrt.lib",
+    "-C", "link-args=/NODEFAULTLIB:libucrtd.lib",
+    "-C", "link-args=/NODEFAULTLIB:ucrt.lib",
+    "-C", "link-args=/NODEFAULTLIB:ucrtd.lib",
+    "-C", "link-args=/DEFAULTLIB:libvcruntime.lib",
+    "-C", "link-args=/NODEFAULTLIB:libvcruntimed.lib",
+    "-C", "link-args=/NODEFAULTLIB:vcruntime.lib",
+    "-C", "link-args=/NODEFAULTLIB:vcruntimed.lib",
+    "-C", "link-args=/DEFAULTLIB:libcmt.lib",
+    "-C", "link-args=/NODEFAULTLIB:libcmtd.lib",
+    "-C", "link-args=/NODEFAULTLIB:msvcrt.lib",
+    "-C", "link-args=/NODEFAULTLIB:msvcrtd.lib",
+    "-C", "link-args=/NODEFAULTLIB:msvcmrt.lib",
+    "-C", "link-args=/NODEFAULTLIB:msvcmrtd.lib",
+    "-C", "link-args=/NODEFAULTLIB:libcpmt.lib",
+    "-C", "link-args=/NODEFAULTLIB:libcpmtd.lib",
+    "-C", "link-args=/NODEFAULTLIB:msvcprt.lib",
+    "-C", "link-args=/NODEFAULTLIB:msvcprtd.lib",
+]
