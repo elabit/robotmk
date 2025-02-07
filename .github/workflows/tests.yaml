@@ -10,7 +10,7 @@ jobs:
     strategy:
       matrix:
         type:
-          - { os: windows-latest, target: x86_64-pc-windows-gnu }
+          - { os: windows-latest, target: x86_64-pc-windows-msvc }
           - { os: ubuntu-latest,  target: x86_64-unknown-linux-gnu }
     steps:
       - uses: actions/checkout@v4
@@ -22,6 +22,11 @@ jobs:
       - uses: actions-rust-lang/setup-rust-toolchain@v1.5.0
         with:
           components: rustfmt, clippy
+          # By default, setup-rust-toolchain sets "-D warnings". As a side effect, the settings in
+          # .cargo/config.toml are ignored:
+          # https://doc.rust-lang.org/cargo/reference/config.html#buildrustflags
+          # "There are four mutually exclusive sources of extra flags"
+          rustflags: ""
       - run: cargo fmt -- --check
       - run: cargo test --all-targets --target ${{ matrix.type.target }} -- --skip test_scheduler
       - run: cargo run --example termination --target ${{ matrix.type.target }}
