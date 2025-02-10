@@ -21,7 +21,7 @@ main() {
 		;;
 
 	'cargo-examples')
-		cargo run --example termination
+		cargo run --example termination --target "${target}"
 		;;
 
 	'check-all')
