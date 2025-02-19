@@ -57,9 +57,11 @@ jobs:
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
+      - run: sudo apt-get update
+      - run: sudo apt-get install -y musl-tools
       - uses: actions-rust-lang/setup-rust-toolchain@v1
         with:
-          target: x86_64-unknown-linux-gnu
+          target: x86_64-unknown-linux-musl
           # By default, setup-rust-toolchain sets "-D warnings". As a side effect, the settings in
           # .cargo/config.toml are ignored:
           # https://doc.rust-lang.org/cargo/reference/config.html#buildrustflags
@@ -78,13 +80,13 @@ jobs:
       # https://github.com/actions/upload-artifact?tab=readme-ov-file#permission-loss
       - run: chmod +x /tmp/linux64/rcc
 
-      - run: cargo test --target=x86_64-unknown-linux-gnu --test test_plan_run --test test_agent_plugin -- --ignored
-      - run: cargo run --example termination --target=x86_64-unknown-linux-gnu
-      - run: cargo run --example termination --target=x86_64-unknown-linux-gnu -- /tmp/linux64/rcc
+      - run: cargo test --target=x86_64-unknown-linux-musl --test test_plan_run --test test_agent_plugin -- --ignored
+      - run: cargo run --example termination --target=x86_64-unknown-linux-musl
+      - run: cargo run --example termination --target=x86_64-unknown-linux-musl -- /tmp/linux64/rcc
 
       - run: mkdir /tmp/managed_robots
       - run: tar --create --gzip --directory tests/minimal_suite/ --file /tmp/managed_robots/minimal_suite.tar.gz .
-      - run: cargo test --target=x86_64-unknown-linux-gnu --test test_scheduler -- --nocapture --ignored
+      - run: cargo test --target=x86_64-unknown-linux-musl --test test_scheduler -- --nocapture --ignored
         env:
           TEST_DIR: /tmp/test_scheduler
           RCC_BINARY_PATH: /tmp/linux64/rcc
@@ -96,7 +98,7 @@ jobs:
           name: system_test_debug_information_linux
           path: /tmp/test_scheduler
 
-      - run: cargo test --target=x86_64-unknown-linux-gnu --test test_ht_import_scheduler -- --nocapture --ignored
+      - run: cargo test --target=x86_64-unknown-linux-musl --test test_ht_import_scheduler -- --nocapture --ignored
         env:
           TEST_DIR: /tmp/test_ht_import_scheduler
           RCC_BINARY_PATH: /tmp/linux64/rcc

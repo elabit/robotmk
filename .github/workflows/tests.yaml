@@ -8,9 +8,11 @@ jobs:
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
+      - run: sudo apt-get update
+      - run: sudo apt-get install -y musl-tools
       - uses: actions-rust-lang/setup-rust-toolchain@v1
         with:
-          target: x86_64-unknown-linux-gnu
+          target: x86_64-unknown-linux-musl
           components: rustfmt, clippy
           # By default, setup-rust-toolchain sets "-D warnings". As a side effect, the settings in
           # .cargo/config.toml are ignored:
@@ -18,9 +20,9 @@ jobs:
           # "There are four mutually exclusive sources of extra flags"
           rustflags: ""
       - run: cargo fmt -- --check
-      - run: cargo test --all-targets --target x86_64-unknown-linux-gnu -- --skip test_scheduler
-      - run: cargo clippy --all-targets --target x86_64-unknown-linux-gnu -- --deny warnings
-      - run: cargo build --target x86_64-unknown-linux-gnu
+      - run: cargo test --all-targets --target x86_64-unknown-linux-musl -- --skip test_scheduler
+      - run: cargo clippy --all-targets --target x86_64-unknown-linux-musl -- --deny warnings
+      - run: cargo build --target x86_64-unknown-linux-musl
 
   windows:
     runs-on: windows-latest
