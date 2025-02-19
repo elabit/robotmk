@@ -21,6 +21,7 @@ jobs:
       - run: pip install -r requirements.txt
       - uses: actions-rust-lang/setup-rust-toolchain@v1.5.0
         with:
+          target: ${{ matrix.type.target }}
           components: rustfmt, clippy
           # By default, setup-rust-toolchain sets "-D warnings". As a side effect, the settings in
           # .cargo/config.toml are ignored:
