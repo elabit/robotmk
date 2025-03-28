@@ -129,40 +129,17 @@ This is sometimes a little bit unreliable and must be done manually:
 * ensure that `settings.json` do not contain a `python.pythonPath` setting anymore
 * Open *Cmd-Shift-P* and run "Select Python Interpreter" for the "robotmk" workspace
 
+### Create Dummyhost
 
-### Install a new Linux agent in the container
-
-The Debian packages that the Bakery generates can be installed and tested directly in the container:
-
-```bash
-$> docker exec -it e055ddab3af8 bash
-# enter the docker container
-root@e055ddab3af8:/omd/sites/cmk/var/check_mk/agents/linux_deb# ls -la
-total 20
-drwxr-x--- 1 cmk cmk 4096 Aug  1 15:20 .
-drwxr-xr-x 1 cmk cmk 4096 Aug  1 15:20 ..
-lrwxrwxrwx 1 cmk cmk   26 Aug  1 15:20 _GENERIC -> _PACKAGES/c981dd0495f3f69e
-drwxr-x--- 1 cmk cmk 4096 Aug  1 15:20 _PACKAGES
-lrwxrwxrwx 1 cmk cmk   26 Aug  1 15:20 _VANILLA -> _PACKAGES/ba01521a73f13128
-lrwxrwxrwx 1 cmk cmk   26 Aug  1 15:20 localhost -> _PACKAGES/c981dd0495f3f69e
-root@e055ddab3af8:/omd/sites/cmk/var/check_mk/agents/linux_deb# dpkg -i localhost
-(Reading database ... 61966 files and directories currently installed.)
-Preparing to unpack localhost ...
-
-Unpacking check-mk-agent (2.1.0p4-2.c981dd0495f3f69e) over (2.1.0p4-1) ...
-Setting up check-mk-agent (2.1.0p4-2.c981dd0495f3f69e) ...
-
-systemd not found on this system
-Deployed xinetd
-systemd not found on this system
-Reloading xinetd
-```
-### Inventorize localhost
-
-Now that the agent is running, you should be able to discover services on the `localhost` Docker container: 
-
-    
-
+- Open <http://127.0.0.1:4999> and log in. 
+- Create a new user "automation" (Admin), password is to store as plain text.
+- Run `.devcontainer/create_dummyhost.sh`: 
+     - creates a host
+     - adds a bakery rule
+     - adds a monitoring rule (with graphs for all items)
+- Connect to the container as root and execute `bake_and_install_agent_localhost`
+     - bake a new agent for the new host
+     - install the agent & RObotmk plugin
 
 ---
 

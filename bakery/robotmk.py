@@ -5,7 +5,7 @@
 # SPDX-License-Identifier: GPL-3.0-or-later
 # This file is part of the Robotmk project (https://www.robotmk.org)
 
-ROBOTMK_VERSION = '1.4.4'
+ROBOTMK_VERSION = '1.5.0'
 
 from typing import Iterable, TypedDict, List
 from pathlib import Path
@@ -24,7 +24,7 @@ from cmk.base.cee.plugins.bakery.bakery_api.v1 import (
     SystemBinary,
 )
 
-from cmk.utils.exceptions import MKGeneralException
+from cmk.ccc.exceptions import MKGeneralException
 
 # This dict only adds the new key only if
 # * the key already exists
@@ -92,7 +92,8 @@ class RMKSuite:
         else:
             tag_suffix = ""
         composite = "%s%s" % (self.path, tag_suffix)
-        outstr = re.sub("[^A-Za-z0-9\.]", "_", composite)
+        outstr = re.sub(r"[^A-Za-z0-9\.]", "_", composite)
+
         # make underscores unique
         return re.sub("_+", "_", outstr).lower()
 

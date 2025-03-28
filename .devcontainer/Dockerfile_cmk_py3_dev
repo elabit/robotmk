@@ -2,10 +2,10 @@ ARG VARIANT
 FROM checkmk/check-mk-cloud:$VARIANT
 
 # install python3 on the container
-RUN apt update && apt upgrade -y
+RUN rm -rf /var/lib/apt/lists && apt update && apt upgrade -y
 
 RUN export DEBIAN_FRONTEND=noninteractive \
-    && apt -y install --no-install-recommends python3-pip jq tree htop vim git telnet file less tmux
+    && apt -y install --no-install-recommends python3-pip jq tree htop vim git telnet file less tmux gettext-base
 
 # install default python modules. 
 # Project dependencies can either be installed in postCreateCommend.sh (using the default Docker image)

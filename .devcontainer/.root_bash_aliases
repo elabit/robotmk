@@ -1,1 +1,8 @@
-alias install_agent='dpkg -i /omd/sites/cmk/var/check_mk/agents/linux_deb/localhost'
+alias install_agent_vanilla='dpkg -i /opt/omd/sites/cmk/var/check_mk/agents/linux_deb/references/_VANILLA'
+alias install_agent_localhost='dpkg -i /opt/omd/sites/cmk/var/check_mk/agents/linux_deb/references/$HOSTNAME'
+function bake_and_install_agent_localhost() {
+    # execute command as cmk user
+    su - cmk -c "cmk -Avf $HOSTNAME"
+    install_agent_localhost
+    su - cmk -c "cmk -IIv && cmk -R"
+}

@@ -18,12 +18,39 @@ import shutil
 from collections import namedtuple
 
 
-from cmk.base.plugins.agent_based.agent_based_api.v1 import *
-from cmk.utils.exceptions import MKGeneralException
+#from cmk.agent_based.v1 import ()
 
-ROBOTMK_VERSION = '1.4.4'
+from cmk.utils.paths import omd_root
+from cmk.ccc import version
+
+from cmk.agent_based.v2 import (
+    AgentSection,
+    CheckPlugin,
+    CheckResult,
+    DiscoveryResult,
+    HostLabel,
+    IgnoreResults,
+    Metric,
+    render,
+    Result,
+    RuleSetType,
+    Service,
+    ServiceLabel,
+    State,
+    StringTable,
+)
+from cmk.ccc.exceptions import MKGeneralException
+
+ROBOTMK_VERSION = '1.5.0'
 DEFAULT_SVC_PREFIX = 'Robot Framework E2E $SUITEID$SPACE-$SPACE'
-HTML_LOG_DIR = "%s/%s" % (os.environ['OMD_ROOT'], 'var/robotmk')
+
+cmk_version = version.get_general_version_infos(omd_root)['version']
+
+if cmk_version.startswith('2.4'):
+    # cmk 2.4
+    HTML_LOG_DIR = "%s/%s" % (os.environ['OMD_ROOT'], 'var/robotmk/html_logs')
+else:
+    HTML_LOG_DIR = "%s/%s" % (os.environ['OMD_ROOT'], 'var/robotmk')
 
 STATES = {
     0: "OK",
@@ -42,7 +69,7 @@ ROBOTMK_KEYWORDS = {
 }
 
 
-def parse_robotmk(params, string_table):
+def myparse_robotmk(params, string_table):
     keys_to_decode = ["xml", "htmllog"]
     robot_discovery_settings = params.get("robot_discovery_settings", [])
     try:
@@ -92,7 +119,7 @@ def parse_robotmk(params, string_table):
 
 
 def discover_robotmk(params, section):
-    info_dict, params_dict = parse_robotmk(params, section)
+    info_dict, params_dict = myparse_robotmk(params, section)
     service_prefix = params.get("robot_service_prefix", [])
     html_show_patterns = params_dict.get("htmllog", {})
     is_piggyback_result = info_dict["runner"].get("is_piggyback_result", False)
@@ -131,7 +158,7 @@ def discover_robotmk(params, section):
 
 
 def check_robotmk(item, params, section):
-    parsed_section, params_dict = parse_robotmk(params, section)
+    parsed_section, params_dict = myparse_robotmk(params, section)
     service_prefix = params.get("robot_service_prefix", [])
     svc_robotmk = params_dict.get("robotmk_service_name", "Robotmk")
     runner_assigned_host = parsed_section["runner"].get("assigned_host", [])
@@ -1355,15 +1382,29 @@ def html_to_text(html):
     return html
 
 
-register.check_plugin(
+check_plugin_robotmk = CheckPlugin(
     name="robotmk",
     service_name="%s",
     discovery_function=discover_robotmk,
     discovery_ruleset_name="inventory_robotmk_rules",
-    discovery_ruleset_type=register.RuleSetType.MERGED,
     discovery_default_parameters={},
     check_function=check_robotmk,
-    # TODO: https://docs.checkmk.com/master/de/devel_check_plugins.html#_verwenden_von_vorhandenen_regelketten
     check_ruleset_name="robotmk",
     check_default_parameters={},
 )
+
+
+
+
+# register.check_plugin(
+#     name="robotmk",
+#     service_name="%s",
+#     discovery_function=discover_robotmk,
+#     discovery_ruleset_name="inventory_robotmk_rules",
+#     discovery_ruleset_type=register.RuleSetType.MERGED,
+#     discovery_default_parameters={},
+#     check_function=check_robotmk,
+#     # TODO: https://docs.checkmk.com/master/de/devel_check_plugins.html#_verwenden_von_vorhandenen_regelketten
+#     check_ruleset_name="robotmk",
+#     check_default_parameters={},
+# )

@@ -1,5 +1,6 @@
 title: Robotmk
 author: Simon Meggle <simon.meggle@elabit.de>
+catalog: os/misc
 description:
  Robotmk integrates the results of Robot Framework E2E tests into Checkmk. 
  It requires the agent to be installed with Python/Robot Framework, the deployment of Robotmk plugins (controller, runner) as well as a robotmk.yml config file containing the suites to be executed.
@@ -12,3 +13,6 @@ item:
  Item is the name of the discovered Suite, Test or Keyword - depending on the discovery level, set by rule. 
 inventory:
  Depending on the rule 'Robot Framework Service Discovery' one or more services are created from one Robot XML result. 
+
+
+

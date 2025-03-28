@@ -26,7 +26,7 @@
 			"Gruntfuggly.todo-tree"
 		]
 	},
-	"postCreateCommand": ".devcontainer/postCreateCommand.sh",
+	"postCreateCommand": ".devcontainer/postCreateCommand.sh full",
 	"remoteUser": "cmk",
 	"remoteEnv": {
 		"PATH": "/omd/sites/cmk/bin:/omd/sites/cmk/local/lib/python3/bin/:${containerEnv:PATH}",

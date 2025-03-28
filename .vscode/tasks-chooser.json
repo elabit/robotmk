@@ -15,8 +15,12 @@
             "command": "bash .devcontainer/devcontainer_img_build.sh"
         },
         {
-            "displayName": "▶︎ Set devcontainer to CMK 2.3.0b1",
-            "command": "bash .devcontainer/devcontainer_gen.sh 2.3.0b1"
+            "displayName": "▶︎ Set devcontainer to CMK 2.3.0p30",
+            "command": "bash .devcontainer/devcontainer_gen.sh 2.3.0p30"
+        },
+        {
+            "displayName": "▶︎ Set devcontainer to CMK 2.4.0b2",
+            "command": "bash .devcontainer/devcontainer_gen.sh 2.4.0b2"
         },
         {
             "displayName": "▶︎ Create dummyhost",

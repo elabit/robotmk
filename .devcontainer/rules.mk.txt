@@ -1,0 +1,11 @@
+agent_config.setdefault('robotmk', [])
+
+agent_config['robotmk'] = [
+{'id': '600bebc2-5450-43c1-b515-9522959e5900', 'value': {'execution_mode': ('agent_serial', {'suites': [{'path': 'globetrack_tests/globetrack_app.robot'}], 'cache_time': 120, 'execution_interval': 60}), 'agent_output_encoding': 'zlib_codec', 'transmit_html': False, 'log_level': 'INFO', 'log_rotation': 7, 'dirs': {'robotdir': '/usr/lib/check_mk_agent/robot'}}, 'condition': {'host_name': ['$HOSTNAME']}, 'options': {'disabled': False}},
+] + agent_config['robotmk']
+
+checkgroup_parameters.setdefault('robotmk', [])
+
+checkgroup_parameters['robotmk'] = [
+{'id': '715e1711-dfe2-4b84-8eab-30517db0d830', 'value': {'runtime_threshold': {'runtime_threshold_tests': [('.*', 20.0, 30.0)], 'runtime_threshold_keywords': [('.*', 8.0, 9.0)]}, 'perfdata_creation': {'perfdata_creation_suites': ['.*'], 'perfdata_creation_tests': ['.*'], 'perfdata_creation_keywords': ['.*']}, 'includedate': 'yes', 'show_submessages': True, 'show_kwmessages': True}, 'condition': {}, 'options': {'disabled': False}},
+] + checkgroup_parameters['robotmk']

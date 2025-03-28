@@ -1,8 +1,11 @@
 flake8
 pytest
 pytest-cov
-robotframework 
+robotframework<7
 pyyaml 
 mergedeep 
 python-dateutil 
 ipdb
+psutil
+autoflake
+libcst
