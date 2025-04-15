@@ -2,13 +2,15 @@ mod process_tree;
 
 use anyhow::Result as AnyhowResult;
 use camino::Utf8PathBuf;
+use chrono::Utc;
 use clap::Parser;
 use process_tree::check_tree_size;
 use robotmk::config::RetryStrategy;
 use robotmk::environment::{Environment, RCCEnvironment, SystemEnvironment};
 use robotmk::plans::run_attempts_with_rebot;
+use robotmk::results::BuildOutcome;
 use robotmk::rf::robot::Robot;
-use robotmk::session::{CurrentSession, RunSpec, Session};
+use robotmk::session::{CurrentSession, Session};
 use std::env::var;
 use std::thread;
 use std::time::Duration;
@@ -116,16 +118,13 @@ fn rcc_main(rcc_binary_path: Utf8PathBuf) -> AnyhowResult<()> {
         robocorp_home: test_dir.join("robocorp_home").to_string(),
     });
     let session = Session::Current(CurrentSession {});
-    let build_instructions = rcc_environment.build_instructions().unwrap();
-    let run_spec = RunSpec {
-        id: "unused_id",
-        command_spec: &build_instructions.build_command_spec,
-        runtime_base_path: &build_instructions.runtime_directory,
-        timeout: build_instructions.timeout,
-        cancellation_token: &CancellationToken::new(),
-    };
-    session.run(&run_spec).unwrap();
-    println!("Finished session build.");
+    assert!(matches!(
+        rcc_environment
+            .build("unused_id", &session, Utc::now(), &CancellationToken::new())
+            .unwrap(),
+        BuildOutcome::Success(_),
+    ));
+    println!("Finished environment build.");
     let token = CancellationToken::new();
     let thread_token = token.clone();
     let running = thread::spawn(move || {

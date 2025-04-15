@@ -1,7 +1,14 @@
 use crate::command_spec::CommandSpec;
 use crate::config::EnvironmentConfig;
+use crate::results::BuildOutcome;
+use crate::session::{RunSpec, Session};
+use crate::termination::{Cancelled, Outcome};
 
+use anyhow::anyhow;
 use camino::{Utf8Path, Utf8PathBuf};
+use chrono::{DateTime, Utc};
+use log::{error, info};
+use tokio_util::sync::CancellationToken;
 
 pub enum ResultCode {
     Success,
@@ -61,10 +68,18 @@ impl Environment {
         }
     }
 
-    pub fn build_instructions(&self) -> Option<BuildInstructions> {
+    pub fn build(
+        &self,
+        id: &str,
+        session: &Session,
+        start_time: DateTime<Utc>,
+        cancellation_token: &CancellationToken,
+    ) -> Result<BuildOutcome, Cancelled> {
         match self {
-            Self::System(system_environment) => system_environment.build_instructions(),
-            Self::Rcc(rcc_environment) => rcc_environment.build_instructions(),
+            Self::System(system_environment) => system_environment.build(),
+            Self::Rcc(rcc_environment) => {
+                rcc_environment.build(id, session, start_time, cancellation_token)
+            }
         }
     }
 
@@ -84,8 +99,8 @@ impl Environment {
 }
 
 impl SystemEnvironment {
-    fn build_instructions(&self) -> Option<BuildInstructions> {
-        None
+    fn build(&self) -> Result<BuildOutcome, Cancelled> {
+        Ok(BuildOutcome::NotNeeded)
     }
 
     fn wrap(&self, command_spec: CommandSpec) -> CommandSpec {
@@ -108,37 +123,145 @@ impl RCCEnvironment {
         command_spec
     }
 
-    pub fn build_instructions(&self) -> Option<BuildInstructions> {
-        let import_command_spec = self.catalog_zip.as_ref().map(|zip| {
-            let mut spec =
-                Self::bundled_command_spec(&self.binary_path, self.robocorp_home.clone());
-            spec.add_argument("holotree")
-                .add_argument("import")
-                .add_argument(zip);
-            spec
-        });
+    fn build(
+        &self,
+        id: &str,
+        session: &Session,
+        start_time: DateTime<Utc>,
+        cancellation_token: &CancellationToken,
+    ) -> Result<BuildOutcome, Cancelled> {
+        if let Some(catalog_ip) = &self.catalog_zip {
+            match self.run_catalog_import(
+                id,
+                catalog_ip,
+                session,
+                self.build_timeout,
+                cancellation_token,
+            ) {
+                Ok(Outcome::Completed(0)) => {
+                    info!("Environment import succeeded for plan {id}");
+                }
+                Ok(Outcome::Completed(_exit_code)) => {
+                    error!("Environment import not successful, plan {id} will be dropped");
+                    return Ok(BuildOutcome::Error(format!(
+                        "Environment import not successful, see {} for stdio logs",
+                        self.build_runtime_directory
+                    )));
+                }
+                Ok(Outcome::Timeout) => {
+                    error!("Environment import timed out, plan {id} will be dropped");
+                    return Ok(BuildOutcome::Timeout);
+                }
+                Ok(Outcome::Cancel) => {
+                    error!("Environment import cancelled");
+                    return Err(Cancelled {});
+                }
+                Err(e) => {
+                    let log_error = e.context(anyhow!(
+                        "Environment import failed, plan {id} will be dropped. See {} for stdio logs",
+                        self.build_runtime_directory
+                    ));
+                    error!("{log_error:?}");
+                    return Ok(BuildOutcome::Error(format!("{log_error:?}")));
+                }
+            }
+        }
 
-        let mut build_command_spec =
+        let elapsed: u64 = (Utc::now() - start_time).num_seconds().try_into().unwrap();
+        if elapsed >= self.build_timeout {
+            error!("Environment import timed out, plan {id} will be dropped");
+            return Ok(BuildOutcome::Timeout);
+        };
+
+        match self.run_noop_command(
+            id,
+            session,
+            self.build_timeout - elapsed,
+            cancellation_token,
+        ) {
+            Ok(Outcome::Completed(0)) => {
+                info!("Environment building succeeded for plan {id}");
+                let duration = (Utc::now() - start_time).num_seconds();
+                Ok(BuildOutcome::Success(duration))
+            }
+            Ok(Outcome::Completed(_exit_code)) => {
+                error!("Environment building not successful, plan {id} will be dropped");
+                Ok(BuildOutcome::Error(format!(
+                    "Environment building not successful, see {} for stdio logs",
+                    self.build_runtime_directory
+                )))
+            }
+            Ok(Outcome::Timeout) => {
+                error!("Environment building timed out, plan {id} will be dropped");
+                Ok(BuildOutcome::Timeout)
+            }
+            Ok(Outcome::Cancel) => {
+                error!("Environment building cancelled");
+                Err(Cancelled {})
+            }
+            Err(e) => {
+                let log_error = e.context(anyhow!(
+                    "Environment building failed, plan {id} will be dropped. See {} for stdio logs",
+                    self.build_runtime_directory
+                ));
+                error!("{log_error:?}");
+                Ok(BuildOutcome::Error(format!("{log_error:?}")))
+            }
+        }
+    }
+
+    fn run_catalog_import(
+        &self,
+        id: &str,
+        catalog_zip: &Utf8Path,
+        session: &Session,
+        timeout: u64,
+        cancellation_token: &CancellationToken,
+    ) -> anyhow::Result<Outcome<i32>> {
+        let mut import_command_spec =
             Self::bundled_command_spec(&self.binary_path, self.robocorp_home.clone());
-        build_command_spec
+        import_command_spec
+            .add_argument("holotree")
+            .add_argument("import")
+            .add_argument(catalog_zip);
+        session.run(&RunSpec {
+            id: &format!("robotmk_env_import_{id}"),
+            command_spec: &import_command_spec,
+            runtime_base_path: &self.build_runtime_directory.join("import"),
+            timeout,
+            cancellation_token,
+        })
+    }
+
+    fn run_noop_command(
+        &self,
+        id: &str,
+        session: &Session,
+        timeout: u64,
+        cancellation_token: &CancellationToken,
+    ) -> anyhow::Result<Outcome<i32>> {
+        let mut noop_command_spec =
+            Self::bundled_command_spec(&self.binary_path, self.robocorp_home.clone());
+        noop_command_spec
             .add_argument("task")
             .add_argument("script");
-        self.apply_current_settings(&mut build_command_spec);
+        self.apply_current_settings(&mut noop_command_spec);
         if let Some(remote_origin) = &self.remote_origin {
-            build_command_spec.add_obfuscated_env("RCC_REMOTE_ORIGIN", remote_origin);
+            noop_command_spec.add_obfuscated_env("RCC_REMOTE_ORIGIN", remote_origin);
         }
-        build_command_spec.add_argument("--").add_argument(
+        noop_command_spec.add_argument("--").add_argument(
             #[cfg(unix)]
             "true",
             #[cfg(windows)]
             "cmd.exe",
         );
 
-        Some(BuildInstructions {
-            import_command_spec,
-            build_command_spec,
-            timeout: self.build_timeout,
-            runtime_directory: self.build_runtime_directory.clone(),
+        session.run(&RunSpec {
+            id: &format!("robotmk_env_building_{id}"),
+            command_spec: &noop_command_spec,
+            runtime_base_path: &self.build_runtime_directory.join("build"),
+            timeout,
+            cancellation_token,
         })
     }
 
@@ -198,71 +321,9 @@ impl RCCEnvironment {
     }
 }
 
-#[derive(Debug, PartialEq)]
-pub struct BuildInstructions {
-    pub import_command_spec: Option<CommandSpec>,
-    pub build_command_spec: CommandSpec,
-    pub timeout: u64,
-    pub runtime_directory: Utf8PathBuf,
-}
-
 #[cfg(test)]
 mod tests {
     use super::*;
-
-    #[test]
-    fn rcc_build_instructions() {
-        let mut expected_import_command_spec = CommandSpec::new("/bin/rcc");
-        expected_import_command_spec
-            .add_argument("--bundled")
-            .add_argument("holotree")
-            .add_argument("import")
-            .add_argument("/catalog.zip")
-            .add_plain_env("ROBOCORP_HOME", "~/.robocorp/");
-
-        let mut expected_build_command_spec = CommandSpec::new("/bin/rcc");
-        expected_build_command_spec
-            .add_argument("--bundled")
-            .add_argument("task")
-            .add_argument("script")
-            .add_argument("--robot")
-            .add_argument("/a/b/c/robot.yaml")
-            .add_argument("--controller")
-            .add_argument("robotmk")
-            .add_argument("--space")
-            .add_argument("my_plan")
-            .add_argument("--")
-            .add_argument(
-                #[cfg(unix)]
-                "true",
-                #[cfg(windows)]
-                "cmd.exe",
-            )
-            .add_plain_env("ROBOCORP_HOME", "~/.robocorp/")
-            .add_obfuscated_env("RCC_REMOTE_ORIGIN", "http://1.com");
-
-        assert_eq!(
-            RCCEnvironment {
-                binary_path: Utf8PathBuf::from("/bin/rcc"),
-                remote_origin: Some("http://1.com".into()),
-                catalog_zip: Some("/catalog.zip".into()),
-                robot_yaml_path: Utf8PathBuf::from("/a/b/c/robot.yaml"),
-                controller: String::from("robotmk"),
-                space: String::from("my_plan"),
-                build_timeout: 123,
-                build_runtime_directory: Utf8PathBuf::from("/runtime"),
-                robocorp_home: String::from("~/.robocorp/"),
-            }
-            .build_instructions()
-            .unwrap(),
-            BuildInstructions {
-                import_command_spec: Some(expected_import_command_spec),
-                build_command_spec: expected_build_command_spec,
-                timeout: 123,
-                runtime_directory: Utf8PathBuf::from("/runtime")
-            }
-        )
-    }
 
     fn command_spec_for_wrap() -> CommandSpec {
         let mut command_spec = CommandSpec::new("C:\\x\\y\\z.exe");
