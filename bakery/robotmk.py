@@ -24,7 +24,12 @@ from cmk.base.cee.plugins.bakery.bakery_api.v1 import (
     SystemBinary,
 )
 
-from cmk.ccc.exceptions import MKGeneralException
+try:
+    # Checkmk 2.4+
+    from cmk.ccc.exceptions import MKGeneralException
+except ImportError:
+    # Checkmk <= 2.3
+    from cmk.utils.exceptions import MKGeneralException
 
 # This dict only adds the new key only if
 # * the key already exists

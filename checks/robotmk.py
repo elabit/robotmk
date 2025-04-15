@@ -21,7 +21,6 @@ from collections import namedtuple
 #from cmk.agent_based.v1 import ()
 
 from cmk.utils.paths import omd_root
-from cmk.ccc import version
 
 from cmk.agent_based.v2 import (
     AgentSection,
@@ -39,17 +38,27 @@ from cmk.agent_based.v2 import (
     State,
     StringTable,
 )
-from cmk.ccc.exceptions import MKGeneralException
+
+try:
+    # Checkmk 2.4+
+    from cmk.ccc import version
+    from cmk.ccc.exceptions import MKGeneralException
+    cmk_version = version.get_general_version_infos(omd_root)['version']
+except ImportError:
+    # Checkmk <= 2.3
+    from cmk.utils import version
+    from cmk.utils.exceptions import MKGeneralException
+    cmk_version = version.get_general_version_infos()['version']
 
 ROBOTMK_VERSION = '1.5.0'
 DEFAULT_SVC_PREFIX = 'Robot Framework E2E $SUITEID$SPACE-$SPACE'
 
-cmk_version = version.get_general_version_infos(omd_root)['version']
 
-if cmk_version.startswith('2.4'):
-    # cmk 2.4
+if cmk_version.startswith(('2.3', '2.4')):
+    # cmk 2.3/4
     HTML_LOG_DIR = "%s/%s" % (os.environ['OMD_ROOT'], 'var/robotmk/html_logs')
 else:
+    # older 
     HTML_LOG_DIR = "%s/%s" % (os.environ['OMD_ROOT'], 'var/robotmk')
 
 STATES = {
