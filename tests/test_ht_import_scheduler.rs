@@ -5,9 +5,9 @@ use anyhow::{bail, Result as AnyhowResult};
 use assert_cmd::cargo::cargo_bin;
 use camino::{Utf8Path, Utf8PathBuf};
 use robotmk::config::{
-    Config, EnvironmentConfig, ExecutionConfig, PlanConfig, PlanMetadata, RCCConfig,
+    CondaConfig, Config, EnvironmentConfig, ExecutionConfig, PlanConfig, PlanMetadata, RCCConfig,
     RCCEnvironmentConfig, RCCProfileConfig, RetryStrategy, RobotConfig, SequentialPlanGroup,
-    SessionConfig, Source, WorkingDirectoryCleanupConfig,
+    SessionConfig, Source, ValidatedMicromambaBinaryPath, WorkingDirectoryCleanupConfig,
 };
 use robotmk::results::results_directory;
 use robotmk::section::Host;
@@ -62,6 +62,20 @@ async fn test_ht_import_scheduler() -> AnyhowResult<()> {
             profile_config: RCCProfileConfig::Default,
             robocorp_home_base: test_dir.join("rc_home_base"),
         },
+        CondaConfig {
+            micromamba_binary_path: ValidatedMicromambaBinaryPath::try_from(Utf8PathBuf::from(
+                #[cfg(unix)]
+                {
+                    "/micromamba"
+                },
+                #[cfg(windows)]
+                {
+                    "C:\\micromamba.exe"
+                },
+            ))
+            .unwrap(),
+            base_directory: Utf8PathBuf::default(),
+        },
     );
 
     run_scheduler(
@@ -76,10 +90,16 @@ async fn test_ht_import_scheduler() -> AnyhowResult<()> {
     Ok(())
 }
 
-fn create_config(test_dir: &Utf8Path, suite_dir: &Utf8Path, rcc_config: RCCConfig) -> Config {
+fn create_config(
+    test_dir: &Utf8Path,
+    suite_dir: &Utf8Path,
+    rcc_config: RCCConfig,
+    conda_config: CondaConfig,
+) -> Config {
     Config {
         runtime_directory: test_dir.into(),
         rcc_config,
+        conda_config,
         plan_groups: vec![SequentialPlanGroup {
             plans: vec![PlanConfig {
                 id: "rcc_headless".into(),

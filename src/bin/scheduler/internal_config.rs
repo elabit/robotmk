@@ -180,9 +180,9 @@ pub fn sort_plans_by_grouping(plans: &mut [Plan]) {
 mod tests {
     use super::*;
     use robotmk::config::{
-        CustomRCCProfileConfig, EnvironmentConfig, ExecutionConfig, PlanConfig,
+        CondaConfig, CustomRCCProfileConfig, EnvironmentConfig, ExecutionConfig, PlanConfig,
         RCCEnvironmentConfig, RCCProfileConfig, RetryStrategy, RobotConfig, SequentialPlanGroup,
-        SessionConfig,
+        SessionConfig, ValidatedMicromambaBinaryPath,
     };
     use robotmk::environment::{Environment, RCCEnvironment, SystemEnvironment};
 
@@ -281,6 +281,22 @@ mod tests {
                         path: "/rcc_profile_robotmk.yaml".into(),
                     }),
                     robocorp_home_base: Utf8PathBuf::from("/rc_home_base"),
+                },
+                conda_config: CondaConfig {
+                    micromamba_binary_path: ValidatedMicromambaBinaryPath::try_from(
+                        Utf8PathBuf::from(
+                            #[cfg(unix)]
+                            {
+                                "/micromamba"
+                            },
+                            #[cfg(windows)]
+                            {
+                                "C:\\micromamba.exe"
+                            },
+                        ),
+                    )
+                    .unwrap(),
+                    base_directory: Utf8PathBuf::default(),
                 },
                 plan_groups: vec![
                     SequentialPlanGroup {

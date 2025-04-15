@@ -54,6 +54,9 @@ impl Environment {
                 build_runtime_directory: build_runtime_directory.to_path_buf(),
                 robocorp_home: robocorp_home.to_string(),
             }),
+            EnvironmentConfig::Conda(_) => {
+                panic!("Conda environments are not supported yet.")
+            }
         }
     }
 
