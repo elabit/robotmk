@@ -7,7 +7,10 @@ use crate::termination::{Cancelled, Outcome};
 use anyhow::anyhow;
 use camino::{Utf8Path, Utf8PathBuf};
 use chrono::{DateTime, Utc};
+use flate2::read::GzDecoder;
 use log::{error, info};
+use std::fs::File;
+use tar::Archive;
 use tokio_util::sync::CancellationToken;
 
 pub enum ResultCode {
@@ -22,6 +25,8 @@ pub enum ResultCode {
 pub enum Environment {
     System(SystemEnvironment),
     Rcc(RCCEnvironment),
+    CondaFromManifest(CondaEnvironmentFromManifest),
+    CondaFromArchive(CondaEnvironmentFromArchive),
 }
 
 #[derive(Clone, Debug, PartialEq)]
@@ -38,6 +43,26 @@ pub struct RCCEnvironment {
     pub build_timeout: u64,
     pub build_runtime_directory: Utf8PathBuf,
     pub robocorp_home: String,
+}
+
+#[derive(Clone, Debug, PartialEq)]
+pub struct CondaEnvironmentFromManifest {
+    pub micromamba_binary_path: Utf8PathBuf,
+    pub manifest_path: Utf8PathBuf,
+    pub root_prefix: Utf8PathBuf,
+    pub prefix: Utf8PathBuf,
+    pub build_timeout: u64,
+    pub build_runtime_directory: Utf8PathBuf,
+}
+
+#[derive(Clone, Debug, PartialEq)]
+pub struct CondaEnvironmentFromArchive {
+    pub micromamba_binary_path: Utf8PathBuf,
+    pub archive_path: Utf8PathBuf,
+    pub root_prefix: Utf8PathBuf,
+    pub prefix: Utf8PathBuf,
+    pub build_timeout: u64,
+    pub build_runtime_directory: Utf8PathBuf,
 }
 
 impl Environment {
@@ -80,6 +105,12 @@ impl Environment {
             Self::Rcc(rcc_environment) => {
                 rcc_environment.build(id, session, start_time, cancellation_token)
             }
+            Self::CondaFromManifest(conda_environment_from_manifest) => {
+                conda_environment_from_manifest.build(id, session, start_time, cancellation_token)
+            }
+            Self::CondaFromArchive(conda_environment_from_archive) => {
+                conda_environment_from_archive.build(id, session, start_time, cancellation_token)
+            }
         }
     }
 
@@ -87,6 +118,12 @@ impl Environment {
         match self {
             Self::System(system_environment) => system_environment.wrap(command_spec),
             Self::Rcc(rcc_environment) => rcc_environment.wrap(command_spec),
+            Self::CondaFromManifest(conda_environment_from_manifest) => {
+                conda_environment_from_manifest.wrap(command_spec)
+            }
+            Self::CondaFromArchive(conda_environment_from_archive) => {
+                conda_environment_from_archive.wrap(command_spec)
+            }
         }
     }
 
@@ -94,6 +131,12 @@ impl Environment {
         match self {
             Self::System(system_env) => system_env.create_result_code(exit_code),
             Self::Rcc(rcc_env) => rcc_env.create_result_code(exit_code),
+            Self::CondaFromManifest(conda_env_from_manifest) => {
+                conda_env_from_manifest.create_result_code(exit_code)
+            }
+            Self::CondaFromArchive(conda_env_from_archive) => {
+                conda_env_from_archive.create_result_code(exit_code)
+            }
         }
     }
 }
@@ -321,6 +364,194 @@ impl RCCEnvironment {
     }
 }
 
+impl CondaEnvironmentFromManifest {
+    fn build(
+        &self,
+        id: &str,
+        session: &Session,
+        start_time: DateTime<Utc>,
+        cancellation_token: &CancellationToken,
+    ) -> Result<BuildOutcome, Cancelled> {
+        let mut build_command_spec = CommandSpec::new(&self.micromamba_binary_path);
+        build_command_spec
+            .add_argument("create")
+            .add_argument("--file")
+            .add_argument(&self.manifest_path)
+            .add_argument("--yes")
+            .add_argument("--root-prefix")
+            .add_argument(&self.root_prefix)
+            .add_argument("--prefix")
+            .add_argument(&self.prefix);
+        match session.run(&RunSpec {
+            id: &format!("robotmk_env_create_{id}"),
+            command_spec: &build_command_spec,
+            runtime_base_path: &self.build_runtime_directory.join("create"),
+            timeout: self.build_timeout,
+            cancellation_token,
+        }) {
+            Ok(Outcome::Completed(0)) => {
+                info!("Environment building succeeded for plan {id}");
+                let duration = (Utc::now() - start_time).num_seconds();
+                Ok(BuildOutcome::Success(duration))
+            }
+            Ok(Outcome::Completed(_exit_code)) => {
+                error!("Environment building not successful, plan {id} will be dropped");
+                Ok(BuildOutcome::Error(format!(
+                    "Environment building not successful, see {} for stdio logs",
+                    self.build_runtime_directory
+                )))
+            }
+            Ok(Outcome::Timeout) => {
+                error!("Environment building timed out, plan {id} will be dropped");
+                Ok(BuildOutcome::Timeout)
+            }
+            Ok(Outcome::Cancel) => {
+                error!("Environment building cancelled");
+                Err(Cancelled {})
+            }
+            Err(e) => {
+                let error_with_context = e.context(anyhow!(
+                    "Environment building failed, see {} for stdio logs",
+                    self.build_runtime_directory
+                ));
+                let build_outcome = BuildOutcome::Error(format!("{error_with_context:?}"));
+                error!(
+                    "{:?}",
+                    error_with_context.context(format!("Plan {id} will be dropped"))
+                );
+                Ok(build_outcome)
+            }
+        }
+    }
+
+    fn wrap(&self, command_spec: CommandSpec) -> CommandSpec {
+        wrap_into_conda_environment(
+            &self.micromamba_binary_path,
+            &self.root_prefix,
+            &self.prefix,
+            command_spec,
+        )
+    }
+
+    fn create_result_code(&self, exit_code: i32) -> ResultCode {
+        match exit_code {
+            0 => ResultCode::Success,
+            _ => ResultCode::Error(format!("Failure with exit code {exit_code}")),
+        }
+    }
+}
+
+impl CondaEnvironmentFromArchive {
+    fn build(
+        &self,
+        id: &str,
+        session: &Session,
+        start_time: DateTime<Utc>,
+        cancellation_token: &CancellationToken,
+    ) -> Result<BuildOutcome, Cancelled> {
+        info!("Extracting archive \"{}\"", self.archive_path);
+
+        if let Err(error) = self.unpack() {
+            error!("Archive unpacking failed: {error:?}");
+            return Ok(BuildOutcome::Error(format!(
+                "Archive unpacking failed: {error:?}"
+            )));
+        }
+
+        let elapsed: u64 = (Utc::now() - start_time).num_seconds().try_into().unwrap();
+        if elapsed >= self.build_timeout {
+            error!("Environment import timed out, plan {id} will be dropped");
+            return Ok(BuildOutcome::Timeout);
+        };
+
+        match session.run(&RunSpec {
+            id: &format!("robotmk_env_conda-unpack_{id}"),
+            command_spec: &self.wrap(CommandSpec::new("conda-unpack")),
+            runtime_base_path: &self.build_runtime_directory.join("conda-unpack"),
+            timeout: self.build_timeout - elapsed,
+            cancellation_token,
+        }) {
+            Ok(Outcome::Completed(0)) => {
+                info!("Environment unpacking succeeded for plan {id}");
+                let duration = (Utc::now() - start_time).num_seconds();
+                Ok(BuildOutcome::Success(duration))
+            }
+            Ok(Outcome::Completed(_exit_code)) => {
+                error!("conda-unpack not successful, plan {id} will be dropped");
+                Ok(BuildOutcome::Error(format!(
+                    "conda-unpack not successful, see {} for stdio logs",
+                    self.build_runtime_directory
+                )))
+            }
+            Ok(Outcome::Timeout) => {
+                error!("conda-unpack timed out, plan {id} will be dropped");
+                Ok(BuildOutcome::Timeout)
+            }
+            Ok(Outcome::Cancel) => {
+                error!("conda-unpack cancelled");
+                Err(Cancelled {})
+            }
+            Err(e) => {
+                let error_with_context = e.context(anyhow!(
+                    "conda-unpack failed, see {} for stdio logs",
+                    self.build_runtime_directory
+                ));
+                let build_outcome = BuildOutcome::Error(format!("{error_with_context:?}"));
+                error!(
+                    "{:?}",
+                    error_with_context.context(format!("Plan {id} will be dropped"))
+                );
+                Ok(build_outcome)
+            }
+        }
+    }
+
+    fn wrap(&self, command_spec: CommandSpec) -> CommandSpec {
+        wrap_into_conda_environment(
+            &self.micromamba_binary_path,
+            &self.root_prefix,
+            &self.prefix,
+            command_spec,
+        )
+    }
+
+    fn unpack(&self) -> anyhow::Result<()> {
+        Archive::new(GzDecoder::new(File::open(&self.archive_path)?)).unpack(&self.prefix)?;
+        Ok(())
+    }
+
+    fn create_result_code(&self, exit_code: i32) -> ResultCode {
+        match exit_code {
+            0 => ResultCode::Success,
+            _ => ResultCode::Error(format!("Failure with exit code {exit_code}")),
+        }
+    }
+}
+
+fn wrap_into_conda_environment(
+    binary_path: &Utf8Path,
+    root_prefix: &Utf8Path,
+    prefix: &Utf8Path,
+    command_spec: CommandSpec,
+) -> CommandSpec {
+    let mut wrapped_spec = CommandSpec::new(binary_path);
+    wrapped_spec
+        .add_argument("run")
+        .add_argument("--root-prefix")
+        .add_argument(root_prefix)
+        .add_argument("--prefix")
+        .add_argument(prefix)
+        .add_argument(command_spec.executable)
+        .add_arguments(command_spec.arguments);
+    for (key, value) in command_spec.envs_rendered_plain {
+        wrapped_spec.add_plain_env(key, value);
+    }
+    for (key, value) in command_spec.envs_rendered_obfuscated {
+        wrapped_spec.add_obfuscated_env(key, value);
+    }
+    wrapped_spec
+}
+
 #[cfg(test)]
 mod tests {
     use super::*;
@@ -339,7 +570,7 @@ mod tests {
     }
 
     #[test]
-    fn test_system_wrap() {
+    fn system_wrap() {
         assert_eq!(
             SystemEnvironment {}.wrap(command_spec_for_wrap()),
             command_spec_for_wrap()
@@ -347,7 +578,7 @@ mod tests {
     }
 
     #[test]
-    fn test_rcc_wrap() {
+    fn rcc_wrap() {
         let mut expected = CommandSpec::new("C:\\bin\\z.exe");
         expected
             .add_argument("--bundled")
@@ -380,6 +611,48 @@ mod tests {
                 build_timeout: 600,
                 build_runtime_directory: Utf8PathBuf::default(),
                 robocorp_home: String::from("~/.robocorp/"),
+            }
+            .wrap(command_spec_for_wrap()),
+            expected
+        );
+    }
+
+    #[test]
+    fn conda_wrap() {
+        let mut expected = CommandSpec::new("/micromamba");
+        expected
+            .add_argument("run")
+            .add_argument("--root-prefix")
+            .add_argument("/root")
+            .add_argument("--prefix")
+            .add_argument("/env")
+            .add_argument("C:\\x\\y\\z.exe")
+            .add_argument("arg1")
+            .add_argument("--flag")
+            .add_argument("--option")
+            .add_argument("option_value")
+            .add_plain_env("PLAIN_KEY", "PLAIN_VALUE")
+            .add_obfuscated_env("OBFUSCATED_KEY", "OBFUSCATED_VALUE");
+        assert_eq!(
+            CondaEnvironmentFromManifest {
+                micromamba_binary_path: Utf8PathBuf::from("/micromamba"),
+                manifest_path: Utf8PathBuf::from("/env.yaml"),
+                root_prefix: Utf8PathBuf::from("/root"),
+                prefix: Utf8PathBuf::from("/env"),
+                build_timeout: 600,
+                build_runtime_directory: Utf8PathBuf::default(),
+            }
+            .wrap(command_spec_for_wrap()),
+            expected
+        );
+        assert_eq!(
+            CondaEnvironmentFromArchive {
+                micromamba_binary_path: Utf8PathBuf::from("/micromamba"),
+                archive_path: Utf8PathBuf::from("/env.tar.gz"),
+                root_prefix: Utf8PathBuf::from("/root"),
+                prefix: Utf8PathBuf::from("/env"),
+                build_timeout: 600,
+                build_runtime_directory: Utf8PathBuf::default(),
             }
             .wrap(command_spec_for_wrap()),
             expected
