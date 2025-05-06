@@ -31,9 +31,9 @@ pub fn run(
 
 type Gatherer = fn(&GlobalConfig, Vec<Plan>) -> Vec<StepWithPlans>;
 #[cfg(unix)]
-type Steps = [(Gatherer, &'static str); 11];
+type Steps = [(Gatherer, &'static str); 12];
 #[cfg(windows)]
-type Steps = [(Gatherer, &'static str); 18];
+type Steps = [(Gatherer, &'static str); 20];
 
 const STEPS: Steps = [
     (
@@ -66,6 +66,12 @@ const STEPS: Steps = [
     (
         directories::gather_robocorp_home_per_user,
         "User-specific ROBOCORP_HOME directories",
+    ),
+    (directories::gather_conda_base, "Conda base directory"),
+    #[cfg(windows)]
+    (
+        directories::gather_conda_base_read_and_execute_access,
+        "Read and execute access to conda base directory",
     ),
     (
         directories::gather_plan_working_directories,
