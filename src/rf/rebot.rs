@@ -140,21 +140,14 @@ impl Rebot<'_> {
 #[cfg(test)]
 mod tests {
     use super::*;
-    use crate::config::EnvironmentConfig;
+    use crate::environment::SystemEnvironment;
     use crate::session::CurrentSession;
 
     #[test]
     fn build_rebot_command() {
         let rebot_command_spec = Rebot {
             plan_id: "my_plan",
-            environment: &Environment::new(
-                "/working/".into(),
-                "/robocorp_home".into(),
-                "my_plan",
-                "/bin/rcc".into(),
-                &EnvironmentConfig::System,
-                &Utf8PathBuf::default(),
-            ),
+            environment: &Environment::System(SystemEnvironment {}),
             session: &Session::Current(CurrentSession {}),
             runtime_base_path: Utf8PathBuf::from("/working/my_plan/rebot"),
             cancellation_token: &CancellationToken::default(),
