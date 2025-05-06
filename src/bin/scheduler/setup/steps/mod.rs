@@ -22,10 +22,19 @@ fn plans_by_sessions(plans: Vec<Plan>) -> HashMap<Session, Vec<Plan>> {
     plans_by_session
 }
 
-fn partition_into_rcc_and_system_plans(plans: Vec<Plan>) -> (Vec<Plan>, Vec<Plan>) {
+fn partition_into_rcc_and_other_plans(plans: Vec<Plan>) -> (Vec<Plan>, Vec<Plan>) {
     plans
         .into_iter()
         .partition(|plan| matches!(plan.environment, Environment::Rcc(_)))
+}
+
+fn partition_into_conda_and_other_plans(plans: Vec<Plan>) -> (Vec<Plan>, Vec<Plan>) {
+    plans.into_iter().partition(|plan| {
+        matches!(
+            plan.environment,
+            Environment::CondaFromManifest(_) | Environment::CondaFromArchive(_)
+        )
+    })
 }
 
 fn rcc_working_directory_for_session(

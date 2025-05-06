@@ -1,5 +1,5 @@
 use robotmk::config::{
-    Config, PlanMetadata, RCCConfig, RobotConfig, Source as ConfigSource,
+    CondaConfig, Config, PlanMetadata, RCCConfig, RobotConfig, Source as ConfigSource,
     WorkingDirectoryCleanupConfig,
 };
 use robotmk::environment::Environment;
@@ -22,6 +22,7 @@ pub struct GlobalConfig {
     pub working_directory_environment_building: Utf8PathBuf,
     pub working_directory_rcc_setup_steps: Utf8PathBuf,
     pub rcc_config: RCCConfig,
+    pub conda_config: CondaConfig,
     pub cancellation_token: CancellationToken,
     pub results_directory_locker: Locker,
 }
@@ -77,6 +78,7 @@ pub fn from_external_config(
         working_directory_environment_building: working_directory.join("environment_building"),
         working_directory_rcc_setup_steps: working_directory.join("rcc_setup"),
         rcc_config: external_config.rcc_config,
+        conda_config: external_config.conda_config,
         cancellation_token: cancellation_token.clone(),
         results_directory_locker: results_directory_locker.clone(),
     };
@@ -296,7 +298,7 @@ mod tests {
                         ),
                     )
                     .unwrap(),
-                    base_directory: Utf8PathBuf::default(),
+                    base_directory: Utf8PathBuf::from("/conda_base"),
                 },
                 plan_groups: vec![
                     SequentialPlanGroup {
@@ -323,6 +325,16 @@ mod tests {
                     path: "/rcc_profile_robotmk.yaml".into(),
                 }),
                 robocorp_home_base: Utf8PathBuf::from("/rc_home_base"),
+            }
+        );
+        assert_eq!(
+            global_config.conda_config,
+            CondaConfig {
+                micromamba_binary_path: ValidatedMicromambaBinaryPath::try_from(Utf8PathBuf::from(
+                    "/micromamba"
+                ),)
+                .unwrap(),
+                base_directory: Utf8PathBuf::from("/conda_base"),
             }
         );
         assert_eq!(plans.len(), 2);
