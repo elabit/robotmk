@@ -1,5 +1,5 @@
 use crate::command_spec::CommandSpec;
-use crate::config::EnvironmentConfig;
+use crate::config::RCCEnvironmentConfig;
 use crate::results::BuildOutcome;
 use crate::session::{RunSpec, Session};
 use crate::termination::{Cancelled, Outcome};
@@ -66,33 +66,6 @@ pub struct CondaEnvironmentFromArchive {
 }
 
 impl Environment {
-    pub fn new(
-        base_dir: &Utf8Path,
-        robocorp_home: &Utf8Path,
-        plan_id: &str,
-        rcc_binary_path: &Utf8Path,
-        environment_config: &EnvironmentConfig,
-        build_runtime_directory: &Utf8Path,
-    ) -> Self {
-        match environment_config {
-            EnvironmentConfig::System => Self::System(SystemEnvironment {}),
-            EnvironmentConfig::Rcc(rcc_environment_config) => Self::Rcc(RCCEnvironment {
-                binary_path: rcc_binary_path.to_path_buf(),
-                remote_origin: rcc_environment_config.remote_origin.clone(),
-                catalog_zip: rcc_environment_config.catalog_zip.clone(),
-                robot_yaml_path: base_dir.join(&rcc_environment_config.robot_yaml_path),
-                controller: String::from("robotmk"),
-                space: plan_id.to_string(),
-                build_timeout: rcc_environment_config.build_timeout,
-                build_runtime_directory: build_runtime_directory.to_path_buf(),
-                robocorp_home: robocorp_home.to_string(),
-            }),
-            EnvironmentConfig::Conda(_) => {
-                panic!("Conda environments are not supported yet.")
-            }
-        }
-    }
-
     pub fn build(
         &self,
         id: &str,
@@ -159,6 +132,27 @@ impl SystemEnvironment {
 }
 
 impl RCCEnvironment {
+    pub fn new(
+        base_dir: &Utf8Path,
+        robocorp_home: &Utf8Path,
+        plan_id: &str,
+        rcc_binary_path: &Utf8Path,
+        config: &RCCEnvironmentConfig,
+        build_runtime_directory: &Utf8Path,
+    ) -> Self {
+        Self {
+            binary_path: rcc_binary_path.to_path_buf(),
+            remote_origin: config.remote_origin.clone(),
+            catalog_zip: config.catalog_zip.clone(),
+            robot_yaml_path: base_dir.join(&config.robot_yaml_path),
+            controller: String::from("robotmk"),
+            space: plan_id.to_string(),
+            build_timeout: config.build_timeout,
+            build_runtime_directory: build_runtime_directory.to_path_buf(),
+            robocorp_home: robocorp_home.to_string(),
+        }
+    }
+
     pub fn bundled_command_spec(binary_path: &Utf8Path, robocorp_home: String) -> CommandSpec {
         let mut command_spec = CommandSpec::new(binary_path);
         command_spec.add_argument("--bundled");

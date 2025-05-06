@@ -1,8 +1,8 @@
-use robotmk::config::{
-    CondaConfig, Config, PlanMetadata, RCCConfig, RobotConfig, Source as ConfigSource,
-    WorkingDirectoryCleanupConfig,
+use robotmk::config;
+use robotmk::environment::{
+    CondaEnvironmentFromArchive, CondaEnvironmentFromManifest, Environment, RCCEnvironment,
+    SystemEnvironment,
 };
-use robotmk::environment::Environment;
 use robotmk::lock::Locker;
 use robotmk::results::{plan_results_directory, results_directory};
 use robotmk::rf::robot::Robot;
@@ -21,10 +21,26 @@ pub struct GlobalConfig {
     pub working_directory_plans: Utf8PathBuf,
     pub working_directory_environment_building: Utf8PathBuf,
     pub working_directory_rcc_setup_steps: Utf8PathBuf,
-    pub rcc_config: RCCConfig,
+    pub rcc_config: config::RCCConfig,
     pub conda_config: CondaConfig,
     pub cancellation_token: CancellationToken,
     pub results_directory_locker: Locker,
+}
+
+#[derive(Clone, Debug, PartialEq)]
+pub struct CondaConfig {
+    pub micromamba_binary_path: Utf8PathBuf,
+    pub base_directory: Utf8PathBuf,
+}
+
+impl CondaConfig {
+    pub fn root_prefix(&self) -> Utf8PathBuf {
+        self.base_directory.join("mamba_root_prefix")
+    }
+
+    pub fn environments_base_directory(&self) -> Utf8PathBuf {
+        self.base_directory.join("environments")
+    }
 }
 
 #[derive(Clone)]
@@ -48,11 +64,11 @@ pub struct Plan {
     pub robot: Robot,
     pub environment: Environment,
     pub session: Session,
-    pub working_directory_cleanup_config: WorkingDirectoryCleanupConfig,
+    pub working_directory_cleanup_config: config::WorkingDirectoryCleanupConfig,
     pub cancellation_token: CancellationToken,
     pub host: Host,
     pub results_directory_locker: Locker,
-    pub metadata: PlanMetadata,
+    pub metadata: config::PlanMetadata,
     pub group_affiliation: GroupAffiliation,
 }
 
@@ -64,7 +80,7 @@ pub struct GroupAffiliation {
 }
 
 pub fn from_external_config(
-    external_config: Config,
+    external_config: config::Config,
     cancellation_token: &CancellationToken,
     results_directory_locker: &Locker,
 ) -> (GlobalConfig, Vec<Plan>) {
@@ -78,7 +94,10 @@ pub fn from_external_config(
         working_directory_environment_building: working_directory.join("environment_building"),
         working_directory_rcc_setup_steps: working_directory.join("rcc_setup"),
         rcc_config: external_config.rcc_config,
-        conda_config: external_config.conda_config,
+        conda_config: CondaConfig {
+            micromamba_binary_path: external_config.conda_config.micromamba_binary_path.into(),
+            base_directory: external_config.conda_config.base_directory,
+        },
         cancellation_token: cancellation_token.clone(),
         results_directory_locker: results_directory_locker.clone(),
     };
@@ -87,8 +106,8 @@ pub fn from_external_config(
     for (group_index, sequential_group) in external_config.plan_groups.into_iter().enumerate() {
         for (plan_index, plan_config) in sequential_group.plans.into_iter().enumerate() {
             let (plan_source_dir, source) = match &plan_config.source {
-                ConfigSource::Manual { base_dir } => (base_dir.clone(), Source::Manual),
-                ConfigSource::Managed {
+                config::Source::Manual { base_dir } => (base_dir.clone(), Source::Manual),
+                config::Source::Managed {
                     tar_gz_path,
                     version_number,
                     version_label,
@@ -114,7 +133,7 @@ pub fn from_external_config(
                     .join(format!("{}.json", plan_config.id)),
                 timeout: plan_config.execution_config.timeout,
                 robot: Robot::new(
-                    RobotConfig {
+                    config::RobotConfig {
                         robot_target: plan_source_dir.join(plan_config.robot_config.robot_target),
                         top_level_suite_name: plan_config.robot_config.top_level_suite_name,
                         suites: plan_config.robot_config.suites,
@@ -142,16 +161,61 @@ pub fn from_external_config(
                     plan_config.execution_config.n_attempts_max,
                     plan_config.execution_config.retry_strategy,
                 ),
-                environment: Environment::new(
-                    &plan_source_dir,
-                    &session.robocorp_home(&global_config.rcc_config.robocorp_home_base),
-                    &plan_config.id,
-                    &global_config.rcc_config.binary_path,
-                    &plan_config.environment_config,
-                    &global_config
-                        .working_directory_environment_building
-                        .join(&plan_config.id),
-                ),
+                environment: match plan_config.environment_config {
+                    config::EnvironmentConfig::System => Environment::System(SystemEnvironment {}),
+                    config::EnvironmentConfig::Rcc(rcc_environment_config) => {
+                        Environment::Rcc(RCCEnvironment::new(
+                            &plan_source_dir,
+                            &session.robocorp_home(&global_config.rcc_config.robocorp_home_base),
+                            &plan_config.id,
+                            &global_config.rcc_config.binary_path,
+                            &rcc_environment_config,
+                            &global_config
+                                .working_directory_environment_building
+                                .join(&plan_config.id),
+                        ))
+                    }
+                    config::EnvironmentConfig::Conda(conda_environment_config) => {
+                        match conda_environment_config.source {
+                            config::CondaEnvironmentSource::Manifest(conda_yaml_path) => {
+                                Environment::CondaFromManifest(CondaEnvironmentFromManifest {
+                                    micromamba_binary_path: global_config
+                                        .conda_config
+                                        .micromamba_binary_path
+                                        .clone(),
+                                    manifest_path: plan_source_dir.join(conda_yaml_path),
+                                    root_prefix: global_config.conda_config.root_prefix(),
+                                    prefix: global_config
+                                        .conda_config
+                                        .environments_base_directory()
+                                        .join(&plan_config.id),
+                                    build_timeout: conda_environment_config.build_timeout,
+                                    build_runtime_directory: global_config
+                                        .working_directory_environment_building
+                                        .join(&plan_config.id),
+                                })
+                            }
+                            config::CondaEnvironmentSource::Archive(archive_path) => {
+                                Environment::CondaFromArchive(CondaEnvironmentFromArchive {
+                                    micromamba_binary_path: global_config
+                                        .conda_config
+                                        .micromamba_binary_path
+                                        .clone(),
+                                    archive_path,
+                                    root_prefix: global_config.conda_config.root_prefix(),
+                                    prefix: global_config
+                                        .conda_config
+                                        .environments_base_directory()
+                                        .join(&plan_config.id),
+                                    build_timeout: conda_environment_config.build_timeout,
+                                    build_runtime_directory: global_config
+                                        .working_directory_environment_building
+                                        .join(&plan_config.id),
+                                })
+                            }
+                        }
+                    }
+                },
                 session,
                 working_directory_cleanup_config: plan_config.working_directory_cleanup_config,
                 cancellation_token: cancellation_token.clone(),
@@ -181,20 +245,17 @@ pub fn sort_plans_by_grouping(plans: &mut [Plan]) {
 #[cfg(test)]
 mod tests {
     use super::*;
-    use robotmk::config::{
-        CondaConfig, CustomRCCProfileConfig, EnvironmentConfig, ExecutionConfig, PlanConfig,
-        RCCEnvironmentConfig, RCCProfileConfig, RetryStrategy, RobotConfig, SequentialPlanGroup,
-        SessionConfig, ValidatedMicromambaBinaryPath,
-    };
-    use robotmk::environment::{Environment, RCCEnvironment, SystemEnvironment};
+    use robotmk::session::CurrentSession;
+    #[cfg(windows)]
+    use robotmk::session::UserSession;
 
-    fn system_plan_config() -> PlanConfig {
-        PlanConfig {
+    fn system_plan_config() -> config::PlanConfig {
+        config::PlanConfig {
             id: "system".into(),
-            source: ConfigSource::Manual {
+            source: config::Source::Manual {
                 base_dir: "/synthetic_tests/system/".into(),
             },
-            robot_config: RobotConfig {
+            robot_config: config::RobotConfig {
                 robot_target: Utf8PathBuf::from("tasks.robot"),
                 top_level_suite_name: Some("top_suite".into()),
                 suites: vec![],
@@ -207,16 +268,18 @@ mod tests {
                 exit_on_failure: false,
                 environment_variables_rendered_obfuscated: vec![],
             },
-            execution_config: ExecutionConfig {
+            execution_config: config::ExecutionConfig {
                 n_attempts_max: 1,
-                retry_strategy: RetryStrategy::Incremental,
+                retry_strategy: config::RetryStrategy::Incremental,
                 timeout: 60,
             },
-            environment_config: EnvironmentConfig::System,
-            session_config: SessionConfig::Current,
-            working_directory_cleanup_config: WorkingDirectoryCleanupConfig::MaxAgeSecs(1209600),
+            environment_config: config::EnvironmentConfig::System,
+            session_config: config::SessionConfig::Current,
+            working_directory_cleanup_config: config::WorkingDirectoryCleanupConfig::MaxAgeSecs(
+                1209600,
+            ),
             host: Host::Source,
-            metadata: PlanMetadata {
+            metadata: config::PlanMetadata {
                 application: "sys_app".into(),
                 suite_name: "my_first_suite".into(),
                 variant: "".into(),
@@ -224,13 +287,13 @@ mod tests {
         }
     }
 
-    fn rcc_plan_config() -> PlanConfig {
-        PlanConfig {
+    fn rcc_plan_config() -> config::PlanConfig {
+        config::PlanConfig {
             id: "rcc".into(),
-            source: ConfigSource::Manual {
+            source: config::Source::Manual {
                 base_dir: "/synthetic_tests/rcc/".into(),
             },
-            robot_config: RobotConfig {
+            robot_config: config::RobotConfig {
                 robot_target: Utf8PathBuf::from("tasks.robot"),
                 top_level_suite_name: None,
                 suites: vec![],
@@ -243,29 +306,132 @@ mod tests {
                 exit_on_failure: false,
                 environment_variables_rendered_obfuscated: vec![],
             },
-            execution_config: ExecutionConfig {
+            execution_config: config::ExecutionConfig {
                 n_attempts_max: 1,
-                retry_strategy: RetryStrategy::Complete,
+                retry_strategy: config::RetryStrategy::Complete,
                 timeout: 60,
             },
-            environment_config: EnvironmentConfig::Rcc(RCCEnvironmentConfig {
+            environment_config: config::EnvironmentConfig::Rcc(config::RCCEnvironmentConfig {
                 robot_yaml_path: Utf8PathBuf::from("robot.yaml"),
                 build_timeout: 300,
                 remote_origin: None,
                 catalog_zip: None,
             }),
             #[cfg(unix)]
-            session_config: SessionConfig::Current,
+            session_config: config::SessionConfig::Current,
             #[cfg(windows)]
-            session_config: SessionConfig::SpecificUser(robotmk::config::UserSessionConfig {
+            session_config: config::SessionConfig::SpecificUser(config::UserSessionConfig {
                 user_name: "user".into(),
             }),
-            working_directory_cleanup_config: WorkingDirectoryCleanupConfig::MaxExecutions(50),
+            working_directory_cleanup_config: config::WorkingDirectoryCleanupConfig::MaxExecutions(
+                50,
+            ),
             host: Host::Source,
-            metadata: PlanMetadata {
+            metadata: config::PlanMetadata {
                 application: "rcc_app".into(),
                 suite_name: "my_second_suite".into(),
                 variant: "".into(),
+            },
+        }
+    }
+
+    fn conda_manifest_plan_config() -> config::PlanConfig {
+        config::PlanConfig {
+            id: "app1_suite1".into(),
+            source: config::Source::Managed {
+                tar_gz_path: Utf8PathBuf::from("/synthetic_tests/app1_suite1.tar.gz"),
+                version_number: 1,
+                version_label: "label".into(),
+            },
+            robot_config: config::RobotConfig {
+                robot_target: Utf8PathBuf::from("app1/tasks.robot"),
+                top_level_suite_name: Some("suite1".into()),
+                suites: vec![],
+                tests: vec!["test1".into()],
+                test_tags_include: vec![],
+                test_tags_exclude: vec![],
+                variables: vec![],
+                variable_files: vec!["app1/vars.txt".into()],
+                argument_files: vec![],
+                exit_on_failure: true,
+                environment_variables_rendered_obfuscated: vec![],
+            },
+            execution_config: config::ExecutionConfig {
+                n_attempts_max: 2,
+                retry_strategy: config::RetryStrategy::Incremental,
+                timeout: 60,
+            },
+            environment_config: config::EnvironmentConfig::Conda(config::CondaEnvironmentConfig {
+                source: config::CondaEnvironmentSource::Manifest(Utf8PathBuf::from(
+                    "app1/app1_env.yaml",
+                )),
+                build_timeout: 300,
+            }),
+            session_config: config::SessionConfig::Current,
+            working_directory_cleanup_config: config::WorkingDirectoryCleanupConfig::MaxExecutions(
+                5,
+            ),
+            host: Host::Source,
+            metadata: config::PlanMetadata {
+                application: "app1".into(),
+                suite_name: "suite1".into(),
+                variant: "".into(),
+            },
+        }
+    }
+
+    fn conda_archive_plan_config() -> config::PlanConfig {
+        config::PlanConfig {
+            id: "app2_tests_EN".into(),
+            source: config::Source::Manual {
+                base_dir: Utf8PathBuf::from("/app2"),
+            },
+            robot_config: config::RobotConfig {
+                robot_target: Utf8PathBuf::from("tests"),
+                top_level_suite_name: None,
+                suites: vec![],
+                tests: vec![],
+                test_tags_include: vec![],
+                test_tags_exclude: vec!["experimental".into()],
+                variables: vec![config::RobotFrameworkVariable {
+                    name: "var1".into(),
+                    value: "value1".into(),
+                }],
+                variable_files: vec![],
+                argument_files: vec![],
+                exit_on_failure: false,
+                environment_variables_rendered_obfuscated: vec![
+                    config::RobotFrameworkObfuscatedEnvVar {
+                        name: "env1".into(),
+                        value: "value1".into(),
+                    },
+                ],
+            },
+            execution_config: config::ExecutionConfig {
+                n_attempts_max: 1,
+                retry_strategy: config::RetryStrategy::Complete,
+                timeout: 60,
+            },
+            environment_config: config::EnvironmentConfig::Conda(config::CondaEnvironmentConfig {
+                source: config::CondaEnvironmentSource::Archive(Utf8PathBuf::from(
+                    "/app2.env.tar.gz",
+                )),
+                build_timeout: 300,
+            }),
+            #[cfg(unix)]
+            session_config: config::SessionConfig::Current,
+            #[cfg(windows)]
+            session_config: config::SessionConfig::SpecificUser(config::UserSessionConfig {
+                user_name: "user".into(),
+            }),
+            working_directory_cleanup_config: config::WorkingDirectoryCleanupConfig::MaxExecutions(
+                5,
+            ),
+            host: Host::Piggyback("piggy".into()),
+            metadata: config::PlanMetadata {
+                application: "app2".into(),
+                suite_name: "tests".into(),
+                variant: "EN".into(),
             },
         }
     }
@@ -274,18 +440,20 @@ mod tests {
     fn test_from_external_config() {
         let cancellation_token = CancellationToken::new();
         let (global_config, plans) = from_external_config(
-            Config {
+            config::Config {
                 runtime_directory: Utf8PathBuf::from("/"),
-                rcc_config: RCCConfig {
+                rcc_config: config::RCCConfig {
                     binary_path: Utf8PathBuf::from("/bin/rcc"),
-                    profile_config: RCCProfileConfig::Custom(CustomRCCProfileConfig {
-                        name: "Robotmk".into(),
-                        path: "/rcc_profile_robotmk.yaml".into(),
-                    }),
+                    profile_config: config::RCCProfileConfig::Custom(
+                        config::CustomRCCProfileConfig {
+                            name: "Robotmk".into(),
+                            path: "/rcc_profile_robotmk.yaml".into(),
+                        },
+                    ),
                     robocorp_home_base: Utf8PathBuf::from("/rc_home_base"),
                 },
-                conda_config: CondaConfig {
-                    micromamba_binary_path: ValidatedMicromambaBinaryPath::try_from(
+                conda_config: config::CondaConfig {
+                    micromamba_binary_path: config::ValidatedMicromambaBinaryPath::try_from(
                         Utf8PathBuf::from(
                             #[cfg(unix)]
                             {
@@ -301,13 +469,17 @@ mod tests {
                     base_directory: Utf8PathBuf::from("/conda_base"),
                 },
                 plan_groups: vec![
-                    SequentialPlanGroup {
+                    config::SequentialPlanGroup {
                         plans: vec![rcc_plan_config()],
                         execution_interval: 300,
                     },
-                    SequentialPlanGroup {
+                    config::SequentialPlanGroup {
                         plans: vec![system_plan_config()],
                         execution_interval: 300,
+                    },
+                    config::SequentialPlanGroup {
+                        plans: vec![conda_manifest_plan_config(), conda_archive_plan_config()],
+                        execution_interval: 600,
                     },
                 ],
             },
@@ -316,11 +488,12 @@ mod tests {
         );
         assert_eq!(global_config.working_directory, "/working");
         assert_eq!(global_config.results_directory, "/results");
+        assert_eq!(global_config.managed_directory, "/managed");
         assert_eq!(
             global_config.rcc_config,
-            RCCConfig {
+            config::RCCConfig {
                 binary_path: Utf8PathBuf::from("/bin/rcc"),
-                profile_config: RCCProfileConfig::Custom(CustomRCCProfileConfig {
+                profile_config: config::RCCProfileConfig::Custom(config::CustomRCCProfileConfig {
                     name: "Robotmk".into(),
                     path: "/rcc_profile_robotmk.yaml".into(),
                 }),
@@ -330,14 +503,20 @@ mod tests {
         assert_eq!(
             global_config.conda_config,
             CondaConfig {
-                micromamba_binary_path: ValidatedMicromambaBinaryPath::try_from(Utf8PathBuf::from(
-                    "/micromamba"
-                ),)
-                .unwrap(),
+                micromamba_binary_path: Utf8PathBuf::from(
+                    #[cfg(unix)]
+                    {
+                        "/micromamba"
+                    },
+                    #[cfg(windows)]
+                    {
+                        "C:\\micromamba.exe"
+                    },
+                ),
                 base_directory: Utf8PathBuf::from("/conda_base"),
             }
         );
-        assert_eq!(plans.len(), 2);
+        assert_eq!(plans.len(), 4);
         assert_eq!(plans[0].id, "rcc");
         assert_eq!(plans[0].working_directory, "/working/plans/rcc");
         assert_eq!(plans[0].results_file, "/results/plans/rcc.json");
@@ -352,7 +531,7 @@ mod tests {
                 ],
                 envs_rendered_obfuscated: vec![],
                 n_attempts_max: 1,
-                retry_strategy: RetryStrategy::Complete,
+                retry_strategy: config::RetryStrategy::Complete,
             }
         );
         assert_eq!(
@@ -376,13 +555,22 @@ mod tests {
                     .to_string(),
             })
         );
+        #[cfg(unix)]
+        assert_eq!(plans[0].session, Session::Current(CurrentSession {}),);
+        #[cfg(windows)]
+        assert_eq!(
+            plans[0].session,
+            Session::User(UserSession {
+                user_name: "user".into()
+            }),
+        );
         assert_eq!(
             plans[0].working_directory_cleanup_config,
-            WorkingDirectoryCleanupConfig::MaxExecutions(50),
+            config::WorkingDirectoryCleanupConfig::MaxExecutions(50),
         );
         assert_eq!(
             plans[0].metadata,
-            PlanMetadata {
+            config::PlanMetadata {
                 application: "rcc_app".into(),
                 suite_name: "my_second_suite".into(),
                 variant: "".into(),
@@ -414,20 +602,21 @@ mod tests {
                 ],
                 envs_rendered_obfuscated: vec![],
                 n_attempts_max: 1,
-                retry_strategy: RetryStrategy::Incremental,
+                retry_strategy: config::RetryStrategy::Incremental,
             }
         );
         assert_eq!(
             plans[1].environment,
             Environment::System(SystemEnvironment {})
         );
+        assert_eq!(plans[1].session, Session::Current(CurrentSession {}),);
         assert_eq!(
             plans[1].working_directory_cleanup_config,
-            WorkingDirectoryCleanupConfig::MaxAgeSecs(1209600),
+            config::WorkingDirectoryCleanupConfig::MaxAgeSecs(1209600),
         );
         assert_eq!(
             plans[1].metadata,
-            PlanMetadata {
+            config::PlanMetadata {
                 application: "sys_app".into(),
                 suite_name: "my_first_suite".into(),
                 variant: "".into(),
@@ -439,6 +628,146 @@ mod tests {
                 group_index: 1,
                 position_in_group: 0,
                 execution_interval: 300,
+            }
+        );
+        assert_eq!(plans[2].id, "app1_suite1");
+        assert_eq!(plans[2].working_directory, "/working/plans/app1_suite1");
+        assert_eq!(plans[2].results_file, "/results/plans/app1_suite1.json");
+        assert_eq!(plans[2].timeout, 60);
+        assert_eq!(
+            plans[2].robot,
+            Robot {
+                robot_target: Utf8PathBuf::from("/managed")
+                    .join("app1_suite1")
+                    .join("app1/tasks.robot"),
+                command_line_args: vec![
+                    "--name".into(),
+                    "suite1".into(),
+                    "--test".into(),
+                    "test1".into(),
+                    "--variablefile".into(),
+                    Utf8PathBuf::from("/managed")
+                        .join("app1_suite1")
+                        .join("app1/vars.txt")
+                        .into(),
+                    "--exitonfailure".into(),
+                ],
+                envs_rendered_obfuscated: vec![],
+                n_attempts_max: 2,
+                retry_strategy: config::RetryStrategy::Incremental,
+            }
+        );
+        assert_eq!(
+            plans[2].environment,
+            Environment::CondaFromManifest(CondaEnvironmentFromManifest {
+                micromamba_binary_path: Utf8PathBuf::from(
+                    #[cfg(unix)]
+                    {
+                        "/micromamba"
+                    },
+                    #[cfg(windows)]
+                    {
+                        "C:\\micromamba.exe"
+                    },
+                ),
+                manifest_path: Utf8PathBuf::from("/managed/app1_suite1/app1/app1_env.yaml"),
+                root_prefix: Utf8PathBuf::from("/conda_base/mamba_root_prefix"),
+                prefix: Utf8PathBuf::from("/conda_base/environments/app1_suite1"),
+                build_timeout: 300,
+                build_runtime_directory: Utf8PathBuf::from(
+                    "/working/environment_building/app1_suite1"
+                ),
+            })
+        );
+        assert_eq!(plans[2].session, Session::Current(CurrentSession {}),);
+        assert_eq!(
+            plans[2].working_directory_cleanup_config,
+            config::WorkingDirectoryCleanupConfig::MaxExecutions(5),
+        );
+        assert_eq!(
+            plans[2].metadata,
+            config::PlanMetadata {
+                application: "app1".into(),
+                suite_name: "suite1".into(),
+                variant: "".into(),
+            },
+        );
+        assert_eq!(
+            plans[2].group_affiliation,
+            GroupAffiliation {
+                group_index: 2,
+                position_in_group: 0,
+                execution_interval: 600,
+            }
+        );
+        assert_eq!(plans[3].id, "app2_tests_EN");
+        assert_eq!(plans[3].working_directory, "/working/plans/app2_tests_EN");
+        assert_eq!(plans[3].results_file, "/results/plans/app2_tests_EN.json");
+        assert_eq!(plans[3].timeout, 60);
+        assert_eq!(
+            plans[3].robot,
+            Robot {
+                robot_target: Utf8PathBuf::from("/app2/tests"),
+                command_line_args: vec![
+                    "--exclude".into(),
+                    "experimental".into(),
+                    "--variable".into(),
+                    "var1:value1".into()
+                ],
+                envs_rendered_obfuscated: vec![("env1".into(), "value1".into())],
+                n_attempts_max: 1,
+                retry_strategy: config::RetryStrategy::Complete,
+            }
+        );
+        assert_eq!(
+            plans[3].environment,
+            Environment::CondaFromArchive(CondaEnvironmentFromArchive {
+                micromamba_binary_path: Utf8PathBuf::from(
+                    #[cfg(unix)]
+                    {
+                        "/micromamba"
+                    },
+                    #[cfg(windows)]
+                    {
+                        "C:\\micromamba.exe"
+                    },
+                ),
+                archive_path: Utf8PathBuf::from("/app2.env.tar.gz"),
+                root_prefix: Utf8PathBuf::from("/conda_base/mamba_root_prefix"),
+                prefix: Utf8PathBuf::from("/conda_base/environments/app2_tests_EN"),
+                build_timeout: 300,
+                build_runtime_directory: Utf8PathBuf::from(
+                    "/working/environment_building/app2_tests_EN"
+                ),
+            })
+        );
+        #[cfg(unix)]
+        assert_eq!(plans[3].session, Session::Current(CurrentSession {}),);
+        #[cfg(windows)]
+        assert_eq!(
+            plans[3].session,
+            Session::User(UserSession {
+                user_name: "user".into()
+            }),
+        );
+        assert_eq!(
+            plans[3].working_directory_cleanup_config,
+            config::WorkingDirectoryCleanupConfig::MaxExecutions(5),
+        );
+        assert_eq!(
+            plans[3].metadata,
+            config::PlanMetadata {
+                application: "app2".into(),
+                suite_name: "tests".into(),
+                variant: "EN".into(),
+            },
+        );
+        assert_eq!(
+            plans[3].group_affiliation,
+            GroupAffiliation {
+                group_index: 2,
+                position_in_group: 1,
+                execution_interval: 600,
             }
         );
     }
