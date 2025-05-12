@@ -56,6 +56,8 @@ async fn test_scheduler() -> AnyhowResult<()> {
 
     #[cfg(windows)]
     let current_user_name = var("UserName")?;
+    let temp_dir = tempfile::tempdir()?;
+    let temp_dir_path: Utf8PathBuf = Utf8PathBuf::try_from(temp_dir.path().to_path_buf())?;
     let config = create_config(
         &test_dir,
         &Utf8PathBuf::from(var("CARGO_MANIFEST_DIR")?)
@@ -65,7 +67,7 @@ async fn test_scheduler() -> AnyhowResult<()> {
         RCCConfig {
             binary_path: var("RCC_BINARY_PATH")?.into(),
             profile_config: RCCProfileConfig::Custom(create_custom_rcc_profile(&test_dir)?),
-            robocorp_home_base: test_dir.join("rc_home_base"),
+            robocorp_home_base: temp_dir_path.join("rc_home_base"),
         },
         #[cfg(windows)]
         &current_user_name,
