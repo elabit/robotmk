@@ -7,6 +7,8 @@ jobs:
     uses: ./.github/workflows/tests.yaml
   rcc:
     uses: ./.github/workflows/rcc.yaml
+  micromamba:
+    uses: ./.github/workflows/micromamba.yaml
   system_tests:
     needs: rcc
     uses: ./.github/workflows/system_tests.yaml
@@ -14,7 +16,7 @@ jobs:
     uses: ./.github/workflows/robotmk_build.yaml
   release:
     runs-on: ubuntu-latest
-    needs: [tests, system_tests, rcc, build_robotmk]
+    needs: [tests, system_tests, rcc, micromamba, build_robotmk]
     steps:
       - uses: actions/checkout@v4
 
@@ -22,6 +24,11 @@ jobs:
         with:
           name: rcc
           path: artifact/rcc/
+
+      - uses: actions/download-artifact@v4
+        with:
+          name: micromamba
+          path: artifact/micromamba/
 
       - uses: actions/download-artifact@v4
         with:
