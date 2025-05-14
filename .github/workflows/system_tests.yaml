@@ -26,6 +26,10 @@ jobs:
         with:
           name: rcc
           path: C:\
+      - uses: actions/download-artifact@v4
+        with:
+          name: micromamba
+          path: C:\
 
       # MSVC uses vctip.exe for telemetry. vctip.exe is started as a child of termination.exe. This
       # can cause CI failures, if "vctip.exe" does not terminate before `get_children` is called.
@@ -33,8 +37,9 @@ jobs:
       - shell: pwsh
         run:  Get-ChildItem -Filter vctip.exe -Recurse "C:\\Program Files\\Microsoft Visual Studio\\2022\\Enterprise\\VC\\Tools\\MSVC" | rm
       - run: cargo test --target=x86_64-pc-windows-msvc --test test_plan_run --test test_agent_plugin -- --ignored
-      - run: cargo run --example termination --target=x86_64-pc-windows-msvc
-      - run: cargo run --example termination --target=x86_64-pc-windows-msvc -- C:\windows64\rcc.exe
+      - run: cargo run --example termination --target=x86_64-pc-windows-msvc -- system-python
+      - run: cargo run --example termination --target=x86_64-pc-windows-msvc -- rcc C:\windows64\rcc.exe
+      - run: cargo run --example termination --target=x86_64-pc-windows-msvc -- micromamba C:\micromamba.exe
 
       - run: mkdir C:\managed_robots
       - run: tar --create -z --directory tests\minimal_suite\ --file C:\managed_robots\minimal_suite.tar.gz *
@@ -78,10 +83,18 @@ jobs:
       # file permissions are not retained during upload:
       # https://github.com/actions/upload-artifact?tab=readme-ov-file#permission-loss
       - run: chmod +x /tmp/linux64/rcc
+      - uses: actions/download-artifact@v4
+        with:
+          name: micromamba
+          path: /tmp/
+      # file permissions are not retained during upload:
+      # https://github.com/actions/upload-artifact?tab=readme-ov-file#permission-loss
+      - run: chmod +x /tmp/micromamba
 
       - run: cargo test --target=x86_64-unknown-linux-musl --test test_plan_run --test test_agent_plugin -- --ignored
-      - run: cargo run --example termination --target=x86_64-unknown-linux-musl
-      - run: cargo run --example termination --target=x86_64-unknown-linux-musl -- /tmp/linux64/rcc
+      - run: cargo run --example termination --target=x86_64-unknown-linux-musl -- system-python
+      - run: cargo run --example termination --target=x86_64-unknown-linux-musl -- rcc /tmp/linux64/rcc
+      - run: cargo run --example termination --target=x86_64-unknown-linux-musl -- micromamba /tmp/micromamba
 
       - run: mkdir /tmp/managed_robots
       - run: tar --create --gzip --directory tests/minimal_suite/ --file /tmp/managed_robots/minimal_suite.tar.gz .
