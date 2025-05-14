@@ -25,7 +25,7 @@ fn test_rebot_run() -> AnyhowResult<()> {
         "test",
         &Environment::System(SystemEnvironment {}),
         &Session::Current(CurrentSession {}),
-        3,
+        10,
         &CancellationToken::default(),
         &test_dir,
     )?;
