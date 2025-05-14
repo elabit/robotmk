@@ -36,9 +36,14 @@ jobs:
 
   rcc:
     uses: ./.github/workflows/rcc.yaml
+  
+  micromamba:
+    uses: ./.github/workflows/micromamba.yaml
 
   system_tests:
-    needs: rcc
+    needs:
+      - rcc
+      - micromamba
     uses: ./.github/workflows/system_tests.yaml
 
   check_success:
@@ -49,6 +54,7 @@ jobs:
     - system_tests
     - build_robotmk
     - rcc
+    - micromamba
     steps:
     - name: Decide whether the needed jobs succeeded or failed
       uses: re-actors/alls-green@release/v1
