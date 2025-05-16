@@ -1,5 +1,5 @@
 use crate::section::Host;
-use anyhow::{anyhow, bail, Result as AnyhowResult};
+use anyhow::{Result as AnyhowResult, anyhow, bail};
 use camino::{Utf8Path, Utf8PathBuf};
 use serde::{Deserialize, Deserializer, Serialize};
 use serde_json::from_str;
@@ -261,10 +261,10 @@ mod tests {
     #[test]
     #[cfg(windows)]
     fn validated_micromamba_binary_path_from_utf8_path_buf_error() {
-        assert!(ValidatedMicromambaBinaryPath::try_from(Utf8PathBuf::from(
-            "C:\\not-micromamba.exe"
-        ),)
-        .is_err())
+        assert!(
+            ValidatedMicromambaBinaryPath::try_from(Utf8PathBuf::from("C:\\not-micromamba.exe"),)
+                .is_err()
+        )
     }
 
     #[test]
@@ -323,9 +323,9 @@ mod tests {
     #[test]
     #[cfg(windows)]
     fn deserialize_validated_micromamba_binary_path_error() {
-        assert!(serde_json::from_str::<ValidatedMicromambaBinaryPath>(
-            "\"C:\\\\not-micromamba.exe\""
+        assert!(
+            serde_json::from_str::<ValidatedMicromambaBinaryPath>("\"C:\\\\not-micromamba.exe\"")
+                .is_err()
         )
-        .is_err())
     }
 }

@@ -1,17 +1,17 @@
 use crate::command_spec::CommandSpec;
 use crate::tasks::TaskSpec;
-use crate::termination::{kill_process_tree, waited, Outcome};
+use crate::termination::{Outcome, kill_process_tree, waited};
 
-use anyhow::{bail, Context, Result as AnyhowResult};
+use anyhow::{Context, Result as AnyhowResult, bail};
 use camino::{Utf8Path, Utf8PathBuf};
 use log::{debug, error};
 use std::fs;
 use std::time::Duration;
 use tokio::task::yield_now;
 use tokio_util::sync::CancellationToken;
-use windows::core::{Interface, Result as WinApiResult, BSTR, HRESULT};
 use windows::Win32::Foundation::VARIANT_FALSE;
 use windows::Win32::System::{Com, TaskScheduler, Variant::VARIANT};
+use windows::core::{BSTR, HRESULT, Interface, Result as WinApiResult};
 
 pub fn run_task(task_spec: &TaskSpec) -> AnyhowResult<Outcome<i32>> {
     debug!(
@@ -367,15 +367,17 @@ endlocal"
 
     #[test]
     fn read_exit_code_empty() -> AnyhowResult<()> {
-        assert!(format!(
-            "{:?}",
-            read_exit_code(&Utf8PathBuf::try_from(
-                NamedTempFile::new()?.into_temp_path().to_path_buf(),
-            )?)
-            .err()
-            .unwrap()
-        )
-        .contains("is empty"));
+        assert!(
+            format!(
+                "{:?}",
+                read_exit_code(&Utf8PathBuf::try_from(
+                    NamedTempFile::new()?.into_temp_path().to_path_buf(),
+                )?)
+                .err()
+                .unwrap()
+            )
+            .contains("is empty")
+        );
         Ok(())
     }
 }

@@ -1,7 +1,7 @@
 use super::lock::{Locker, LockerError};
 
 use crate::termination::Terminate;
-use anyhow::{anyhow, Context, Result as AnyhowResult};
+use anyhow::{Context, Result as AnyhowResult, anyhow};
 use camino::{Utf8Path, Utf8PathBuf};
 use serde::{Deserialize, Serialize};
 use std::fs;

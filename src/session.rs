@@ -1,7 +1,7 @@
 use crate::child_process_supervisor::{ChildProcessSupervisor, StdioPaths};
 use crate::command_spec::CommandSpec;
 use crate::config::SessionConfig;
-use crate::tasks::{run_task, TaskSpec};
+use crate::tasks::{TaskSpec, run_task};
 use crate::termination::Outcome;
 
 use anyhow::{Context, Result as AnyhowResult};

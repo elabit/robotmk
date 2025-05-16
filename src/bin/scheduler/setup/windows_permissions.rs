@@ -1,5 +1,5 @@
 #![cfg(windows)]
-use anyhow::{bail, Context};
+use anyhow::{Context, bail};
 use camino::Utf8Path;
 use std::process::Command;
 

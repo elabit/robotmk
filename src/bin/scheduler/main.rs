@@ -15,7 +15,7 @@ use robotmk::results::{SchedulerPhase, SetupFailure, SetupFailures};
 use robotmk::section::WriteSection;
 use robotmk::termination::Terminate;
 use std::time::Duration;
-use tokio::time::{timeout_at, Instant};
+use tokio::time::{Instant, timeout_at};
 use tokio_util::sync::CancellationToken;
 
 fn main() -> AnyhowResult<()> {

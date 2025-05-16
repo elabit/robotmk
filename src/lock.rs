@@ -5,7 +5,7 @@ use log::debug;
 use std::fs::File;
 use std::io;
 use thiserror::Error;
-use tokio::task::{spawn_blocking, JoinError};
+use tokio::task::{JoinError, spawn_blocking};
 use tokio_util::sync::CancellationToken;
 
 #[derive(Clone)]

@@ -16,7 +16,7 @@ use robotmk::session::{CurrentSession, Session};
 use std::env::var;
 use std::thread;
 use std::time::Duration;
-use sysinfo::{get_current_pid, System};
+use sysinfo::{System, get_current_pid};
 use tempfile::tempdir;
 use tokio_util::sync::CancellationToken;
 

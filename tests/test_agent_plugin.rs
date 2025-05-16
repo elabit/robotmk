@@ -4,7 +4,7 @@ use robotmk::config::{
     CondaConfig, Config, RCCConfig, RCCProfileConfig, ValidatedMicromambaBinaryPath,
 };
 use robotmk::lock::Locker;
-use robotmk::results::{results_directory, ConfigSection};
+use robotmk::results::{ConfigSection, results_directory};
 use robotmk::section::{Host, WritePiggybackSection, WriteSection};
 use serde::Serialize;
 use std::fs::{create_dir, write};

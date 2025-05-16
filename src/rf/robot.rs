@@ -134,25 +134,27 @@ mod tests {
 
     #[test]
     fn test_new_command_line_args_empty() {
-        assert!(Robot::new(
-            RobotConfig {
-                robot_target: "/suite/tasks.robot".into(),
-                top_level_suite_name: None,
-                suites: vec![],
-                tests: vec![],
-                test_tags_include: vec![],
-                test_tags_exclude: vec![],
-                variables: vec![],
-                variable_files: vec![],
-                argument_files: vec![],
-                exit_on_failure: false,
-                environment_variables_rendered_obfuscated: vec![]
-            },
-            1,
-            RetryStrategy::Incremental
-        )
-        .command_line_args
-        .is_empty(),);
+        assert!(
+            Robot::new(
+                RobotConfig {
+                    robot_target: "/suite/tasks.robot".into(),
+                    top_level_suite_name: None,
+                    suites: vec![],
+                    tests: vec![],
+                    test_tags_include: vec![],
+                    test_tags_exclude: vec![],
+                    variables: vec![],
+                    variable_files: vec![],
+                    argument_files: vec![],
+                    exit_on_failure: false,
+                    environment_variables_rendered_obfuscated: vec![]
+                },
+                1,
+                RetryStrategy::Incremental
+            )
+            .command_line_args
+            .is_empty(),
+        );
     }
 
     #[test]

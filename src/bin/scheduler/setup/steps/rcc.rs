@@ -1,4 +1,4 @@
-use super::api::{self, skip, SetupStep, StepWithPlans};
+use super::api::{self, SetupStep, StepWithPlans, skip};
 use super::{
     partition_into_rcc_and_other_plans, plans_by_sessions, rcc_working_directory_for_session,
 };
@@ -15,7 +15,7 @@ use robotmk::session::CurrentSession;
 use robotmk::session::{RunSpec, Session};
 use robotmk::termination::Outcome;
 
-use anyhow::{anyhow, Context};
+use anyhow::{Context, anyhow};
 use camino::Utf8PathBuf;
 use log::debug;
 use std::vec;

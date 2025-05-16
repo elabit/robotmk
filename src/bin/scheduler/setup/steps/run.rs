@@ -1,6 +1,6 @@
-use super::api::{run_steps, StepWithPlans};
+use super::api::{StepWithPlans, run_steps};
 use super::{directories, rcc, unpack_managed};
-use crate::internal_config::{sort_plans_by_grouping, GlobalConfig, Plan};
+use crate::internal_config::{GlobalConfig, Plan, sort_plans_by_grouping};
 use log::info;
 use robotmk::results::SetupFailure;
 use robotmk::termination::Cancelled;

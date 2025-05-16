@@ -120,8 +120,7 @@ mod tests {
             envs_rendered_plain: vec![("ROBOCORP_HOME".into(), "/opt/rc_home".into())],
             envs_rendered_obfuscated: vec![("RCC_REMOTE_ORIGIN".into(), "http://1.com".into())],
         };
-        let expected =
-            "ROBOCORP_HOME=\"/opt/rc_home\" RCC_REMOTE_ORIGIN=*** \"/my/binary\" \"mandatory\" \"--flag\" \"--option\" \"value\"";
+        let expected = "ROBOCORP_HOME=\"/opt/rc_home\" RCC_REMOTE_ORIGIN=*** \"/my/binary\" \"mandatory\" \"--flag\" \"--option\" \"value\"";
         assert_eq!(format!("{command_spec}"), expected);
     }
 

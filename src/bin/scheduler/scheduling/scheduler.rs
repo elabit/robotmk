@@ -9,8 +9,8 @@ use log::info;
 use robotmk::termination::Terminate;
 use std::collections::HashMap;
 use std::time::Duration;
-use tokio::task::{spawn_blocking, JoinSet};
-use tokio::time::{interval_at, Instant};
+use tokio::task::{JoinSet, spawn_blocking};
+use tokio::time::{Instant, interval_at};
 use tokio_util::sync::CancellationToken;
 
 #[tokio::main]
