@@ -1,7 +1,7 @@
 mod process_tree;
 
 use anyhow::Result as AnyhowResult;
-use camino::Utf8PathBuf;
+use camino::{Utf8Path, Utf8PathBuf};
 use chrono::Utc;
 use clap::{Parser, Subcommand};
 use process_tree::check_tree_size;
@@ -51,9 +51,10 @@ fn system_main() -> AnyhowResult<()> {
     let mut system = System::new();
     let current_pid = get_current_pid().unwrap();
     let cargo_manifest_dir = Utf8PathBuf::from(var("CARGO_MANIFEST_DIR")?);
-    let test_dir = Utf8PathBuf::from_path_buf(tempdir()?.into_path()).unwrap();
-    let flag_file = test_dir.join("flag_file");
-    let resource_file = test_dir.join("resource");
+    let test_dir = tempdir()?;
+    let test_dir_path = Utf8Path::from_path(test_dir.path()).unwrap().to_path_buf();
+    let flag_file = test_dir_path.join("flag_file");
+    let resource_file = test_dir_path.join("resource");
     let robot = Robot {
         robot_target: cargo_manifest_dir.join("examples/termination/tasks.robot"),
         n_attempts_max: 1,
@@ -76,7 +77,7 @@ fn system_main() -> AnyhowResult<()> {
             &Session::Current(CurrentSession {}),
             3,
             &thread_token,
-            &test_dir,
+            &test_dir_path,
         )
     });
     while !flag_file.exists() {
@@ -107,9 +108,10 @@ fn rcc_main(rcc_binary_path: Utf8PathBuf) -> AnyhowResult<()> {
     let mut system = System::new();
     let current_pid = get_current_pid().unwrap();
     let cargo_manifest_dir = Utf8PathBuf::from(var("CARGO_MANIFEST_DIR")?);
-    let test_dir = Utf8PathBuf::from_path_buf(tempdir()?.into_path()).unwrap();
-    let flag_file = test_dir.join("flag_file");
-    let resource_file = test_dir.join("resource");
+    let test_dir = tempdir()?;
+    let test_dir_path = Utf8Path::from_path(test_dir.path()).unwrap().to_path_buf();
+    let flag_file = test_dir_path.join("flag_file");
+    let resource_file = test_dir_path.join("resource");
     let robot = Robot {
         robot_target: cargo_manifest_dir.join("examples/termination/tasks.robot"),
         n_attempts_max: 1,
@@ -130,8 +132,8 @@ fn rcc_main(rcc_binary_path: Utf8PathBuf) -> AnyhowResult<()> {
         controller: "termination_rcc".into(),
         space: "termination_rcc".into(),
         build_timeout: 1200,
-        build_runtime_directory: test_dir.clone(),
-        robocorp_home: test_dir.join("robocorp_home").to_string(),
+        build_runtime_directory: test_dir_path.to_path_buf(),
+        robocorp_home: test_dir_path.join("robocorp_home").to_string(),
     });
     let session = Session::Current(CurrentSession {});
     assert!(matches!(
@@ -151,7 +153,7 @@ fn rcc_main(rcc_binary_path: Utf8PathBuf) -> AnyhowResult<()> {
             &session,
             20,
             &thread_token,
-            &test_dir,
+            &test_dir_path,
         )
     });
     while !flag_file.exists() {
@@ -182,9 +184,10 @@ fn micromamba_main(micromamba_binary_path: Utf8PathBuf) -> AnyhowResult<()> {
     let mut system = System::new();
     let current_pid = get_current_pid().unwrap();
     let cargo_manifest_dir = Utf8PathBuf::from(var("CARGO_MANIFEST_DIR")?);
-    let test_dir = Utf8PathBuf::from_path_buf(tempdir()?.into_path()).unwrap();
-    let flag_file = test_dir.join("flag_file");
-    let resource_file = test_dir.join("resource");
+    let test_dir = tempdir()?;
+    let test_dir_path = Utf8Path::from_path(test_dir.path()).unwrap().to_path_buf();
+    let flag_file = test_dir_path.join("flag_file");
+    let resource_file = test_dir_path.join("resource");
     let robot = Robot {
         robot_target: cargo_manifest_dir.join("examples/termination/tasks.robot"),
         n_attempts_max: 1,
@@ -200,10 +203,10 @@ fn micromamba_main(micromamba_binary_path: Utf8PathBuf) -> AnyhowResult<()> {
     let conda_environment = Environment::CondaFromManifest(CondaEnvironmentFromManifest {
         micromamba_binary_path,
         manifest_path: cargo_manifest_dir.join("examples/termination/conda.yaml"),
-        root_prefix: test_dir.join("micromamba_root"),
-        prefix: test_dir.join("conda_env"),
+        root_prefix: test_dir_path.join("micromamba_root"),
+        prefix: test_dir_path.join("conda_env"),
         build_timeout: 1200,
-        build_runtime_directory: test_dir.clone(),
+        build_runtime_directory: test_dir_path.clone(),
     });
     let session = Session::Current(CurrentSession {});
     assert!(matches!(
@@ -223,7 +226,7 @@ fn micromamba_main(micromamba_binary_path: Utf8PathBuf) -> AnyhowResult<()> {
             &session,
             20,
             &thread_token,
-            &test_dir,
+            &test_dir_path,
         )
     });
     while !flag_file.exists() {

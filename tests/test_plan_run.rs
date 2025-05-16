@@ -1,5 +1,5 @@
 use anyhow::Result as AnyhowResult;
-use camino::Utf8PathBuf;
+use camino::Utf8Path;
 use robotmk::config::RetryStrategy;
 use robotmk::environment::{Environment, SystemEnvironment};
 use robotmk::plans::run_attempts_with_rebot;
@@ -12,7 +12,8 @@ use tokio_util::sync::CancellationToken;
 #[test]
 #[ignore]
 fn test_rebot_run() -> AnyhowResult<()> {
-    let test_dir = Utf8PathBuf::from_path_buf(tempdir()?.into_path()).unwrap();
+    let test_dir = tempdir()?;
+    let test_dir_path = Utf8Path::from_path(test_dir.path()).unwrap();
     let robot = Robot {
         robot_target: "tests/minimal_suite/tasks.robot".into(),
         n_attempts_max: 1,
@@ -27,7 +28,7 @@ fn test_rebot_run() -> AnyhowResult<()> {
         &Session::Current(CurrentSession {}),
         10,
         &CancellationToken::default(),
-        &test_dir,
+        test_dir_path,
     )?;
     assert_eq!(attempt_reports.len(), 1);
     let attempt_report = &attempt_reports[0];
@@ -40,8 +41,9 @@ fn test_rebot_run() -> AnyhowResult<()> {
 #[test]
 #[ignore]
 fn test_timeout_process() -> AnyhowResult<()> {
-    let test_dir = Utf8PathBuf::from_path_buf(tempdir()?.into_path()).unwrap();
-    let resource = test_dir.join("resource");
+    let test_dir = tempdir()?;
+    let test_dir_path = Utf8Path::from_path(test_dir.path()).unwrap();
+    let resource = test_dir_path.join("resource");
     let robot = Robot {
         robot_target: "tests/timeout/tasks.robot".into(),
         n_attempts_max: 1,
@@ -56,7 +58,7 @@ fn test_timeout_process() -> AnyhowResult<()> {
         &Session::Current(CurrentSession {}),
         1,
         &CancellationToken::default(),
-        &test_dir,
+        test_dir_path,
     )?;
     assert_eq!(attempt_reports.len(), 1);
     let attempt_report = &attempt_reports[0];
