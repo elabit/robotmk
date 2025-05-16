@@ -49,8 +49,8 @@ impl Rebot<'_> {
             }
         };
         match self.environment.create_result_code(exit_code) {
-            ResultCode::AllTestsPassed => Ok(self.process_successful_run(timestamp)),
-            ResultCode::RobotCommandFailed => {
+            ResultCode::Success => Ok(self.process_successful_run(timestamp)),
+            ResultCode::WrappedCommandFailed => {
                 if self.path_xml.exists() {
                     Ok(self.process_successful_run(timestamp))
                 } else {
@@ -67,6 +67,17 @@ impl Rebot<'_> {
                     "Environment failure when running rebot, see {} for stdio logs",
                     self.runtime_base_path,
                 )))
+            }
+            ResultCode::Error(error_message) => {
+                if self.path_xml.exists() {
+                    Ok(self.process_successful_run(timestamp))
+                } else {
+                    error!("Rebot run failed: {error_message} (no merged XML found)");
+                    Ok(RebotOutcome::Error(format!(
+                        "Rebot run failed (no merged XML found), see {} for stdio logs",
+                        self.runtime_base_path
+                    )))
+                }
             }
         }
     }
