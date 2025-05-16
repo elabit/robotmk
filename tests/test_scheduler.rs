@@ -2,7 +2,7 @@ pub mod helper;
 pub mod rcc;
 use crate::helper::{await_plan_results, directory_entries, var};
 use crate::rcc::read_configuration_diagnostics;
-use anyhow::{bail, Result as AnyhowResult};
+use anyhow::{Result as AnyhowResult, bail};
 use assert_cmd::cargo::cargo_bin;
 use camino::{Utf8Path, Utf8PathBuf};
 #[cfg(windows)]
@@ -104,9 +104,11 @@ async fn test_scheduler() -> AnyhowResult<()> {
     assert!(!unconfigured_plan_working_dir.exists());
     assert!(configured_plan_previous_execution_dir.is_dir());
     #[cfg(windows)]
-    assert!(!get_permissions(&configured_plan_working_dir)
-        .await?
-        .contains(&test_user));
+    assert!(
+        !get_permissions(&configured_plan_working_dir)
+            .await?
+            .contains(&test_user)
+    );
     assert_results_directory(&results_directory(&config.runtime_directory));
     assert_managed_directory(
         &config.runtime_directory.join("managed"),
@@ -391,9 +393,11 @@ async fn run_scheduler(
         },
     };
     remove_file(&run_flag_path)?;
-    assert!(timeout(Duration::from_secs(3), robotmk_child_proc.wait())
-        .await
-        .is_ok());
+    assert!(
+        timeout(Duration::from_secs(3), robotmk_child_proc.wait())
+            .await
+            .is_ok()
+    );
 
     Ok(())
 }

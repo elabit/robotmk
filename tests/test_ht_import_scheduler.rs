@@ -1,7 +1,7 @@
 #![cfg(unix)]
 pub mod helper;
 use crate::helper::{await_plan_results, directory_entries, var};
-use anyhow::{bail, Result as AnyhowResult};
+use anyhow::{Result as AnyhowResult, bail};
 use assert_cmd::cargo::cargo_bin;
 use camino::{Utf8Path, Utf8PathBuf};
 use robotmk::config::{
@@ -176,9 +176,11 @@ async fn run_scheduler(
         },
     };
     remove_file(&run_flag_path)?;
-    assert!(timeout(Duration::from_secs(3), robotmk_child_proc.wait())
-        .await
-        .is_ok());
+    assert!(
+        timeout(Duration::from_secs(3), robotmk_child_proc.wait())
+            .await
+            .is_ok()
+    );
 
     Ok(())
 }
