@@ -108,7 +108,7 @@ fn run_attempt(
         }
     };
     match environment.create_result_code(exit_code) {
-        ResultCode::AllTestsPassed => {
+        ResultCode::Success => {
             info!("{log_message_start}: all tests passed");
             Ok((
                 AttemptOutcome::AllTestsPassed,
@@ -119,13 +119,27 @@ fn run_attempt(
             error!("{log_message_start}: environment failure");
             Ok((AttemptOutcome::EnvironmentFailure, None))
         }
-        ResultCode::RobotCommandFailed => {
+        ResultCode::WrappedCommandFailed => {
             if attempt.output_xml_file.exists() {
                 info!("{log_message_start}: some tests failed");
                 Ok((AttemptOutcome::TestFailures, Some(attempt.output_xml_file)))
             } else {
                 error!("{log_message_start}: robot failure (no output)");
                 Ok((AttemptOutcome::RobotFailure, None))
+            }
+        }
+        ResultCode::Error(error) => {
+            if attempt.output_xml_file.exists() {
+                info!("{log_message_start}: some tests failed");
+                Ok((AttemptOutcome::TestFailures, Some(attempt.output_xml_file)))
+            } else {
+                error!("{log_message_start}: {error} (no output)");
+                Ok((
+                    AttemptOutcome::OtherError(format!(
+                        "{error} (no output), see {output_directory} for stdio logs"
+                    )),
+                    None,
+                ))
             }
         }
     }

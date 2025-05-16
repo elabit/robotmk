@@ -4,9 +4,10 @@ use crate::config::EnvironmentConfig;
 use camino::{Utf8Path, Utf8PathBuf};
 
 pub enum ResultCode {
-    AllTestsPassed,
-    RobotCommandFailed,
+    Success,
+    WrappedCommandFailed,
     EnvironmentFailed,
+    Error(String),
 }
 
 #[derive(Clone, Debug, PartialEq)]
@@ -76,8 +77,8 @@ impl Environment {
 
     pub fn create_result_code(&self, exit_code: i32) -> ResultCode {
         match self {
-            Self::System(_) => SystemEnvironment::create_result_code(exit_code),
-            Self::Rcc(_) => RCCEnvironment::create_result_code(exit_code),
+            Self::System(system_env) => system_env.create_result_code(exit_code),
+            Self::Rcc(rcc_env) => rcc_env.create_result_code(exit_code),
         }
     }
 }
@@ -91,11 +92,11 @@ impl SystemEnvironment {
         command_spec
     }
 
-    fn create_result_code(exit_code: i32) -> ResultCode {
+    fn create_result_code(&self, exit_code: i32) -> ResultCode {
         if exit_code == 0 {
-            return ResultCode::AllTestsPassed;
+            return ResultCode::Success;
         }
-        ResultCode::RobotCommandFailed
+        ResultCode::WrappedCommandFailed
     }
 }
 
@@ -162,10 +163,10 @@ impl RCCEnvironment {
         wrapped_spec
     }
 
-    fn create_result_code(exit_code: i32) -> ResultCode {
+    fn create_result_code(&self, exit_code: i32) -> ResultCode {
         match exit_code {
-            0 => ResultCode::AllTestsPassed,
-            10 => ResultCode::RobotCommandFailed,
+            0 => ResultCode::Success,
+            10 => ResultCode::WrappedCommandFailed,
             _ => ResultCode::EnvironmentFailed,
         }
     }
