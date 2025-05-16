@@ -1,6 +1,7 @@
 use super::api::{self, skip, SetupStep, StepWithPlans};
 use super::{
-    partition_into_rcc_and_system_plans, plans_by_sessions, rcc_working_directory_for_session,
+    partition_into_conda_and_other_plans, partition_into_rcc_and_other_plans, plans_by_sessions,
+    rcc_working_directory_for_session,
 };
 
 use crate::internal_config::{GlobalConfig, Plan, Source};
@@ -124,7 +125,7 @@ impl SetupStep for StepRobocorpHomeBase {
 #[cfg(windows)]
 pub fn gather_robocorp_home_base(config: &GlobalConfig, plans: Vec<Plan>) -> Vec<StepWithPlans> {
     let (rcc_plans, system_plans): (Vec<Plan>, Vec<Plan>) =
-        partition_into_rcc_and_system_plans(plans);
+        partition_into_rcc_and_other_plans(plans);
     vec![
         (
             Box::new(StepRobocorpHomeBase {
@@ -177,7 +178,7 @@ pub fn gather_robocorp_base_read_access(
     plans: Vec<Plan>,
 ) -> Vec<StepWithPlans> {
     let (rcc_plans, system_plans): (Vec<Plan>, Vec<Plan>) =
-        partition_into_rcc_and_system_plans(plans);
+        partition_into_rcc_and_other_plans(plans);
     let mut setup_steps: Vec<StepWithPlans> = vec![skip(system_plans)];
     for (session, plans_in_session) in plans_by_sessions(rcc_plans) {
         match session {
@@ -204,7 +205,7 @@ pub fn gather_robocorp_home_per_user(
     plans: Vec<Plan>,
 ) -> Vec<StepWithPlans> {
     let (rcc_plans, system_plans): (Vec<Plan>, Vec<Plan>) =
-        partition_into_rcc_and_system_plans(plans);
+        partition_into_rcc_and_other_plans(plans);
     let mut setup_steps: Vec<StepWithPlans> = vec![skip(system_plans)];
     for (session, plans_in_session) in plans_by_sessions(rcc_plans) {
         setup_steps.push((
@@ -214,6 +215,149 @@ pub fn gather_robocorp_home_per_user(
             }),
             plans_in_session,
         ));
+    }
+    setup_steps
+}
+
+struct StepCondaBase {
+    target: Utf8PathBuf,
+}
+
+impl SetupStep for StepCondaBase {
+    #[cfg(unix)]
+    fn label(&self) -> String {
+        format!("Create Conda base directory {target}", target = self.target)
+    }
+
+    #[cfg(windows)]
+    fn label(&self) -> String {
+        format!(
+            "Create Conda base directory {target} and set permissions",
+            target = self.target
+        )
+    }
+
+    fn setup(&self) -> Result<(), api::Error> {
+        StepCreate {
+            target: self.target.clone(),
+        }
+        .setup()?;
+        #[cfg(windows)]
+        {
+            reset_access(&self.target).map_err(|err| {
+                api::Error::new(
+                    format!(
+                        "Failed to reset permissions of {target}",
+                        target = self.target
+                    ),
+                    err,
+                )
+            })?;
+            transfer_directory_ownership_recursive(&self.target).map_err(|err| {
+                api::Error::new(
+                    format!(
+                        "Failed to transfer ownership of {target}",
+                        target = self.target
+                    ),
+                    err,
+                )
+            })?;
+            run_icacls_command([self.target.as_str(), "/inheritancelevel:r"]).map_err(|err| {
+                api::Error::new(
+                    format!(
+                        "Failed to remove permission inheritance for {target}",
+                        target = self.target
+                    ),
+                    err,
+                )
+            })?;
+            run_icacls_command([self.target.as_str(), "/grant", "*S-1-5-32-544:(OI)(CI)F"])
+                .map_err(|err| {
+                    api::Error::new(
+                        format!(
+                            "Failed to grant administrator group full access to {target}",
+                            target = self.target
+                        ),
+                        err,
+                    )
+                })?;
+        }
+        Ok(())
+    }
+}
+
+pub fn gather_conda_base(config: &GlobalConfig, plans: Vec<Plan>) -> Vec<StepWithPlans> {
+    let (conda_plans, other_plans): (Vec<Plan>, Vec<Plan>) =
+        partition_into_conda_and_other_plans(plans);
+    vec![
+        (
+            Box::new(StepCondaBase {
+                target: config.conda_config.base_directory.clone(),
+            }),
+            conda_plans,
+        ),
+        skip(other_plans),
+    ]
+}
+
+#[cfg(windows)]
+struct StepCondaBaseReadAndExecuteAccess {
+    target: Utf8PathBuf,
+    user_name: String,
+}
+
+#[cfg(windows)]
+impl SetupStep for StepCondaBaseReadAndExecuteAccess {
+    fn label(&self) -> String {
+        format!(
+            "Grant user {user} read and execute access to {target}",
+            user = self.user_name,
+            target = self.target
+        )
+    }
+
+    fn setup(&self) -> Result<(), api::Error> {
+        run_icacls_command([
+            self.target.as_str(),
+            "/grant",
+            &format!("{}:(OI)(CI)RX", self.user_name),
+        ])
+        .map_err(|err| {
+            api::Error::new(
+                format!(
+                    "Failed to grant {user_name} read and execute access to {target}",
+                    user_name = self.user_name,
+                    target = self.target
+                ),
+                err,
+            )
+        })
+    }
+}
+
+#[cfg(windows)]
+pub fn gather_conda_base_read_and_execute_access(
+    config: &GlobalConfig,
+    plans: Vec<Plan>,
+) -> Vec<StepWithPlans> {
+    let (conda_plans, other_plans): (Vec<Plan>, Vec<Plan>) =
+        partition_into_conda_and_other_plans(plans);
+    let mut setup_steps: Vec<StepWithPlans> = vec![skip(other_plans)];
+    for (session, plans_in_session) in plans_by_sessions(conda_plans) {
+        match session {
+            Session::User(user_session) => {
+                setup_steps.push((
+                    Box::new(StepCondaBaseReadAndExecuteAccess {
+                        target: config.conda_config.base_directory.clone(),
+                        user_name: user_session.user_name.clone(),
+                    }),
+                    plans_in_session,
+                ));
+            }
+            _ => {
+                setup_steps.push(skip(plans_in_session));
+            }
+        }
     }
     setup_steps
 }
@@ -260,7 +404,7 @@ pub fn gather_environment_building_directories(
 
 pub fn gather_rcc_working_base(config: &GlobalConfig, plans: Vec<Plan>) -> Vec<StepWithPlans> {
     let (rcc_plans, system_plans): (Vec<Plan>, Vec<Plan>) =
-        partition_into_rcc_and_system_plans(plans);
+        partition_into_rcc_and_other_plans(plans);
     vec![
         (
             Box::new(StepCreate {
@@ -274,7 +418,7 @@ pub fn gather_rcc_working_base(config: &GlobalConfig, plans: Vec<Plan>) -> Vec<S
 
 pub fn gather_rcc_working_per_user(config: &GlobalConfig, plans: Vec<Plan>) -> Vec<StepWithPlans> {
     let (rcc_plans, system_plans): (Vec<Plan>, Vec<Plan>) =
-        partition_into_rcc_and_system_plans(plans);
+        partition_into_rcc_and_other_plans(plans);
     let mut setup_steps: Vec<StepWithPlans> = vec![skip(system_plans)];
     for (session, plans_in_session) in plans_by_sessions(rcc_plans) {
         setup_steps.push((
@@ -298,7 +442,7 @@ pub fn gather_rcc_longpath_directory(
 ) -> Vec<StepWithPlans> {
     use robotmk::session::CurrentSession;
     let (rcc_plans, system_plans): (Vec<Plan>, Vec<Plan>) =
-        partition_into_rcc_and_system_plans(plans);
+        partition_into_rcc_and_other_plans(plans);
     vec![
         (
             Box::new(StepCreate {

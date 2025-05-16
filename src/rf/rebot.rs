@@ -49,8 +49,8 @@ impl Rebot<'_> {
             }
         };
         match self.environment.create_result_code(exit_code) {
-            ResultCode::AllTestsPassed => Ok(self.process_successful_run(timestamp)),
-            ResultCode::RobotCommandFailed => {
+            ResultCode::Success => Ok(self.process_successful_run(timestamp)),
+            ResultCode::WrappedCommandFailed => {
                 if self.path_xml.exists() {
                     Ok(self.process_successful_run(timestamp))
                 } else {
@@ -67,6 +67,17 @@ impl Rebot<'_> {
                     "Environment failure when running rebot, see {} for stdio logs",
                     self.runtime_base_path,
                 )))
+            }
+            ResultCode::Error(error_message) => {
+                if self.path_xml.exists() {
+                    Ok(self.process_successful_run(timestamp))
+                } else {
+                    error!("Rebot run failed: {error_message} (no merged XML found)");
+                    Ok(RebotOutcome::Error(format!(
+                        "Rebot run failed (no merged XML found), see {} for stdio logs",
+                        self.runtime_base_path
+                    )))
+                }
             }
         }
     }
@@ -129,21 +140,14 @@ impl Rebot<'_> {
 #[cfg(test)]
 mod tests {
     use super::*;
-    use crate::config::EnvironmentConfig;
+    use crate::environment::SystemEnvironment;
     use crate::session::CurrentSession;
 
     #[test]
     fn build_rebot_command() {
         let rebot_command_spec = Rebot {
             plan_id: "my_plan",
-            environment: &Environment::new(
-                "/working/".into(),
-                "/robocorp_home".into(),
-                "my_plan",
-                "/bin/rcc".into(),
-                &EnvironmentConfig::System,
-                &Utf8PathBuf::default(),
-            ),
+            environment: &Environment::System(SystemEnvironment {}),
             session: &Session::Current(CurrentSession {}),
             runtime_base_path: Utf8PathBuf::from("/working/my_plan/rebot"),
             cancellation_token: &CancellationToken::default(),

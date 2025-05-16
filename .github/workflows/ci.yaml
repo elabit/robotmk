@@ -36,9 +36,14 @@ jobs:
 
   rcc:
     uses: ./.github/workflows/rcc.yaml
+  
+  micromamba:
+    uses: ./.github/workflows/micromamba.yaml
 
   system_tests:
-    needs: rcc
+    needs:
+      - rcc
+      - micromamba
     uses: ./.github/workflows/system_tests.yaml
 
   check_success:

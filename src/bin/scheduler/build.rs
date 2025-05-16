@@ -1,15 +1,14 @@
 use super::internal_config::{GlobalConfig, Plan};
-use robotmk::environment::{BuildInstructions, Environment};
+use robotmk::environment::Environment;
 use robotmk::lock::Locker;
 use robotmk::results::{BuildOutcome, BuildStates, EnvironmentBuildStage};
 use robotmk::section::WriteSection;
-use robotmk::session::{RunSpec, Session};
-use robotmk::termination::{Cancelled, Outcome, Terminate};
+use robotmk::session::Session;
+use robotmk::termination::Terminate;
 
-use anyhow::anyhow;
 use camino::{Utf8Path, Utf8PathBuf};
-use chrono::{DateTime, Utc};
-use log::{error, info};
+use chrono::Utc;
+use log::info;
 use std::collections::HashMap;
 use tokio_util::sync::CancellationToken;
 
@@ -46,117 +45,18 @@ fn build_environment(
     cancellation_token: &CancellationToken,
     build_stage_reporter: &mut BuildStageReporter,
 ) -> Result<BuildOutcome, Terminate> {
-    let Some(build_instructions) = environment.build_instructions() else {
-        let outcome = BuildOutcome::NotNeeded;
-        info!("Nothing to do for plan {id}");
-        build_stage_reporter.update(id, EnvironmentBuildStage::Complete(outcome.clone()))?;
-        return Ok(outcome);
-    };
-    info!("Building environment for plan {id}");
+    info!("Processing plan {id}");
     let start_time = Utc::now();
     build_stage_reporter.update(
         id,
         EnvironmentBuildStage::InProgress(start_time.timestamp()),
     )?;
-    let outcome = run_build_commands(
-        id,
-        &build_instructions,
-        session,
-        start_time,
-        cancellation_token,
-    )?;
+    let outcome = environment.build(id, session, start_time, cancellation_token)?;
+    if let BuildOutcome::NotNeeded = outcome {
+        info!("Nothing to do for plan {id}");
+    }
     build_stage_reporter.update(id, EnvironmentBuildStage::Complete(outcome.clone()))?;
     Ok(outcome)
-}
-
-fn run_build_commands(
-    id: &str,
-    build_instructions: &BuildInstructions,
-    session: &Session,
-    start_time: DateTime<Utc>,
-    cancellation_token: &CancellationToken,
-) -> Result<BuildOutcome, Cancelled> {
-    if let Some(command_spec) = &build_instructions.import_command_spec {
-        let import_run_spec = RunSpec {
-            id: &format!("robotmk_env_import_{id}"),
-            command_spec,
-            runtime_base_path: &build_instructions.runtime_directory.join("import"),
-            timeout: build_instructions.timeout,
-            cancellation_token,
-        };
-        match session.run(&import_run_spec) {
-            Ok(Outcome::Completed(0)) => {
-                info!("Environment import succeeded for plan {id}");
-            }
-            Ok(Outcome::Completed(_exit_code)) => {
-                error!("Environment import not successful, plan {id} will be dropped");
-                return Ok(BuildOutcome::Error(format!(
-                    "Environment import not successful, see {} for stdio logs",
-                    build_instructions.runtime_directory
-                )));
-            }
-            Ok(Outcome::Timeout) => {
-                error!("Environment import timed out, plan {id} will be dropped");
-                return Ok(BuildOutcome::Timeout);
-            }
-            Ok(Outcome::Cancel) => {
-                error!("Environment import cancelled, plan {id} will be dropped");
-                return Err(Cancelled {});
-            }
-            Err(e) => {
-                let log_error = e.context(anyhow!(
-                    "Environment import failed, plan {id} will be dropped. See {} for stdio logs",
-                    build_instructions.runtime_directory
-                ));
-                error!("{log_error:?}");
-                return Ok(BuildOutcome::Error(format!("{log_error:?}")));
-            }
-        };
-    } else {
-        info!("No catalog zip. Environment import skipped.");
-    };
-    let elapsed: u64 = (Utc::now() - start_time).num_seconds().try_into().unwrap();
-    if elapsed >= build_instructions.timeout {
-        error!("Environment import timed out, plan {id} will be dropped");
-        return Ok(BuildOutcome::Timeout);
-    };
-    let build_run_spec = RunSpec {
-        id: &format!("robotmk_env_building_{id}"),
-        command_spec: &build_instructions.build_command_spec,
-        runtime_base_path: &build_instructions.runtime_directory.join("build"),
-        timeout: build_instructions.timeout - elapsed,
-        cancellation_token,
-    };
-    match session.run(&build_run_spec) {
-        Ok(Outcome::Completed(0)) => {
-            info!("Environment building succeeded for plan {id}");
-            let duration = (Utc::now() - start_time).num_seconds();
-            Ok(BuildOutcome::Success(duration))
-        }
-        Ok(Outcome::Completed(_exit_code)) => {
-            error!("Environment building not successful, plan {id} will be dropped");
-            Ok(BuildOutcome::Error(format!(
-                "Environment building not successful, see {} for stdio logs",
-                build_instructions.runtime_directory
-            )))
-        }
-        Ok(Outcome::Timeout) => {
-            error!("Environment building timed out, plan {id} will be dropped");
-            Ok(BuildOutcome::Timeout)
-        }
-        Ok(Outcome::Cancel) => {
-            error!("Environment building cancelled, plan {id} will be dropped");
-            Err(Cancelled {})
-        }
-        Err(e) => {
-            let log_error = e.context(anyhow!(
-                "Environment building failed, plan {id} will be dropped. See {} for stdio logs",
-                build_instructions.runtime_directory
-            ));
-            error!("{log_error:?}");
-            Ok(BuildOutcome::Error(format!("{log_error:?}")))
-        }
-    }
 }
 
 struct BuildStageReporter<'a> {

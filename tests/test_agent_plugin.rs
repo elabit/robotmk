@@ -1,6 +1,8 @@
 use assert_cmd::cargo::cargo_bin;
 use camino::{Utf8Path, Utf8PathBuf};
-use robotmk::config::{Config, RCCConfig, RCCProfileConfig};
+use robotmk::config::{
+    CondaConfig, Config, RCCConfig, RCCProfileConfig, ValidatedMicromambaBinaryPath,
+};
 use robotmk::lock::Locker;
 use robotmk::results::{results_directory, ConfigSection};
 use robotmk::section::{Host, WritePiggybackSection, WriteSection};
@@ -50,6 +52,20 @@ fn create_config(runtime_dir: &Utf8Path) -> Config {
             binary_path: "".into(),
             profile_config: RCCProfileConfig::Default,
             robocorp_home_base: "".into(),
+        },
+        conda_config: CondaConfig {
+            micromamba_binary_path: ValidatedMicromambaBinaryPath::try_from(Utf8PathBuf::from(
+                #[cfg(unix)]
+                {
+                    "/micromamba"
+                },
+                #[cfg(windows)]
+                {
+                    "C:\\micromamba.exe"
+                },
+            ))
+            .unwrap(),
+            base_directory: Utf8PathBuf::default(),
         },
         plan_groups: vec![],
     }

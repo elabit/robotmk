@@ -8,9 +8,10 @@ use camino::{Utf8Path, Utf8PathBuf};
 #[cfg(windows)]
 use robotmk::config::UserSessionConfig;
 use robotmk::config::{
-    Config, CustomRCCProfileConfig, EnvironmentConfig, ExecutionConfig, PlanConfig, PlanMetadata,
-    RCCConfig, RCCEnvironmentConfig, RCCProfileConfig, RetryStrategy, RobotConfig,
-    SequentialPlanGroup, SessionConfig, Source, WorkingDirectoryCleanupConfig,
+    CondaConfig, Config, CustomRCCProfileConfig, EnvironmentConfig, ExecutionConfig, PlanConfig,
+    PlanMetadata, RCCConfig, RCCEnvironmentConfig, RCCProfileConfig, RetryStrategy, RobotConfig,
+    SequentialPlanGroup, SessionConfig, Source, ValidatedMicromambaBinaryPath,
+    WorkingDirectoryCleanupConfig,
 };
 use robotmk::results::results_directory;
 use robotmk::section::Host;
@@ -68,6 +69,20 @@ async fn test_scheduler() -> AnyhowResult<()> {
             binary_path: var("RCC_BINARY_PATH")?.into(),
             profile_config: RCCProfileConfig::Custom(create_custom_rcc_profile(&test_dir)?),
             robocorp_home_base: temp_dir_path.join("rc_home_base"),
+        },
+        CondaConfig {
+            micromamba_binary_path: ValidatedMicromambaBinaryPath::try_from(Utf8PathBuf::from(
+                #[cfg(unix)]
+                {
+                    "/micromamba"
+                },
+                #[cfg(windows)]
+                {
+                    "C:\\micromamba.exe"
+                },
+            ))
+            .unwrap(),
+            base_directory: Utf8PathBuf::default(),
         },
         #[cfg(windows)]
         &current_user_name,
@@ -158,11 +173,13 @@ fn create_config(
     suite_dir: &Utf8Path,
     managed_robot_archive_path: &Utf8Path,
     rcc_config: RCCConfig,
+    conda_config: CondaConfig,
     #[cfg(windows)] user_name_headed: &str,
 ) -> Config {
     Config {
         runtime_directory: runtime_dir.into(),
         rcc_config,
+        conda_config,
         plan_groups: vec![
             SequentialPlanGroup {
                 plans: vec![

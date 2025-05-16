@@ -21,7 +21,7 @@ main() {
 		;;
 
 	'cargo-examples')
-		cargo run --example termination --target "${target}"
+		cargo run --example termination --target "${target}" -- system-python
 		;;
 
 	'check-all')
