@@ -1,5 +1,5 @@
 use crate::command_spec::CommandSpec;
-use crate::termination::{kill_process_tree, waited, Outcome};
+use crate::termination::{Outcome, kill_process_tree, waited};
 
 use anyhow::{Context, Result as AnyhowResult};
 use camino::Utf8PathBuf;
@@ -109,8 +109,8 @@ fn kill_child_tree(child: &tokio::process::Child) {
 #[cfg(unix)]
 async fn interrupt_and_wait(child: &mut tokio::process::Child) {
     use log::error;
-    use nix::sys::signal::{killpg, Signal};
-    use nix::unistd::{getpgid, Pid};
+    use nix::sys::signal::{Signal, killpg};
+    use nix::unistd::{Pid, getpgid};
     use tokio::time::sleep;
 
     if let Some(pid) = child.id() {

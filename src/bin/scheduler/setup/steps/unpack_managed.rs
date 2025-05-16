@@ -1,4 +1,4 @@
-use super::api::{self, skip, SetupStep, StepWithPlans};
+use super::api::{self, SetupStep, StepWithPlans, skip};
 use crate::internal_config::{GlobalConfig, Plan, Source};
 use anyhow::Context;
 use camino::{Utf8Path, Utf8PathBuf};
@@ -99,8 +99,8 @@ fn sum_up_size_of_archive_entries<R: Sized + std::io::Read>(
 mod tests {
     use super::*;
     use camino::Utf8PathBuf;
-    use flate2::write::GzEncoder;
     use flate2::Compression;
+    use flate2::write::GzEncoder;
     use std::fs;
     use std::io::{self, Write};
     use tempfile::tempdir;

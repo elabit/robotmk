@@ -3,11 +3,11 @@ use clap::Parser;
 use robotmk::{
     config::Config,
     lock::Locker,
-    results::results_directory,
     results::ConfigSection,
-    section::{read, Host, Section},
+    results::results_directory,
+    section::{Host, Section, read},
 };
-use std::env::{var, VarError};
+use std::env::{VarError, var};
 use std::fs::read_to_string;
 use std::io;
 
