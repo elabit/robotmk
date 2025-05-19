@@ -31,9 +31,9 @@ pub fn run(
 
 type Gatherer = fn(&GlobalConfig, Vec<Plan>) -> Vec<StepWithPlans>;
 #[cfg(unix)]
-type Steps = [(Gatherer, &'static str); 12];
+type Steps = [(Gatherer, &'static str); 13];
 #[cfg(windows)]
-type Steps = [(Gatherer, &'static str); 20];
+type Steps = [(Gatherer, &'static str); 21];
 
 const STEPS: Steps = [
     (
@@ -78,8 +78,12 @@ const STEPS: Steps = [
         "Plan working directories",
     ),
     (
-        directories::gather_environment_building_directories,
-        "Environment building directories",
+        directories::gather_rcc_environment_building_directories,
+        "RCC environment building directories",
+    ),
+    (
+        directories::gather_conda_environment_building_directories,
+        "Conda environment building directories",
     ),
     (
         directories::gather_rcc_working_base,
