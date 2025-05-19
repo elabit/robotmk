@@ -219,7 +219,7 @@ fn create_config(
                             WorkingDirectoryCleanupConfig::MaxExecutions(4),
                         host: Host::Source,
                         metadata: PlanMetadata {
-                            application: "app1".into(),
+                            application: "app".into(),
                             suite_name: "minimal_suite".into(),
                             variant: "".into(),
                         },
@@ -262,13 +262,13 @@ fn create_config(
                         ),
                         host: Host::Source,
                         metadata: PlanMetadata {
-                            application: "app2".into(),
+                            application: "app".into(),
                             suite_name: "minimal_suite".into(),
                             variant: "".into(),
                         },
                     },
                     PlanConfig {
-                        id: "managed_robot".into(),
+                        id: "rcc_managed_robot".into(),
                         source: Source::Managed {
                             tar_gz_path: managed_robot_archive_path.into(),
                             version_number: 1,
@@ -322,7 +322,7 @@ fn create_config(
             // will succeed.
             SequentialPlanGroup {
                 plans: vec![PlanConfig {
-                    id: "no_rcc".into(),
+                    id: "system_env".into(),
                     source: Source::Manual {
                         base_dir: suite_dir.into(),
                     },
@@ -474,13 +474,6 @@ async fn assert_working_directory(
     assert_eq!(
         directory_entries(working_directory.join("environment_building"), 2),
         [
-            "managed_robot",
-            #[cfg(windows)]
-            "managed_robot/build.bat",
-            #[cfg(windows)]
-            "managed_robot/build.exit_code",
-            "managed_robot/build.stderr",
-            "managed_robot/build.stdout",
             #[cfg(windows)]
             "rcc_headed",
             #[cfg(windows)]
@@ -494,6 +487,13 @@ async fn assert_working_directory(
             "rcc_headless",
             "rcc_headless/build.stderr",
             "rcc_headless/build.stdout",
+            "rcc_managed_robot",
+            #[cfg(windows)]
+            "rcc_managed_robot/build.bat",
+            #[cfg(windows)]
+            "rcc_managed_robot/build.exit_code",
+            "rcc_managed_robot/build.stderr",
+            "rcc_managed_robot/build.stdout",
         ]
     );
     #[cfg(windows)]
@@ -508,24 +508,24 @@ async fn assert_working_directory(
     assert_permissions(
         working_directory
             .join("environment_building")
-            .join("managed_robot"),
+            .join("rcc_managed_robot"),
         &format!("{headed_user_name}:(OI)(CI)(F)"),
     )
     .await?;
     assert_eq!(
         directory_entries(working_directory.join("plans"), 1),
         [
-            "managed_robot",
-            "no_rcc",
             #[cfg(windows)]
             "rcc_headed",
-            "rcc_headless"
+            "rcc_headless",
+            "rcc_managed_robot",
+            "system_env",
         ]
     );
 
     // We expliclitly don't check for the rebot files in the case without RCC, since this must also
     // work on systems that don't have the necessary Python environment.
-    assert!(!directory_entries(working_directory.join("plans").join("no_rcc"), 1).is_empty());
+    assert!(!directory_entries(working_directory.join("plans").join("system_env"), 1).is_empty());
 
     #[cfg(windows)]
     {
@@ -541,7 +541,7 @@ async fn assert_working_directory(
     assert!(!entries_rcc_headless.contains("1.bat"));
 
     let entries_managed =
-        directory_entries(working_directory.join("plans").join("managed_robot"), 2).join("");
+        directory_entries(working_directory.join("plans").join("rcc_managed_robot"), 2).join("");
     assert!(entries_managed.contains("rebot.xml"));
 
     Ok(())
@@ -584,11 +584,11 @@ fn assert_results_directory(results_directory: &Utf8Path) {
         [
             "environment_build_states.json",
             "plans",
-            "plans/managed_robot.json",
-            "plans/no_rcc.json",
             #[cfg(windows)]
             "plans/rcc_headed.json",
             "plans/rcc_headless.json",
+            "plans/rcc_managed_robot.json",
+            "plans/system_env.json",
             "scheduler_phase.json",
             "setup_failures.json"
         ]
@@ -600,10 +600,13 @@ async fn assert_managed_directory(
     #[cfg(windows)] headed_user_name: &str,
 ) -> AnyhowResult<()> {
     assert!(managed_directory.is_dir());
-    assert_eq!(directory_entries(managed_directory, 1), ["managed_robot"]);
+    assert_eq!(
+        directory_entries(managed_directory, 1),
+        ["rcc_managed_robot"]
+    );
     #[cfg(windows)]
     assert_permissions(
-        &managed_directory.join("managed_robot"),
+        &managed_directory.join("rcc_managed_robot"),
         &format!("{headed_user_name}:(OI)(CI)(F)"),
     )
     .await?;
