@@ -112,6 +112,11 @@ async fn test_scheduler() -> AnyhowResult<()> {
     .await?;
     assert_rcc(&config.rcc_config).await?;
     #[cfg(windows)]
+    assert_micromamba_binary_permissions(&Utf8PathBuf::from(
+        config.conda_config.micromamba_binary_path,
+    ))
+    .await?;
+    #[cfg(windows)]
     assert_tasks().await?;
     assert_sequentiality(
         config
@@ -867,6 +872,12 @@ async fn assert_rcc_longpath_support_enabled(
         .arg("longpaths");
     let stderr = String::from_utf8(rcc_config_diag_command.output().await?.stderr)?;
     assert!(stderr.starts_with("OK.\n"));
+    Ok(())
+}
+
+#[cfg(windows)]
+async fn assert_micromamba_binary_permissions(binary_path: &Utf8Path) -> AnyhowResult<()> {
+    assert!(dacl_exists_for_sid(binary_path, "*S-1-5-32-545").await?);
     Ok(())
 }
 

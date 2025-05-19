@@ -1,4 +1,5 @@
 mod api;
+mod conda;
 mod directories;
 mod rcc;
 pub mod run;

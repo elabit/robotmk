@@ -33,7 +33,7 @@ type Gatherer = fn(&GlobalConfig, Vec<Plan>) -> Vec<StepWithPlans>;
 #[cfg(unix)]
 type Steps = [(Gatherer, &'static str); 13];
 #[cfg(windows)]
-type Steps = [(Gatherer, &'static str); 21];
+type Steps = [(Gatherer, &'static str); 22];
 
 const STEPS: Steps = [
     (
@@ -126,6 +126,11 @@ const STEPS: Steps = [
     (
         rcc::gather_disable_rcc_shared_holotree,
         "Disable RCC shared holotrees",
+    ),
+    #[cfg(windows)]
+    (
+        super::conda::gather_micromamba_binary_permissions,
+        "Micromamba binary permissions",
     ),
     (unpack_managed::gather, "Unpack managed robots"),
 ];
