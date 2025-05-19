@@ -380,7 +380,7 @@ pub fn gather_plan_working_directories(
         .collect()
 }
 
-pub fn gather_environment_building_directories(
+pub fn gather_rcc_environment_building_directories(
     _config: &GlobalConfig,
     plans: Vec<Plan>,
 ) -> Vec<StepWithPlans> {
@@ -392,6 +392,33 @@ pub fn gather_environment_building_directories(
                 Box::new(StepCreateWithAccess {
                     target: rcc_env.build_runtime_directory.clone(),
                     session: plan.session.clone(),
+                }),
+                vec![plan],
+            )),
+            _ => system_plans.push(plan),
+        }
+    }
+    setup_steps.push(skip(system_plans));
+    setup_steps
+}
+
+pub fn gather_conda_environment_building_directories(
+    _config: &GlobalConfig,
+    plans: Vec<Plan>,
+) -> Vec<StepWithPlans> {
+    let mut setup_steps: Vec<StepWithPlans> = Vec::new();
+    let mut system_plans = Vec::new();
+    for plan in plans.into_iter() {
+        match &plan.environment {
+            Environment::CondaFromManifest(conda_env_from_manifest) => setup_steps.push((
+                Box::new(StepCreate {
+                    target: conda_env_from_manifest.build_runtime_directory.clone(),
+                }),
+                vec![plan],
+            )),
+            Environment::CondaFromArchive(conda_env_from_archive) => setup_steps.push((
+                Box::new(StepCreate {
+                    target: conda_env_from_archive.build_runtime_directory.clone(),
                 }),
                 vec![plan],
             )),
