@@ -1,7 +1,7 @@
 use crate::command_spec::CommandSpec;
 use crate::config::RCCEnvironmentConfig;
 use crate::results::BuildOutcome;
-use crate::session::{RunSpec, Session};
+use crate::session::{CurrentSession, RunSpec, Session};
 use crate::termination::{Cancelled, Outcome};
 
 use anyhow::anyhow;
@@ -79,10 +79,20 @@ impl Environment {
                 rcc_environment.build(id, session, start_time, cancellation_token)
             }
             Self::CondaFromManifest(conda_environment_from_manifest) => {
-                conda_environment_from_manifest.build(id, session, start_time, cancellation_token)
+                conda_environment_from_manifest.build(
+                    id,
+                    &Session::Current(CurrentSession {}),
+                    start_time,
+                    cancellation_token,
+                )
             }
             Self::CondaFromArchive(conda_environment_from_archive) => {
-                conda_environment_from_archive.build(id, session, start_time, cancellation_token)
+                conda_environment_from_archive.build(
+                    id,
+                    &Session::Current(CurrentSession {}),
+                    start_time,
+                    cancellation_token,
+                )
             }
         }
     }
