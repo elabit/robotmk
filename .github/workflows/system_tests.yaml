@@ -48,8 +48,9 @@ jobs:
         env:
           TEST_DIR: C:\test_scheduler
           RCC_BINARY_PATH: C:\windows64\rcc.exe
+          MICROMAMBA_BINARY_PATH: C:\micromamba.exe
           MANAGED_ROBOT_ARCHIVE_PATH: C:\managed_robots\minimal_suite.tar.gz
-          N_SECONDS_RUN_MAX: 600
+          N_SECONDS_RUN_MAX: 900
           TEST_USER: test_user
       - uses: actions/upload-artifact@v4
         if: success() || failure()
@@ -102,8 +103,9 @@ jobs:
         env:
           TEST_DIR: /tmp/test_scheduler
           RCC_BINARY_PATH: /tmp/linux64/rcc
+          MICROMAMBA_BINARY_PATH: /tmp/micromamba
           MANAGED_ROBOT_ARCHIVE_PATH: /tmp/managed_robots/minimal_suite.tar.gz
-          N_SECONDS_RUN_MAX: 300
+          N_SECONDS_RUN_MAX: 600
       - uses: actions/upload-artifact@v4
         if: success() || failure()
         with:
