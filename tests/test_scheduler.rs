@@ -822,11 +822,11 @@ async fn assert_rcc(rcc_config: &RCCConfig) -> AnyhowResult<()> {
 
 #[cfg(windows)]
 async fn assert_rcc_files_permissions(rcc_config: &RCCConfig) -> AnyhowResult<()> {
-    assert!(dacl_exists_for_sid(&rcc_config.binary_path, "*S-1-5-32-544").await?);
+    assert!(dacl_exists_for_sid(&rcc_config.binary_path, "*S-1-5-32-545").await?);
     let RCCProfileConfig::Custom(custom_rcc_profile_config) = &rcc_config.profile_config else {
         return Ok(());
     };
-    assert!(dacl_exists_for_sid(&custom_rcc_profile_config.path, "*S-1-5-32-544").await?);
+    assert!(dacl_exists_for_sid(&custom_rcc_profile_config.path, "*S-1-5-32-545").await?);
     Ok(())
 }
 
