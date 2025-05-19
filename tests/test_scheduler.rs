@@ -8,10 +8,10 @@ use camino::{Utf8Path, Utf8PathBuf};
 #[cfg(windows)]
 use robotmk::config::UserSessionConfig;
 use robotmk::config::{
-    CondaConfig, Config, CustomRCCProfileConfig, EnvironmentConfig, ExecutionConfig, PlanConfig,
-    PlanMetadata, RCCConfig, RCCEnvironmentConfig, RCCProfileConfig, RetryStrategy, RobotConfig,
-    SequentialPlanGroup, SessionConfig, Source, ValidatedMicromambaBinaryPath,
-    WorkingDirectoryCleanupConfig,
+    CondaConfig, CondaEnvironmentConfig, CondaEnvironmentSource, Config, CustomRCCProfileConfig,
+    EnvironmentConfig, ExecutionConfig, PlanConfig, PlanMetadata, RCCConfig, RCCEnvironmentConfig,
+    RCCProfileConfig, RetryStrategy, RobotConfig, SequentialPlanGroup, SessionConfig, Source,
+    ValidatedMicromambaBinaryPath, WorkingDirectoryCleanupConfig,
 };
 use robotmk::results::results_directory;
 use robotmk::section::Host;
@@ -72,17 +72,10 @@ async fn test_scheduler() -> AnyhowResult<()> {
         },
         CondaConfig {
             micromamba_binary_path: ValidatedMicromambaBinaryPath::try_from(Utf8PathBuf::from(
-                #[cfg(unix)]
-                {
-                    "/micromamba"
-                },
-                #[cfg(windows)]
-                {
-                    "C:\\micromamba.exe"
-                },
+                var("MICROMAMBA_BINARY_PATH")?,
             ))
             .unwrap(),
-            base_directory: Utf8PathBuf::default(),
+            base_directory: temp_dir_path.join("conda_base"),
         },
         #[cfg(windows)]
         &current_user_name,
@@ -133,6 +126,12 @@ async fn test_scheduler() -> AnyhowResult<()> {
     );
     assert_robocorp_home(
         &config.rcc_config.robocorp_home_base,
+        #[cfg(windows)]
+        &current_user_name,
+    )
+    .await?;
+    assert_conda_base(
+        &config.conda_config.base_directory,
         #[cfg(windows)]
         &current_user_name,
     )
@@ -317,6 +316,134 @@ fn create_config(
                 ],
                 execution_interval: 30,
             },
+            SequentialPlanGroup {
+                plans: vec![
+                    PlanConfig {
+                        id: "conda_headless".into(),
+                        source: Source::Manual {
+                            base_dir: suite_dir.into(),
+                        },
+                        robot_config: RobotConfig {
+                            robot_target: "tasks.robot".into(),
+                            top_level_suite_name: None,
+                            suites: vec![],
+                            tests: vec![],
+                            test_tags_include: vec![],
+                            test_tags_exclude: vec![],
+                            variables: vec![],
+                            variable_files: vec![],
+                            argument_files: vec![],
+                            exit_on_failure: false,
+                            environment_variables_rendered_obfuscated: vec![],
+                        },
+                        execution_config: ExecutionConfig {
+                            n_attempts_max: 1,
+                            retry_strategy: RetryStrategy::Complete,
+                            timeout: 10,
+                        },
+                        environment_config: EnvironmentConfig::Conda(CondaEnvironmentConfig {
+                            source: CondaEnvironmentSource::Manifest("conda.yaml".into()),
+                            build_timeout: 1200,
+                        }),
+                        session_config: SessionConfig::Current,
+                        working_directory_cleanup_config:
+                            WorkingDirectoryCleanupConfig::MaxExecutions(4),
+                        host: Host::Source,
+                        metadata: PlanMetadata {
+                            application: "app".into(),
+                            suite_name: "minimal_suite".into(),
+                            variant: "".into(),
+                        },
+                    },
+                    #[cfg(windows)]
+                    PlanConfig {
+                        id: "conda_headed".into(),
+                        source: Source::Manual {
+                            base_dir: suite_dir.into(),
+                        },
+                        robot_config: RobotConfig {
+                            robot_target: "tasks.robot".into(),
+                            top_level_suite_name: None,
+                            suites: vec![],
+                            tests: vec![],
+                            test_tags_include: vec![],
+                            test_tags_exclude: vec![],
+                            variables: vec![],
+                            variable_files: vec![],
+                            argument_files: vec![],
+                            exit_on_failure: false,
+                            environment_variables_rendered_obfuscated: vec![],
+                        },
+                        execution_config: ExecutionConfig {
+                            n_attempts_max: 1,
+                            retry_strategy: RetryStrategy::Complete,
+                            timeout: 15,
+                        },
+                        environment_config: EnvironmentConfig::Conda(CondaEnvironmentConfig {
+                            source: CondaEnvironmentSource::Manifest("conda.yaml".into()),
+                            build_timeout: 1200,
+                        }),
+                        session_config: SessionConfig::SpecificUser(UserSessionConfig {
+                            user_name: user_name_headed.into(),
+                        }),
+                        working_directory_cleanup_config: WorkingDirectoryCleanupConfig::MaxAgeSecs(
+                            120,
+                        ),
+                        host: Host::Source,
+                        metadata: PlanMetadata {
+                            application: "app".into(),
+                            suite_name: "minimal_suite".into(),
+                            variant: "".into(),
+                        },
+                    },
+                    PlanConfig {
+                        id: "conda_managed_robot".into(),
+                        source: Source::Managed {
+                            tar_gz_path: managed_robot_archive_path.into(),
+                            version_number: 1,
+                            version_label: "".into(),
+                        },
+                        robot_config: RobotConfig {
+                            robot_target: "tasks.robot".into(),
+                            top_level_suite_name: None,
+                            suites: vec![],
+                            tests: vec![],
+                            test_tags_include: vec![],
+                            test_tags_exclude: vec![],
+                            variables: vec![],
+                            variable_files: vec![],
+                            argument_files: vec![],
+                            exit_on_failure: false,
+                            environment_variables_rendered_obfuscated: vec![],
+                        },
+                        execution_config: ExecutionConfig {
+                            n_attempts_max: 1,
+                            retry_strategy: RetryStrategy::Complete,
+                            timeout: 15,
+                        },
+                        environment_config: EnvironmentConfig::Conda(CondaEnvironmentConfig {
+                            source: CondaEnvironmentSource::Manifest("conda.yaml".into()),
+                            build_timeout: 1200,
+                        }),
+                        #[cfg(unix)]
+                        session_config: SessionConfig::Current,
+                        #[cfg(windows)]
+                        session_config: SessionConfig::SpecificUser(UserSessionConfig {
+                            user_name: user_name_headed.into(),
+                        }),
+                        working_directory_cleanup_config: WorkingDirectoryCleanupConfig::MaxAgeSecs(
+                            120,
+                        ),
+                        host: Host::Source,
+                        metadata: PlanMetadata {
+                            application: "managed".into(),
+                            suite_name: "robot_archive".into(),
+                            variant: "".into(),
+                        },
+                    },
+                ],
+                execution_interval: 30,
+            },
             // Note: For our test, it doesn't matter if the suite can be executed on the target
             // system. We are not checking for success. So even on systems with no Python, the test
             // will succeed.
@@ -475,6 +602,18 @@ async fn assert_working_directory(
         directory_entries(working_directory.join("environment_building"), 2),
         [
             #[cfg(windows)]
+            "conda_headed",
+            #[cfg(windows)]
+            "conda_headed/create.stderr",
+            #[cfg(windows)]
+            "conda_headed/create.stdout",
+            "conda_headless",
+            "conda_headless/create.stderr",
+            "conda_headless/create.stdout",
+            "conda_managed_robot",
+            "conda_managed_robot/create.stderr",
+            "conda_managed_robot/create.stdout",
+            #[cfg(windows)]
             "rcc_headed",
             #[cfg(windows)]
             "rcc_headed/build.bat",
@@ -516,6 +655,10 @@ async fn assert_working_directory(
         directory_entries(working_directory.join("plans"), 1),
         [
             #[cfg(windows)]
+            "conda_headed",
+            "conda_headless",
+            "conda_managed_robot",
+            #[cfg(windows)]
             "rcc_headed",
             "rcc_headless",
             "rcc_managed_robot",
@@ -540,9 +683,29 @@ async fn assert_working_directory(
     assert!(entries_rcc_headless.contains("rebot.xml"));
     assert!(!entries_rcc_headless.contains("1.bat"));
 
-    let entries_managed =
+    let entries_rcc_managed =
         directory_entries(working_directory.join("plans").join("rcc_managed_robot"), 2).join("");
-    assert!(entries_managed.contains("rebot.xml"));
+    assert!(entries_rcc_managed.contains("rebot.xml"));
+
+    #[cfg(windows)]
+    {
+        let entries_conda_headed =
+            directory_entries(working_directory.join("plans").join("conda_headed"), 2).join("");
+        assert!(entries_conda_headed.contains("rebot.xml"));
+        assert!(entries_conda_headed.contains("1.bat"));
+    }
+
+    let entries_conda_headless =
+        directory_entries(working_directory.join("plans").join("conda_headless"), 2).join("");
+    assert!(entries_conda_headless.contains("rebot.xml"));
+    assert!(!entries_conda_headless.contains("1.bat"));
+
+    let entries_conda_managed = directory_entries(
+        working_directory.join("plans").join("conda_managed_robot"),
+        2,
+    )
+    .join("");
+    assert!(entries_conda_managed.contains("rebot.xml"));
 
     Ok(())
 }
@@ -585,6 +748,10 @@ fn assert_results_directory(results_directory: &Utf8Path) {
             "environment_build_states.json",
             "plans",
             #[cfg(windows)]
+            "plans/conda_headed.json",
+            "plans/conda_headless.json",
+            "plans/conda_managed_robot.json",
+            #[cfg(windows)]
             "plans/rcc_headed.json",
             "plans/rcc_headless.json",
             "plans/rcc_managed_robot.json",
@@ -602,14 +769,21 @@ async fn assert_managed_directory(
     assert!(managed_directory.is_dir());
     assert_eq!(
         directory_entries(managed_directory, 1),
-        ["rcc_managed_robot"]
+        ["conda_managed_robot", "rcc_managed_robot"]
     );
     #[cfg(windows)]
-    assert_permissions(
-        &managed_directory.join("rcc_managed_robot"),
-        &format!("{headed_user_name}:(OI)(CI)(F)"),
-    )
-    .await?;
+    {
+        assert_permissions(
+            &managed_directory.join("rcc_managed_robot"),
+            &format!("{headed_user_name}:(OI)(CI)(F)"),
+        )
+        .await?;
+        assert_permissions(
+            &managed_directory.join("conda_managed_robot"),
+            &format!("{headed_user_name}:(OI)(CI)(F)"),
+        )
+        .await?;
+    }
     Ok(())
 }
 
@@ -731,6 +905,37 @@ async fn assert_robocorp_home(
             &format!("{headed_user_name}:(OI)(CI)(F)"),
         )
         .await?;
+    }
+    Ok(())
+}
+
+async fn assert_conda_base(
+    conda_base: &Utf8Path,
+    #[cfg(windows)] headed_user_name: &str,
+) -> AnyhowResult<()> {
+    assert!(conda_base.is_dir());
+    assert_eq!(
+        directory_entries(conda_base, 1),
+        ["environments", "mamba_root_prefix"]
+    );
+    assert_eq!(
+        directory_entries(conda_base.join("environments"), 1),
+        [
+            #[cfg(windows)]
+            "conda_headed",
+            "conda_headless",
+            "conda_managed_robot",
+        ]
+    );
+    #[cfg(windows)]
+    {
+        let permissions_conda_base = get_permissions(conda_base).await?;
+        assert_eq!(
+            permissions_conda_base.lines().collect::<Vec<&str>>().len(),
+            4 // Administrator group + headed user name + empty line + success message (suppressing the latter with /q does not seem to work)
+        );
+        assert!(dacl_exists_for_sid(conda_base, "*S-1-5-32-544").await?);
+        assert_permissions(&conda_base, &format!("{headed_user_name}:(OI)(CI)(RX)")).await?;
     }
     Ok(())
 }
