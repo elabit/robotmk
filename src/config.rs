@@ -195,8 +195,20 @@ pub struct CondaEnvironmentConfig {
 
 #[derive(Clone, Debug, Deserialize, PartialEq, Serialize)]
 pub enum CondaEnvironmentSource {
-    Manifest(Utf8PathBuf),
+    Manifest(CondaEnvironmentFromManifest),
     Archive(Utf8PathBuf),
+}
+
+#[derive(Clone, Debug, Deserialize, PartialEq, Serialize)]
+pub struct CondaEnvironmentFromManifest {
+    pub manifest_path: Utf8PathBuf,
+    pub http_proxy_config: HTTPProxyConfig,
+}
+
+#[derive(Clone, Debug, Default, Deserialize, PartialEq, Serialize)]
+pub struct HTTPProxyConfig {
+    pub http: Option<String>,
+    pub https: Option<String>,
 }
 
 #[derive(Clone, Debug, Deserialize, PartialEq, Serialize)]

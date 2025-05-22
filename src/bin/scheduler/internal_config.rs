@@ -177,18 +177,20 @@ pub fn from_external_config(
                     }
                     config::EnvironmentConfig::Conda(conda_environment_config) => {
                         match conda_environment_config.source {
-                            config::CondaEnvironmentSource::Manifest(conda_yaml_path) => {
+                            config::CondaEnvironmentSource::Manifest(conda_env_from_manifest) => {
                                 Environment::CondaFromManifest(CondaEnvironmentFromManifest {
                                     micromamba_binary_path: global_config
                                         .conda_config
                                         .micromamba_binary_path
                                         .clone(),
-                                    manifest_path: plan_source_dir.join(conda_yaml_path),
+                                    manifest_path: plan_source_dir
+                                        .join(conda_env_from_manifest.manifest_path),
                                     root_prefix: global_config.conda_config.root_prefix(),
                                     prefix: global_config
                                         .conda_config
                                         .environments_base_directory()
                                         .join(&plan_config.id),
+                                    http_proxy_config: conda_env_from_manifest.http_proxy_config,
                                     build_timeout: conda_environment_config.build_timeout,
                                     build_runtime_directory: global_config
                                         .working_directory_environment_building
@@ -362,9 +364,15 @@ mod tests {
                 timeout: 60,
             },
             environment_config: config::EnvironmentConfig::Conda(config::CondaEnvironmentConfig {
-                source: config::CondaEnvironmentSource::Manifest(Utf8PathBuf::from(
-                    "app1/app1_env.yaml",
-                )),
+                source: config::CondaEnvironmentSource::Manifest(
+                    config::CondaEnvironmentFromManifest {
+                        manifest_path: "app1/app1_env.yaml".into(),
+                        http_proxy_config: config::HTTPProxyConfig {
+                            http: None,
+                            https: Some("http://user:pass@corp.com:8080".into()),
+                        },
+                    },
+                ),
                 build_timeout: 300,
             }),
             session_config: config::SessionConfig::Current,
@@ -673,6 +681,10 @@ mod tests {
                 manifest_path: Utf8PathBuf::from("/managed/app1_suite1/app1/app1_env.yaml"),
                 root_prefix: Utf8PathBuf::from("/conda_base/mamba_root_prefix"),
                 prefix: Utf8PathBuf::from("/conda_base/environments/app1_suite1"),
+                http_proxy_config: config::HTTPProxyConfig {
+                    http: None,
+                    https: Some("http://user:pass@corp.com:8080".into()),
+                },
                 build_timeout: 300,
                 build_runtime_directory: Utf8PathBuf::from(
                     "/working/environment_building/app1_suite1"

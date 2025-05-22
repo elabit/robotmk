@@ -1,5 +1,5 @@
 use crate::command_spec::CommandSpec;
-use crate::config::RCCEnvironmentConfig;
+use crate::config::{HTTPProxyConfig, RCCEnvironmentConfig};
 use crate::results::BuildOutcome;
 use crate::session::{CurrentSession, RunSpec, Session};
 use crate::termination::{Cancelled, Outcome};
@@ -51,6 +51,7 @@ pub struct CondaEnvironmentFromManifest {
     pub manifest_path: Utf8PathBuf,
     pub root_prefix: Utf8PathBuf,
     pub prefix: Utf8PathBuf,
+    pub http_proxy_config: HTTPProxyConfig,
     pub build_timeout: u64,
     pub build_runtime_directory: Utf8PathBuf,
 }
@@ -429,6 +430,12 @@ impl CondaEnvironmentFromManifest {
             .add_argument(&self.root_prefix)
             .add_argument("--prefix")
             .add_argument(&self.prefix);
+        if let Some(http_proxy) = &self.http_proxy_config.http {
+            build_command_spec.add_obfuscated_env("HTTP_PROXY", http_proxy);
+        }
+        if let Some(https_proxy) = &self.http_proxy_config.https {
+            build_command_spec.add_obfuscated_env("HTTPS_PROXY", https_proxy);
+        }
         build_command_spec
     }
 
@@ -647,6 +654,7 @@ mod tests {
                 manifest_path: Utf8PathBuf::from("/env.yaml"),
                 root_prefix: Utf8PathBuf::from("/root"),
                 prefix: Utf8PathBuf::from("/env"),
+                http_proxy_config: HTTPProxyConfig::default(),
                 build_timeout: 600,
                 build_runtime_directory: Utf8PathBuf::default(),
             }
@@ -674,6 +682,7 @@ mod tests {
             manifest_path: Utf8PathBuf::from("/env.yaml"),
             root_prefix: Utf8PathBuf::from("/root"),
             prefix: Utf8PathBuf::from("/env"),
+            http_proxy_config: HTTPProxyConfig::default(),
             build_timeout: 600,
             build_runtime_directory: Utf8PathBuf::default(),
         }
@@ -694,5 +703,47 @@ mod tests {
         );
         assert!(build_command_spec.envs_rendered_plain.is_empty());
         assert!(build_command_spec.envs_rendered_obfuscated.is_empty());
+    }
+
+    #[test]
+    fn conda_from_manifest_build_command_spec_with_proxies() {
+        let build_command_spec = CondaEnvironmentFromManifest {
+            micromamba_binary_path: Utf8PathBuf::from("/micromamba"),
+            manifest_path: Utf8PathBuf::from("/env.yaml"),
+            root_prefix: Utf8PathBuf::from("/root"),
+            prefix: Utf8PathBuf::from("/env"),
+            http_proxy_config: HTTPProxyConfig {
+                http: Some("http://user:pass@corp.com:8080".into()),
+                https: Some("http://user:pass@corp.com:8080".into()),
+            },
+            build_timeout: 600,
+            build_runtime_directory: Utf8PathBuf::default(),
+        }
+        .create_build_command_spec();
+        assert_eq!(build_command_spec.executable, "/micromamba");
+        assert_eq!(
+            build_command_spec.arguments,
+            vec![
+                "create",
+                "--file",
+                "/env.yaml",
+                "--yes",
+                "--root-prefix",
+                "/root",
+                "--prefix",
+                "/env"
+            ]
+        );
+        assert!(build_command_spec.envs_rendered_plain.is_empty());
+        assert_eq!(
+            build_command_spec.envs_rendered_obfuscated,
+            [
+                ("HTTP_PROXY".into(), "http://user:pass@corp.com:8080".into()),
+                (
+                    "HTTPS_PROXY".into(),
+                    "http://user:pass@corp.com:8080".into()
+                ),
+            ]
+        );
     }
 }
