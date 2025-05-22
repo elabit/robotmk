@@ -5,7 +5,7 @@ use camino::{Utf8Path, Utf8PathBuf};
 use chrono::Utc;
 use clap::{Parser, Subcommand};
 use process_tree::check_tree_size;
-use robotmk::config::RetryStrategy;
+use robotmk::config::{HTTPProxyConfig, RetryStrategy};
 use robotmk::environment::{
     CondaEnvironmentFromManifest, Environment, RCCEnvironment, SystemEnvironment,
 };
@@ -205,6 +205,7 @@ fn micromamba_main(micromamba_binary_path: Utf8PathBuf) -> AnyhowResult<()> {
         manifest_path: cargo_manifest_dir.join("examples/termination/conda.yaml"),
         root_prefix: test_dir_path.join("micromamba_root"),
         prefix: test_dir_path.join("conda_env"),
+        http_proxy_config: HTTPProxyConfig::default(),
         build_timeout: 1200,
         build_runtime_directory: test_dir_path.clone(),
     });
