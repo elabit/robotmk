@@ -376,19 +376,9 @@ impl CondaEnvironmentFromManifest {
         start_time: DateTime<Utc>,
         cancellation_token: &CancellationToken,
     ) -> Result<BuildOutcome, Cancelled> {
-        let mut build_command_spec = CommandSpec::new(&self.micromamba_binary_path);
-        build_command_spec
-            .add_argument("create")
-            .add_argument("--file")
-            .add_argument(&self.manifest_path)
-            .add_argument("--yes")
-            .add_argument("--root-prefix")
-            .add_argument(&self.root_prefix)
-            .add_argument("--prefix")
-            .add_argument(&self.prefix);
         match session.run(&RunSpec {
             id: &format!("robotmk_env_create_{id}"),
-            command_spec: &build_command_spec,
+            command_spec: &self.create_build_command_spec(),
             runtime_base_path: &self.build_runtime_directory.join("create"),
             timeout: self.build_timeout,
             cancellation_token,
@@ -426,6 +416,20 @@ impl CondaEnvironmentFromManifest {
                 Ok(build_outcome)
             }
         }
+    }
+
+    fn create_build_command_spec(&self) -> CommandSpec {
+        let mut build_command_spec = CommandSpec::new(&self.micromamba_binary_path);
+        build_command_spec
+            .add_argument("create")
+            .add_argument("--file")
+            .add_argument(&self.manifest_path)
+            .add_argument("--yes")
+            .add_argument("--root-prefix")
+            .add_argument(&self.root_prefix)
+            .add_argument("--prefix")
+            .add_argument(&self.prefix);
+        build_command_spec
     }
 
     fn wrap(&self, command_spec: CommandSpec) -> CommandSpec {
@@ -661,5 +665,34 @@ mod tests {
             .wrap(command_spec_for_wrap()),
             expected
         );
+    }
+
+    #[test]
+    fn conda_from_manifest_build_command_spec() {
+        let build_command_spec = CondaEnvironmentFromManifest {
+            micromamba_binary_path: Utf8PathBuf::from("/micromamba"),
+            manifest_path: Utf8PathBuf::from("/env.yaml"),
+            root_prefix: Utf8PathBuf::from("/root"),
+            prefix: Utf8PathBuf::from("/env"),
+            build_timeout: 600,
+            build_runtime_directory: Utf8PathBuf::default(),
+        }
+        .create_build_command_spec();
+        assert_eq!(build_command_spec.executable, "/micromamba");
+        assert_eq!(
+            build_command_spec.arguments,
+            [
+                "create",
+                "--file",
+                "/env.yaml",
+                "--yes",
+                "--root-prefix",
+                "/root",
+                "--prefix",
+                "/env"
+            ]
+        );
+        assert!(build_command_spec.envs_rendered_plain.is_empty());
+        assert!(build_command_spec.envs_rendered_obfuscated.is_empty());
     }
 }
