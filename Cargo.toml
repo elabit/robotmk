@@ -27,6 +27,7 @@ thiserror = "2.0.12"
 tokio = { version = "1.45.0", features = ["full"] }
 tokio-util = { version = "0.7.15", features = ["full"] }
 walkdir = "2.5.0"
+windows-registry = "0.5.2"
 winsafe = { version = "0.0.23", features = [ "ole" ] }
 [dependencies.windows]
 version = "0.60.0"  # winsafe cannot handle 0.61.0 at the moment, so we have to stay on 0.60.0 for now
