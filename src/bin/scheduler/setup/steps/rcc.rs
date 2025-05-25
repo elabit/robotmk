@@ -10,8 +10,6 @@ use crate::setup::windows_permissions::run_icacls_command;
 
 use robotmk::config::RCCProfileConfig;
 use robotmk::environment::RCCEnvironment;
-#[cfg(windows)]
-use robotmk::session::CurrentSession;
 use robotmk::session::{RunSpec, Session};
 use robotmk::termination::Outcome;
 
@@ -374,28 +372,6 @@ pub fn gather_switch_to_custom_rcc_profile(
         ));
     }
     steps
-}
-
-#[cfg(windows)]
-pub fn gather_enable_rcc_long_path_support(
-    config: &GlobalConfig,
-    plans: Vec<Plan>,
-) -> Vec<StepWithPlans> {
-    let (rcc_plans, system_plans): (Vec<Plan>, Vec<Plan>) =
-        partition_into_rcc_and_other_plans(plans);
-    vec![
-        (
-            Box::new(StepRCCCommand::new_from_config(
-                config,
-                Session::Current(CurrentSession {}),
-                &["configure", "longpaths", "--enable"],
-                "long_path_support_enabling",
-                "Enabling RCC long path support failed",
-            )),
-            rcc_plans,
-        ),
-        skip(system_plans),
-    ]
 }
 
 pub fn gather_disable_rcc_shared_holotree(

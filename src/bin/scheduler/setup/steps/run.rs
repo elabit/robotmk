@@ -33,7 +33,7 @@ type Gatherer = fn(&GlobalConfig, Vec<Plan>) -> Vec<StepWithPlans>;
 #[cfg(unix)]
 type Steps = [(Gatherer, &'static str); 13];
 #[cfg(windows)]
-type Steps = [(Gatherer, &'static str); 22];
+type Steps = [(Gatherer, &'static str); 21];
 
 const STEPS: Steps = [
     #[cfg(windows)]
@@ -94,11 +94,6 @@ const STEPS: Steps = [
         directories::gather_rcc_working_base,
         "Base working directory for RCC setup steps",
     ),
-    #[cfg(windows)]
-    (
-        directories::gather_rcc_longpath_directory,
-        "Working directory for enabling RCC long path support",
-    ),
     (
         directories::gather_rcc_working_per_user,
         "User-specififc working directories for RCC setup steps",
@@ -122,11 +117,6 @@ const STEPS: Steps = [
     (
         rcc::gather_switch_to_custom_rcc_profile,
         "Switch to custom RCC profile",
-    ),
-    #[cfg(windows)]
-    (
-        rcc::gather_enable_rcc_long_path_support,
-        "Enable RCC long path support",
     ),
     (
         rcc::gather_disable_rcc_shared_holotree,
