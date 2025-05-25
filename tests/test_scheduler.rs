@@ -569,10 +569,6 @@ async fn assert_working_directory(
             "current_user/custom_profile_switch.stdout",
             "current_user/holotree_disabling_sharing.stderr",
             "current_user/holotree_disabling_sharing.stdout",
-            #[cfg(windows)]
-            "current_user/long_path_support_enabling.stderr",
-            #[cfg(windows)]
-            "current_user/long_path_support_enabling.stdout",
             "current_user/telemetry_disabling.stderr",
             "current_user/telemetry_disabling.stdout",
             #[cfg(windows)]
@@ -820,8 +816,6 @@ async fn assert_rcc(rcc_config: &RCCConfig) -> AnyhowResult<()> {
             .as_str(),
     )
     .await?;
-    #[cfg(windows)]
-    assert_rcc_longpath_support_enabled(&rcc_config.binary_path).await?;
     Ok(())
 }
 
@@ -859,19 +853,6 @@ async fn assert_rcc_configuration(rcc_config: &RCCConfig, robocorp_home: &str) -
             custom_rcc_profile_config.name
         );
     }
-    Ok(())
-}
-
-#[cfg(windows)]
-async fn assert_rcc_longpath_support_enabled(
-    rcc_binary_path: impl AsRef<OsStr>,
-) -> AnyhowResult<()> {
-    let mut rcc_config_diag_command = Command::new(rcc_binary_path);
-    rcc_config_diag_command
-        .arg("configuration")
-        .arg("longpaths");
-    let stderr = String::from_utf8(rcc_config_diag_command.output().await?.stderr)?;
-    assert!(stderr.starts_with("OK.\n"));
     Ok(())
 }
 

@@ -462,28 +462,6 @@ pub fn gather_rcc_working_per_user(config: &GlobalConfig, plans: Vec<Plan>) -> V
     setup_steps
 }
 
-#[cfg(windows)]
-pub fn gather_rcc_longpath_directory(
-    config: &GlobalConfig,
-    plans: Vec<Plan>,
-) -> Vec<StepWithPlans> {
-    use robotmk::session::CurrentSession;
-    let (rcc_plans, system_plans): (Vec<Plan>, Vec<Plan>) =
-        partition_into_rcc_and_other_plans(plans);
-    vec![
-        (
-            Box::new(StepCreate {
-                target: rcc_working_directory_for_session(
-                    &config.working_directory_rcc_setup_steps,
-                    &Session::Current(CurrentSession {}),
-                ),
-            }),
-            rcc_plans,
-        ),
-        skip(system_plans),
-    ]
-}
-
 pub fn gather_managed_directories(
     _global_config: &GlobalConfig,
     plans: Vec<Plan>,
