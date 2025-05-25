@@ -1,6 +1,7 @@
 mod api;
 mod conda;
 mod directories;
+mod long_path_support;
 mod rcc;
 pub mod run;
 mod unpack_managed;

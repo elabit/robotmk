@@ -36,6 +36,11 @@ type Steps = [(Gatherer, &'static str); 13];
 type Steps = [(Gatherer, &'static str); 22];
 
 const STEPS: Steps = [
+    #[cfg(windows)]
+    (
+        super::long_path_support::gather_long_path_support,
+        "Long path support",
+    ),
     (
         directories::gather_managed_directories,
         "Managed directories",
