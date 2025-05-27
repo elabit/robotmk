@@ -1,5 +1,6 @@
 pub mod conda;
 pub mod rcc;
+mod robotmk_env_manifest;
 pub mod system;
 
 use crate::command_spec::CommandSpec;
