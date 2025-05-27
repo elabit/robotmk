@@ -204,6 +204,7 @@ fn micromamba_main(micromamba_binary_path: Utf8PathBuf) -> AnyhowResult<()> {
         source: CondaEnvironmentSource::Manifest(
             cargo_manifest_dir.join("examples/termination/conda.yaml"),
         ),
+        robotmk_manifest_path: None,
         micromamba_binary_path,
         root_prefix: test_dir_path.join("micromamba_root"),
         prefix: test_dir_path.join("conda_env"),
