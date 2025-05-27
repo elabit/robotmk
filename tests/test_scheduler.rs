@@ -348,6 +348,7 @@ fn create_config(
                         },
                         environment_config: EnvironmentConfig::Conda(CondaEnvironmentConfig {
                             source: CondaEnvironmentSource::Manifest("conda.yaml".into()),
+                            robotmk_manifest_path: None,
                             http_proxy_config: HTTPProxyConfig::default(),
                             build_timeout: 1200,
                         }),
@@ -387,6 +388,7 @@ fn create_config(
                         },
                         environment_config: EnvironmentConfig::Conda(CondaEnvironmentConfig {
                             source: CondaEnvironmentSource::Manifest("conda.yaml".into()),
+                            robotmk_manifest_path: None,
                             http_proxy_config: HTTPProxyConfig::default(),
                             build_timeout: 1200,
                         }),
@@ -430,6 +432,7 @@ fn create_config(
                         },
                         environment_config: EnvironmentConfig::Conda(CondaEnvironmentConfig {
                             source: CondaEnvironmentSource::Manifest("conda.yaml".into()),
+                            robotmk_manifest_path: None,
                             http_proxy_config: HTTPProxyConfig::default(),
                             build_timeout: 1200,
                         }),

@@ -186,6 +186,11 @@ pub fn from_external_config(
                                     config::CondaEnvironmentSource::Archive(archive_path)
                                 }
                             },
+                            robotmk_manifest_path: conda_environment_config
+                                .robotmk_manifest_path
+                                .map(|robotmk_manifest_path| {
+                                    plan_source_dir.join(robotmk_manifest_path)
+                                }),
                             micromamba_binary_path: global_config
                                 .conda_config
                                 .micromamba_binary_path
@@ -350,6 +355,7 @@ mod tests {
             },
             environment_config: config::EnvironmentConfig::Conda(config::CondaEnvironmentConfig {
                 source: config::CondaEnvironmentSource::Manifest("app1/app1_env.yaml".into()),
+                robotmk_manifest_path: Some("app1/robotmk_manifest.yaml".into()),
                 http_proxy_config: config::HTTPProxyConfig {
                     http: None,
                     https: Some("http://user:pass@corp.com:8080".into()),
@@ -403,6 +409,7 @@ mod tests {
             },
             environment_config: config::EnvironmentConfig::Conda(config::CondaEnvironmentConfig {
                 source: config::CondaEnvironmentSource::Archive("/app2.env.tar.gz".into()),
+                robotmk_manifest_path: None,
                 http_proxy_config: config::HTTPProxyConfig {
                     http: Some("http://user:pass@corp.com:8080".into()),
                     https: None,
@@ -654,6 +661,9 @@ mod tests {
                 source: config::CondaEnvironmentSource::Manifest(
                     "/managed/app1_suite1/app1/app1_env.yaml".into()
                 ),
+                robotmk_manifest_path: Some(
+                    "/managed/app1_suite1/app1/robotmk_manifest.yaml".into()
+                ),
                 micromamba_binary_path: Utf8PathBuf::from(
                     #[cfg(unix)]
                     {
@@ -720,6 +730,7 @@ mod tests {
             plans[3].environment,
             Environment::Conda(CondaEnvironment {
                 source: config::CondaEnvironmentSource::Archive("/app2.env.tar.gz".into()),
+                robotmk_manifest_path: None,
                 micromamba_binary_path: Utf8PathBuf::from(
                     #[cfg(unix)]
                     {

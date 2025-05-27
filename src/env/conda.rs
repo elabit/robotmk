@@ -17,6 +17,7 @@ use tokio_util::sync::CancellationToken;
 #[derive(Clone, Debug, PartialEq)]
 pub struct CondaEnvironment {
     pub source: CondaEnvironmentSource,
+    pub robotmk_manifest_path: Option<Utf8PathBuf>,
     pub micromamba_binary_path: Utf8PathBuf,
     pub root_prefix: Utf8PathBuf,
     pub prefix: Utf8PathBuf,
@@ -246,6 +247,7 @@ mod tests {
         assert_eq!(
             CondaEnvironment {
                 source: CondaEnvironmentSource::Manifest("/env.yaml".into()),
+                robotmk_manifest_path: None,
                 micromamba_binary_path: "/micromamba".into(),
                 root_prefix: "/root".into(),
                 prefix: "/env".into(),
@@ -262,6 +264,7 @@ mod tests {
     fn make_create_command_spec() {
         let build_command_spec = CondaEnvironment {
             source: CondaEnvironmentSource::Manifest("/env.yaml".into()),
+            robotmk_manifest_path: None,
             micromamba_binary_path: "/micromamba".into(),
             root_prefix: "/root".into(),
             prefix: "/env".into(),
@@ -292,6 +295,7 @@ mod tests {
     fn make_create_command_spec_with_proxies() {
         let build_command_spec = CondaEnvironment {
             source: CondaEnvironmentSource::Manifest("/env.yaml".into()),
+            robotmk_manifest_path: None,
             micromamba_binary_path: "/micromamba".into(),
             root_prefix: "/root".into(),
             prefix: "/env".into(),

@@ -190,6 +190,7 @@ pub struct RCCEnvironmentConfig {
 #[derive(Clone, Debug, Deserialize, PartialEq, Serialize)]
 pub struct CondaEnvironmentConfig {
     pub source: CondaEnvironmentSource,
+    pub robotmk_manifest_path: Option<Utf8PathBuf>,
     pub http_proxy_config: HTTPProxyConfig,
     pub build_timeout: u64,
 }
