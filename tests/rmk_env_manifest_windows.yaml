@@ -1,0 +1,5 @@
+post_build_commands:
+    - name: "post1"
+      command:
+        - "echo.>"
+        - "C:\\robotmk_post_build_command_test"

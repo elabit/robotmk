@@ -58,6 +58,13 @@ jobs:
           name: system_test_debug_information_windows
           path: C:\test_scheduler
 
+      - shell: pwsh
+        run: Remove-Item -Recurse -Force -ErrorAction SilentlyContinue C:\robotmk_post_build_command_test
+      - run: cargo test --target=x86_64-pc-windows-msvc --test test_conda_post_build_commands -- --nocapture --ignored
+        env:
+          MICROMAMBA_BINARY_PATH: C:\micromamba.exe
+          BUILD_TIMEOUT: 10
+
   linux:
     runs-on: ubuntu-latest
     steps:
@@ -133,3 +140,9 @@ jobs:
         with:
           name: system_test_debug_information_conda_from_archive
           path: /tmp/test_conda_from_archive_scheduler
+
+      - run: rm -rf /tmp/robotmk_post_build_command_test
+      - run: cargo test --target=x86_64-unknown-linux-musl --test test_conda_post_build_commands -- --nocapture --ignored
+        env:
+          MICROMAMBA_BINARY_PATH: /tmp/micromamba
+          BUILD_TIMEOUT: 10
