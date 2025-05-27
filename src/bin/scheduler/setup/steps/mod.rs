@@ -31,12 +31,9 @@ fn partition_into_rcc_and_other_plans(plans: Vec<Plan>) -> (Vec<Plan>, Vec<Plan>
 }
 
 fn partition_into_conda_and_other_plans(plans: Vec<Plan>) -> (Vec<Plan>, Vec<Plan>) {
-    plans.into_iter().partition(|plan| {
-        matches!(
-            plan.environment,
-            Environment::CondaFromManifest(_) | Environment::CondaFromArchive(_)
-        )
-    })
+    plans
+        .into_iter()
+        .partition(|plan| matches!(plan.environment, Environment::Conda(_)))
 }
 
 fn rcc_working_directory_for_session(

@@ -8,11 +8,10 @@ use camino::{Utf8Path, Utf8PathBuf};
 #[cfg(windows)]
 use robotmk::config::UserSessionConfig;
 use robotmk::config::{
-    CondaConfig, CondaEnvironmentConfig, CondaEnvironmentFromManifest, CondaEnvironmentSource,
-    Config, CustomRCCProfileConfig, EnvironmentConfig, ExecutionConfig, HTTPProxyConfig,
-    PlanConfig, PlanMetadata, RCCConfig, RCCEnvironmentConfig, RCCProfileConfig, RetryStrategy,
-    RobotConfig, SequentialPlanGroup, SessionConfig, Source, ValidatedMicromambaBinaryPath,
-    WorkingDirectoryCleanupConfig,
+    CondaConfig, CondaEnvironmentConfig, CondaEnvironmentSource, Config, CustomRCCProfileConfig,
+    EnvironmentConfig, ExecutionConfig, HTTPProxyConfig, PlanConfig, PlanMetadata, RCCConfig,
+    RCCEnvironmentConfig, RCCProfileConfig, RetryStrategy, RobotConfig, SequentialPlanGroup,
+    SessionConfig, Source, ValidatedMicromambaBinaryPath, WorkingDirectoryCleanupConfig,
 };
 use robotmk::results::results_directory;
 use robotmk::section::Host;
@@ -348,12 +347,8 @@ fn create_config(
                             timeout: 10,
                         },
                         environment_config: EnvironmentConfig::Conda(CondaEnvironmentConfig {
-                            source: CondaEnvironmentSource::Manifest(
-                                CondaEnvironmentFromManifest {
-                                    manifest_path: "conda.yaml".into(),
-                                    http_proxy_config: HTTPProxyConfig::default(),
-                                },
-                            ),
+                            source: CondaEnvironmentSource::Manifest("conda.yaml".into()),
+                            http_proxy_config: HTTPProxyConfig::default(),
                             build_timeout: 1200,
                         }),
                         session_config: SessionConfig::Current,
@@ -391,12 +386,8 @@ fn create_config(
                             timeout: 15,
                         },
                         environment_config: EnvironmentConfig::Conda(CondaEnvironmentConfig {
-                            source: CondaEnvironmentSource::Manifest(
-                                CondaEnvironmentFromManifest {
-                                    manifest_path: "conda.yaml".into(),
-                                    http_proxy_config: HTTPProxyConfig::default(),
-                                },
-                            ),
+                            source: CondaEnvironmentSource::Manifest("conda.yaml".into()),
+                            http_proxy_config: HTTPProxyConfig::default(),
                             build_timeout: 1200,
                         }),
                         session_config: SessionConfig::SpecificUser(UserSessionConfig {
@@ -438,12 +429,8 @@ fn create_config(
                             timeout: 15,
                         },
                         environment_config: EnvironmentConfig::Conda(CondaEnvironmentConfig {
-                            source: CondaEnvironmentSource::Manifest(
-                                CondaEnvironmentFromManifest {
-                                    manifest_path: "conda.yaml".into(),
-                                    http_proxy_config: HTTPProxyConfig::default(),
-                                },
-                            ),
+                            source: CondaEnvironmentSource::Manifest("conda.yaml".into()),
+                            http_proxy_config: HTTPProxyConfig::default(),
                             build_timeout: 1200,
                         }),
                         #[cfg(unix)]

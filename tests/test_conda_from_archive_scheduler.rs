@@ -6,9 +6,9 @@ use assert_cmd::cargo::cargo_bin;
 use camino::{Utf8Path, Utf8PathBuf};
 use robotmk::config::{
     CondaConfig, CondaEnvironmentConfig, CondaEnvironmentSource, Config, EnvironmentConfig,
-    ExecutionConfig, PlanConfig, PlanMetadata, RCCConfig, RCCProfileConfig, RetryStrategy,
-    RobotConfig, SequentialPlanGroup, SessionConfig, Source, ValidatedMicromambaBinaryPath,
-    WorkingDirectoryCleanupConfig,
+    ExecutionConfig, HTTPProxyConfig, PlanConfig, PlanMetadata, RCCConfig, RCCProfileConfig,
+    RetryStrategy, RobotConfig, SequentialPlanGroup, SessionConfig, Source,
+    ValidatedMicromambaBinaryPath, WorkingDirectoryCleanupConfig,
 };
 use robotmk::results::results_directory;
 use robotmk::section::Host;
@@ -126,6 +126,7 @@ fn create_config(
                 },
                 environment_config: EnvironmentConfig::Conda(CondaEnvironmentConfig {
                     source: CondaEnvironmentSource::Archive(packed_conda_env_path.into()),
+                    http_proxy_config: HTTPProxyConfig::default(),
                     build_timeout: 1200,
                 }),
                 session_config: SessionConfig::Current,
