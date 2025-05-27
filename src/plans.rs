@@ -1,4 +1,4 @@
-use crate::environment::{Environment, ResultCode};
+use crate::env::{Environment, ResultCode};
 use crate::results::{AttemptOutcome, AttemptReport, RebotOutcome};
 use crate::rf::rebot::Rebot;
 use crate::rf::robot::{Attempt, Robot};

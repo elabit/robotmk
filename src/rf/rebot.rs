@@ -1,7 +1,6 @@
 use super::robot::PYTHON_EXECUTABLE;
 use crate::command_spec::CommandSpec;
-use crate::environment::Environment;
-use crate::environment::ResultCode;
+use crate::env::{Environment, ResultCode};
 use crate::results::{RebotOutcome, RebotResult};
 use crate::session::{RunSpec, Session};
 use crate::termination::{Cancelled, Outcome};
@@ -140,7 +139,7 @@ impl Rebot<'_> {
 #[cfg(test)]
 mod tests {
     use super::*;
-    use crate::environment::SystemEnvironment;
+    use crate::env::system::SystemEnvironment;
     use crate::session::CurrentSession;
 
     #[test]

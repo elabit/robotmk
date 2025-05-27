@@ -6,8 +6,9 @@ use chrono::Utc;
 use clap::{Parser, Subcommand};
 use process_tree::check_tree_size;
 use robotmk::config::{HTTPProxyConfig, RetryStrategy};
-use robotmk::environment::{
-    CondaEnvironmentFromManifest, Environment, RCCEnvironment, SystemEnvironment,
+use robotmk::env::{
+    Environment, conda::CondaEnvironmentFromManifest, rcc::RCCEnvironment,
+    system::SystemEnvironment,
 };
 use robotmk::plans::run_attempts_with_rebot;
 use robotmk::results::BuildOutcome;

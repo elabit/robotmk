@@ -9,7 +9,7 @@ use crate::logging::log_and_return_error;
 use crate::setup::windows_permissions::run_icacls_command;
 
 use robotmk::config::RCCProfileConfig;
-use robotmk::environment::RCCEnvironment;
+use robotmk::env::rcc::RCCEnvironment;
 use robotmk::session::{RunSpec, Session};
 use robotmk::termination::Outcome;
 

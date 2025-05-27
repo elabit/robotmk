@@ -11,7 +11,7 @@ use crate::setup::ownership::transfer_directory_ownership_recursive;
 use crate::setup::windows_permissions::{grant_full_access, reset_access, run_icacls_command};
 
 use camino::Utf8PathBuf;
-use robotmk::environment::Environment;
+use robotmk::env::Environment;
 use robotmk::fs::create_dir_all;
 use robotmk::session::Session;
 

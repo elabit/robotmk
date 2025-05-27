@@ -1,5 +1,5 @@
 use super::internal_config::{GlobalConfig, Plan};
-use robotmk::environment::Environment;
+use robotmk::env::Environment;
 use robotmk::lock::Locker;
 use robotmk::results::{BuildOutcome, BuildStates, EnvironmentBuildStage};
 use robotmk::section::WriteSection;

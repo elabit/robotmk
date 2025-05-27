@@ -1,7 +1,9 @@
 use robotmk::config;
-use robotmk::environment::{
-    CondaEnvironmentFromArchive, CondaEnvironmentFromManifest, Environment, RCCEnvironment,
-    SystemEnvironment,
+use robotmk::env::{
+    Environment,
+    conda::{CondaEnvironmentFromArchive, CondaEnvironmentFromManifest},
+    rcc::RCCEnvironment,
+    system::SystemEnvironment,
 };
 use robotmk::lock::Locker;
 use robotmk::results::{plan_results_directory, results_directory};
