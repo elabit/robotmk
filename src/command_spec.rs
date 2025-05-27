@@ -3,7 +3,7 @@ use std::ffi::OsString;
 use std::fmt::{Display, Formatter, Result};
 use std::process::Command;
 
-#[derive(Debug, PartialEq)]
+#[derive(Clone, Debug, PartialEq)]
 pub struct CommandSpec {
     pub executable: String,
     pub arguments: Vec<String>,

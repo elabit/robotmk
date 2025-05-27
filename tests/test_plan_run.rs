@@ -1,7 +1,7 @@
 use anyhow::Result as AnyhowResult;
 use camino::Utf8Path;
 use robotmk::config::RetryStrategy;
-use robotmk::environment::{Environment, SystemEnvironment};
+use robotmk::env::{Environment, system::SystemEnvironment};
 use robotmk::plans::run_attempts_with_rebot;
 use robotmk::results::AttemptOutcome;
 use robotmk::rf::robot::Robot;

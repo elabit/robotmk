@@ -91,7 +91,7 @@ mod tests {
     use super::*;
     use crate::internal_config::{GroupAffiliation, Source};
     use robotmk::config::{PlanMetadata, RetryStrategy, WorkingDirectoryCleanupConfig};
-    use robotmk::environment::{Environment, SystemEnvironment};
+    use robotmk::env::{Environment, system::SystemEnvironment};
     use robotmk::lock::Locker;
     use robotmk::rf::robot::Robot;
     use robotmk::section::Host;

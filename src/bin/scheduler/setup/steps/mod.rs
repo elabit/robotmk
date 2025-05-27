@@ -9,7 +9,7 @@ mod unpack_managed;
 use crate::internal_config::Plan;
 
 use camino::{Utf8Path, Utf8PathBuf};
-use robotmk::environment::Environment;
+use robotmk::env::Environment;
 use robotmk::session::Session;
 use std::collections::HashMap;
 
