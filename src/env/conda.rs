@@ -1,4 +1,5 @@
 use super::ResultCode;
+use super::robotmk_env_manifest::parse_robotmk_environment_manifest;
 use crate::command_spec::CommandSpec;
 use crate::config::{CondaEnvironmentSource, HTTPProxyConfig};
 use crate::results::BuildOutcome;
@@ -11,6 +12,7 @@ use chrono::{DateTime, Utc};
 use flate2::read::GzDecoder;
 use log::{error, info};
 use std::fs::File;
+use std::vec;
 use tar::Archive;
 use tokio_util::sync::CancellationToken;
 
@@ -52,6 +54,25 @@ impl CondaEnvironment {
                 ),
         } {
             return build_result;
+        }
+
+        if let Some(post_build_command_result) = self
+            .run_post_build_commands_and_report_if_unsuccessful(
+                &match self.gather_post_build_commands() {
+                    Ok(commands) => commands,
+                    Err(e) => {
+                        let build_outcome = BuildOutcome::Error(format!("{e:?}"));
+                        error!("{:?}", e.context(format!("Plan {id} will be dropped")));
+                        return Ok(build_outcome);
+                    }
+                },
+                id,
+                session,
+                start_time,
+                cancellation_token,
+            )
+        {
+            return post_build_command_result;
         }
 
         Ok(BuildOutcome::Success(
@@ -212,6 +233,92 @@ impl CondaEnvironment {
         Archive::new(GzDecoder::new(File::open(archive_path)?)).unpack(&self.prefix)?;
         Ok(())
     }
+
+    fn gather_post_build_commands(&self) -> anyhow::Result<Vec<(String, CommandSpec)>> {
+        let robotmk_manifest_path = if let Some(path) = &self.robotmk_manifest_path {
+            path
+        } else {
+            return Ok(vec![]);
+        };
+
+        let manifest = parse_robotmk_environment_manifest(robotmk_manifest_path)?;
+        let mut post_build_commands = vec![];
+
+        for post_build_command in manifest.post_build_commands {
+            let command_spec: Option<CommandSpec> = (&post_build_command).into();
+            match command_spec {
+                None => {
+                    info!(
+                        "Post-build command `{}` is empty, skipping",
+                        post_build_command.name
+                    );
+                    continue;
+                }
+                Some(command_spec) => post_build_commands.push((
+                    post_build_command.name,
+                    self.wrap_post_build_command_spec(command_spec),
+                )),
+            };
+        }
+
+        Ok(post_build_commands)
+    }
+
+    fn wrap_post_build_command_spec(&self, mut post_build_command: CommandSpec) -> CommandSpec {
+        // Setting HTTP(S)_PROXY is of course no universal way to configure proxies for any command.
+        // However, Playwright respects these environment variables:
+        // https://playwright.dev/docs/browsers#install-behind-a-firewall-or-a-proxy
+        // This is particularly important in the context of the `rfbrowser init` command.
+        if let Some(http_proxy) = &self.http_proxy_config.http {
+            post_build_command.add_obfuscated_env("HTTP_PROXY", http_proxy);
+        }
+        if let Some(https_proxy) = &self.http_proxy_config.https {
+            post_build_command.add_obfuscated_env("HTTPS_PROXY", https_proxy);
+        }
+        self.wrap(post_build_command)
+    }
+
+    fn run_post_build_commands_and_report_if_unsuccessful(
+        &self,
+        post_build_command_specs: &[(String, CommandSpec)],
+        plan_id: &str,
+        session: &Session,
+        start_time: DateTime<Utc>,
+        cancellation_token: &CancellationToken,
+    ) -> Option<Result<BuildOutcome, Cancelled>> {
+        if post_build_command_specs.is_empty() {
+            info!("No post-build commands found for plan {plan_id}, skipping");
+            return None;
+        }
+
+        for (command_name, command_spec) in post_build_command_specs {
+            let elapsed: u64 = (Utc::now() - start_time).num_seconds().try_into().unwrap();
+            if elapsed >= self.build_timeout {
+                error!("Timeout while running post-build commands, plan {plan_id} will be dropped");
+                return Some(Ok(BuildOutcome::Timeout));
+            };
+            info!("Running post-build command {command_name} for plan {plan_id}");
+            if let Some(post_build_command_result) = Self::run_build_step_and_report_if_unsuccessful(
+                &RunSpec {
+                    id: &format!("robotmk_env_{plan_id}_post_build_{command_name}"),
+                    command_spec,
+                    runtime_base_path: &self
+                        .build_runtime_directory
+                        .join(format!("post_build_{command_name}")),
+                    timeout: self.build_timeout - elapsed,
+                    cancellation_token,
+                },
+                session,
+                &format!("Post-build command {command_name}"),
+                plan_id,
+            ) {
+                return Some(post_build_command_result);
+            }
+        }
+
+        info!("Post-build commands for plan {plan_id} completed successfully");
+        None
+    }
 }
 
 #[cfg(test)]
@@ -332,5 +439,53 @@ mod tests {
                 ),
             ]
         );
+    }
+
+    #[test]
+    fn wrap_post_build_command_spec() {
+        let mut to_be_wrapped = CommandSpec::new("rfbrowser");
+        to_be_wrapped.add_argument("init");
+
+        let env = CondaEnvironment {
+            source: CondaEnvironmentSource::Manifest("/env.yaml".into()),
+            robotmk_manifest_path: None,
+            micromamba_binary_path: "/micromamba".into(),
+            root_prefix: "/root".into(),
+            prefix: "/env".into(),
+            http_proxy_config: HTTPProxyConfig::default(),
+            build_timeout: 600,
+            build_runtime_directory: Utf8PathBuf::default(),
+        };
+
+        assert_eq!(
+            env.wrap_post_build_command_spec(to_be_wrapped.clone()),
+            env.wrap(to_be_wrapped)
+        );
+    }
+
+    #[test]
+    fn wrap_post_build_command_spec_with_proxies() {
+        let mut to_be_wrapped = CommandSpec::new("rfbrowser");
+        to_be_wrapped.add_argument("init");
+
+        let env = CondaEnvironment {
+            source: CondaEnvironmentSource::Manifest("/env.yaml".into()),
+            robotmk_manifest_path: None,
+            micromamba_binary_path: "/micromamba".into(),
+            root_prefix: "/root".into(),
+            prefix: "/env".into(),
+            http_proxy_config: HTTPProxyConfig {
+                http: Some("http://user:pass@corp.com:8080".into()),
+                https: Some("http://user:pass@corp.com:8080".into()),
+            },
+            build_timeout: 600,
+            build_runtime_directory: Utf8PathBuf::default(),
+        };
+
+        let mut expected = env.wrap(to_be_wrapped.clone());
+        expected.add_obfuscated_env("HTTP_PROXY", "http://user:pass@corp.com:8080");
+        expected.add_obfuscated_env("HTTPS_PROXY", "http://user:pass@corp.com:8080");
+
+        assert_eq!(env.wrap_post_build_command_spec(to_be_wrapped), expected);
     }
 }
