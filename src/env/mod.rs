@@ -14,8 +14,7 @@ use tokio_util::sync::CancellationToken;
 pub enum Environment {
     System(system::SystemEnvironment),
     Rcc(rcc::RCCEnvironment),
-    CondaFromManifest(conda::CondaEnvironmentFromManifest),
-    CondaFromArchive(conda::CondaEnvironmentFromArchive),
+    Conda(conda::CondaEnvironment),
 }
 
 impl Environment {
@@ -31,22 +30,12 @@ impl Environment {
             Self::Rcc(rcc_environment) => {
                 rcc_environment.build(id, session, start_time, cancellation_token)
             }
-            Self::CondaFromManifest(conda_environment_from_manifest) => {
-                conda_environment_from_manifest.build(
-                    id,
-                    &Session::Current(CurrentSession {}),
-                    start_time,
-                    cancellation_token,
-                )
-            }
-            Self::CondaFromArchive(conda_environment_from_archive) => {
-                conda_environment_from_archive.build(
-                    id,
-                    &Session::Current(CurrentSession {}),
-                    start_time,
-                    cancellation_token,
-                )
-            }
+            Self::Conda(conda_environment) => conda_environment.build(
+                id,
+                &Session::Current(CurrentSession {}),
+                start_time,
+                cancellation_token,
+            ),
         }
     }
 
@@ -54,12 +43,7 @@ impl Environment {
         match self {
             Self::System(system_environment) => system_environment.wrap(command_spec),
             Self::Rcc(rcc_environment) => rcc_environment.wrap(command_spec),
-            Self::CondaFromManifest(conda_environment_from_manifest) => {
-                conda_environment_from_manifest.wrap(command_spec)
-            }
-            Self::CondaFromArchive(conda_environment_from_archive) => {
-                conda_environment_from_archive.wrap(command_spec)
-            }
+            Self::Conda(conda_environment) => conda_environment.wrap(command_spec),
         }
     }
 
@@ -67,12 +51,7 @@ impl Environment {
         match self {
             Self::System(system_env) => system_env.create_result_code(exit_code),
             Self::Rcc(rcc_env) => rcc_env.create_result_code(exit_code),
-            Self::CondaFromManifest(conda_env_from_manifest) => {
-                conda_env_from_manifest.create_result_code(exit_code)
-            }
-            Self::CondaFromArchive(conda_env_from_archive) => {
-                conda_env_from_archive.create_result_code(exit_code)
-            }
+            Self::Conda(conda_environment) => conda_environment.create_result_code(exit_code),
         }
     }
 }

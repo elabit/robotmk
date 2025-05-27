@@ -1,9 +1,6 @@
 use robotmk::config;
 use robotmk::env::{
-    Environment,
-    conda::{CondaEnvironmentFromArchive, CondaEnvironmentFromManifest},
-    rcc::RCCEnvironment,
-    system::SystemEnvironment,
+    Environment, conda::CondaEnvironment, rcc::RCCEnvironment, system::SystemEnvironment,
 };
 use robotmk::lock::Locker;
 use robotmk::results::{plan_results_directory, results_directory};
@@ -178,46 +175,32 @@ pub fn from_external_config(
                         ))
                     }
                     config::EnvironmentConfig::Conda(conda_environment_config) => {
-                        match conda_environment_config.source {
-                            config::CondaEnvironmentSource::Manifest(conda_env_from_manifest) => {
-                                Environment::CondaFromManifest(CondaEnvironmentFromManifest {
-                                    micromamba_binary_path: global_config
-                                        .conda_config
-                                        .micromamba_binary_path
-                                        .clone(),
-                                    manifest_path: plan_source_dir
-                                        .join(conda_env_from_manifest.manifest_path),
-                                    root_prefix: global_config.conda_config.root_prefix(),
-                                    prefix: global_config
-                                        .conda_config
-                                        .environments_base_directory()
-                                        .join(&plan_config.id),
-                                    http_proxy_config: conda_env_from_manifest.http_proxy_config,
-                                    build_timeout: conda_environment_config.build_timeout,
-                                    build_runtime_directory: global_config
-                                        .working_directory_environment_building
-                                        .join(&plan_config.id),
-                                })
-                            }
-                            config::CondaEnvironmentSource::Archive(archive_path) => {
-                                Environment::CondaFromArchive(CondaEnvironmentFromArchive {
-                                    micromamba_binary_path: global_config
-                                        .conda_config
-                                        .micromamba_binary_path
-                                        .clone(),
-                                    archive_path,
-                                    root_prefix: global_config.conda_config.root_prefix(),
-                                    prefix: global_config
-                                        .conda_config
-                                        .environments_base_directory()
-                                        .join(&plan_config.id),
-                                    build_timeout: conda_environment_config.build_timeout,
-                                    build_runtime_directory: global_config
-                                        .working_directory_environment_building
-                                        .join(&plan_config.id),
-                                })
-                            }
-                        }
+                        Environment::Conda(CondaEnvironment {
+                            source: match conda_environment_config.source {
+                                config::CondaEnvironmentSource::Manifest(manifest_path) => {
+                                    config::CondaEnvironmentSource::Manifest(
+                                        plan_source_dir.join(manifest_path),
+                                    )
+                                }
+                                config::CondaEnvironmentSource::Archive(archive_path) => {
+                                    config::CondaEnvironmentSource::Archive(archive_path)
+                                }
+                            },
+                            micromamba_binary_path: global_config
+                                .conda_config
+                                .micromamba_binary_path
+                                .clone(),
+                            root_prefix: global_config.conda_config.root_prefix(),
+                            prefix: global_config
+                                .conda_config
+                                .environments_base_directory()
+                                .join(&plan_config.id),
+                            http_proxy_config: conda_environment_config.http_proxy_config,
+                            build_timeout: conda_environment_config.build_timeout,
+                            build_runtime_directory: global_config
+                                .working_directory_environment_building
+                                .join(&plan_config.id),
+                        })
                     }
                 },
                 session,
@@ -366,15 +349,11 @@ mod tests {
                 timeout: 60,
             },
             environment_config: config::EnvironmentConfig::Conda(config::CondaEnvironmentConfig {
-                source: config::CondaEnvironmentSource::Manifest(
-                    config::CondaEnvironmentFromManifest {
-                        manifest_path: "app1/app1_env.yaml".into(),
-                        http_proxy_config: config::HTTPProxyConfig {
-                            http: None,
-                            https: Some("http://user:pass@corp.com:8080".into()),
-                        },
-                    },
-                ),
+                source: config::CondaEnvironmentSource::Manifest("app1/app1_env.yaml".into()),
+                http_proxy_config: config::HTTPProxyConfig {
+                    http: None,
+                    https: Some("http://user:pass@corp.com:8080".into()),
+                },
                 build_timeout: 300,
             }),
             session_config: config::SessionConfig::Current,
@@ -423,9 +402,11 @@ mod tests {
                 timeout: 60,
             },
             environment_config: config::EnvironmentConfig::Conda(config::CondaEnvironmentConfig {
-                source: config::CondaEnvironmentSource::Archive(Utf8PathBuf::from(
-                    "/app2.env.tar.gz",
-                )),
+                source: config::CondaEnvironmentSource::Archive("/app2.env.tar.gz".into()),
+                http_proxy_config: config::HTTPProxyConfig {
+                    http: Some("http://user:pass@corp.com:8080".into()),
+                    https: None,
+                },
                 build_timeout: 300,
             }),
             #[cfg(unix)]
@@ -669,7 +650,10 @@ mod tests {
         );
         assert_eq!(
             plans[2].environment,
-            Environment::CondaFromManifest(CondaEnvironmentFromManifest {
+            Environment::Conda(CondaEnvironment {
+                source: config::CondaEnvironmentSource::Manifest(
+                    "/managed/app1_suite1/app1/app1_env.yaml".into()
+                ),
                 micromamba_binary_path: Utf8PathBuf::from(
                     #[cfg(unix)]
                     {
@@ -680,7 +664,6 @@ mod tests {
                         "C:\\micromamba.exe"
                     },
                 ),
-                manifest_path: Utf8PathBuf::from("/managed/app1_suite1/app1/app1_env.yaml"),
                 root_prefix: Utf8PathBuf::from("/conda_base/mamba_root_prefix"),
                 prefix: Utf8PathBuf::from("/conda_base/environments/app1_suite1"),
                 http_proxy_config: config::HTTPProxyConfig {
@@ -735,7 +718,8 @@ mod tests {
         );
         assert_eq!(
             plans[3].environment,
-            Environment::CondaFromArchive(CondaEnvironmentFromArchive {
+            Environment::Conda(CondaEnvironment {
+                source: config::CondaEnvironmentSource::Archive("/app2.env.tar.gz".into()),
                 micromamba_binary_path: Utf8PathBuf::from(
                     #[cfg(unix)]
                     {
@@ -746,9 +730,12 @@ mod tests {
                         "C:\\micromamba.exe"
                     },
                 ),
-                archive_path: Utf8PathBuf::from("/app2.env.tar.gz"),
                 root_prefix: Utf8PathBuf::from("/conda_base/mamba_root_prefix"),
                 prefix: Utf8PathBuf::from("/conda_base/environments/app2_tests_EN"),
+                http_proxy_config: config::HTTPProxyConfig {
+                    http: Some("http://user:pass@corp.com:8080".into()),
+                    https: None,
+                },
                 build_timeout: 300,
                 build_runtime_directory: Utf8PathBuf::from(
                     "/working/environment_building/app2_tests_EN"

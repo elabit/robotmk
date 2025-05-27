@@ -407,25 +407,19 @@ pub fn gather_conda_environment_building_directories(
     plans: Vec<Plan>,
 ) -> Vec<StepWithPlans> {
     let mut setup_steps: Vec<StepWithPlans> = Vec::new();
-    let mut system_plans = Vec::new();
+    let mut non_conda_plans = Vec::new();
     for plan in plans.into_iter() {
         match &plan.environment {
-            Environment::CondaFromManifest(conda_env_from_manifest) => setup_steps.push((
+            Environment::Conda(conda_env) => setup_steps.push((
                 Box::new(StepCreate {
-                    target: conda_env_from_manifest.build_runtime_directory.clone(),
+                    target: conda_env.build_runtime_directory.clone(),
                 }),
                 vec![plan],
             )),
-            Environment::CondaFromArchive(conda_env_from_archive) => setup_steps.push((
-                Box::new(StepCreate {
-                    target: conda_env_from_archive.build_runtime_directory.clone(),
-                }),
-                vec![plan],
-            )),
-            _ => system_plans.push(plan),
+            _ => non_conda_plans.push(plan),
         }
     }
-    setup_steps.push(skip(system_plans));
+    setup_steps.push(skip(non_conda_plans));
     setup_steps
 }
 

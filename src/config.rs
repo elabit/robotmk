@@ -190,19 +190,14 @@ pub struct RCCEnvironmentConfig {
 #[derive(Clone, Debug, Deserialize, PartialEq, Serialize)]
 pub struct CondaEnvironmentConfig {
     pub source: CondaEnvironmentSource,
+    pub http_proxy_config: HTTPProxyConfig,
     pub build_timeout: u64,
 }
 
 #[derive(Clone, Debug, Deserialize, PartialEq, Serialize)]
 pub enum CondaEnvironmentSource {
-    Manifest(CondaEnvironmentFromManifest),
+    Manifest(Utf8PathBuf),
     Archive(Utf8PathBuf),
-}
-
-#[derive(Clone, Debug, Deserialize, PartialEq, Serialize)]
-pub struct CondaEnvironmentFromManifest {
-    pub manifest_path: Utf8PathBuf,
-    pub http_proxy_config: HTTPProxyConfig,
 }
 
 #[derive(Clone, Debug, Default, Deserialize, PartialEq, Serialize)]
