@@ -22,7 +22,18 @@ use walkdir::WalkDir;
 #[ignore]
 async fn test_scheduler() -> AnyhowResult<()> {
     let test_dir = Utf8PathBuf::from(var("TEST_DIR")?);
+    let unconfigured_plan_working_dir = test_dir
+        .join("working")
+        .join("plans")
+        .join("should_be_removed_during_scheduler_setup");
+    let configured_plan_previous_execution_dir = test_dir
+        .join("working")
+        .join("plans")
+        .join("rcc_headless")
+        .join("should_still_exist_after_scheduler_run");
     create_dir_all(&test_dir)?;
+    create_dir_all(&unconfigured_plan_working_dir)?;
+    create_dir_all(&configured_plan_previous_execution_dir)?;
     let current_user_name = var("UserName")?;
     let config = create_config(
         &test_dir,
@@ -39,6 +50,8 @@ async fn test_scheduler() -> AnyhowResult<()> {
     run_scheduler(&test_dir, &config, var("RUN_FOR")?.parse::<u64>()?).await?;
 
     assert_working_directory(&config.working_directory, &current_user_name).await?;
+    assert!(!unconfigured_plan_working_dir.exists());
+    assert!(configured_plan_previous_execution_dir.is_dir());
     assert_results_directory(&config.results_directory);
     assert_rcc(&config.rcc_config, &current_user_name).await?;
     assert_tasks().await?;

@@ -14,10 +14,6 @@ use std::collections::{HashMap, HashSet};
 use std::fs::{create_dir_all, remove_dir_all, remove_file};
 
 pub fn setup(global_config: &GlobalConfig, plans: Vec<Plan>) -> AnyhowResult<Vec<Plan>> {
-    if global_config.working_directory.exists() {
-        remove_dir_all(&global_config.working_directory)
-            .context("Failed to remove working directory")?;
-    }
     create_dir_all(&global_config.working_directory)
         .context("Failed to create working directory")?;
     setup_results_directories(global_config, &plans)?;
@@ -31,6 +27,8 @@ fn setup_working_directories(
     global_config: &GlobalConfig,
     plans: Vec<Plan>,
 ) -> AnyhowResult<Vec<Plan>> {
+    clean_up_working_directories(global_config, &plans)?;
+
     let (surviving_plans, plan_failures) = setup_plans_working_directory(plans);
     let (surviving_plans, rcc_failures) =
         setup_rcc_working_directories(&global_config.working_directory, surviving_plans);
@@ -47,6 +45,33 @@ fn setup_working_directories(
         &global_config.results_directory_locker,
     )?;
     Ok(surviving_plans)
+}
+
+fn clean_up_working_directories(global_config: &GlobalConfig, plans: &[Plan]) -> AnyhowResult<()> {
+    for dir_to_be_removed in [
+        environment_building_working_directory(&global_config.working_directory),
+        rcc_setup_working_directory(&global_config.working_directory),
+    ] {
+        if dir_to_be_removed.exists() {
+            remove_dir_all(dir_to_be_removed)?;
+        }
+    }
+
+    let plan_working_directory = &global_config.working_directory.join("plans");
+    if !plan_working_directory.is_dir() {
+        return Ok(());
+    }
+
+    let plan_working_directories_to_keep =
+        HashSet::<&Utf8PathBuf>::from_iter(plans.iter().map(|plan| &plan.working_directory));
+
+    for entry in top_level_directories(plan_working_directory)? {
+        if !plan_working_directories_to_keep.contains(&entry) {
+            remove_dir_all(&entry)?;
+        }
+    }
+
+    Ok(())
 }
 
 fn setup_plans_working_directory(plans: Vec<Plan>) -> (Vec<Plan>, HashMap<String, String>) {
@@ -235,26 +260,34 @@ fn clean_up_plan_results_directory(
     Ok(())
 }
 
-fn top_level_files(directory: &Utf8Path) -> AnyhowResult<Vec<Utf8PathBuf>> {
-    let mut result_files = vec![];
+fn top_level_directories(directory: &Utf8Path) -> anyhow::Result<Vec<Utf8PathBuf>> {
+    Ok(top_level_directory_entries(directory)?
+        .into_iter()
+        .filter(|path| path.is_dir())
+        .collect())
+}
 
-    for dir_entry in directory.read_dir_utf8().context(format!(
-        "Failed to read entries of results directory {directory}",
-    ))? {
-        let dir_entry = dir_entry.context(format!(
-            "Failed to read entries of results directory {directory}",
-        ))?;
-        if dir_entry
-            .file_type()
-            .context(format!(
-                "Failed to determine file type of {}",
-                dir_entry.path()
-            ))?
-            .is_file()
-        {
-            result_files.push(dir_entry.path().to_path_buf())
-        }
+fn top_level_files(directory: &Utf8Path) -> anyhow::Result<Vec<Utf8PathBuf>> {
+    Ok(top_level_directory_entries(directory)?
+        .into_iter()
+        .filter(|path| path.is_file())
+        .collect())
+}
+
+fn top_level_directory_entries(directory: &Utf8Path) -> anyhow::Result<Vec<Utf8PathBuf>> {
+    let mut entries = vec![];
+
+    for dir_entry in directory
+        .read_dir_utf8()
+        .context(format!("Failed to read entries of directory {directory}",))?
+    {
+        entries.push(
+            dir_entry
+                .context(format!("Failed to read entries of directory {directory}",))?
+                .path()
+                .to_path_buf(),
+        )
     }
 
-    Ok(result_files)
+    Ok(entries)
 }
