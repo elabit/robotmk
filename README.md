@@ -65,7 +65,7 @@ The older MKP-based version is still available for Checkmk versions **2.3 and 2.
 - **Robotmk Homepage, Blog & Training** - Tutorials, technical articles and the Synthetic Monitoring training:  
   [https://robotmk.org](https://robotmk.org)
 - **Examples Repository** - Curated test cases and templates:  
-  [Robotmk Examples on GitHub](https://github.com/robotmk/examples)
+  [Robotmk Examples on GitHub](https://github.com/Checkmk/robotmk-examples)
 - **Robot Framework** - Learn more about the testing framework that powers Robotmk:  
   [https://robotframework.org](https://robotframework.org)
 - **Robot Framework User Guide** - Official Documentation  
