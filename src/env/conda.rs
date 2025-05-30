@@ -36,43 +36,32 @@ impl CondaEnvironment {
         start_time: DateTime<Utc>,
         cancellation_token: &CancellationToken,
     ) -> Result<BuildOutcome, Cancelled> {
-        if let Some(build_result) = match self.source {
-            CondaEnvironmentSource::Manifest(ref manifest_path) => self
-                .build_from_manifest_and_report_if_unsuccessful(
-                    manifest_path,
-                    id,
-                    session,
-                    cancellation_token,
-                ),
-            CondaEnvironmentSource::Archive(ref archive_path) => self
-                .build_from_archive_and_report_if_unsuccessful(
-                    archive_path,
-                    id,
-                    session,
-                    start_time,
-                    cancellation_token,
-                ),
+        if let BuildStepOutcome::Failure(failure) = match self.source {
+            CondaEnvironmentSource::Manifest(ref manifest_path) => {
+                self.build_from_manifest(manifest_path, id, session, cancellation_token)
+            }
+            CondaEnvironmentSource::Archive(ref archive_path) => {
+                self.build_from_archive(archive_path, id, session, start_time, cancellation_token)
+            }
         } {
-            return build_result;
+            return failure.into();
         }
 
-        if let Some(post_build_command_result) = self
-            .run_post_build_commands_and_report_if_unsuccessful(
-                &match self.gather_post_build_commands() {
-                    Ok(commands) => commands,
-                    Err(e) => {
-                        let build_outcome = BuildOutcome::Error(format!("{e:?}"));
-                        error!("{:?}", e.context(format!("Plan {id} will be dropped")));
-                        return Ok(build_outcome);
-                    }
-                },
-                id,
-                session,
-                start_time,
-                cancellation_token,
-            )
-        {
-            return post_build_command_result;
+        if let BuildStepOutcome::Failure(failure) = self.run_post_build_commands(
+            &match self.gather_post_build_commands() {
+                Ok(commands) => commands,
+                Err(e) => {
+                    let build_outcome = BuildOutcome::Error(format!("{e:?}"));
+                    error!("{:?}", e.context(format!("Plan {id} will be dropped")));
+                    return Ok(build_outcome);
+                }
+            },
+            id,
+            session,
+            start_time,
+            cancellation_token,
+        ) {
+            return failure.into();
         }
 
         Ok(BuildOutcome::Success(
@@ -106,58 +95,58 @@ impl CondaEnvironment {
         }
     }
 
-    fn run_build_step_and_report_if_unsuccessful(
+    fn run_build_step(
         run_spec: &RunSpec,
         session: &Session,
         build_step_label: &str,
         plan_id: &str,
-    ) -> Option<Result<BuildOutcome, Cancelled>> {
+    ) -> BuildStepOutcome {
         match session.run(run_spec) {
             Ok(Outcome::Completed(0)) => {
                 info!("Plan {plan_id}: {build_step_label}: success");
-                None
+                BuildStepOutcome::Success
             }
             Ok(Outcome::Completed(_exit_code)) => {
                 error!(
                     "Plan {plan_id}: {build_step_label}: non-zero exit code, plan will be dropped"
                 );
-                Some(Ok(BuildOutcome::Error(format!(
+                BuildStepOutcome::Failure(BuildStepOutcomeFailure::Error(format!(
                     "{build_step_label}: non-zero exit code, see {stdio_location} for stdio logs",
                     stdio_location = run_spec.runtime_base_path
-                ))))
+                )))
             }
             Ok(Outcome::Timeout) => {
                 error!("Plan {plan_id}: {build_step_label}: timeout, plan will be dropped");
-                Some(Ok(BuildOutcome::Timeout))
+                BuildStepOutcome::Failure(BuildStepOutcomeFailure::Timeout)
             }
             Ok(Outcome::Cancel) => {
                 error!("Plan {plan_id}: {build_step_label}: cancelled");
-                Some(Err(Cancelled {}))
+                BuildStepOutcome::Failure(BuildStepOutcomeFailure::Cancelled)
             }
             Err(e) => {
                 let error_with_context = e.context(anyhow!(
                     "{build_step_label}: failure, see {stdio_location} for stdio logs",
                     stdio_location = run_spec.runtime_base_path
                 ));
-                let build_outcome = BuildOutcome::Error(format!("{error_with_context:?}"));
+                let failure = BuildStepOutcomeFailure::Error(format!("{error_with_context:?}"));
                 error!(
                     "{:?}",
                     error_with_context.context(format!("Plan {plan_id} will be dropped"))
                 );
-                Some(Ok(build_outcome))
+                BuildStepOutcome::Failure(failure)
             }
         }
     }
 
-    fn build_from_manifest_and_report_if_unsuccessful(
+    fn build_from_manifest(
         &self,
         manifest_path: &Utf8Path,
         id: &str,
         session: &Session,
         cancellation_token: &CancellationToken,
-    ) -> Option<Result<BuildOutcome, Cancelled>> {
+    ) -> BuildStepOutcome {
         info!("Building Conda environment from manifest for plan {id}");
-        Self::run_build_step_and_report_if_unsuccessful(
+        Self::run_build_step(
             &RunSpec {
                 id: &format!("robotmk_env_create_{id}"),
                 command_spec: &self.make_create_command_spec(manifest_path),
@@ -191,31 +180,31 @@ impl CondaEnvironment {
         build_command_spec
     }
 
-    fn build_from_archive_and_report_if_unsuccessful(
+    fn build_from_archive(
         &self,
         archive_path: &Utf8Path,
         id: &str,
         session: &Session,
         start_time: DateTime<Utc>,
         cancellation_token: &CancellationToken,
-    ) -> Option<Result<BuildOutcome, Cancelled>> {
+    ) -> BuildStepOutcome {
         info!("Extracting archive {archive_path} for plan {id}");
 
         if let Err(error) = self.unpack(archive_path) {
             error!("Archive unpacking failed: {error:?}");
-            return Some(Ok(BuildOutcome::Error(format!(
+            return BuildStepOutcome::Failure(BuildStepOutcomeFailure::Error(format!(
                 "Archive unpacking failed: {error:?}"
-            ))));
+            )));
         }
 
         let elapsed: u64 = (Utc::now() - start_time).num_seconds().try_into().unwrap();
         if elapsed >= self.build_timeout {
             error!("Environment import timed out, plan {id} will be dropped");
-            return Some(Ok(BuildOutcome::Timeout));
+            return BuildStepOutcome::Failure(BuildStepOutcomeFailure::Timeout);
         };
 
         info!("Running conda-unpack for plan {id}");
-        Self::run_build_step_and_report_if_unsuccessful(
+        Self::run_build_step(
             &RunSpec {
                 id: &format!("robotmk_env_conda-unpack_{id}"),
                 command_spec: &self.wrap(CommandSpec::new("conda-unpack")),
@@ -278,27 +267,27 @@ impl CondaEnvironment {
         self.wrap(post_build_command)
     }
 
-    fn run_post_build_commands_and_report_if_unsuccessful(
+    fn run_post_build_commands(
         &self,
         post_build_command_specs: &[(String, CommandSpec)],
         plan_id: &str,
         session: &Session,
         start_time: DateTime<Utc>,
         cancellation_token: &CancellationToken,
-    ) -> Option<Result<BuildOutcome, Cancelled>> {
+    ) -> BuildStepOutcome {
         if post_build_command_specs.is_empty() {
             info!("No post-build commands found for plan {plan_id}, skipping");
-            return None;
+            return BuildStepOutcome::Success;
         }
 
         for (command_name, command_spec) in post_build_command_specs {
             let elapsed: u64 = (Utc::now() - start_time).num_seconds().try_into().unwrap();
             if elapsed >= self.build_timeout {
                 error!("Timeout while running post-build commands, plan {plan_id} will be dropped");
-                return Some(Ok(BuildOutcome::Timeout));
+                return BuildStepOutcome::Failure(BuildStepOutcomeFailure::Timeout);
             };
             info!("Running post-build command {command_name} for plan {plan_id}");
-            if let Some(post_build_command_result) = Self::run_build_step_and_report_if_unsuccessful(
+            if let BuildStepOutcome::Failure(failure) = Self::run_build_step(
                 &RunSpec {
                     id: &format!("robotmk_env_{plan_id}_post_build_{command_name}"),
                     command_spec,
@@ -312,12 +301,33 @@ impl CondaEnvironment {
                 &format!("Post-build command {command_name}"),
                 plan_id,
             ) {
-                return Some(post_build_command_result);
+                return BuildStepOutcome::Failure(failure);
             }
         }
 
         info!("Post-build commands for plan {plan_id} completed successfully");
-        None
+        BuildStepOutcome::Success
+    }
+}
+
+enum BuildStepOutcome {
+    Success,
+    Failure(BuildStepOutcomeFailure),
+}
+
+enum BuildStepOutcomeFailure {
+    Timeout,
+    Error(String),
+    Cancelled,
+}
+
+impl From<BuildStepOutcomeFailure> for Result<BuildOutcome, Cancelled> {
+    fn from(failure: BuildStepOutcomeFailure) -> Self {
+        match failure {
+            BuildStepOutcomeFailure::Timeout => Ok(BuildOutcome::Timeout),
+            BuildStepOutcomeFailure::Error(error) => Ok(BuildOutcome::Error(error)),
+            BuildStepOutcomeFailure::Cancelled => Err(Cancelled {}),
+        }
     }
 }
 
