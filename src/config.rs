@@ -1,7 +1,7 @@
 use crate::section::Host;
-use anyhow::{Result as AnyhowResult, anyhow, bail};
+use anyhow::Result as AnyhowResult;
 use camino::{Utf8Path, Utf8PathBuf};
-use serde::{Deserialize, Deserializer, Serialize};
+use serde::{Deserialize, Serialize};
 use serde_json::from_str;
 use std::fs::read_to_string;
 
@@ -38,67 +38,8 @@ pub struct CustomRCCProfileConfig {
 
 #[derive(Clone, Debug, Deserialize, PartialEq, Serialize)]
 pub struct CondaConfig {
-    pub micromamba_binary_path: ValidatedMicromambaBinaryPath,
+    pub micromamba_binary_path: Utf8PathBuf,
     pub base_directory: Utf8PathBuf,
-}
-
-// Micromamba is very particular regarding the filename of its own executable. Only `micromamba` or
-// `micromamba.exe` are accepted. If the filename is different, micromamba will complain:
-// Error unknown MAMBA_EXE: "/tmp/not-micromamba", filename must be mamba or micromamba
-// /tmp/mambaf893b04kxn5: line 3: not-micromamba: command not found
-#[derive(Clone, Debug, PartialEq, Serialize)]
-pub struct ValidatedMicromambaBinaryPath(Utf8PathBuf);
-
-impl TryFrom<Utf8PathBuf> for ValidatedMicromambaBinaryPath {
-    type Error = anyhow::Error;
-
-    fn try_from(path: Utf8PathBuf) -> Result<Self, Self::Error> {
-        Self::from_utf8_path_buf(path)
-    }
-}
-
-impl From<ValidatedMicromambaBinaryPath> for Utf8PathBuf {
-    fn from(value: ValidatedMicromambaBinaryPath) -> Self {
-        value.0
-    }
-}
-
-impl<'de> Deserialize<'de> for ValidatedMicromambaBinaryPath {
-    fn deserialize<D>(deserializer: D) -> Result<Self, D::Error>
-    where
-        D: Deserializer<'de>,
-    {
-        Self::from_utf8_path_buf(Utf8PathBuf::deserialize(deserializer)?)
-            .map_err(serde::de::Error::custom)
-    }
-}
-
-impl ValidatedMicromambaBinaryPath {
-    const EXPECTED_FILE_NAME: &str = {
-        #[cfg(unix)]
-        {
-            "micromamba"
-        }
-        #[cfg(windows)]
-        {
-            "micromamba.exe"
-        }
-    };
-
-    fn from_utf8_path_buf(path: Utf8PathBuf) -> AnyhowResult<Self> {
-        let file_name = path.file_name().ok_or(anyhow!(
-            "Micromamba binary path must be a file, got: {}",
-            path
-        ))?;
-
-        if file_name != Self::EXPECTED_FILE_NAME {
-            bail!(
-                "Micromamba binary path must be a file named '{expected_file_name}', got: {path}",
-                expected_file_name = Self::EXPECTED_FILE_NAME,
-            );
-        }
-        Ok(Self(path))
-    }
 }
 
 #[derive(Clone, Debug, Deserialize, PartialEq, Serialize)]
@@ -230,110 +171,4 @@ pub struct PlanMetadata {
     pub application: String,
     pub suite_name: String,
     pub variant: String,
-}
-
-#[cfg(test)]
-mod tests {
-    use super::*;
-
-    #[test]
-    #[cfg(unix)]
-    fn validated_micromamba_binary_path_from_utf8_path_buf_ok() {
-        assert_eq!(
-            ValidatedMicromambaBinaryPath::try_from(Utf8PathBuf::from("/micromamba"))
-                .unwrap()
-                .0,
-            "/micromamba"
-        )
-    }
-
-    #[test]
-    #[cfg(windows)]
-    fn validated_micromamba_binary_path_from_utf8_path_buf_ok() {
-        assert_eq!(
-            ValidatedMicromambaBinaryPath::try_from(Utf8PathBuf::from("C:\\micromamba.exe"))
-                .unwrap()
-                .0,
-            "C:\\micromamba.exe"
-        )
-    }
-
-    #[test]
-    #[cfg(unix)]
-    fn validated_micromamba_binary_path_from_utf8_path_buf_error() {
-        assert!(
-            ValidatedMicromambaBinaryPath::try_from(Utf8PathBuf::from("/not-micromamba"),).is_err()
-        )
-    }
-
-    #[test]
-    #[cfg(windows)]
-    fn validated_micromamba_binary_path_from_utf8_path_buf_error() {
-        assert!(
-            ValidatedMicromambaBinaryPath::try_from(Utf8PathBuf::from("C:\\not-micromamba.exe"),)
-                .is_err()
-        )
-    }
-
-    #[test]
-    #[cfg(unix)]
-    fn utf8_path_buf_from_validated_micromamba_binary_path() {
-        assert_eq!(
-            Utf8PathBuf::from(
-                ValidatedMicromambaBinaryPath::try_from(Utf8PathBuf::from("/micromamba")).unwrap()
-            ),
-            "/micromamba"
-        )
-    }
-
-    #[test]
-    #[cfg(windows)]
-    fn utf8_path_buf_from_validated_micromamba_binary_path() {
-        assert_eq!(
-            Utf8PathBuf::from(
-                ValidatedMicromambaBinaryPath::try_from(Utf8PathBuf::from("C:\\micromamba.exe"))
-                    .unwrap()
-            ),
-            "C:\\micromamba.exe"
-        )
-    }
-
-    #[test]
-    #[cfg(unix)]
-    fn deserialize_validated_micromamba_binary_path_ok() {
-        assert_eq!(
-            serde_json::from_str::<ValidatedMicromambaBinaryPath>("\"/micromamba\"")
-                .unwrap()
-                .0,
-            "/micromamba"
-        )
-    }
-
-    #[test]
-    #[cfg(windows)]
-    fn deserialize_validated_micromamba_binary_path_ok() {
-        assert_eq!(
-            serde_json::from_str::<ValidatedMicromambaBinaryPath>("\"C:\\\\micromamba.exe\"")
-                .unwrap()
-                .0,
-            "C:\\micromamba.exe"
-        )
-    }
-
-    #[test]
-    #[cfg(unix)]
-    fn deserialize_validated_micromamba_binary_path_error() {
-        assert!(
-            serde_json::from_str::<ValidatedMicromambaBinaryPath>("\"/not-micromamba\"").is_err()
-        )
-    }
-
-    #[test]
-    #[cfg(windows)]
-    fn deserialize_validated_micromamba_binary_path_error() {
-        assert!(
-            serde_json::from_str::<ValidatedMicromambaBinaryPath>("\"C:\\\\not-micromamba.exe\"")
-                .is_err()
-        )
-    }
 }

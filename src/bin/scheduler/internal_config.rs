@@ -28,8 +28,8 @@ pub struct GlobalConfig {
 
 #[derive(Clone, Debug, PartialEq)]
 pub struct CondaConfig {
-    pub micromamba_binary_path: Utf8PathBuf,
     pub base_directory: Utf8PathBuf,
+    pub original_micromamba_binary_path: Utf8PathBuf,
 }
 
 impl CondaConfig {
@@ -39,6 +39,24 @@ impl CondaConfig {
 
     pub fn environments_base_directory(&self) -> Utf8PathBuf {
         self.base_directory.join("environments")
+    }
+
+    pub fn micromamba_binary_path(&self) -> Utf8PathBuf {
+        self.base_directory.join(
+            // Micromamba is very particular regarding the filename of its own executable.
+            // Only `micromamba` or `micromamba.exe` are accepted.
+            // If the filename is different, micromamba will complain:
+            // Error unknown MAMBA_EXE: "/tmp/not-micromamba", filename must be mamba or micromamba
+            // /tmp/mambaf893b04kxn5: line 3: not-micromamba: command not found
+            #[cfg(unix)]
+            {
+                "micromamba"
+            },
+            #[cfg(windows)]
+            {
+                "micromamba.exe"
+            },
+        )
     }
 }
 
@@ -94,7 +112,7 @@ pub fn from_external_config(
         working_directory_rcc_setup_steps: working_directory.join("rcc_setup"),
         rcc_config: external_config.rcc_config,
         conda_config: CondaConfig {
-            micromamba_binary_path: external_config.conda_config.micromamba_binary_path.into(),
+            original_micromamba_binary_path: external_config.conda_config.micromamba_binary_path,
             base_directory: external_config.conda_config.base_directory,
         },
         cancellation_token: cancellation_token.clone(),
@@ -193,8 +211,7 @@ pub fn from_external_config(
                                 }),
                             micromamba_binary_path: global_config
                                 .conda_config
-                                .micromamba_binary_path
-                                .clone(),
+                                .micromamba_binary_path(),
                             root_prefix: global_config.conda_config.root_prefix(),
                             prefix: global_config
                                 .conda_config
@@ -451,19 +468,7 @@ mod tests {
                     robocorp_home_base: Utf8PathBuf::from("/rc_home_base"),
                 },
                 conda_config: config::CondaConfig {
-                    micromamba_binary_path: config::ValidatedMicromambaBinaryPath::try_from(
-                        Utf8PathBuf::from(
-                            #[cfg(unix)]
-                            {
-                                "/micromamba"
-                            },
-                            #[cfg(windows)]
-                            {
-                                "C:\\micromamba.exe"
-                            },
-                        ),
-                    )
-                    .unwrap(),
+                    micromamba_binary_path: "/micromamba".into(),
                     base_directory: Utf8PathBuf::from("/conda_base"),
                 },
                 plan_groups: vec![
@@ -501,17 +506,8 @@ mod tests {
         assert_eq!(
             global_config.conda_config,
             CondaConfig {
-                micromamba_binary_path: Utf8PathBuf::from(
-                    #[cfg(unix)]
-                    {
-                        "/micromamba"
-                    },
-                    #[cfg(windows)]
-                    {
-                        "C:\\micromamba.exe"
-                    },
-                ),
-                base_directory: Utf8PathBuf::from("/conda_base"),
+                original_micromamba_binary_path: "/micromamba".into(),
+                base_directory: "/conda_base".into(),
             }
         );
         assert_eq!(plans.len(), 4);
@@ -664,14 +660,14 @@ mod tests {
                 robotmk_manifest_path: Some(
                     "/managed/app1_suite1/app1/robotmk_manifest.yaml".into()
                 ),
-                micromamba_binary_path: Utf8PathBuf::from(
+                micromamba_binary_path: Utf8PathBuf::from("/conda_base").join(
                     #[cfg(unix)]
                     {
-                        "/micromamba"
+                        "micromamba"
                     },
                     #[cfg(windows)]
                     {
-                        "C:\\micromamba.exe"
+                        "micromamba.exe"
                     },
                 ),
                 root_prefix: Utf8PathBuf::from("/conda_base/mamba_root_prefix"),
@@ -731,14 +727,14 @@ mod tests {
             Environment::Conda(CondaEnvironment {
                 source: config::CondaEnvironmentSource::Archive("/app2.env.tar.gz".into()),
                 robotmk_manifest_path: None,
-                micromamba_binary_path: Utf8PathBuf::from(
+                micromamba_binary_path: Utf8PathBuf::from("/conda_base").join(
                     #[cfg(unix)]
                     {
-                        "/micromamba"
+                        "micromamba"
                     },
                     #[cfg(windows)]
                     {
-                        "C:\\micromamba.exe"
+                        "micromamba.exe"
                     },
                 ),
                 root_prefix: Utf8PathBuf::from("/conda_base/mamba_root_prefix"),

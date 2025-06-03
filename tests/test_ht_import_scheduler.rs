@@ -7,7 +7,7 @@ use camino::{Utf8Path, Utf8PathBuf};
 use robotmk::config::{
     CondaConfig, Config, EnvironmentConfig, ExecutionConfig, PlanConfig, PlanMetadata, RCCConfig,
     RCCEnvironmentConfig, RCCProfileConfig, RetryStrategy, RobotConfig, SequentialPlanGroup,
-    SessionConfig, Source, ValidatedMicromambaBinaryPath, WorkingDirectoryCleanupConfig,
+    SessionConfig, Source, WorkingDirectoryCleanupConfig,
 };
 use robotmk::results::results_directory;
 use robotmk::section::Host;
@@ -63,17 +63,7 @@ async fn test_ht_import_scheduler() -> AnyhowResult<()> {
             robocorp_home_base: test_dir.join("rc_home_base"),
         },
         CondaConfig {
-            micromamba_binary_path: ValidatedMicromambaBinaryPath::try_from(Utf8PathBuf::from(
-                #[cfg(unix)]
-                {
-                    "/micromamba"
-                },
-                #[cfg(windows)]
-                {
-                    "C:\\micromamba.exe"
-                },
-            ))
-            .unwrap(),
+            micromamba_binary_path: "/micromamba".into(),
             base_directory: Utf8PathBuf::default(),
         },
     );
