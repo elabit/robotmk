@@ -8,7 +8,7 @@ use robotmk::config::{
     CondaConfig, CondaEnvironmentConfig, CondaEnvironmentSource, Config, EnvironmentConfig,
     ExecutionConfig, HTTPProxyConfig, PlanConfig, PlanMetadata, RCCConfig, RCCProfileConfig,
     RetryStrategy, RobotConfig, SequentialPlanGroup, SessionConfig, Source,
-    ValidatedMicromambaBinaryPath, WorkingDirectoryCleanupConfig,
+    WorkingDirectoryCleanupConfig,
 };
 use robotmk::results::results_directory;
 use robotmk::section::Host;
@@ -65,8 +65,7 @@ async fn test_conda_from_archive_scheduler() -> AnyhowResult<()> {
         &runtime_dir,
         &suite_dir,
         CondaConfig {
-            micromamba_binary_path: ValidatedMicromambaBinaryPath::try_from(micromamba_binary_path)
-                .unwrap(),
+            micromamba_binary_path,
             base_directory: test_dir.join("conda_base"),
         },
         plan_id,

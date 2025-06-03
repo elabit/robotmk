@@ -11,7 +11,7 @@ use robotmk::config::{
     CondaConfig, CondaEnvironmentConfig, CondaEnvironmentSource, Config, CustomRCCProfileConfig,
     EnvironmentConfig, ExecutionConfig, HTTPProxyConfig, PlanConfig, PlanMetadata, RCCConfig,
     RCCEnvironmentConfig, RCCProfileConfig, RetryStrategy, RobotConfig, SequentialPlanGroup,
-    SessionConfig, Source, ValidatedMicromambaBinaryPath, WorkingDirectoryCleanupConfig,
+    SessionConfig, Source, WorkingDirectoryCleanupConfig,
 };
 use robotmk::results::results_directory;
 use robotmk::section::Host;
@@ -71,10 +71,7 @@ async fn test_scheduler() -> AnyhowResult<()> {
             robocorp_home_base: temp_dir_path.join("rc_home_base"),
         },
         CondaConfig {
-            micromamba_binary_path: ValidatedMicromambaBinaryPath::try_from(Utf8PathBuf::from(
-                var("MICROMAMBA_BINARY_PATH")?,
-            ))
-            .unwrap(),
+            micromamba_binary_path: var("MICROMAMBA_BINARY_PATH")?.into(),
             base_directory: temp_dir_path.join("conda_base"),
         },
         #[cfg(windows)]
@@ -110,11 +107,6 @@ async fn test_scheduler() -> AnyhowResult<()> {
     )
     .await?;
     assert_rcc(&config.rcc_config).await?;
-    #[cfg(windows)]
-    assert_micromamba_binary_permissions(&Utf8PathBuf::from(
-        config.conda_config.micromamba_binary_path,
-    ))
-    .await?;
     #[cfg(windows)]
     assert_tasks().await?;
     assert_sequentiality(
@@ -847,12 +839,6 @@ async fn assert_rcc_configuration(rcc_config: &RCCConfig, robocorp_home: &str) -
 }
 
 #[cfg(windows)]
-async fn assert_micromamba_binary_permissions(binary_path: &Utf8Path) -> AnyhowResult<()> {
-    assert!(dacl_exists_for_sid(binary_path, "*S-1-5-32-545").await?);
-    Ok(())
-}
-
-#[cfg(windows)]
 async fn assert_tasks() -> AnyhowResult<()> {
     let mut schtasks_cmd = Command::new("schtasks.exe");
     schtasks_cmd.arg("/query");
@@ -914,7 +900,14 @@ async fn assert_conda_base(
     assert!(conda_base.is_dir());
     assert_eq!(
         directory_entries(conda_base, 1),
-        ["environments", "mamba_root_prefix"]
+        [
+            "environments",
+            "mamba_root_prefix",
+            #[cfg(unix)]
+            "micromamba",
+            #[cfg(windows)]
+            "micromamba.exe",
+        ]
     );
     assert_eq!(
         directory_entries(conda_base.join("environments"), 1),
