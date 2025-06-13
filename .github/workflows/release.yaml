@@ -72,7 +72,6 @@ jobs:
           allowUpdates: false
           artifacts: >
             all_executables.zip,
-            assets/robotmk_core-1.0.0.mkp,
             artifact/rcc/rcc_linux64,
             artifact/rcc/rccremote_linux64,
             artifact/rcc/rcc_windows64.exe,
