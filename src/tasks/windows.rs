@@ -45,7 +45,7 @@ pub fn run_task(task_spec: &TaskSpec) -> AnyhowResult<Outcome<i32>> {
     let _ = task_manager
         .delete_task(&task)
         .context(format!("Failed to delete task {}", task_spec.task_name))
-        .map_err(|e| error!("{:?}", e));
+        .map_err(|e| error!("{e:?}"));
 
     match outcome {
         Outcome::Cancel => return Ok(Outcome::Cancel),
@@ -189,7 +189,7 @@ impl TaskManager {
     ) -> WinApiResult<Outcome<WinApiResult<()>>> {
         let (name, running_task) = unsafe {
             let name = task.Name()?;
-            debug!("Starting task {}", name);
+            debug!("Starting task {name}");
             (name, task.Run(&VARIANT::default())?)
         };
         debug!("Waiting for task {name} to complete");
@@ -200,7 +200,7 @@ impl TaskManager {
         )
         .await;
         if !matches!(outcome, Outcome::Completed(Ok(_))) {
-            error!("Killing task {}", name);
+            error!("Killing task {name}");
             let _ = self.kill_task(&running_task);
         }
         Ok(outcome)
@@ -275,8 +275,7 @@ fn read_exit_code(path: &Utf8Path) -> AnyhowResult<i32> {
         .context(format!("{path} is empty"))?
         .to_string();
     content_until_first_whitespace.parse().context(format!(
-        "Failed to parse {} as i32",
-        content_until_first_whitespace
+        "Failed to parse {content_until_first_whitespace} as i32"
     ))
 }
 

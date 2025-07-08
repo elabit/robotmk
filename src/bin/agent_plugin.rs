@@ -47,9 +47,9 @@ fn print_sections(sections: &[Section], stdout: &mut impl io::Write) {
     for section in sections.iter() {
         let mut with_header = format!("<<<{}:sep(0)>>>\n{}\n", section.name, section.content);
         if let Host::Piggyback(host) = &section.host {
-            with_header = format!("<<<<{}>>>>\n{}<<<<>>>>\n", host, with_header);
+            with_header = format!("<<<<{host}>>>>\n{with_header}<<<<>>>>\n");
         }
-        write!(stdout, "{}", with_header).unwrap();
+        write!(stdout, "{with_header}").unwrap();
     }
 }
 

@@ -48,7 +48,7 @@ impl Robot {
     }
 
     fn attempt(&self, output_directory: &Utf8Path, index: usize) -> Attempt {
-        let output_xml_file = output_directory.join(format!("{}.xml", index));
+        let output_xml_file = output_directory.join(format!("{index}.xml"));
         Attempt {
             index,
             command_spec: self.command_spec(output_directory, &output_xml_file, index),
@@ -76,7 +76,7 @@ impl Robot {
             .add_argument("--output")
             .add_argument(output_xml_file)
             .add_argument("--log")
-            .add_argument(output_directory.join(format!("{}.html", index)))
+            .add_argument(output_directory.join(format!("{index}.html")))
             .add_argument("--report")
             .add_argument("NONE")
             .add_argument(&self.robot_target);

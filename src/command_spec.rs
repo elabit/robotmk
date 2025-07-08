@@ -99,7 +99,7 @@ impl CommandSpec {
     pub fn to_command_string(&self) -> String {
         let mut command = Command::new(self.executable.clone());
         command.args(&self.arguments);
-        format!("{:?}", command)
+        format!("{command:?}")
     }
 }
 
