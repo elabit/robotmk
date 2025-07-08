@@ -35,7 +35,7 @@ fn cleanup_working_directory(
         .read_dir_utf8()?
         .filter_map(|dir_entry_result| {
             dir_entry_result
-                .context(format!("Failed to list entry of directory {}", directory))
+                .context(format!("Failed to list entry of directory {directory}"))
                 .map_err(log_and_return_error)
                 .ok()
         })

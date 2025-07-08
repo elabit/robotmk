@@ -56,8 +56,7 @@ fn produce_plan_results(plan: &Plan) -> Result<PlanExecutionReport, Terminate> {
         .join(timestamp.format(TIMESTAMP_FORMAT).to_string());
 
     create_dir_all(&output_directory).context(format!(
-        "Failed to create directory for plan run: {}",
-        output_directory
+        "Failed to create directory for plan run: {output_directory}"
     ))?;
 
     let (attempt_reports, rebot) = run_attempts_with_rebot(

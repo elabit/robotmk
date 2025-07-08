@@ -48,8 +48,8 @@ impl Session {
 impl Display for Session {
     fn fmt(&self, f: &mut Formatter<'_>) -> FmtResult {
         match self {
-            Self::Current(current_session) => write!(f, "{}", current_session),
-            Self::User(user_session) => write!(f, "{}", user_session),
+            Self::Current(current_session) => write!(f, "{current_session}"),
+            Self::User(user_session) => write!(f, "{user_session}"),
         }
     }
 }
