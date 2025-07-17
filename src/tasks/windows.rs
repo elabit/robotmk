@@ -77,16 +77,20 @@ fn assert_session_is_present(user_name: &str) -> AnyhowResult<()> {
 }
 
 fn check_if_user_has_session(user_name: &str, query_user_stdout: &str) -> bool {
+    // Note: Windows usernames are case-insensitive
+    let user_name_lower_case = user_name.to_lowercase();
     for line in query_user_stdout.lines().skip(1) {
         let words: Vec<&str> = line.split_whitespace().collect();
         let Some(user_name_of_session) = words.first() else {
             continue;
         };
-        if &user_name == user_name_of_session
-            || &format!(
+        // Usually, they are already lower case, but we want to be sure
+        let user_name_of_session_lower_case = user_name_of_session.to_lowercase();
+        if user_name_lower_case == user_name_of_session_lower_case
+            || format!(
                 // `>` marks the current session
-                ">{user_name}"
-            ) == user_name_of_session
+                ">{user_name_lower_case}"
+            ) == user_name_of_session_lower_case
         {
             return true;
         }
@@ -298,6 +302,16 @@ mod tests {
     fn check_if_user_has_session_ok() {
         assert!(check_if_user_has_session(
             "vagrant",
+            " USERNAME              SESSIONNAME        ID  STATE   IDLE TIME  LOGON TIME
+>vagrant               console             1  Active      none   12/4/2023 9:35 AM
+ vagrant2              rdp-tcp#0           2  Active          .  12/4/2023 9:36 AM"
+        ))
+    }
+
+    #[test]
+    fn check_if_user_has_session_case_insensitive() {
+        assert!(check_if_user_has_session(
+            "Vagrant",
             " USERNAME              SESSIONNAME        ID  STATE   IDLE TIME  LOGON TIME
 >vagrant               console             1  Active      none   12/4/2023 9:35 AM
  vagrant2              rdp-tcp#0           2  Active          .  12/4/2023 9:36 AM"
