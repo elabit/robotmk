@@ -110,13 +110,13 @@ fn write_to_tmp_and_move(
     if errors.is_empty() {
         return errors;
     }
-    if tmp_path.exists() {
-        if let Err(err) =
+    if tmp_path.exists()
+        && let Err(err) =
             fs::remove_file(tmp_path).context(format!("{tmp_path} exists and removing it failed"))
-        {
-            errors.push(err)
-        }
+    {
+        errors.push(err)
     }
+
     errors
 }
 
