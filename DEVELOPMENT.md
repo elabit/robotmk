@@ -57,46 +57,36 @@ Example:
      2.0.0p22
      2.1.0p4"
 
-* Run *Cmd-Shift-P* and select `Select Task...` > "Build all devcontainer images".
-* Run *Cmd-Shift-P* and select `Run Task...` to built the containers.
+After that, run the following command to build the required Docker images:
 
-![](./img/select-task.png)
-
-What does the task "***Build all devcontainer images***" (`.devcontainer/devcontainer_img_build.sh`) do?
+    .devcontainer/devcontainer_img_build.sh
 
 * First it checks if the CMK Docker images are already available locally. If not, it connects to the [Checkmk Docker Registry](registry.checkmk.com) and downloads the images from there.
 * It then creates a new Docker image based on the CMK docker image (downloaded in step 1) and installs some more things (see `.devcontainer/Dockerfile_cmk_py3_dev`):
   * Python modules form `.devcontainer/requirements.txt`
-  * some additional tools: `jq tree htop vim git telnet file`
+  * some additional tools: `jq tree htop vim git telnet file ...`
 
 For each version you will get an image `cmk-python3-dev:VERSION`.
 
-The Robotmk devcontainers are started on these images. See `.devcontainer/Dockerfile` (which is referenced in `devcontainer.json`):
+The Robotmk devcontainers are started based on these images, depending on `${VARIANT}`.
+See `.devcontainer/Dockerfile` (which is referenced in `devcontainer.json`):
 
 ```
-ARG VARIANT
+ARG VARIANT``
 # Build the dev images with .devcontainer/build-devcontainer.sh !
 FROM --platform=linux/amd64 robotmk-cmk-python3:${VARIANT}
 
 ```
 
-### Generate devcontainer.json 
+---
 
-Add the desired version to `.vscode/task-chooser.json`: 
+### Generate devcontainer.json
 
+To generate the devcontainer JSON file, execute the following command:
 
-```
-        {
-            "displayName": "▶︎ Set devcontainer to CMK 2.1.0p16",
-            "command": "bash .devcontainer/devcontainer_gen.sh 2.1.0p16"
-        },  
-```
+    .devcontainer/devcontainer_gen.sh VERSION
 
-* Run *Cmd-Shift-P* and select `Select Task...` and chose e.g. "*Set devcontainer to CMK 2.1.0p4*" (defined in the previous step)
-* Run *Cmd-Shift-P* and select `Run Task...` to run the task.
-
-
-```bash 
+```bash
      bash .devcontainer/devcontainer_gen 2.1.0p16
      + Generating CMK devcontainer file ...
      + Merging local devcontainer file for project robotmk ...
@@ -105,7 +95,6 @@ Add the desired version to `.vscode/task-chooser.json`:
 ```
 
 This reconfigures `.devcontainer/devcontainer.json` using `envsubst` and the template file in `.devcontainer/devcontainer_tpl.json`
-
 
 ### Choose and Start the Checkmk devcontainer
 
@@ -119,7 +108,7 @@ During this step, all relevant files for Robotmk get symlinked into the version 
 
 **Don't try to install the Robotmk MKP into this container! All files are already there!**
 
-The devcontainer is ready now. Open the Checmk login page on <http://127.0.0.1:4999>.
+The devcontainer is ready now. Open the Checmk login page on <http://127.0.0.1:5000>.
 
 ### Select Python Interpreter in VS Code
 
@@ -131,15 +120,15 @@ This is sometimes a little bit unreliable and must be done manually:
 
 ### Create Dummyhost
 
-- Open <http://127.0.0.1:4999> and log in. 
-- Create a new user "automation" (Admin), password is to store as plain text.
-- Run `.devcontainer/create_dummyhost.sh`: 
-     - creates a host
-     - adds a bakery rule
-     - adds a monitoring rule (with graphs for all items)
-- Connect to the container as root and execute `bake_and_install_agent_localhost`
-     - bake a new agent for the new host
-     - install the agent & RObotmk plugin
+* Open <http://127.0.0.1:5000> and log in.
+* Create a new user "automation" (Admin), password is to store as plain text.
+* Run `.devcontainer/create_dummyhost.sh`:
+  * creates a host
+  * adds a bakery rule
+  * adds a monitoring rule (with graphs for all items)
+* Connect to the container as root and execute `bake_and_install_agent_localhost` (bash alias)
+  * bake a new agent for the new host
+  * install the agent & RObotmk plugin
 
 ---
 
@@ -277,7 +266,6 @@ docker exec $CONTAINER bash -c "mkdir -p /cmk-mkp; cp /workspaces/robotmk/*.mkp 
 docker cp $CONTAINER:/cmk-mkp .
 ```
 
-
 ---
 
 ## How to release
@@ -316,16 +304,16 @@ Abbreviations:
 * `local/share/check_mk` = `l/s/c`
 * `local/lib/check_mk/base` = `l/l/c/b`
 
-| Component                         | Project folder    | Checkmk folder                   | 
-| --------------------------------- | ----------------- | ------------------------------- | 
-| **Agent plugin**                  | 📂  `agents_plugins/` | `l/s/c/agents/plugins`          |
-| **Bakery** script                 | 📂  `bakery/vX/`      | `local/lib/check_mk/base/cee/plugins/bakery` |
-| checkman                          | 📂  `checkman/`       | `l/s/c/checkman`                
-| **Checks**                        | 📂  `checks/vX/`      | `l/l/c/b/plugins/agent_based` |
-| Images                            | 📂  `images/`         | `l/s/c/web/htdocs/images`       |
-| **Metrics, WATO**                 | 📂  `web_plugins/`    | `l/s/c/web/plugins`             |
-| RF tests                          | 📂  `rf_tests/`       | `/usr/lib/check_mk_agent/robot` |
-| Agent output                      | 📂  `agent_output/`   | `var/check_mk/agent_output`     |
+| Component         | Project folder       | Checkmk folder                               |
+| ----------------- | -------------------- | -------------------------------------------- |
+| **Agent plugin**  | 📂  `agents_plugins/` | `l/s/c/agents/plugins`                       |
+| **Bakery** script | 📂  `bakery/vX/`      | `local/lib/check_mk/base/cee/plugins/bakery` |
+| checkman          | 📂  `checkman/`       | `l/s/c/checkman`                             |
+| **Checks**        | 📂  `checks/vX/`      | `l/l/c/b/plugins/agent_based`                |
+| Images            | 📂  `images/`         | `l/s/c/web/htdocs/images`                    |
+| **Metrics, WATO** | 📂  `web_plugins/`    | `l/s/c/web/plugins`                          |
+| RF tests          | 📂  `rf_tests/`       | `/usr/lib/check_mk_agent/robot`              |
+| Agent output      | 📂  `agent_output/`   | `var/check_mk/agent_output`                  |
 
 ## Others
 
@@ -343,23 +331,20 @@ Shortcuts ("Ca" = Ctrl + a):
 * Toggle full screen: `Ca + z`
 * Toggle Scroll: `Ca + [` => Page up/down => Ctrl+c to quit scrollmode
 
-
-
 ### Bash conveniences
 
-user | alias source | from | linked by
-|---|---|---|---
-cmk | `$OMD_ROOT/.bash_aliases` | `scripts/.site_bash_aliases` | `.devcontainer/linkfiles.sh`
-root | `/root/.bash_aliases` | `scripts/.root_bash_aliases` | `.devcontainer/Dockerfile`
+| user | alias source              | from                         | linked by                    |
+| ---- | ------------------------- | ---------------------------- | ---------------------------- |
+| cmk  | `$OMD_ROOT/.bash_aliases` | `scripts/.site_bash_aliases` | `.devcontainer/linkfiles.sh` |
+| root | `/root/.bash_aliases`     | `scripts/.root_bash_aliases` | `.devcontainer/Dockerfile`   |
 
-### VS Code Conveniences 
+### VS Code Conveniences
 
-There are several CMK OMD administration tasks predefined in Tasks Chooeser (extension must be installed). 
+There are several CMK OMD administration tasks predefined in Tasks Chooeser (extension must be installed).
 
-- reload apache
-- inventory and reload core
-- restart core
-
+* reload apache
+* inventory and reload core
+* restart core
 
 ### Troubleshooting
 

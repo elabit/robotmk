@@ -1,0 +1,58 @@
+{
+    "version": "0.2.0",
+    "configurations": [
+        {
+            "name": "CMK$CMK_MM bakery ($HOSTNAME)",
+            "type": "python",
+            "request": "launch",
+            "program": "/omd/sites/cmk/bin/cmk",
+            "args": [
+                "-A",
+                "-v",
+                "-f",
+                "$HOSTNAME"
+            ],
+            "console": "integratedTerminal",
+            "python": "/omd/sites/cmk/bin/python3",
+            "justMyCode": false
+        },
+        {
+            "name": "CMK$CMK_MM Inventory ($HOSTNAME)",
+            "type": "python",
+            "request": "launch",
+            "program": "/omd/sites/cmk/bin/cmk",
+            "args": [
+                "-v",
+                "-II",
+                "--debug",
+                "$HOSTNAME"
+            ],
+            "console": "integratedTerminal",
+            "python": "/omd/sites/cmk/bin/python3",
+            "justMyCode": false
+        },
+        {
+            "name": "CMK$CMK_MM check ($HOSTNAME)",
+            "type": "python",
+            "request": "launch",
+            "program": "/omd/sites/cmk/bin/cmk",
+            "args": [
+                "-v",
+                "-n",
+                "-p",
+                "$HOSTNAME"
+            ],
+            "console": "integratedTerminal",
+            "python": "/omd/sites/cmk/bin/python3",
+            "justMyCode": false
+        },
+        {
+            "name": "Python: Current File",
+            "type": "python",
+            "request": "launch",
+            "program": "${file}",
+            "console": "integratedTerminal",
+            "justMyCode": false
+        }
+    ]
+}

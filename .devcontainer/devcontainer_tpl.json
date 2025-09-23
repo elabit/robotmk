@@ -21,9 +21,7 @@
 		},
 		"extensions": [
 			"ms-python.python",
-			"littlefoxteam.vscode-python-test-adapter",
-			"jeremyfa.tasks-chooser",
-			"Gruntfuggly.todo-tree"
+			"littlefoxteam.vscode-python-test-adapter"
 		]
 	},
 	"postCreateCommand": ".devcontainer/postCreateCommand.sh full",
@@ -33,6 +31,10 @@
 		"OMD_ROOT": "/omd/sites/cmk",
 		"OMD_SITE": "cmk",
 		"CMK_SITE_ID": "cmk",
-		"WORKSPACE": "###{containerWorkspaceFolder}"
-	}
+		"WORKSPACE": "###{containerWorkspaceFolder}",
+		"CMK_VERSION_MM": "$CMK_VERSION_MM"
+	},
+	"mounts": [
+		"source=/etc/timezone,target=/etc/timezone,type=bind,readonly"
+	]
 }

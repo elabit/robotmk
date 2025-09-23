@@ -46,8 +46,28 @@ pip3 install -r /workspaces/robotmk/requirements.txt
 echo "▹ Starting OMD... "
 omd restart
 
-#echo "▹ Creating dummyhost via Web API..."
-#/workspaces/robotmk/.devcontainer/create_dummyhost.sh
-#echo "✅ postCreateCommand.sh finished."
+# If variable GITHUB_WORKSPACE does not exist, we are in a local execution.
+if [ -z "${GITHUB_WORKSPACE-}" ]; then
+    echo "Preparing the dev setup (not in a Github Workflow):"
+    echo "■ Creating a dummyhost"
+    echo "Create NOW an automation user with administrator rights / store the secret in clear text. Then press ENTER to continue."
+    read -p "Press ENTER to continue..."
+    $WORKSPACE/.devcontainer/create_dummyhost_${CMK_VERSION_MM}.sh
+    echo "✅ Dummyhost created."
+    echo "■ Installing the agent"
+    echo "Open a root terminal and execute 'install_agent_localhost'."
+    read -p "Press ENTER to continue..."
+    echo "■ Baking the agent"
+    echo "Baking agent for $HOSTNAME ... "
+    cmk -Avf $HOSTNAME
+    echo "Discovering ... "
+    cmk -IIv 2>&1 > /dev/null
+    echo "Reloading CMK config ... "
+    cmk -R
+    echo "■ Generating VS Code launch file ..."
+    $WORKSPACE/.devcontainer/launch_gen.sh
 
-echo "To create a dummy host, first create an automation user with administrator rights and store the secret in clear text!"
+fi
+
+fi
+echo "✅ postCreateCommand.sh finished."
