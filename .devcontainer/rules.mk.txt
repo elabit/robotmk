@@ -1,7 +1,7 @@
 agent_config.setdefault('robotmk', [])
 
 agent_config['robotmk'] = [
-{'id': '600bebc2-5450-43c1-b515-9522959e5900', 'value': {'execution_mode': ('agent_serial', {'suites': [{'path': 'globetrack_tests/globetrack_app.robot'}], 'cache_time': 120, 'execution_interval': 60}), 'agent_output_encoding': 'zlib_codec', 'transmit_html': False, 'log_level': 'INFO', 'log_rotation': 7, 'dirs': {'robotdir': '/usr/lib/check_mk_agent/robot'}}, 'condition': {'host_name': ['$HOSTNAME']}, 'options': {'disabled': False}},
+{'id': '600bebc2-5450-43c1-b515-9522959e5900', 'value': {'execution_mode': ('agent_serial', {'suites': [{'path': 'globetrack_tests/globetrack_app.robot'}], 'cache_time': 120, 'execution_interval': 60}), 'agent_output_encoding': 'zlib_codec', 'transmit_html': True, 'log_level': 'INFO', 'log_rotation': 7, 'dirs': {'robotdir': '/usr/lib/check_mk_agent/robot'}}, 'condition': {'host_name': ['$HOSTNAME']}, 'options': {'disabled': False}},
 ] + agent_config['robotmk']
 
 checkgroup_parameters.setdefault('robotmk', [])

@@ -5,12 +5,10 @@
             "name": "devc V2.x bakery localhost",
             "type": "python",
             "request": "launch",
-            "program": "/omd/sites/cmk/bin/cmk",
+            "program": "/omd/sites/cmk/bin/mkp",
             "args": [
-                "-A",
-                "-v",
-                "-f",
-                "localhost"
+                "enable",
+                "robotmk"
             ],
             "console": "integratedTerminal",
             "python": "/omd/sites/cmk/bin/python3",
