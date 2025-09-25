@@ -8,25 +8,25 @@ Library       random
 *** Test Cases ***
 
 Successful Login
-    CPU Random Sleep  1  3
+    CPU Random Sleep  1  2
 
 Validate Expense Submission
-    CPU Random Sleep  2  3
+    CPU Random Sleep  1  2
 
 Flight Booking Functionality
-    CPU Random Sleep  4  8
+    CPU Random Sleep  1  2
 
 Password Reset Form
-    CPU Random Sleep  3  6
+    CPU Random Sleep  1  2
 
 Multi-Currency Expense Reporting
-    CPU Random Sleep  2  3
+    CPU Random Sleep  1  2
 
 Travel Itinerary Generation
-    CPU Random Sleep  6  8
+    CPU Random Sleep  1  2
 
 User Role Access Control
-    CPU Random Sleep  3  5
+    CPU Random Sleep  1  2
 
 
 
@@ -43,4 +43,4 @@ CPU Random Sleep
     ${base_sleep}    Evaluate    ${cpu_load} / 10
     ${random_addition}    Evaluate    random.uniform(${sec1},${sec2})    random
     ${total_sleep}    Evaluate    ${base_sleep} + ${random_addition}
-    Sleep   ${total_sleep}
+    Sleep   ${base_sleep}

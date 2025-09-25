@@ -107,6 +107,11 @@ def myparse_robotmk(params, string_table):
                     json_suite[k] = data
         if json_suite.get("xml") != None:
             xml = ET.fromstring(json_suite["xml"])
+            # Persist Robot Framework XML schema version for later logic (RF7 => schemaversion >= 5)
+            try:
+                RobotItem.schema_version = int(xml.attrib.get("schemaversion", 0))
+            except Exception:
+                RobotItem.schema_version = 0
             xml_root_suite = xml.find("./suite")
             setting = pattern_match(
                 robot_discovery_settings, xml_root_suite.attrib["name"], (0, "")
@@ -468,6 +473,8 @@ def strip_svc_prefix(itemname, root_suite, prefix):
 class RobotItem(object):
     # maps XML tags to Classes
     class_dict = {"suite": "RobotSuite", "test": "RobotTest", "kw": "RobotKeyword"}
+    # Default schema version (overwritten in myparse_robotmk when XML is parsed)
+    schema_version = 0
 
     indentation_char = "\u2504"
 
@@ -590,8 +597,33 @@ class RobotItem(object):
 
     def _get_node_elapsed_time(self):
         """Returns the time between given timestamps of a node in seconds."""
-        self.start_time = self.xmlnode.find("status").attrib["starttime"]
-        self.end_time = self.xmlnode.find("status").attrib["endtime"]
+        status_elem = self.xmlnode.find("status")
+        status_attrib = status_elem.attrib if status_elem is not None else {}
+        
+        # Robot Framework XML schema v5+ (Robot 7): endtime removed, "elapsed" provided
+        if int(getattr(RobotItem, "schema_version", 0) or 0) >= 5:
+            self.start_time = status_attrib.get("start")
+            elapsed_raw = status_attrib.get("elapsed")
+            if not (self.start_time and elapsed_raw):
+                # Missing data, fall back to 0 elapsed
+                self.end_time = "N/A"
+                return 0
+            try:
+                elapsed_ms = parse_elapsed_to_millis(elapsed_raw)
+            except Exception:
+                self.end_time = "N/A"
+                return 0
+            try:
+                start_millis = timestamp_to_millis(self.start_time)
+                end_millis = start_millis + elapsed_ms
+                self.end_time = millis_to_timestamp(end_millis)
+            except Exception:
+                self.end_time = "N/A"
+            return float(elapsed_ms) / 1000.0
+
+        # Legacy schemas (< v5): use starttime + endtime
+        self.start_time = status_attrib.get("starttime")
+        self.end_time = status_attrib.get("endtime")
         if self.start_time == self.end_time or not (self.start_time and self.end_time):
             return 0
         start_millis = timestamp_to_millis(self.start_time)
@@ -646,7 +678,7 @@ class RobotItem(object):
         endtime_str = ""
         if self.is_topnode and bool(check_params.get("includedate")):
             if self.end_time == "N/A":
-                endtime_str = " (last execution: N/A, all retries failed)"
+                endtime_str = " (last execution: N/A)"
             else:
                 try:
                     endtime = datetime.datetime.strptime(
@@ -1352,15 +1384,53 @@ def timestamp_to_millis(timestamp):
     return roundup(1000 * secs + millis)
 
 
+def millis_to_timestamp(ms):
+    # Convert milliseconds since epoch-like base computed by timestamp_to_millis back to RF timestamp format
+    # Always use the localtime of the Checkmk server.
+    secs, millis = divmod(int(ms), 1000)
+    dt = datetime.datetime.fromtimestamp(secs).astimezone()  # local time
+    # Format: YYYYMMDD HH:MM:SS.mmm
+    return dt.strftime("%Y%m%d %H:%M:%S") + ".%03d" % millis
+
+
+def parse_elapsed_to_millis(elapsed_str):
+    # Robot 7 elapsed is typically seconds as float string or integer milliseconds depending on implementation.
+    # Try float seconds first, then integer milliseconds.
+    try:
+        # e.g. "1.234" seconds
+        seconds = float(elapsed_str)
+        return roundup(seconds * 1000.0, 0, int)
+    except Exception:
+        pass
+    try:
+        # e.g. "1234" milliseconds
+        return int(elapsed_str)
+    except Exception:
+        # Fallback
+        return 0
+
+
 def split_timestamp(timestamp):
-    years = int(timestamp[:4])
-    mons = int(timestamp[4:6])
-    days = int(timestamp[6:8])
-    hours = int(timestamp[9:11])
-    mins = int(timestamp[12:14])
-    secs = int(timestamp[15:17])
-    millis = int(timestamp[18:21])
-    return years, mons, days, hours, mins, secs, millis
+    # Support both legacy (e.g. 20250925 09:33:11.588) and ISO 8601 (e.g. 2025-09-25T10:13:35.139130)
+    if "T" in timestamp and "-" in timestamp:
+        dt = parser.isoparse(timestamp)
+        years = dt.year
+        mons = dt.month
+        days = dt.day
+        hours = dt.hour
+        mins = dt.minute
+        secs = dt.second
+        millis = int(dt.microsecond / 1000)
+        return years, mons, days, hours, mins, secs, millis
+    else:
+        years = int(timestamp[:4])
+        mons = int(timestamp[4:6])
+        days = int(timestamp[6:8])
+        hours = int(timestamp[9:11])
+        mins = int(timestamp[12:14])
+        secs = int(timestamp[15:17])
+        millis = int(timestamp[18:21])
+        return years, mons, days, hours, mins, secs, millis
 
 
 def roundup(number, ndigits=0, return_type=None):
