@@ -17,50 +17,49 @@ from random import randint
 import shutil
 from collections import namedtuple
 
+try:
+    from cmk.utils import version
+    cmk_version = version.get_general_version_infos()['version']
+except ImportError:
+    from cmk.utils.version import get_general_version_infos
+    cmk_version = get_general_version_infos()['version']
 
-#from cmk.agent_based.v1 import ()
-
-from cmk.utils.paths import omd_root
-
-from cmk.agent_based.v2 import (
-    AgentSection,
-    CheckPlugin,
-    CheckResult,
-    DiscoveryResult,
-    HostLabel,
-    IgnoreResults,
-    Metric,
-    render,
-    Result,
-    RuleSetType,
-    Service,
-    ServiceLabel,
-    State,
-    StringTable,
-)
+# switch: 2.4, 2.3, 2.2
+if cmk_version.startswith(('2.4', '2.3')):
+    from cmk.agent_based.v2 import (
+        AgentSection,
+        CheckPlugin,
+        CheckResult,
+        DiscoveryResult,
+        HostLabel,
+        IgnoreResults,
+        Metric,
+        render,
+        Result,
+        RuleSetType,
+        Service,
+        ServiceLabel,
+        State,
+        StringTable,
+    )   
+    HTML_LOG_DIR = "%s/%s" % (os.environ['OMD_ROOT'], 'var/robotmk/html_logs') 
+elif cmk_version.startswith(('2.2')):
+    from cmk.base.plugins.agent_based.agent_based_api.v1 import *
+    from cmk.utils.exceptions import MKGeneralException
+    HTML_LOG_DIR = "%s/%s" % (os.environ['OMD_ROOT'], 'var/robotmk')
+else:
+    raise ValueError(f"Unsupported Checkmk version: {cmk_version}")
 
 try:
-    # Checkmk 2.4+
-    from cmk.ccc import version
     from cmk.ccc.exceptions import MKGeneralException
-    cmk_version = version.get_general_version_infos(omd_root)['version']
 except ImportError:
-    # Checkmk <= 2.3
-    from cmk.utils import version
     from cmk.utils.exceptions import MKGeneralException
-    cmk_version = version.get_general_version_infos()['version']
 
 # replaced by build.sh
 ROBOTMK_VERSION = '1.5.0'
 DEFAULT_SVC_PREFIX = 'Robot Framework E2E $SUITEID$SPACE-$SPACE'
 
 
-if cmk_version.startswith(('2.3', '2.4')):
-    # cmk 2.3/4
-    HTML_LOG_DIR = "%s/%s" % (os.environ['OMD_ROOT'], 'var/robotmk/html_logs')
-else:
-    # older 
-    HTML_LOG_DIR = "%s/%s" % (os.environ['OMD_ROOT'], 'var/robotmk')
 
 STATES = {
     0: "OK",
@@ -79,7 +78,7 @@ ROBOTMK_KEYWORDS = {
 }
 
 
-def myparse_robotmk(params, string_table):
+def parse_robotmk(params, string_table):
     keys_to_decode = ["xml", "htmllog"]
     robot_discovery_settings = params.get("robot_discovery_settings", [])
     try:
@@ -134,7 +133,7 @@ def myparse_robotmk(params, string_table):
 
 
 def discover_robotmk(params, section):
-    info_dict, params_dict = myparse_robotmk(params, section)
+    info_dict, params_dict = parse_robotmk(params, section)
     service_prefix = params.get("robot_service_prefix", [])
     html_show_patterns = params_dict.get("htmllog", {})
     is_piggyback_result = info_dict["runner"].get("is_piggyback_result", False)
@@ -173,7 +172,7 @@ def discover_robotmk(params, section):
 
 
 def check_robotmk(item, params, section):
-    parsed_section, params_dict = myparse_robotmk(params, section)
+    parsed_section, params_dict = parse_robotmk(params, section)
     service_prefix = params.get("robot_service_prefix", [])
     svc_robotmk = params_dict.get("robotmk_service_name", "Robotmk")
     runner_assigned_host = parsed_section["runner"].get("assigned_host", [])
@@ -474,7 +473,7 @@ def strip_svc_prefix(itemname, root_suite, prefix):
 class RobotItem(object):
     # maps XML tags to Classes
     class_dict = {"suite": "RobotSuite", "test": "RobotTest", "kw": "RobotKeyword"}
-    # Default schema version (overwritten in myparse_robotmk when XML is parsed)
+    # Default schema version (overwritten in parse_robotmk when XML is parsed)
     schema_version = 0
 
     indentation_char = "\u2504"
@@ -1461,30 +1460,28 @@ def html_to_text(html):
     html = re.sub("<br>|<p>", "\\n", html)
     return html
 
-
-check_plugin_robotmk = CheckPlugin(
-    name="robotmk",
-    service_name="%s",
-    discovery_function=discover_robotmk,
-    discovery_ruleset_name="inventory_robotmk_rules",
-    discovery_default_parameters={},
-    check_function=check_robotmk,
-    check_ruleset_name="robotmk",
-    check_default_parameters={},
-)
-
-
-
-
-# register.check_plugin(
-#     name="robotmk",
-#     service_name="%s",
-#     discovery_function=discover_robotmk,
-#     discovery_ruleset_name="inventory_robotmk_rules",
-#     discovery_ruleset_type=register.RuleSetType.MERGED,
-#     discovery_default_parameters={},
-#     check_function=check_robotmk,
-#     # TODO: https://docs.checkmk.com/master/de/devel_check_plugins.html#_verwenden_von_vorhandenen_regelketten
-#     check_ruleset_name="robotmk",
-#     check_default_parameters={},
-# )
+if cmk_version.startswith(('2.4', '2.3')):
+    check_plugin_robotmk = CheckPlugin(
+        name="robotmk",
+        service_name="%s",
+        discovery_function=discover_robotmk,
+        discovery_ruleset_name="inventory_robotmk_rules",
+        discovery_default_parameters={},
+        check_function=check_robotmk,
+        check_ruleset_name="robotmk",
+        check_default_parameters={},
+    )
+elif cmk_version.startswith(('2.2')):
+    register.check_plugin(
+        name="robotmk",
+        service_name="%s",
+        discovery_function=discover_robotmk,
+        discovery_ruleset_name="inventory_robotmk_rules",
+        discovery_ruleset_type=register.RuleSetType.MERGED,
+        discovery_default_parameters={},
+        check_function=check_robotmk,
+        check_ruleset_name="robotmk",
+        check_default_parameters={},
+    )
+else:
+    raise ValueError(f"Unsupported Checkmk version: {cmk_version}")
