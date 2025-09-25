@@ -1,0 +1,30 @@
+{
+    "name": "robotmk",
+    "author": "Simon Meggle, ELABIT GmbH",
+    "description": "Robotmk integrates Robot Framework results into Checkmk.",
+    "download_url": "https://github.com/elabit/robotmk/releases",
+    "title": "Robotmk v1 | Robot Framework E2E Test Integration",
+    "files": {
+        "agents": [
+            "plugins/robotmk-runner.py",
+            "plugins/robotmk.py"
+        ],
+        "cmk_addons_plugins": [
+            "robotmk/agent_based/robotmk.py",
+            "robotmk/graphing/graphing_robotmk.py"
+        ],
+        "lib": [
+            "check_mk/base/cee/plugins/bakery/robotmk.py"
+        ],
+        "web": [
+            "plugins/wato/robotmk_wato_params_bakery.py",
+            "plugins/wato/robotmk_wato_params_check.py",
+            "plugins/wato/robotmk_wato_params_discovery.py",
+            "htdocs/images/icons/robotmk80.png",
+            "htdocs/images/icons/robotmk80_dot.png"
+        ]
+    },
+    "version.packaged": "2.3.0",
+    "version.min_required": "2.3.0p1",
+    "version.usable_until": "2.3.20"
+}

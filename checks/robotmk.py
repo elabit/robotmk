@@ -50,6 +50,7 @@ except ImportError:
     from cmk.utils.exceptions import MKGeneralException
     cmk_version = version.get_general_version_infos()['version']
 
+# replaced by build.sh
 ROBOTMK_VERSION = '1.5.0'
 DEFAULT_SVC_PREFIX = 'Robot Framework E2E $SUITEID$SPACE-$SPACE'
 

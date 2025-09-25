@@ -1,9 +1,8 @@
 #!/bin/bash
 # SPDX-FileCopyrightText: © 2022 ELABIT GmbH <mail@elabit.de>
 # SPDX-License-Identifier: GPL-3.0-or-later
-# This file is part of the Robotmk project (https://www.robotmk.org)
 
-set -u
+
 # This script gets called from postcreateCommand.sh directly after the devcontainer
 # has been started. Its job is to make the Robotmk project files available to the CMK site.
 
@@ -15,7 +14,55 @@ L_SHARE_CMK="local/share/check_mk"
 L_LIB_CMK_BASE="local/lib/check_mk/base"
 L_LIB_PY3_CMK_ADDONS="local/lib/python3/cmk_addons"
 
-ARG1=$1
+# Determine CMK major.minor version (e.g., 2.2, 2.3, 2.4)
+# Prefer environment CMK_VERSION if provided; else detect from omd
+CMK_VERSION_MM="${CMK_VERSION:-}"
+if [ -z "$CMK_VERSION_MM" ]; then
+    # Extract last field, then cut major.minor
+    # Example: 2.4.0p1.cee => 2.4
+    OMD_VER=$(omd version | awk '{print $NF}')
+    CMK_VERSION_MM=$(echo "$OMD_VER" | cut -d. -f1-2)
+fi
+
+function _resolve_targets() {
+    case "$CMK_VERSION_MM" in
+        2.4)
+            TARGET_CHECKS="$L_LIB_PY3_CMK_ADDONS/plugins/robotmk/agent_based"
+            TARGET_GRAPHING="${L_LIB_PY3_CMK_ADDONS}/plugins/robotmk/graphing"
+            ;;
+        2.3)
+            TARGET_CHECKS="$L_LIB_PY3_CMK_ADDONS/plugins/robotmk/agent_based"
+            TARGET_GRAPHING="${L_LIB_PY3_CMK_ADDONS}/plugins/robotmk/graphing"
+            ;;
+        2.2)
+            # 2.2 may not ship cmk_addons by default; prefer it if present, else legacy
+            TARGET_CHECKS="$L_LIB_CMK_BASE/plugins/agent_based"
+            TARGET_GRAPHING="${L_SHARE_CMK}/web/plugins/metrics"
+            ;;
+        *)
+            # Unknown, try addons first
+            echo "ERROR: Unknown CMK version: $CMK_VERSION_MM"
+            exit 1
+            ;;
+    esac
+
+    # Bakery path has been stable across 2.2-2.4
+    TARGET_BAKERY="$L_LIB_CMK_BASE/cee/plugins/bakery"
+    TARGET_WATO="$L_SHARE_CMK/web/plugins/wato"
+    TARGET_IMAGES="$L_SHARE_CMK/web/htdocs/images"
+    
+}
+
+_resolve_targets
+
+# check for Argument
+if [ -z "$1" ]; then
+    echo "ERROR: Argument must be either 'cmkonly' or 'full'."
+    exit 1
+else
+    ARG1="$1"
+fi
+
 # ARG1 must be either "cmkonly" or "full"
 if [ "$ARG1" != "cmkonly" ] && [ "$ARG1" != "full" ]; then
     echo "ERROR: Argument must be either 'cmkonly' or 'full'."
@@ -24,7 +71,7 @@ fi
 
 function main {
     echo "Workspace: $WORKSPACE"
-    ls -la "$WORKSPACE"    
+    #ls -la "$WORKSPACE"    
     symlink_robotmk
     symlink_files
     echo "linkfiles.sh finished."
@@ -37,8 +84,8 @@ function symlink_robotmk {
         echo "Linking robotmk MKP files"
         echo "===================="
 
-        # Robotmk Package File
-        create_symlink pkginfo $OMD_ROOT/var/check_mk/packages/robotmk
+        # Robotmk Package Directory
+        # create_symlink pkginfo $OMD_ROOT/var/check_mk/packages
 
         # Robotmk Agent plugins
         create_symlink agents_plugins $L_SHARE_CMK/agents/plugins
@@ -47,21 +94,23 @@ function symlink_robotmk {
         create_symlink checkman $L_LIB_PY3_CMK_ADDONS/plugins/robotmk/checkman
 
         # Robotmk Images & icons
-        create_symlink images $L_SHARE_CMK/web/htdocs/images
+        create_symlink images $TARGET_IMAGES
 
         # Robotmk Metrics
-        create_symlink web_plugins/metrics ${L_LIB_PY3_CMK_ADDONS}/plugins/robotmk/graphing
-
+        create_symlink web_plugins/metrics $TARGET_GRAPHING
+        
         # WATO Rules
-        create_symlink web_plugins/wato ${L_SHARE_CMK}/web/plugins/wato
+        create_symlink web_plugins/wato $TARGET_WATO
 
         # Robotmk BAKERY
-        create_symlink bakery ${L_LIB_CMK_BASE}/cee/plugins/bakery
+        create_symlink bakery $TARGET_BAKERY
         rm -rf ${L_LIB_CMK_BASE}/cee/plugins/bakery/__pycache__
 
-        # Robotmk CHECK PLUGIN
-        create_symlink checks ${L_LIB_PY3_CMK_ADDONS}/plugins/robotmk/agent_based
-        rm -rf ${L_LIB_PY3_CMK_ADDONS}/plugins/agent_based/__pycache__
+        # Robotmk CHECK PLUGIN 
+        create_symlink checks $TARGET_CHECKS
+        
+        rm -rf ${L_LIB_PY3_CMK_ADDONS}/plugins/agent_based/__pycache__ || true
+        rm -rf ${L_LIB_CMK_BASE}/plugins/agent_based/__pycache__ || true
 
     fi
 }
@@ -109,16 +158,20 @@ function linkpath {
     ln -sf $TARGET $LINKNAME
     # if target is a dir, show tree
     if [ -d $TARGET ]; then
-        tree $TARGET
+        echo "Directory:"
+        tree $LINKNAME
     else
-        ls -la $TARGET
+        echo "File:"
+        ls -la $LINKNAME
     fi
     #chmod 666 $TARGET/*
 }
 
 # Do not only symlink, but also generate needed directories.
 function create_symlink {
-    echo "---"
+    echo "--------------------------------"
+    echo "## $1"
+    echo ""
     TARGET=$1
     if [ ${2:0:1} == "/" ]; then
         # absolute link
@@ -129,10 +182,6 @@ function create_symlink {
     fi
     rmpath $LINKNAME
     linkpath $TARGET $LINKNAME
-    if [ -d $LINKNAME ]; then        
-        echo "Directory: $LINKNAME"
-        tree $LINKNAME
-    fi
 }
 
 main "$@"
