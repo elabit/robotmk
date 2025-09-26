@@ -43,4 +43,5 @@ CPU Random Sleep
     ${base_sleep}    Evaluate    ${cpu_load} / 10
     ${random_addition}    Evaluate    random.uniform(${sec1},${sec2})    random
     ${total_sleep}    Evaluate    ${base_sleep} + ${random_addition}
-    Sleep   ${base_sleep}
+    #Sleep   ${base_sleep}
+    Sleep   ${total_sleep}
