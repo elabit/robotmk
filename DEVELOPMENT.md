@@ -53,9 +53,9 @@ Open `.devcontainer/devcontainer_img_versions.env` and add all versions of Check
 
 Example:
 
-     CMKVERSIONS="1.6.0p29
-     2.0.0p22
-     2.1.0p4"
+     CMKVERSIONS="2.4.0p12
+     2.3.0p37
+     2.2.0p32"
 
 After that, run the following command to build the required Docker images:
 
@@ -156,17 +156,6 @@ After that, set a breakpoint in VS Code in `agents_plugins/robotmk-runner.py`. A
 
 (This step only makes sense if you have already [installed the agent into the container](#install-a-new-linux-agent-in-the-container)).
 
-### Building a MKP inside of the Container
-
-To test how the Github workflow will build MKPs for Robotmk, you can run the build script within the container locally.
-
-In VS Code,
-
-* run command "Tasks chooser: Select Task" => "Build Robotmk MKP"
-* run command "Tasks: run task" to execute the build script
-
-*
-
 ### Write a changelog
 
 Robotmk's [CHANGELOG.md](CHANGELOG.md) is based on [](https://keepachangelog.com/).
@@ -253,9 +242,11 @@ ipdb> b /omd/sites/v1test/lib/python/cmk_base/cee/agent_bakery.py:85
 
 lib/python3/cmk/base/cee/bakery/agent_bakery.py
 
-### VS Code Build Task
+### Building a MKP inside of the Container
 
-`Ctrl+Shift+B` is bound to `build.sh` which builds the CMK version specific MKP file.
+To test how the Github workflow will build MKPs for Robotmk, you can run the build script within the container locally with
+
+    ./devcontainer/build.sh
 
 The resulting MKP can be copied to the host system as follows:
 
@@ -286,8 +277,6 @@ The release workflow of Robotmk is divided into the following steps:
   * pushes to `master`
 
 ### Unrelease
-
-(Unrelease... right. Remove a release from Github - Not at all useless.)
 
 * Execute `./release.sh unrelease 1.2.0`, which
 * the release gets deleted from github
