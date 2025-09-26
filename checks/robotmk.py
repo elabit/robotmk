@@ -56,7 +56,7 @@ except ImportError:
     from cmk.utils.exceptions import MKGeneralException
 
 # replaced by build.sh
-ROBOTMK_VERSION = '1.5.0'
+ROBOTMK_VERSION = '1.5.1'
 DEFAULT_SVC_PREFIX = 'Robot Framework E2E $SUITEID$SPACE-$SPACE'
 
 
@@ -287,7 +287,6 @@ def check_robotmk(item, params, section):
                     + "%s (%ds)" % (maxruntime_str, maxruntime)
                 )
 
-                # TODO: Add _real_ warn/crit thresholds here
                 yield Metric(
                     "runner_runtime",
                     runner_runtime,
@@ -722,8 +721,6 @@ class RobotItem(object):
 
         # If this is a top_node, add the messages from subelements:
         if self.is_topnode:
-            # TODO: What are examples of submessages (documentation!)
-            # HEREIWAS
             if bool(check_params.get("show_submessages")):
                 if len(self.sub_messages) > 0:
                     node_messages.extend(self.sub_messages)
@@ -870,9 +867,9 @@ class RobotItem(object):
         self.result["result_kw_test_state"] = kw_test_state
 
     # WIP: see https://github.com/elabit/robotmk/issues/60
+    # Not planned to implement this atm.
     def _eval_node_cmk_metric(self, check_params):
         # metric = self._get_pattern_value('metric', check_params)
-        # TODO THIS WILL BE IMPLEMENTED
         metric = False
         if metric:
             dummy_value = randint(100, 999)
@@ -901,7 +898,6 @@ class RobotItem(object):
             else:
                 nagios_status = 0
                 text = "value %s=%s" % (dummy_name, dummy_value)
-            # TODO: add perfdata if needed
             cmk_metric = (nagios_status, text)
             self.result["result_cmk_metric"] = cmk_metric
         else:
@@ -1290,7 +1286,6 @@ def remove_nasty_chars(instr):
 
 # Return only fatal suites
 def check_fatal_suites(suites):
-    # TODO: return list of output lines
     return [s for s in suites if s["status"] == "fatal"]
 
 

@@ -168,15 +168,9 @@ class RMK:
         )
 
     def runner_plugin(self, opsys: OS) -> Plugin:
-        # TODO: when external mode:
-        #  => bin!
-        #  when not:
-        #  no target, interval!
         if self.execution_mode == "external":
             # Runner and Controller have to be deployed as bin
             # $OMD_ROOT/lib/python3/cmk/base/cee/bakery/core_bakelets/bin_files.py
-
-            # cmk.utils.paths.local_agents_dir ??
             pass
         elif self.execution_mode == "agent_serial":
             # the runner plugin gets

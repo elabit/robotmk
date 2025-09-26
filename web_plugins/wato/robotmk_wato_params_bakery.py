@@ -343,7 +343,6 @@ _agent_config_dict_dirs = Dictionary(
     ],
 )
 
-# TODO: how to limit to only 1 host?
 _agent_config_testsuites_piggybackhost = MonitoredHostname(
     title=_("Assign result to Piggyback host"),
     help=_(

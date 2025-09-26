@@ -1,3 +1,0 @@
-{
-    'suite_name': 'mytestsuite'
-}

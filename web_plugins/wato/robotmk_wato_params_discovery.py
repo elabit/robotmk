@@ -17,10 +17,6 @@ from cmk.gui.plugins.wato import (
 
 from cmk.gui.log import logger   
 
-# TODO: Add logging True/False
-# TODO: warn/crit threholds for total_runtime
-# TODO: timeout nicht mehr automatisch von executoin int. berechnen lassen
-
 #       _ _
 #      | (_)
 #    __| |_ ___  ___ _____   _____ _ __ _   _

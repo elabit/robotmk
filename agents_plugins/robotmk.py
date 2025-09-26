@@ -35,7 +35,7 @@ import socket
 local_tz = datetime.utcnow().astimezone().tzinfo
 
 # replaced by build.sh
-ROBOTMK_VERSION = '1.5.0'
+ROBOTMK_VERSION = '1.5.1'
 
 
 class RMKConfig:
@@ -227,7 +227,7 @@ class RMKConfig:
                     if pw in varname_strip:
                         varname_strip = varname_strip.replace(pw, pw.replace("_", "#"))
             list_of_keys = [key.replace("#", "_") for key in varname_strip.split("_")]
-            # TODO: Suite names with underscores are not parsed correctly!
+            # Warning: Suite names with underscores are not parsed correctly!
             nested_dict = self.gen_nested_dict(list_of_keys, os.environ[varname])
             env_dict = mergedeep.merge(env_dict, nested_dict)
         return env_dict
@@ -268,7 +268,6 @@ class RMKConfig:
         if value is None:
             value = self.calling_cls._DEFAULTS["noarch"].get(setting, None)
             if value is None:
-                # TODO: Catch the exception!
                 pass
         return value
 
@@ -327,18 +326,9 @@ class RMKState:
                 for (k, v) in data.items()
             }
         except Exception as e:
-            # TODO: Not optimal. Logging is only inherited from RoboMK to Ctrl and Runner.
+            # Yes... not optimal. Logging is only inherited from RoboMK to Ctrl and Runner.
             # self.logwarn("Statefile not found - %s (%s)" % (self.statefile_path, str(e)))
             data = {}
-            # TODO: Test
-            # data = {
-            #     'id': self.suite.id,
-            #     'error': "Statefile of suite '%s' not found - %s (perhaps the suite did never run)" % (self.suite.id, str(e))
-            # }
-
-        # self.data['result_age'] = self.age.seconds
-        # self.data['result_overdue'] = self.overdue
-        # self.data['result_is_stale'] = self.is_stale()
         return data
 
     def write_state_to_file(self, data=None):
@@ -355,9 +345,7 @@ class RMKState:
         except IOError as e:
             # Error gets logged, will come to light by staleness check
             pass
-            # TODO: Not optimal. Logging is only inherited from RoboMK to Ctrl and Runner.
-            # self.logerror("Cannot write statefile %s" % (
-            #     self.statefile_path, str(e)))
+
 
     def state_isoformat(self):
         data = {k: v.isoformat() for (k, v) in self._state.items()}
@@ -461,7 +449,6 @@ class RMKSuite(RMKState):
         elif self.source == "robocorp":
             self.env_strategy == EnvStrategyRobocorp(path=self.path)
         else:
-            # TODO: catch this
             pass
 
         if self.python == "os":
@@ -469,7 +456,6 @@ class RMKSuite(RMKState):
         elif self.python == "rcc":
             self.env_strategy = EnvStrategyRCC(self)
         else:
-            # TODO: catch this
             pass
 
     def clear_statevars(self):
@@ -1611,7 +1597,6 @@ class RMKCtrl(RMKState, RMKPlugin):
             # nothing to do, already in utf8 = string
             data_utf8 = data
         else:
-            # TODO: Catch the exception! (wrong encoding)!
             pass
         return data_utf8
 

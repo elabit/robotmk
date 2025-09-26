@@ -1,8 +1,0 @@
-#Global variables
-robotdir: ./test/fixtures/robot/
-# Suites to execute
-suites:
-   1S_1T:
-      variable:
-         testvar1: testvalue1
-         testvar2: testvalue2

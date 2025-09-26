@@ -1,8 +1,0 @@
-#Global variables
-robotdir: ./test/fixtures/robot/
-# Suites to execute
-suites:
-   1S_1T:
-      variablefile: 
-        - ./test/fixtures/plugin/6_arguments_variable_file/varfile1.py
-        - ./test/fixtures/plugin/6_arguments_variable_file/varfile2.py

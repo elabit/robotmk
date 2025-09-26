@@ -1,3 +1,0 @@
-{
-    'tests': ['Sleep the first time for 0.1 sec', 'Sleep the second time for 0.1 sec', 'Sleep the first time for 0.1 sec', 'Sleep the second time for 0.1 sec', 'Sleep the first time for 0.1 sec', 'Sleep the second time for 0.1 sec', 'Sleep the first time for 0.1 sec', 'Sleep the second time for 0.1 sec', 'Sleep the first time for 3 sec', 'Sleep the second time for 0.1 sec', 'Sleep the first time for 0.1 sec', 'Sleep the second time for 0.1 sec']
-}

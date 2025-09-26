@@ -23,5 +23,4 @@ ln -sf /etc/check_mk/robotmk.yml /rmk_yml
 
 echo "▹ Starting the Checkmk agent..."
 
-# TODO: Why does xinetd not start reliably? (#207)
 nohup xinetd 2>&1
