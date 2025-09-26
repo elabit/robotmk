@@ -1,5 +1,3 @@
-HEREIWAS: buildscript mit 2.2-pgkinfo laufen lassen
-
 #!/bin/bash
 set -e
 # SPDX-FileCopyrightText: © 2022 ELABIT GmbH <mail@elabit.de>
@@ -59,11 +57,6 @@ echo "RMK_VERSION: $RMK_VERSION"
 echo "Setting the version number $RMK_VERSION in the check and agent plugin..."
 sed -i "s/ROBOTMK_VERSION =.*/ROBOTMK_VERSION = '$RMK_VERSION'/" $WORKSPACE/checks/robotmk.py
 sed -i "s/ROBOTMK_VERSION =.*/ROBOTMK_VERSION = '$RMK_VERSION'/" $WORKSPACE/agents_plugins/robotmk.py
-
-
-# TODO: why? 
-#echo "▹ Removing old packages..."
-#rm -f $OMD_ROOT/var/check_mk/packages/*
 
 echo "---------------------------------------------"
 PACKAGEFILE_TEMPLATE=$WORKSPACE/pkginfo/robotmk_cmk$CMK_MM.json
