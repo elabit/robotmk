@@ -1,11 +1,14 @@
 #!/bin/bash
 
+# Source CMK version detection utilities
+SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
+source "${SCRIPT_DIR}/cmk_version.sh"
+
 LAUNCH_TPL_FILE="$WORKSPACE/.vscode/launch_tpl.json"
 TMP_FILE="$WORKSPACE/.vscode/launch.json.tmp"
 TARGET_FILE="$WORKSPACE/.vscode/launch.json"
-# Determine CMK major.minor for package naming (e.g., 2.2, 2.3, 2.4)
-OMD_VER=$(omd version | awk '{print $NF}')
-export CMK_MM=$(echo "$OMD_VER" | cut -d. -f1-2)
+# Use CMK_VERSION_MM from the shared utility
+export CMK_MM="$CMK_VERSION_MM"
 
 # check if WORKSPACE is set
 if [ -z "$WORKSPACE" ]; then

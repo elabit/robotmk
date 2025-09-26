@@ -3,6 +3,10 @@
 # SPDX-License-Identifier: GPL-3.0-or-later
 # This file is part of the Robotmk project (https://www.robotmk.org)
 
+# Source CMK version detection utilities
+SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
+source "${SCRIPT_DIR}/cmk_version.sh"
+
 LINKTYPE=$1
 # ARG1 must be either "cmkonly" or "full" => linkfiles.sh
 if [ "$LINKTYPE" != "cmkonly" ] && [ "$LINKTYPE" != "full" ]; then

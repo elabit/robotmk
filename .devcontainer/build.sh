@@ -5,14 +5,31 @@ set -e
 # This file is part of the Robotmk project (https://www.robotmk.org)
 
 # This file creates a CMK MKP file.
-# It leverages the "mkp" command from CMK, which reads a package description file
-# (JSON).
+# It leverages the "mkp" command from CMK, which reads a package description file (JSON)
 
 # After the MKP has been built, the script checks if it runs within a Github
 # Workflow. If so, it sets the artifact name as output variable.
 
-if [ -z $WORKSPACE ]; then
-    echo "ERROR: WORKSPACE environment variable not set. Exiting."
+if [ -z "$WORKSPACE" ]; then
+    if [ -n "$GITHUB_WORKSPACE" ]; then
+        WORKSPACE="$GITHUB_WORKSPACE"
+    else
+        echo "ERROR: WORKSPACE environment variable not set and GITHUB_WORKSPACE not available. Exiting."
+        exit 1
+    fi
+fi
+
+# print the current workspace
+echo "Workspace folder: $WORKSPACE"
+ls -la "$WORKSPACE"
+
+if [ -f /omd/sites/cmk/.profile ]; then
+    echo "Loading .profile..."
+    set -a
+    . /omd/sites/cmk/.profile
+    set +a
+else 
+    echo "ERROR: .profile not found in /omd/sites/cmk. Exiting."
     exit 1
 fi
 
@@ -21,10 +38,15 @@ if [ -z $OMD_SITE ]; then
     exit 1
 fi
 
+# Source CMK version detection utilities
+SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
+source "${SCRIPT_DIR}/cmk_version.sh"
+
 set -u
-# Determine CMK major.minor for package naming (e.g., 2.2, 2.3, 2.4)
+# Use the CMK_VERSION_MM from the shared utility
+CMK_MM="$CMK_VERSION_MM"
+# Get full OMD version for packaging
 OMD_VER=$(omd version | awk '{print $NF}')
-CMK_MM=$(echo "$OMD_VER" | cut -d. -f1-2)
 NAME="robotmk"
 PACKAGEFILE=$OMD_ROOT/var/check_mk/packages/$NAME
 PKGDIR=$OMD_ROOT/var/check_mk/packages_local
@@ -99,13 +121,8 @@ echo "Checking for Github Workflow..."
 if [ -n "${GITHUB_WORKSPACE-}" ]; then
     echo "🐙 ...Github Workflow exists."
     echo "▹ Set Outputs for GitHub Workflow steps"
-    echo "::set-output name=pkgfile::$NEWFILENAME"
-    # echo "::set-output name=pkgname::${NAME}"
-    # dirty hack - won't spent more time into this...
-    VERSION="$RMK_VERSION"
-    # echo "::set-output name=pkgversion::$RMK_VERSION"
-    # echo "::set-output name=cmkmversion::$MVERSION"
-    echo "::set-output name=artifactname::$NEWFILENAME"
+    echo "pkgfile=$PKG_PATH" >> $GITHUB_OUTPUT
+    echo "artifactname=$NEWFILENAME" >> $GITHUB_OUTPUT
 else
     echo "...no GitHub Workflow detected (local execution)."
 fi
