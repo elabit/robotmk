@@ -24,6 +24,16 @@ if [ -z "$CMK_VERSION_MM" ]; then
     CMK_VERSION_MM=$(echo "$OMD_VER" | cut -d. -f1-2)
 fi
 
+if [ -f /omd/sites/cmk/.profile ]; then
+    set -a
+    . /omd/sites/cmk/.profile
+    set +a
+else 
+    echo "ERROR: .profile not found in /omd/sites/cmk. Exiting."
+    exit 1
+fi
+
+
 function _resolve_targets() {
     case "$CMK_VERSION_MM" in
         2.4)
@@ -70,12 +80,24 @@ if [ "$ARG1" != "cmkonly" ] && [ "$ARG1" != "full" ]; then
 fi
 
 function main {
-    echo "Workspace: $WORKSPACE"
-    #ls -la "$WORKSPACE"    
+    print_workspace
     symlink_robotmk
     symlink_files
     echo "linkfiles.sh finished."
     echo "===================="
+}
+
+function print_workspace {
+    if [ -z "$WORKSPACE" ]; then
+        if [ -n "$GITHUB_WORKSPACE" ]; then
+            WORKSPACE="$GITHUB_WORKSPACE"
+        else
+            echo "ERROR: WORKSPACE is not set and GITHUB_WORKSPACE is not available"
+            exit 1
+        fi
+    fi
+    echo "Workspace folder: $WORKSPACE"
+    ls -la "$WORKSPACE"
 }
 
 function symlink_robotmk {

@@ -5,7 +5,7 @@
 
 
 devbranch="v1/dev"
-masterbranch="v1/stable"
+stablebranch="v1/stable"
 
 function main (){
     MODE=$1
@@ -61,13 +61,13 @@ function release() {
     git add . && git commit -m "Version bump: $VTAG"
     echo "Workflow result and artifacts are on https://github.com/elabit/robotmk/actions/workflows/mkp-artifact.yml!"
 
-    header "Merging $devbranch into $masterbranch..."
-    git checkout $masterbranch
+    header "Merging $devbranch into $stablebranch..."
+    git checkout $stablebranch
     git merge $devbranch --no-ff --no-edit --strategy-option theirs
     header "Create annotated git tag from Changelog entry ..."
     chag tag
     header "Pushing ..."
-    git push origin $masterbranch
+    git push origin $stablebranch
     git push origin $VTAG
     git checkout $devbranch
 }
@@ -75,18 +75,17 @@ function release() {
 function unrelease() {
     assert_gh_login
     assert_branch $devbranch
-    # assert_notdirty
-    header "Changing to $devbranch branch ..."
-    git checkout $devbranch
     header "Removing the release with tag $VTAG ..."
     gh release delete $VTAG -y
     header "Removing tags ..."
     git push origin :refs/tags/$VTAG 
     header "Removing tags ..."
     git tag -d $VTAG
-    #header "Resetting the '$devbranch' branch to the tag $preVTAG ..."
-    #git reset --hard $preVTAG
-    #git tag -d $preVTAG 
+    read -p "Do you want to reset the '$devbranch' branch to the tag $preVTAG? (y/n) " -n 1 -r
+    if [[ $REPLY =~ ^[Yy]$ ]]; then
+        git reset --hard $preVTAG
+        git tag -d $preVTAG 
+    fi
 }
 
 function assert_branch {
