@@ -1,10 +1,10 @@
 name: TEST
 
 on:
-  workflow_dispatch: 
   push:
     branches: 
-      - 'v1/stable'
+      - test
+
 
 jobs:
   foo:
