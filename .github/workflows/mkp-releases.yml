@@ -1,12 +1,21 @@
-on: 
-  workflow_dispatch:
-    inputs:
-      logLevel:
-        description: 'Log level'     
-        required: true
-        default: 'warning'
-      tags:
-        description: 'Test scenario tags' 
+name: TEST
+
+on:
+  workflow_dispatch: 
+  push:
+    branches: 
+      - 'v1/stable'
+
+jobs:
+  foo:
+    name: testjob
+    runs-on: ubuntu-latest
+    container:
+      image: checkmk/check-mk-raw:2.2.0-daily
+
+    steps:
+      - name: Install tools
+        run: echo "foo"
 
 # name: MKP-Release for CMK 2.2-2.4
 
@@ -189,5 +198,6 @@ on:
 
 #       #  Uncomment this to debug
 #       #- name: Setup tmate session
+
 #       #  uses: mxschmitt/action-tmate@v3        
 
