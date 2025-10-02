@@ -52,6 +52,7 @@
             "request": "launch",
             "program": "${file}",
             "console": "integratedTerminal",
+            "python": "/omd/sites/cmk/bin/python3",
             "justMyCode": false
         }
     ]

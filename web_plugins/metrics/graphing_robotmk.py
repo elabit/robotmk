@@ -6,13 +6,13 @@
 # This file is part of the Robotmk project (https://www.robotmk.org)
 
 try:
-    from cmk.utils import version
-    cmk_version = version.get_general_version_infos()['version']
+    from cmk.utils.paths import omd_root
+    from cmk.ccc import version
+    cmk_version = version.get_general_version_infos(omd_root)['version']
 except ImportError:
+    # 2.2
     from cmk.utils.version import get_general_version_infos
     cmk_version = get_general_version_infos()['version']
-
-
 
 def define_metrics_v1():
     metric_runner_runtime = Metric(
