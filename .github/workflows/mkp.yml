@@ -89,12 +89,6 @@ jobs:
         run: .devcontainer/linkfiles.sh full
       - name: Update GITHUB_PATH
         run: echo "/omd/sites/cmk/bin" >> $GITHUB_PATH
-
-      #  Uncomment this to debug
-      - name: Setup tmate session
-        uses: mxschmitt/action-tmate@v3            
-
-
       - name: Build MKP
         run: .devcontainer/build.sh
         id: cmkpkg
@@ -148,7 +142,7 @@ jobs:
           bodyFile: RELEASE_CHANGELOG.md
           draft: false
           prerelease: false
-          artifacts: "robotmk.1.5.1-cmk2.4.mkp"
+          artifacts: "*.mkp"
           token: ${{ secrets.GITHUB_TOKEN }}
           allowUpdates: true
           replacesArtifacts: true
