@@ -1,14 +1,12 @@
 name: Build MKPs
 
 on:
-  workflow_dispatch: 
   push:
     branches: 
       - 'v1/stable'
       - 'v1/dev'
 
 jobs:
-
   # ////////////////////////////////////////////////////////////////////////              
   # https://docs.github.com/en/actions/guides/storing-workflow-data-as-artifacts#downloading-or-deleting-artifacts
   # ////////////////////////////////////////////////////////////////////////              
