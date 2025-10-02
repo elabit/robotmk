@@ -1,22 +1,22 @@
-name: MKP-Release for CMK 2.2-2.4
+# name: MKP-Release for CMK 2.2-2.4
 
-on:
-  workflow_dispatch: 
-  push:
-    branches: 
-      - 'v1/dev'
+# on:
+#   workflow_dispatch: 
+#   push:
+#     branches: 
+#       - 'v1/dev'
 
 
-# dummy job
-jobs:
-  foo:
-    name: testjob
-    runs-on: ubuntu-latest
-    container:
-      image: ubuntu:22.04
-    steps:
-      - name: test
-        run: echo "foo"
+# # dummy job
+# jobs:
+#   foo:
+#     name: testjob
+#     runs-on: ubuntu-latest
+#     container:
+#       image: ubuntu:22.04
+#     steps:
+#       - name: test
+#         run: echo "foo"
 
 
 # on:
