@@ -66,13 +66,13 @@ function print_workspace {
 function print_cmk_variables {
     echo "Variables:"
     echo "=========="
-    echo "CMK_DIR_CHECKS: $CMK_DIR_CHECKS"
-    echo "CMK_DIR_GRAPHING: $CMK_DIR_GRAPHING"
-    echo "CMK_DIR_CHECKMAN: $CMK_DIR_CHECKMAN"
-    echo "CMK_DIR_AGENT_PLUGINS: $CMK_DIR_AGENT_PLUGINS"
-    echo "CMK_DIR_BAKERY: $CMK_DIR_BAKERY"
-    echo "CMK_DIR_WATO: $CMK_DIR_WATO"
-    echo "CMK_DIR_IMAGES: $CMK_DIR_IMAGES"
+    echo "CMK_DIR_CHECKS: $OMD_ROOT/$CMK_DIR_CHECKS"
+    echo "CMK_DIR_GRAPHING: $OMD_ROOT/$CMK_DIR_GRAPHING"
+    echo "CMK_DIR_CHECKMAN: $OMD_ROOT/$CMK_DIR_CHECKMAN"
+    echo "CMK_DIR_AGENT_PLUGINS: $OMD_ROOT/$CMK_DIR_AGENT_PLUGINS"
+    echo "CMK_DIR_BAKERY: $OMD_ROOT/$CMK_DIR_BAKERY"
+    echo "CMK_DIR_WATO: $OMD_ROOT/$CMK_DIR_WATO"
+    echo "CMK_DIR_IMAGES: $OMD_ROOT/$CMK_DIR_IMAGES"
 }
 
 function symlink_robotmk {
@@ -176,8 +176,11 @@ function create_symlink {
         # relative link in OMD_ROOT
         LINKNAME=$OMD_ROOT/$2
     fi
+    
     rmpath $LINKNAME
     linkpath $TARGET $LINKNAME
+    echo "clearing $LINKNAME/__pycache__"
+    rm -rf $LINKNAME/__pycache__ || true
 }
 
 main "$@"
