@@ -73,33 +73,36 @@ jobs:
             path: ${{ steps.cmkpkg.outputs.pkgfile }}
 
   # ////////////////////////////////////////////////////////////////////////              
-  # build_cmk24:
-  #   name: Build Robotmk MKP (CMK v2.4)
-  #   runs-on: ubuntu-latest
-  #   container:
-  #     image: checkmk/check-mk-raw:2.4.0-daily
-  #   steps:
-  #     #  Uncomment this to debug
-  #     # - name: Setup tmate session
-  #     #   uses: mxschmitt/action-tmate@v3            
-  #     - name: Install tools
-  #       run: apt update && apt-get -y install sudo jq tree hub
-  #     - name: Create Checkmk Site
-  #       run: /docker-entrypoint.sh /bin/true
-  #     - name: Checkout Robotmk repository
-  #       uses: actions/checkout@v2
-  #     - name: Link repository files into container
-  #       run: .devcontainer/linkfiles.sh full
-  #     - name: Update GITHUB_PATH
-  #       run: echo "/omd/sites/cmk/bin" >> $GITHUB_PATH
-  #     - name: Build MKP
-  #       run: .devcontainer/build.sh
-  #       id: cmkpkg
-  #     - name: Upload artifact
-  #       uses: actions/upload-artifact@v4
-  #       with:
-  #           name: ${{ steps.cmkpkg.outputs.artifactname }}
-  #           path: ${{ steps.cmkpkg.outputs.pkgfile }}
+  build_cmk24:
+    name: Build Robotmk MKP (CMK v2.4)
+    runs-on: ubuntu-latest
+    container:
+      image: checkmk/check-mk-raw:2.4.0-daily
+    steps:
+      - name: Install tools
+        run: apt update && apt-get -y install sudo jq tree hub
+      - name: Create Checkmk Site
+        run: /docker-entrypoint.sh /bin/true
+      - name: Checkout Robotmk repository
+        uses: actions/checkout@v2
+      - name: Link repository files into container
+        run: .devcontainer/linkfiles.sh full
+      - name: Update GITHUB_PATH
+        run: echo "/omd/sites/cmk/bin" >> $GITHUB_PATH
+
+      #  Uncomment this to debug
+      - name: Setup tmate session
+        uses: mxschmitt/action-tmate@v3            
+
+
+      - name: Build MKP
+        run: .devcontainer/build.sh
+        id: cmkpkg
+      - name: Upload artifact
+        uses: actions/upload-artifact@v4
+        with:
+            name: ${{ steps.cmkpkg.outputs.artifactname }}
+            path: ${{ steps.cmkpkg.outputs.pkgfile }}
 
   # ////////////////////////////////////////////////////////////////////////              
   release:
