@@ -18,9 +18,11 @@ import shutil
 from collections import namedtuple
 
 try:
-    from cmk.utils import version
-    cmk_version = version.get_general_version_infos()['version']
+    from cmk.utils.paths import omd_root
+    from cmk.ccc import version
+    cmk_version = version.get_general_version_infos(omd_root)['version']
 except ImportError:
+    # 2.2
     from cmk.utils.version import get_general_version_infos
     cmk_version = get_general_version_infos()['version']
 
