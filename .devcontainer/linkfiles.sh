@@ -14,15 +14,9 @@ L_SHARE_CMK="local/share/check_mk"
 L_LIB_CMK_BASE="local/lib/check_mk/base"
 L_LIB_PY3_CMK_ADDONS="local/lib/python3/cmk_addons"
 
-# Determine CMK major.minor version (e.g., 2.2, 2.3, 2.4)
-# Prefer environment CMK_VERSION if provided; else detect from omd
-CMK_VERSION_MM="${CMK_VERSION:-}"
-if [ -z "$CMK_VERSION_MM" ]; then
-    # Extract last field, then cut major.minor
-    # Example: 2.4.0p1.cee => 2.4
-    OMD_VER=$(omd version | awk '{print $NF}')
-    CMK_VERSION_MM=$(echo "$OMD_VER" | cut -d. -f1-2)
-fi
+# Source CMK version detection and target resolution utilities
+SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
+source "${SCRIPT_DIR}/cmk_version.sh"
 
 if [ -f /omd/sites/cmk/.profile ]; then
     set -a
@@ -32,38 +26,6 @@ else
     echo "ERROR: .profile not found in /omd/sites/cmk. Exiting."
     exit 1
 fi
-
-
-function _resolve_targets() {
-    case "$CMK_VERSION_MM" in
-        2.4)
-            TARGET_CHECKS="$L_LIB_PY3_CMK_ADDONS/plugins/robotmk/agent_based"
-            TARGET_GRAPHING="${L_LIB_PY3_CMK_ADDONS}/plugins/robotmk/graphing"
-            ;;
-        2.3)
-            TARGET_CHECKS="$L_LIB_PY3_CMK_ADDONS/plugins/robotmk/agent_based"
-            TARGET_GRAPHING="${L_LIB_PY3_CMK_ADDONS}/plugins/robotmk/graphing"
-            ;;
-        2.2)
-            # 2.2 may not ship cmk_addons by default; prefer it if present, else legacy
-            TARGET_CHECKS="$L_LIB_CMK_BASE/plugins/agent_based"
-            TARGET_GRAPHING="${L_SHARE_CMK}/web/plugins/metrics"
-            ;;
-        *)
-            # Unknown, try addons first
-            echo "ERROR: Unknown CMK version: $CMK_VERSION_MM"
-            exit 1
-            ;;
-    esac
-
-    # Bakery path has been stable across 2.2-2.4
-    TARGET_BAKERY="$L_LIB_CMK_BASE/cee/plugins/bakery"
-    TARGET_WATO="$L_SHARE_CMK/web/plugins/wato"
-    TARGET_IMAGES="$L_SHARE_CMK/web/htdocs/images"
-    
-}
-
-_resolve_targets
 
 # check for Argument
 if [ -z "$1" ]; then
@@ -81,6 +43,7 @@ fi
 
 function main {
     print_workspace
+    print_cmk_variables
     symlink_robotmk
     symlink_files
     echo "linkfiles.sh finished."
@@ -97,7 +60,19 @@ function print_workspace {
         fi
     fi
     echo "Workspace folder: $WORKSPACE"
-    ls -la "$WORKSPACE"
+    #ls -la "$WORKSPACE"
+}
+
+function print_cmk_variables {
+    echo "Variables:"
+    echo "=========="
+    echo "CMK_DIR_CHECKS: $OMD_ROOT/$CMK_DIR_CHECKS"
+    echo "CMK_DIR_GRAPHING: $OMD_ROOT/$CMK_DIR_GRAPHING"
+    echo "CMK_DIR_CHECKMAN: $OMD_ROOT/$CMK_DIR_CHECKMAN"
+    echo "CMK_DIR_AGENT_PLUGINS: $OMD_ROOT/$CMK_DIR_AGENT_PLUGINS"
+    echo "CMK_DIR_BAKERY: $OMD_ROOT/$CMK_DIR_BAKERY"
+    echo "CMK_DIR_WATO: $OMD_ROOT/$CMK_DIR_WATO"
+    echo "CMK_DIR_IMAGES: $OMD_ROOT/$CMK_DIR_IMAGES"
 }
 
 function symlink_robotmk {
@@ -106,33 +81,32 @@ function symlink_robotmk {
         echo "Linking robotmk MKP files"
         echo "===================="
 
-        # Robotmk Package Directory
-        # create_symlink pkginfo $OMD_ROOT/var/check_mk/packages
-
-        # Robotmk Agent plugins
-        create_symlink agents_plugins $L_SHARE_CMK/agents/plugins
-
-        # Robotmk checkman
-        create_symlink checkman $L_LIB_PY3_CMK_ADDONS/plugins/robotmk/checkman
-
-        # Robotmk Images & icons
-        create_symlink images $TARGET_IMAGES
+        # Robotmk CHECK PLUGIN 
+        create_symlink checks $CMK_DIR_CHECKS
 
         # Robotmk Metrics
-        create_symlink web_plugins/metrics $TARGET_GRAPHING
-        
-        # WATO Rules
-        create_symlink web_plugins/wato $TARGET_WATO
+        create_symlink web_plugins/metrics $CMK_DIR_GRAPHING
+
+        # Robotmk checkman
+        create_symlink checkman $CMK_DIR_CHECKMAN
+
+        # stable paths across 2.2-2.4
+        # Robotmk Agent plugins
+        create_symlink agents_plugins $CMK_DIR_AGENT_PLUGINS
 
         # Robotmk BAKERY
-        create_symlink bakery $TARGET_BAKERY
-        rm -rf ${L_LIB_CMK_BASE}/cee/plugins/bakery/__pycache__
+        create_symlink bakery $CMK_DIR_BAKERY
 
-        # Robotmk CHECK PLUGIN 
-        create_symlink checks $TARGET_CHECKS
+        # WATO Rules
+        create_symlink web_plugins/wato $CMK_DIR_WATO
+
+        # Robotmk Images & icons
+        create_symlink images $CMK_DIR_IMAGES
         
-        rm -rf ${L_LIB_PY3_CMK_ADDONS}/plugins/agent_based/__pycache__ || true
-        rm -rf ${L_LIB_CMK_BASE}/plugins/agent_based/__pycache__ || true
+        
+        rm -rf local/lib/python3/cmk_addons/plugins/agent_based/__pycache__ || true
+        rm -rf local/lib/check_mk/base/plugins/agent_based/__pycache__ || true
+        rm -rf local/lib/check_mk/base/cee/plugins/bakery/__pycache__ || true
 
     fi
 }
@@ -202,8 +176,11 @@ function create_symlink {
         # relative link in OMD_ROOT
         LINKNAME=$OMD_ROOT/$2
     fi
+    
     rmpath $LINKNAME
     linkpath $TARGET $LINKNAME
+    echo "clearing $LINKNAME/__pycache__"
+    rm -rf $LINKNAME/__pycache__ || true
 }
 
 main "$@"

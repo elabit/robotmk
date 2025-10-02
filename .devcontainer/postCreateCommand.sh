@@ -3,6 +3,10 @@
 # SPDX-License-Identifier: GPL-3.0-or-later
 # This file is part of the Robotmk project (https://www.robotmk.org)
 
+# Source CMK version detection utilities
+SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
+source "${SCRIPT_DIR}/cmk_version.sh"
+
 LINKTYPE=$1
 # ARG1 must be either "cmkonly" or "full" => linkfiles.sh
 if [ "$LINKTYPE" != "cmkonly" ] && [ "$LINKTYPE" != "full" ]; then
@@ -52,22 +56,20 @@ if [ -z "${GITHUB_WORKSPACE-}" ]; then
     echo "■ Creating a dummyhost"
     echo "Create NOW an automation user with administrator rights / store the secret in clear text. Then press ENTER to continue."
     read -p "Press ENTER to continue..."
-    $WORKSPACE/.devcontainer/create_dummyhost_${CMK_VERSION_MM}.sh
+    bash $WORKSPACE/.devcontainer/create_dummyhost_${CMK_VERSION_MM}.sh
     echo "✅ Dummyhost created."
-    echo "■ Installing the agent"
-    echo "Open a root terminal and execute 'install_agent_localhost'."
-    read -p "Press ENTER to continue..."
     echo "■ Baking the agent"
     echo "Baking agent for $HOSTNAME ... "
     cmk -Avf $HOSTNAME
+    echo "■ Installing the agent"
+    echo "Open a root terminal and execute 'install_agent_localhost'."
+    read -p "Press ENTER to continue..."
     echo "Discovering ... "
     cmk -IIv 2>&1 > /dev/null
     echo "Reloading CMK config ... "
     cmk -R
     echo "■ Generating VS Code launch file ..."
-    $WORKSPACE/.devcontainer/launch_gen.sh
-
-fi
+    bash $WORKSPACE/.devcontainer/launch_gen.sh
 
 fi
 echo "✅ postCreateCommand.sh finished."

@@ -38,10 +38,15 @@ if [ -z $OMD_SITE ]; then
     exit 1
 fi
 
+# Source CMK version detection utilities
+SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
+source "${SCRIPT_DIR}/cmk_version.sh"
+
 set -u
-# Determine CMK major.minor for package naming (e.g., 2.2, 2.3, 2.4)
+# Use the CMK_VERSION_MM from the shared utility
+CMK_MM="$CMK_VERSION_MM"
+# Get full OMD version for packaging
 OMD_VER=$(omd version | awk '{print $NF}')
-CMK_MM=$(echo "$OMD_VER" | cut -d. -f1-2)
 NAME="robotmk"
 PACKAGEFILE=$OMD_ROOT/var/check_mk/packages/$NAME
 PKGDIR=$OMD_ROOT/var/check_mk/packages_local

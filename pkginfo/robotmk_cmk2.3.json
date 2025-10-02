@@ -10,13 +10,13 @@
             "plugins/robotmk.py"
         ],
         "cmk_addons_plugins": [
-            "robotmk/agent_based/robotmk.py",
-            "robotmk/graphing/graphing_robotmk.py"
+            "robotmk/agent_based/robotmk.py"
         ],
         "lib": [
             "check_mk/base/cee/plugins/bakery/robotmk.py"
         ],
         "web": [
+            "plugins/metrics/graphing_robotmk.py",
             "plugins/wato/robotmk_wato_params_bakery.py",
             "plugins/wato/robotmk_wato_params_check.py",
             "plugins/wato/robotmk_wato_params_discovery.py",
