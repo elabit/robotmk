@@ -1,7 +1,7 @@
 use super::ResultCode;
 use super::robotmk_env_manifest::parse_robotmk_environment_manifest;
 use crate::command_spec::CommandSpec;
-use crate::config::{CondaEnvironmentSource, HTTPProxyConfig};
+use crate::config::{CondaEnvironmentSource, HTTPProxyConfig, TlsCertificateValidation};
 use crate::results::BuildOutcome;
 use crate::session::{RunSpec, Session};
 use crate::termination::{Cancelled, Outcome};
@@ -24,6 +24,8 @@ pub struct CondaEnvironment {
     pub root_prefix: Utf8PathBuf,
     pub prefix: Utf8PathBuf,
     pub http_proxy_config: HTTPProxyConfig,
+    pub tls_certificate_validation: TlsCertificateValidation,
+    pub tls_revoke_active: bool,
     pub build_timeout: u64,
     pub build_runtime_directory: Utf8PathBuf,
 }
@@ -171,6 +173,24 @@ impl CondaEnvironment {
             .add_argument(&self.root_prefix)
             .add_argument("--prefix")
             .add_argument(&self.prefix);
+        match &self.tls_certificate_validation {
+            TlsCertificateValidation::Enabled => {}
+            TlsCertificateValidation::Disabled => {
+                build_command_spec
+                    .add_argument("--ssl-verify")
+                    .add_argument("false");
+            }
+            TlsCertificateValidation::EnabledWithCustomCert(cert_path) => {
+                build_command_spec
+                    .add_argument("--ssl-verify")
+                    .add_argument(cert_path);
+            }
+        }
+        if !self.tls_revoke_active {
+            build_command_spec
+                .add_argument("--ssl-no-revoke")
+                .add_argument("true");
+        }
         if let Some(http_proxy) = &self.http_proxy_config.http {
             build_command_spec.add_obfuscated_env("HTTP_PROXY", http_proxy);
         }
@@ -369,6 +389,8 @@ mod tests {
                 root_prefix: "/root".into(),
                 prefix: "/env".into(),
                 http_proxy_config: HTTPProxyConfig::default(),
+                tls_certificate_validation: TlsCertificateValidation::Enabled,
+                tls_revoke_active: false,
                 build_timeout: 600,
                 build_runtime_directory: Utf8PathBuf::default(),
             }
@@ -386,6 +408,8 @@ mod tests {
             root_prefix: "/root".into(),
             prefix: "/env".into(),
             http_proxy_config: HTTPProxyConfig::default(),
+            tls_certificate_validation: TlsCertificateValidation::Disabled,
+            tls_revoke_active: false,
             build_timeout: 600,
             build_runtime_directory: Utf8PathBuf::default(),
         }
@@ -401,7 +425,11 @@ mod tests {
                 "--root-prefix",
                 "/root",
                 "--prefix",
-                "/env"
+                "/env",
+                "--ssl-verify",
+                "false",
+                "--ssl-no-revoke",
+                "true"
             ]
         );
         assert!(build_command_spec.envs_rendered_plain.is_empty());
@@ -420,6 +448,8 @@ mod tests {
                 http: Some("http://user:pass@corp.com:8080".into()),
                 https: Some("http://user:pass@corp.com:8080".into()),
             },
+            tls_certificate_validation: TlsCertificateValidation::Enabled,
+            tls_revoke_active: false,
             build_timeout: 600,
             build_runtime_directory: Utf8PathBuf::default(),
         }
@@ -435,7 +465,9 @@ mod tests {
                 "--root-prefix",
                 "/root",
                 "--prefix",
-                "/env"
+                "/env",
+                "--ssl-no-revoke",
+                "true"
             ]
         );
         assert!(build_command_spec.envs_rendered_plain.is_empty());
@@ -463,6 +495,8 @@ mod tests {
             root_prefix: "/root".into(),
             prefix: "/env".into(),
             http_proxy_config: HTTPProxyConfig::default(),
+            tls_certificate_validation: TlsCertificateValidation::Enabled,
+            tls_revoke_active: false,
             build_timeout: 600,
             build_runtime_directory: Utf8PathBuf::default(),
         };
@@ -488,6 +522,8 @@ mod tests {
                 http: Some("http://user:pass@corp.com:8080".into()),
                 https: Some("http://user:pass@corp.com:8080".into()),
             },
+            tls_certificate_validation: TlsCertificateValidation::Enabled,
+            tls_revoke_active: false,
             build_timeout: 600,
             build_runtime_directory: Utf8PathBuf::default(),
         };

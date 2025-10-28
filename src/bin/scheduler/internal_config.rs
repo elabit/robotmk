@@ -218,6 +218,9 @@ pub fn from_external_config(
                                 .environments_base_directory()
                                 .join(&plan_config.id),
                             http_proxy_config: conda_environment_config.http_proxy_config,
+                            tls_certificate_validation: conda_environment_config
+                                .tls_certificate_validation,
+                            tls_revoke_active: conda_environment_config.tls_revoke_active,
                             build_timeout: conda_environment_config.build_timeout,
                             build_runtime_directory: global_config
                                 .working_directory_environment_building
@@ -377,6 +380,8 @@ mod tests {
                     http: None,
                     https: Some("http://user:pass@corp.com:8080".into()),
                 },
+                tls_certificate_validation: config::TlsCertificateValidation::Enabled,
+                tls_revoke_active: false,
                 build_timeout: 300,
             }),
             session_config: config::SessionConfig::Current,
@@ -431,6 +436,8 @@ mod tests {
                     http: Some("http://user:pass@corp.com:8080".into()),
                     https: None,
                 },
+                tls_certificate_validation: config::TlsCertificateValidation::Enabled,
+                tls_revoke_active: false,
                 build_timeout: 300,
             }),
             #[cfg(unix)]
@@ -676,6 +683,8 @@ mod tests {
                     http: None,
                     https: Some("http://user:pass@corp.com:8080".into()),
                 },
+                tls_certificate_validation: config::TlsCertificateValidation::Enabled,
+                tls_revoke_active: false,
                 build_timeout: 300,
                 build_runtime_directory: Utf8PathBuf::from(
                     "/working/environment_building/app1_suite1"
@@ -743,6 +752,8 @@ mod tests {
                     http: Some("http://user:pass@corp.com:8080".into()),
                     https: None,
                 },
+                tls_certificate_validation: config::TlsCertificateValidation::Enabled,
+                tls_revoke_active: false,
                 build_timeout: 300,
                 build_runtime_directory: Utf8PathBuf::from(
                     "/working/environment_building/app2_tests_EN"

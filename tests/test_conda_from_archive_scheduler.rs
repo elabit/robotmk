@@ -8,7 +8,7 @@ use robotmk::config::{
     CondaConfig, CondaEnvironmentConfig, CondaEnvironmentSource, Config, EnvironmentConfig,
     ExecutionConfig, HTTPProxyConfig, PlanConfig, PlanMetadata, RCCConfig, RCCProfileConfig,
     RetryStrategy, RobotConfig, SequentialPlanGroup, SessionConfig, Source,
-    WorkingDirectoryCleanupConfig,
+    TlsCertificateValidation, WorkingDirectoryCleanupConfig,
 };
 use robotmk::results::results_directory;
 use robotmk::section::Host;
@@ -127,6 +127,8 @@ fn create_config(
                     source: CondaEnvironmentSource::Archive(packed_conda_env_path.into()),
                     robotmk_manifest_path: None,
                     http_proxy_config: HTTPProxyConfig::default(),
+                    tls_certificate_validation: TlsCertificateValidation::Enabled,
+                    tls_revoke_active: false,
                     build_timeout: 1200,
                 }),
                 session_config: SessionConfig::Current,
