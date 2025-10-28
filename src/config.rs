@@ -133,6 +133,8 @@ pub struct CondaEnvironmentConfig {
     pub source: CondaEnvironmentSource,
     pub robotmk_manifest_path: Option<Utf8PathBuf>,
     pub http_proxy_config: HTTPProxyConfig,
+    pub tls_certificate_validation: TlsCertificateValidation,
+    pub tls_revokation_enabled: bool,
     pub build_timeout: u64,
 }
 
@@ -146,6 +148,13 @@ pub enum CondaEnvironmentSource {
 pub struct HTTPProxyConfig {
     pub http: Option<String>,
     pub https: Option<String>,
+}
+
+#[derive(Clone, Debug, Deserialize, PartialEq, Serialize)]
+pub enum TlsCertificateValidation {
+    Enabled,
+    Disabled,
+    EnabledWithCustomCert(Utf8PathBuf),
 }
 
 #[derive(Clone, Debug, Deserialize, PartialEq, Serialize)]

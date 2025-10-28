@@ -2,7 +2,7 @@ pub mod helper;
 use crate::helper::var;
 use camino::Utf8PathBuf;
 use chrono::Utc;
-use robotmk::config::{CondaEnvironmentSource, HTTPProxyConfig};
+use robotmk::config::{CondaEnvironmentSource, HTTPProxyConfig, TlsCertificateValidation};
 use robotmk::env::{Environment, conda::CondaEnvironment};
 use robotmk::results::BuildOutcome;
 use robotmk::session::{CurrentSession, Session};
@@ -34,6 +34,8 @@ fn test_conda_post_build_commands() -> anyhow::Result<()> {
         root_prefix: temp_dir_path.join("mamba_root"),
         prefix: temp_dir_path.join("env"),
         http_proxy_config: HTTPProxyConfig::default(),
+        tls_certificate_validation: TlsCertificateValidation::Enabled,
+        tls_revokation_enabled: false,
         build_timeout: var("BUILD_TIMEOUT")?.parse::<u64>()?,
         build_runtime_directory: temp_dir_path,
     })
