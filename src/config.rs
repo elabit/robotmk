@@ -151,7 +151,6 @@ pub struct HTTPProxyConfig {
 }
 
 #[derive(Clone, Debug, Deserialize, PartialEq, Serialize)]
-#[serde(untagged)]
 pub enum TlsCertificateValidation {
     Enabled,
     Disabled,
