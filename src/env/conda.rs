@@ -190,8 +190,8 @@ impl CondaEnvironment {
             build_command_spec.add_argument("--ssl-no-revoke");
         }
         if !self.http_proxy_config.no_proxy.is_empty() {
-            let no_proxy_value = self.http_proxy_config.no_proxy.join(",");
-            build_command_spec.add_obfuscated_env("NO_PROXY", &no_proxy_value);
+            build_command_spec
+                .add_obfuscated_env("NO_PROXY", &self.http_proxy_config.no_proxy.join(","));
         }
         if let Some(http_proxy) = &self.http_proxy_config.http {
             build_command_spec.add_obfuscated_env("HTTP_PROXY", http_proxy);
