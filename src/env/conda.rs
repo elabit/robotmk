@@ -189,6 +189,10 @@ impl CondaEnvironment {
         if !self.tls_revokation_enabled {
             build_command_spec.add_argument("--ssl-no-revoke");
         }
+        if !self.http_proxy_config.no_proxy.is_empty() {
+            let no_proxy_value = self.http_proxy_config.no_proxy.join(",");
+            build_command_spec.add_obfuscated_env("NO_PROXY", &no_proxy_value);
+        }
         if let Some(http_proxy) = &self.http_proxy_config.http {
             build_command_spec.add_obfuscated_env("HTTP_PROXY", http_proxy);
         }
@@ -442,6 +446,7 @@ mod tests {
             root_prefix: "/root".into(),
             prefix: "/env".into(),
             http_proxy_config: HTTPProxyConfig {
+                no_proxy: vec!["localhost".into()],
                 http: Some("http://user:pass@corp.com:8080".into()),
                 https: Some("http://user:pass@corp.com:8080".into()),
             },
@@ -470,6 +475,7 @@ mod tests {
         assert_eq!(
             build_command_spec.envs_rendered_obfuscated,
             [
+                ("NO_PROXY".into(), "localhost".into()),
                 ("HTTP_PROXY".into(), "http://user:pass@corp.com:8080".into()),
                 (
                     "HTTPS_PROXY".into(),
@@ -515,6 +521,7 @@ mod tests {
             root_prefix: "/root".into(),
             prefix: "/env".into(),
             http_proxy_config: HTTPProxyConfig {
+                no_proxy: vec![],
                 http: Some("http://user:pass@corp.com:8080".into()),
                 https: Some("http://user:pass@corp.com:8080".into()),
             },
