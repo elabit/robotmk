@@ -5,7 +5,9 @@ use camino::{Utf8Path, Utf8PathBuf};
 use chrono::Utc;
 use clap::{Parser, Subcommand};
 use process_tree::check_tree_size;
-use robotmk::config::{CondaEnvironmentSource, HTTPProxyConfig, RetryStrategy};
+use robotmk::config::{
+    CondaEnvironmentSource, HTTPProxyConfig, RetryStrategy, TlsCertificateValidation,
+};
 use robotmk::env::{
     Environment, conda::CondaEnvironment, rcc::RCCEnvironment, system::SystemEnvironment,
 };
@@ -209,6 +211,8 @@ fn micromamba_main(micromamba_binary_path: Utf8PathBuf) -> AnyhowResult<()> {
         root_prefix: test_dir_path.join("micromamba_root"),
         prefix: test_dir_path.join("conda_env"),
         http_proxy_config: HTTPProxyConfig::default(),
+        tls_certificate_validation: TlsCertificateValidation::Enabled,
+        tls_revokation_enabled: true,
         build_timeout: 1200,
         build_runtime_directory: test_dir_path.clone(),
     });

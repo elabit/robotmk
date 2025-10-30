@@ -11,7 +11,7 @@ use robotmk::config::{
     CondaConfig, CondaEnvironmentConfig, CondaEnvironmentSource, Config, CustomRCCProfileConfig,
     EnvironmentConfig, ExecutionConfig, HTTPProxyConfig, PlanConfig, PlanMetadata, RCCConfig,
     RCCEnvironmentConfig, RCCProfileConfig, RetryStrategy, RobotConfig, SequentialPlanGroup,
-    SessionConfig, Source, WorkingDirectoryCleanupConfig,
+    SessionConfig, Source, TlsCertificateValidation, WorkingDirectoryCleanupConfig,
 };
 use robotmk::results::results_directory;
 use robotmk::section::Host;
@@ -342,6 +342,8 @@ fn create_config(
                             source: CondaEnvironmentSource::Manifest("conda.yaml".into()),
                             robotmk_manifest_path: None,
                             http_proxy_config: HTTPProxyConfig::default(),
+                            tls_certificate_validation: TlsCertificateValidation::Enabled,
+                            tls_revokation_enabled: true,
                             build_timeout: 1200,
                         }),
                         session_config: SessionConfig::Current,
@@ -382,6 +384,8 @@ fn create_config(
                             source: CondaEnvironmentSource::Manifest("conda.yaml".into()),
                             robotmk_manifest_path: None,
                             http_proxy_config: HTTPProxyConfig::default(),
+                            tls_certificate_validation: TlsCertificateValidation::Enabled,
+                            tls_revokation_enabled: true,
                             build_timeout: 1200,
                         }),
                         session_config: SessionConfig::SpecificUser(UserSessionConfig {
@@ -426,6 +430,8 @@ fn create_config(
                             source: CondaEnvironmentSource::Manifest("conda.yaml".into()),
                             robotmk_manifest_path: None,
                             http_proxy_config: HTTPProxyConfig::default(),
+                            tls_certificate_validation: TlsCertificateValidation::Enabled,
+                            tls_revokation_enabled: true,
                             build_timeout: 1200,
                         }),
                         #[cfg(unix)]
