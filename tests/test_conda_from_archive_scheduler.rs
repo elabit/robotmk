@@ -2,7 +2,7 @@
 pub mod helper;
 use crate::helper::{await_plan_results, directory_entries, var};
 use anyhow::{Result as AnyhowResult, bail};
-use assert_cmd::cargo::cargo_bin;
+use assert_cmd::cargo_bin;
 use camino::{Utf8Path, Utf8PathBuf};
 use robotmk::config::{
     CondaConfig, CondaEnvironmentConfig, CondaEnvironmentSource, Config, EnvironmentConfig,
@@ -158,7 +158,7 @@ async fn run_scheduler(
     let robotmk_shell_script = format!(
         "sudo unshare --net -- ping -c 1 github.com && echo 'I still have internet access' \
         || {} -vv --run-flag {run_flag_path} {config_path}",
-        cargo_bin("robotmk_scheduler").to_str().unwrap()
+        cargo_bin!("robotmk_scheduler").to_str().unwrap()
     );
     let mut robotmk_no_env_cmd = Command::new("sh");
     robotmk_no_env_cmd.arg("-c").arg(robotmk_shell_script);
