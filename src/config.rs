@@ -146,6 +146,7 @@ pub enum CondaEnvironmentSource {
 
 #[derive(Clone, Debug, Default, Deserialize, PartialEq, Serialize)]
 pub struct HTTPProxyConfig {
+    pub no_proxy: Vec<String>,
     pub http: Option<String>,
     pub https: Option<String>,
 }

@@ -377,6 +377,7 @@ mod tests {
                 source: config::CondaEnvironmentSource::Manifest("app1/app1_env.yaml".into()),
                 robotmk_manifest_path: Some("app1/robotmk_manifest.yaml".into()),
                 http_proxy_config: config::HTTPProxyConfig {
+                    no_proxy: vec![],
                     http: None,
                     https: Some("http://user:pass@corp.com:8080".into()),
                 },
@@ -433,6 +434,7 @@ mod tests {
                 source: config::CondaEnvironmentSource::Archive("/app2.env.tar.gz".into()),
                 robotmk_manifest_path: None,
                 http_proxy_config: config::HTTPProxyConfig {
+                    no_proxy: vec!["localhost".into()],
                     http: Some("http://user:pass@corp.com:8080".into()),
                     https: None,
                 },
@@ -682,6 +684,7 @@ mod tests {
                 root_prefix: Utf8PathBuf::from("/conda_base/mamba_root_prefix"),
                 prefix: Utf8PathBuf::from("/conda_base/environments/app1_suite1"),
                 http_proxy_config: config::HTTPProxyConfig {
+                    no_proxy: vec![],
                     http: None,
                     https: Some("http://user:pass@corp.com:8080".into()),
                 },
@@ -751,6 +754,7 @@ mod tests {
                 root_prefix: Utf8PathBuf::from("/conda_base/mamba_root_prefix"),
                 prefix: Utf8PathBuf::from("/conda_base/environments/app2_tests_EN"),
                 http_proxy_config: config::HTTPProxyConfig {
+                    no_proxy: vec!["localhost".into()],
                     http: Some("http://user:pass@corp.com:8080".into()),
                     https: None,
                 },
