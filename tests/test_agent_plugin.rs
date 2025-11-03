@@ -1,4 +1,4 @@
-use assert_cmd::cargo::cargo_bin;
+use assert_cmd::cargo::cargo_bin_cmd;
 use camino::{Utf8Path, Utf8PathBuf};
 use robotmk::config::{CondaConfig, Config, RCCConfig, RCCProfileConfig};
 use robotmk::lock::Locker;
@@ -7,7 +7,7 @@ use robotmk::section::{Host, WritePiggybackSection, WriteSection};
 use serde::Serialize;
 use std::fs::{create_dir, write};
 use std::io;
-use std::process::{Command, Output};
+use std::process::Output;
 use tempfile::tempdir;
 
 #[test]
@@ -105,7 +105,7 @@ impl WritePiggybackSection for PiggybackSection {
 }
 
 fn run_agent_plugin(config_dir: &Utf8Path) -> io::Result<Output> {
-    let mut agent_plugin_cmd = Command::new(cargo_bin("robotmk_agent_plugin"));
+    let mut agent_plugin_cmd = cargo_bin_cmd!("robotmk_agent_plugin");
     agent_plugin_cmd.env("MK_CONFDIR", config_dir);
     agent_plugin_cmd.output()
 }

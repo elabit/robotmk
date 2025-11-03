@@ -3,7 +3,7 @@ pub mod rcc;
 use crate::helper::{await_plan_results, directory_entries, var};
 use crate::rcc::read_configuration_diagnostics;
 use anyhow::{Result as AnyhowResult, bail};
-use assert_cmd::cargo::cargo_bin;
+use assert_cmd::cargo_bin;
 use camino::{Utf8Path, Utf8PathBuf};
 #[cfg(windows)]
 use robotmk::config::UserSessionConfig;
@@ -508,7 +508,7 @@ async fn run_scheduler(
     let run_flag_path = test_dir.join("run_flag");
     write(&run_flag_path, "")?;
 
-    let mut robotmk_cmd = Command::new(cargo_bin("robotmk_scheduler"));
+    let mut robotmk_cmd = Command::new(cargo_bin!("robotmk_scheduler"));
     robotmk_cmd
         .arg(config_path)
         .arg("-vv")
