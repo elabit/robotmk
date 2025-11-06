@@ -40,12 +40,35 @@ fn run() -> Result<(), Terminate> {
         robotmk::config::load(&args.config_path).context("Configuration loading failed")?;
     info!("Configuration loaded");
 
+    let filtered_external_config = if let Some(plan_id) = &args.plan {
+        info!("Filtering configuration to only include plan: {}", plan_id);
+        robotmk::config::Config {
+            runtime_directory: external_config.runtime_directory,
+            rcc_config: external_config.rcc_config,
+            conda_config: external_config.conda_config,
+            plan_groups: external_config
+                .plan_groups
+                .into_iter()
+                .filter_map(|mut group| {
+                    group.plans.retain(|plan| plan.id == *plan_id);
+                    if group.plans.is_empty() {
+                        None
+                    } else {
+                        Some(group)
+                    }
+                })
+                .collect(),
+        }
+    } else {
+        external_config
+    };
+
     let cancellation_token = termination::start_termination_control(args.run_flag)
         .context("Failed to set up termination control")?;
     info!("Termination control set up");
 
     let (global_config, plans) = internal_config::from_external_config(
-        external_config,
+        filtered_external_config,
         &cancellation_token,
         &Locker::new(&args.config_path, Some(&cancellation_token)),
     );
