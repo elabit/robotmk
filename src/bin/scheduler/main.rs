@@ -10,6 +10,7 @@ use anyhow::{Context, Result as AnyhowResult};
 use clap::Parser;
 use log::info;
 use logging::log_and_return_error;
+use robotmk::config::Config;
 use robotmk::lock::Locker;
 use robotmk::results::{SchedulerPhase, SetupFailure, SetupFailures};
 use robotmk::section::WriteSection;
@@ -40,11 +41,7 @@ fn run() -> Result<(), Terminate> {
         robotmk::config::load(&args.config_path).context("Configuration loading failed")?;
     info!("Configuration loaded");
 
-    if let Some(plan_id) = &args.plan {
-        info!("Filtering configuration to only include plan: {}", plan_id);
-    }
-    let filtered_external_config =
-        robotmk::config::filter_by_plan_id(external_config, args.plan.as_deref());
+    let filtered_external_config = filter_by_plan_id(external_config, args.plan.as_deref());
 
     let cancellation_token = termination::start_termination_control(args.run_flag)
         .context("Failed to set up termination control")?;
@@ -118,6 +115,18 @@ fn write_setup_failures(
     )
 }
 
+fn filter_by_plan_id(mut config: Config, plan_id: Option<&str>) -> Config {
+    if let Some(plan_id) = plan_id {
+        info!("Filtering configuration to only include plan: {}", plan_id);
+
+        config.plan_groups.retain_mut(|group| {
+            group.plans.retain(|p| p.id == plan_id);
+            !group.plans.is_empty()
+        });
+    }
+    config
+}
+
 #[tokio::main]
 async fn await_grace_period(grace_period: u64, cancellation_token: &CancellationToken) {
     let _ = timeout_at(
@@ -125,4 +134,130 @@ async fn await_grace_period(grace_period: u64, cancellation_token: &Cancellation
         cancellation_token.cancelled(),
     )
     .await;
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+    use camino::Utf8PathBuf;
+    use robotmk::config::{
+        CondaConfig, EnvironmentConfig, ExecutionConfig, PlanConfig, PlanMetadata, RCCConfig,
+        RCCProfileConfig, RetryStrategy, RobotConfig, SequentialPlanGroup, SessionConfig, Source,
+        WorkingDirectoryCleanupConfig,
+    };
+    use robotmk::section::Host;
+
+    fn create_test_config() -> Config {
+        Config {
+            runtime_directory: Utf8PathBuf::from("/test"),
+            rcc_config: RCCConfig {
+                binary_path: Utf8PathBuf::from("/test/rcc"),
+                profile_config: RCCProfileConfig::Default,
+                robocorp_home_base: Utf8PathBuf::from("/test/rcc_home"),
+            },
+            conda_config: CondaConfig {
+                micromamba_binary_path: Utf8PathBuf::from("/test/micromamba"),
+                base_directory: Utf8PathBuf::from("/test/conda"),
+            },
+            plan_groups: vec![SequentialPlanGroup {
+                plans: vec![
+                    PlanConfig {
+                        id: "plan1".to_string(),
+                        source: Source::Manual {
+                            base_dir: Utf8PathBuf::from("/test/plan1"),
+                        },
+                        robot_config: RobotConfig {
+                            robot_target: Utf8PathBuf::from("tasks.robot"),
+                            top_level_suite_name: None,
+                            suites: vec![],
+                            tests: vec![],
+                            test_tags_include: vec![],
+                            test_tags_exclude: vec![],
+                            variables: vec![],
+                            variable_files: vec![],
+                            argument_files: vec![],
+                            exit_on_failure: false,
+                            environment_variables_rendered_obfuscated: vec![],
+                        },
+                        execution_config: ExecutionConfig {
+                            n_attempts_max: 1,
+                            retry_strategy: RetryStrategy::Complete,
+                            timeout: 60,
+                        },
+                        environment_config: EnvironmentConfig::System,
+                        session_config: SessionConfig::Current,
+                        working_directory_cleanup_config:
+                            WorkingDirectoryCleanupConfig::MaxExecutions(5),
+                        host: Host::Source,
+                        metadata: PlanMetadata {
+                            application: "test_app".to_string(),
+                            suite_name: "test_suite".to_string(),
+                            variant: "".to_string(),
+                        },
+                    },
+                    PlanConfig {
+                        id: "plan2".to_string(),
+                        source: Source::Manual {
+                            base_dir: Utf8PathBuf::from("/test/plan2"),
+                        },
+                        robot_config: RobotConfig {
+                            robot_target: Utf8PathBuf::from("tasks.robot"),
+                            top_level_suite_name: None,
+                            suites: vec![],
+                            tests: vec![],
+                            test_tags_include: vec![],
+                            test_tags_exclude: vec![],
+                            variables: vec![],
+                            variable_files: vec![],
+                            argument_files: vec![],
+                            exit_on_failure: false,
+                            environment_variables_rendered_obfuscated: vec![],
+                        },
+                        execution_config: ExecutionConfig {
+                            n_attempts_max: 1,
+                            retry_strategy: RetryStrategy::Complete,
+                            timeout: 60,
+                        },
+                        environment_config: EnvironmentConfig::System,
+                        session_config: SessionConfig::Current,
+                        working_directory_cleanup_config:
+                            WorkingDirectoryCleanupConfig::MaxExecutions(5),
+                        host: Host::Source,
+                        metadata: PlanMetadata {
+                            application: "test_app".to_string(),
+                            suite_name: "test_suite".to_string(),
+                            variant: "".to_string(),
+                        },
+                    },
+                ],
+                execution_interval: 300,
+            }],
+        }
+    }
+
+    #[test]
+    fn test_filter_by_plan_id_filters_correctly() {
+        let config = create_test_config();
+
+        let filtered_config = filter_by_plan_id(config, Some("plan1"));
+        println!("Filtered config: {:#?}", filtered_config);
+        assert_eq!(filtered_config.plan_groups.len(), 1);
+        assert_eq!(filtered_config.plan_groups[0].plans.len(), 1);
+        assert_eq!(filtered_config.plan_groups[0].plans[0].id, "plan1");
+    }
+
+    #[test]
+    fn test_filter_by_plan_id_returns_unchanged_when_none() {
+        let config = create_test_config();
+        let original_plan_count: usize = config.plan_groups.iter().map(|g| g.plans.len()).sum();
+
+        let filtered_config = filter_by_plan_id(config, None);
+
+        let filtered_plan_count: usize = filtered_config
+            .plan_groups
+            .iter()
+            .map(|g| g.plans.len())
+            .sum();
+        assert_eq!(filtered_plan_count, original_plan_count);
+    }
 }
