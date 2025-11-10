@@ -9,6 +9,34 @@ pub fn load(path: &Utf8Path) -> AnyhowResult<Config> {
     Ok(from_str(&read_to_string(path)?)?)
 }
 
+pub fn filter_by_plan_id(config: Config, plan_id: Option<&str>) -> Config {
+    let Some(plan_id) = plan_id else {
+        return config;
+    };
+
+    let Config {
+        runtime_directory,
+        rcc_config,
+        conda_config,
+        plan_groups,
+    } = config;
+
+    let plan_groups = plan_groups
+        .into_iter()
+        .filter_map(|mut group| {
+            group.plans.retain(|p| p.id == plan_id);
+            (!group.plans.is_empty()).then_some(group)
+        })
+        .collect();
+
+    Config {
+        runtime_directory,
+        rcc_config,
+        conda_config,
+        plan_groups,
+    }
+}
+
 #[derive(Clone, Debug, Deserialize, PartialEq, Serialize)]
 pub struct Config {
     pub runtime_directory: Utf8PathBuf,

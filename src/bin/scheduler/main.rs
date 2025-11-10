@@ -40,28 +40,11 @@ fn run() -> Result<(), Terminate> {
         robotmk::config::load(&args.config_path).context("Configuration loading failed")?;
     info!("Configuration loaded");
 
-    let filtered_external_config = if let Some(plan_id) = &args.plan {
+    if let Some(plan_id) = &args.plan {
         info!("Filtering configuration to only include plan: {}", plan_id);
-        robotmk::config::Config {
-            runtime_directory: external_config.runtime_directory,
-            rcc_config: external_config.rcc_config,
-            conda_config: external_config.conda_config,
-            plan_groups: external_config
-                .plan_groups
-                .into_iter()
-                .filter_map(|mut group| {
-                    group.plans.retain(|plan| plan.id == *plan_id);
-                    if group.plans.is_empty() {
-                        None
-                    } else {
-                        Some(group)
-                    }
-                })
-                .collect(),
-        }
-    } else {
-        external_config
-    };
+    }
+    let filtered_external_config =
+        robotmk::config::filter_by_plan_id(external_config, args.plan.as_deref());
 
     let cancellation_token = termination::start_termination_control(args.run_flag)
         .context("Failed to set up termination control")?;
