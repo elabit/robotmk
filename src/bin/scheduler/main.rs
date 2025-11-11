@@ -37,18 +37,18 @@ fn run() -> Result<(), Terminate> {
     logging::init(args.log_specification(), args.log_path).context("Logging setup failed.")?;
     info!("Program started and logging set up");
 
-    let external_config =
-        robotmk::config::load(&args.config_path).context("Configuration loading failed")?;
+    let external_config = filter_by_plan_id(
+        robotmk::config::load(&args.config_path).context("Configuration loading failed")?,
+        args.plan.as_deref(),
+    );
     info!("Configuration loaded");
-
-    let filtered_external_config = filter_by_plan_id(external_config, args.plan.as_deref());
 
     let cancellation_token = termination::start_termination_control(args.run_flag)
         .context("Failed to set up termination control")?;
     info!("Termination control set up");
 
     let (global_config, plans) = internal_config::from_external_config(
-        filtered_external_config,
+        external_config,
         &cancellation_token,
         &Locker::new(&args.config_path, Some(&cancellation_token)),
     );
@@ -237,10 +237,7 @@ mod tests {
 
     #[test]
     fn test_filter_by_plan_id_filters_correctly() {
-        let config = create_test_config();
-
-        let filtered_config = filter_by_plan_id(config, Some("plan1"));
-        println!("Filtered config: {:#?}", filtered_config);
+        let filtered_config = filter_by_plan_id(create_test_config(), Some("plan1"));
         assert_eq!(filtered_config.plan_groups.len(), 1);
         assert_eq!(filtered_config.plan_groups[0].plans.len(), 1);
         assert_eq!(filtered_config.plan_groups[0].plans[0].id, "plan1");
