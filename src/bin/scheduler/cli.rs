@@ -27,6 +27,11 @@ pub struct Args {
     /// creation).
     #[arg(long, name = "GRACE_PERIOD")]
     pub grace_period: Option<u64>,
+
+    /// Plan id. If specified, only this plan will be executed.
+    /// If not specified, all plans will be executed.
+    #[arg(long, name = "PLAN")]
+    pub plan: Option<String>,
 }
 
 impl Args {
