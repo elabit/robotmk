@@ -1,3 +1,3 @@
 mod cleanup;
-mod plans;
+pub mod plans;
 pub mod scheduler;

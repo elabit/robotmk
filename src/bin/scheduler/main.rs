@@ -40,7 +40,7 @@ fn run() -> Result<(), Terminate> {
     let external_config = filter_by_plan_id(
         robotmk::config::load(&args.config_path).context("Configuration loading failed")?,
         args.plan.as_deref(),
-    );
+    )?;
     info!("Configuration loaded");
 
     let cancellation_token = termination::start_termination_control(args.run_flag)
@@ -90,8 +90,13 @@ fn run() -> Result<(), Terminate> {
 
     info!("Starting plan scheduling");
     write_phase(&SchedulerPhase::Scheduling, &global_config)?;
-    scheduling::scheduler::run_plans_and_cleanup(&global_config, &plans);
-
+    if args.plan.is_some() {
+        if let Some(plan) = plans.first() {
+            scheduling::plans::run_plan(plan)?;
+        }
+    } else {
+        scheduling::scheduler::run_plans_and_cleanup(&global_config, &plans);
+    }
     Err(Terminate::Cancelled)
 }
 
@@ -115,7 +120,7 @@ fn write_setup_failures(
     )
 }
 
-fn filter_by_plan_id(mut config: Config, plan_id: Option<&str>) -> Config {
+fn filter_by_plan_id(mut config: Config, plan_id: Option<&str>) -> Result<Config, Terminate> {
     if let Some(plan_id) = plan_id {
         info!("Filtering configuration to only include plan: {}", plan_id);
 
@@ -123,8 +128,14 @@ fn filter_by_plan_id(mut config: Config, plan_id: Option<&str>) -> Config {
             group.plans.retain(|p| p.id == plan_id);
             !group.plans.is_empty()
         });
+        if !config.plan_groups.iter().any(|g| !g.plans.is_empty()) {
+            return Err(Terminate::Unrecoverable(anyhow::anyhow!(
+                "No plans found matching id '{}'",
+                plan_id
+            )));
+        }
     }
-    config
+    Ok(config)
 }
 
 #[tokio::main]
@@ -237,7 +248,7 @@ mod tests {
 
     #[test]
     fn test_filter_by_plan_id_filters_correctly() {
-        let filtered_config = filter_by_plan_id(create_test_config(), Some("plan1"));
+        let filtered_config = filter_by_plan_id(create_test_config(), Some("plan1")).unwrap();
         assert_eq!(filtered_config.plan_groups.len(), 1);
         assert_eq!(filtered_config.plan_groups[0].plans.len(), 1);
         assert_eq!(filtered_config.plan_groups[0].plans[0].id, "plan1");
@@ -248,7 +259,7 @@ mod tests {
         let config = create_test_config();
         let original_plan_count: usize = config.plan_groups.iter().map(|g| g.plans.len()).sum();
 
-        let filtered_config = filter_by_plan_id(config, None);
+        let filtered_config = filter_by_plan_id(config, None).unwrap();
 
         let filtered_plan_count: usize = filtered_config
             .plan_groups
@@ -256,5 +267,11 @@ mod tests {
             .map(|g| g.plans.len())
             .sum();
         assert_eq!(filtered_plan_count, original_plan_count);
+    }
+
+    #[test]
+    fn test_filter_by_plan_id_errors_on_nonexistent_plan() {
+        let result = filter_by_plan_id(create_test_config(), Some("nonexistent_plan"));
+        assert!(result.is_err());
     }
 }
