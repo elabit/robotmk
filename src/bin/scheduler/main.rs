@@ -92,10 +92,18 @@ fn run() -> Result<(), Terminate> {
     write_phase(&SchedulerPhase::Scheduling, &global_config)?;
     if args.plan.is_some() {
         if let Some(plan) = plans.first() {
-            scheduling::plans::run_plan(plan)?;
+            let report = scheduling::plans::run_plan(plan)?;
+            if !args.no_plan_result {
+                scheduling::plans::write_plan_result(plan, &report)?;
+            } else {
+                info!(
+                    "--no-plan-result specified: skipping writing plan result for {}",
+                    plan.id
+                );
+            }
         }
     } else {
-        scheduling::scheduler::run_plans_and_cleanup(&global_config, &plans);
+        scheduling::scheduler::run_plans_and_cleanup(&global_config, &plans, args.no_plan_result);
     }
     Err(Terminate::Cancelled)
 }
