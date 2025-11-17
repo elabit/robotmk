@@ -10,21 +10,25 @@ use robotmk::section::WritePiggybackSection;
 use robotmk::termination::{ContextUnrecoverable, Terminate};
 use std::fs::create_dir_all;
 
-pub fn run_plan(plan: &Plan) -> Result<(), Terminate> {
+pub fn run_plan(plan: &Plan) -> Result<PlanExecutionReport, Terminate> {
     info!(
         "Running plan {} ({})",
         &plan.id,
         format_source_for_logging(&plan.source)
     );
-    produce_plan_results(plan)?
+    let report = produce_plan_results(plan)?;
+    info!("Plan {} finished", &plan.id);
+    Ok(report)
+}
+
+pub fn write_plan_result(plan: &Plan, report: &PlanExecutionReport) -> Result<(), Terminate> {
+    report
         .write(
             &plan.results_file,
             plan.host.clone(),
             &plan.results_directory_locker,
         )
         .context_unrecoverable("Reporting plan results failed")?;
-    info!("Plan {} finished", &plan.id);
-
     Ok(())
 }
 

@@ -1,5 +1,5 @@
 use super::cleanup::cleanup_working_directories;
-use super::plans::run_plan;
+use super::plans::{run_plan, write_plan_result};
 use crate::internal_config::{GlobalConfig, Plan};
 use crate::logging::log_and_return_error;
 
@@ -14,7 +14,11 @@ use tokio::time::{Instant, interval_at};
 use tokio_util::sync::CancellationToken;
 
 #[tokio::main]
-pub async fn run_plans_and_cleanup(global_config: &GlobalConfig, plans: &[Plan]) {
+pub async fn run_plans_and_cleanup(
+    global_config: &GlobalConfig,
+    plans: &[Plan],
+    write_plan_results: bool,
+) {
     let mut plans_by_exec_group = HashMap::new();
     for plan in plans {
         plans_by_exec_group
@@ -33,6 +37,7 @@ pub async fn run_plans_and_cleanup(global_config: &GlobalConfig, plans: &[Plan])
             execution_interval,
             plans,
             global_config.cancellation_token.clone(),
+            write_plan_results,
         ));
     }
 
@@ -54,6 +59,7 @@ async fn run_sequential_plan_group_scheduler(
     interval: u64,
     plans: Vec<Plan>,
     cancellation_token: CancellationToken,
+    write_plan_results: bool,
 ) {
     // It is debatable whether MissedTickBehavior::Burst (the default) is correct. In practice, as
     // long as timeout * number of attempts is shorter than the execution interval, it shouldn't
@@ -70,7 +76,26 @@ async fn run_sequential_plan_group_scheduler(
         };
         for plan in plans.clone() {
             let plan_id = plan.id.clone();
-            match spawn_blocking(move || run_plan(&plan).map_err(log_and_return_error)).await {
+            match spawn_blocking(move || match run_plan(&plan) {
+                Ok(report) => {
+                    if write_plan_results {
+                        if let Err(e) = write_plan_result(&plan, &report) {
+                            Err(log_and_return_error(e))
+                        } else {
+                            Ok(())
+                        }
+                    } else {
+                        info!(
+                            "--no-plan-result specified: skipping writing plan result for {}",
+                            plan.id
+                        );
+                        Ok(())
+                    }
+                }
+                Err(e) => Err(log_and_return_error(e)),
+            })
+            .await
+            {
                 Ok(Err(Terminate::Cancelled)) => {
                     return;
                 }

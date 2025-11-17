@@ -32,6 +32,10 @@ pub struct Args {
     /// If not specified, all plans will be executed.
     #[arg(long, name = "PLAN")]
     pub plan: Option<String>,
+
+    /// No JSON plan report will be produced.
+    #[arg(long = "no-plan-result")]
+    pub no_plan_result: bool,
 }
 
 impl Args {
