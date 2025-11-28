@@ -102,10 +102,15 @@ fn run() -> Result<(), Terminate> {
                     plan.id
                 );
             }
+            return Ok(());
+        } else {
+            return Err(Terminate::Unrecoverable(anyhow::anyhow!(
+                "The specified plan did not survive setup or environment building phase, exiting."
+            )));
         }
-    } else {
-        scheduling::scheduler::run_plans_and_cleanup(&global_config, &plans, write_plan_results);
     }
+
+    scheduling::scheduler::run_plans_and_cleanup(&global_config, &plans, write_plan_results);
     Err(Terminate::Cancelled)
 }
 
