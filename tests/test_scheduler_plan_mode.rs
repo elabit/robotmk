@@ -21,6 +21,10 @@ use tokio::{process::Command, time::timeout};
 #[ignore]
 async fn test_plan_mode() -> AnyhowResult<()> {
     let test_dir = Utf8PathBuf::from(var("TEST_DIR")?);
+
+    if test_dir.exists() {
+        std::fs::remove_dir_all(&test_dir)?;
+    }
     create_dir_all(&test_dir)?;
 
     let temp_dir = tempfile::tempdir()?;
@@ -75,6 +79,10 @@ async fn test_plan_mode() -> AnyhowResult<()> {
 #[ignore]
 async fn test_plan_mode_no_result() -> AnyhowResult<()> {
     let test_dir = Utf8PathBuf::from(var("TEST_DIR")?);
+
+    if test_dir.exists() {
+        std::fs::remove_dir_all(&test_dir)?;
+    }
     create_dir_all(&test_dir)?;
 
     let temp_dir = tempfile::tempdir()?;
