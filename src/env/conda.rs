@@ -179,11 +179,24 @@ impl CondaEnvironment {
                 build_command_spec
                     .add_argument("--ssl-verify")
                     .add_argument("false");
+                build_command_spec
+                    .add_plain_env("PIP_CERT", "")
+                    .add_plain_env("REQUESTS_CA_BUNDLE", "")
+                    .add_plain_env("CURL_CA_BUNDLE", "")
+                    .add_plain_env(
+                        "PIP_TRUSTED_HOST",
+                        "pypi.org files.pythonhosted.org pypi.pythonhosted.org",
+                    )
+                    .add_plain_env("PIP_INDEX_URL", "http://pypi.org/simple");
             }
             TlsCertificateValidation::EnabledWithCustomCert(cert_path) => {
                 build_command_spec
                     .add_argument("--ssl-verify")
                     .add_argument(cert_path);
+                build_command_spec
+                    .add_plain_env("REQUESTS_CA_BUNDLE", cert_path.as_str())
+                    .add_plain_env("CURL_CA_BUNDLE", cert_path.as_str())
+                    .add_plain_env("PIP_CERT", cert_path.as_str());
             }
         }
         if !self.tls_revokation_enabled {
@@ -433,7 +446,19 @@ mod tests {
                 "--ssl-no-revoke"
             ]
         );
-        assert!(build_command_spec.envs_rendered_plain.is_empty());
+        assert_eq!(
+            build_command_spec.envs_rendered_plain,
+            [
+                ("PIP_CERT".into(), "".into()),
+                ("REQUESTS_CA_BUNDLE".into(), "".into()),
+                ("CURL_CA_BUNDLE".into(), "".into()),
+                (
+                    "PIP_TRUSTED_HOST".into(),
+                    "pypi.org files.pythonhosted.org pypi.pythonhosted.org".into()
+                ),
+                ("PIP_INDEX_URL".into(), "http://pypi.org/simple".into()),
+            ]
+        );
         assert!(build_command_spec.envs_rendered_obfuscated.is_empty());
     }
 
@@ -485,6 +510,50 @@ mod tests {
                 ),
             ]
         );
+    }
+
+    #[test]
+    fn make_create_command_spec_with_custom_ca() {
+        let build_command_spec = CondaEnvironment {
+            source: CondaEnvironmentSource::Manifest("/env.yaml".into()),
+            robotmk_manifest_path: None,
+            micromamba_binary_path: "/micromamba".into(),
+            root_prefix: "/root".into(),
+            prefix: "/env".into(),
+            http_proxy_config: HTTPProxyConfig::default(),
+            tls_certificate_validation: TlsCertificateValidation::EnabledWithCustomCert(
+                "/ca/cert.pem".into(),
+            ),
+            tls_revokation_enabled: true,
+            build_timeout: 600,
+            build_runtime_directory: Utf8PathBuf::default(),
+        }
+        .make_create_command_spec("/env.yaml".into());
+        assert_eq!(build_command_spec.executable, "/micromamba");
+        assert_eq!(
+            build_command_spec.arguments,
+            [
+                "create",
+                "--file",
+                "/env.yaml",
+                "--yes",
+                "--root-prefix",
+                "/root",
+                "--prefix",
+                "/env",
+                "--ssl-verify",
+                "/ca/cert.pem",
+            ]
+        );
+        assert_eq!(
+            build_command_spec.envs_rendered_plain,
+            [
+                ("REQUESTS_CA_BUNDLE".into(), "/ca/cert.pem".into()),
+                ("CURL_CA_BUNDLE".into(), "/ca/cert.pem".into()),
+                ("PIP_CERT".into(), "/ca/cert.pem".into()),
+            ]
+        );
+        assert!(build_command_spec.envs_rendered_obfuscated.is_empty());
     }
 
     #[test]
