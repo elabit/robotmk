@@ -19,8 +19,8 @@ jobs:
           rustflags: ""
       - uses: actions/setup-python@v5
         with:
-          python-version: '3.12'
-          cache: 'pip'
+          python-version: "3.12"
+          cache: "pip"
       - run: pip install -r tests/minimal_suite/requirements.txt
       - uses: actions/download-artifact@v4
         with:
@@ -35,7 +35,7 @@ jobs:
       # can cause CI failures, if "vctip.exe" does not terminate before `get_children` is called.
       # The following command is intended turn off telemetry via vctip.exe.
       - shell: pwsh
-        run:  Get-ChildItem -Filter vctip.exe -Recurse "C:\\Program Files\\Microsoft Visual Studio\\2022\\Enterprise\\VC\\Tools\\MSVC" | rm
+        run: Get-ChildItem -Filter vctip.exe -Recurse "C:\\Program Files\\Microsoft Visual Studio\\2022\\Enterprise\\VC\\Tools\\MSVC" | rm
       - run: cargo test --target=x86_64-pc-windows-msvc --test test_plan_run --test test_agent_plugin -- --ignored
       - run: cargo run --example termination --target=x86_64-pc-windows-msvc -- system-python
       - run: cargo run --example termination --target=x86_64-pc-windows-msvc -- rcc C:\windows64\rcc.exe
@@ -57,6 +57,18 @@ jobs:
         with:
           name: system_test_debug_information_windows
           path: C:\test_scheduler
+
+      - run: cargo test --target=x86_64-pc-windows-msvc --test test_scheduler_plan_mode -- --nocapture --ignored --test-threads=1
+        env:
+          TEST_DIR: C:\test_scheduler_plan_mode
+          RCC_BINARY_PATH: C:\windows64\rcc.exe
+          MICROMAMBA_BINARY_PATH: C:\micromamba.exe
+          N_SECONDS_RUN_MAX: 900
+      - uses: actions/upload-artifact@v4
+        if: success() || failure()
+        with:
+          name: system_test_debug_information_windows_plan_mode
+          path: C:\test_scheduler_plan_mode
 
       - shell: pwsh
         run: Remove-Item -Recurse -Force -ErrorAction SilentlyContinue C:\robotmk_post_build_command_test
@@ -81,8 +93,8 @@ jobs:
           rustflags: ""
       - uses: actions/setup-python@v5
         with:
-          python-version: '3.12'
-          cache: 'pip'
+          python-version: "3.12"
+          cache: "pip"
       - run: pip install -r tests/minimal_suite/requirements.txt
       - uses: actions/download-artifact@v4
         with:
@@ -118,6 +130,18 @@ jobs:
         with:
           name: system_test_debug_information_linux
           path: /tmp/test_scheduler
+
+      - run: cargo test --target=x86_64-unknown-linux-musl --test test_scheduler_plan_mode -- --nocapture --ignored --test-threads=1
+        env:
+          TEST_DIR: /tmp/test_scheduler_plan_mode
+          RCC_BINARY_PATH: /tmp/linux64/rcc
+          MICROMAMBA_BINARY_PATH: /tmp/micromamba
+          N_SECONDS_RUN_MAX: 600
+      - uses: actions/upload-artifact@v4
+        if: success() || failure()
+        with:
+          name: system_test_debug_information_linux_plan_mode
+          path: /tmp/test_scheduler_plan_mode
 
       - run: cargo test --target=x86_64-unknown-linux-musl --test test_ht_import_scheduler -- --nocapture --ignored
         env:
