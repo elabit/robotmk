@@ -187,7 +187,7 @@ impl CondaEnvironment {
                         "PIP_TRUSTED_HOST",
                         "pypi.org files.pythonhosted.org pypi.pythonhosted.org",
                     )
-                    .add_plain_env("PIP_INDEX_URL", "http://pypi.org/simple");
+                    .add_plain_env("PIP_INDEX_URL", "https://pypi.org/simple");
             }
             TlsCertificateValidation::EnabledWithCustomCert(cert_path) => {
                 build_command_spec
@@ -456,7 +456,7 @@ mod tests {
                     "PIP_TRUSTED_HOST".into(),
                     "pypi.org files.pythonhosted.org pypi.pythonhosted.org".into()
                 ),
-                ("PIP_INDEX_URL".into(), "http://pypi.org/simple".into()),
+                ("PIP_INDEX_URL".into(), "https://pypi.org/simple".into()),
             ]
         );
         assert!(build_command_spec.envs_rendered_obfuscated.is_empty());
