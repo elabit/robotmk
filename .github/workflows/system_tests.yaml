@@ -76,6 +76,8 @@ jobs:
         env:
           MICROMAMBA_BINARY_PATH: C:\micromamba.exe
           BUILD_TIMEOUT: 10
+      
+      - run: cargo test --target=x86_64-pc-windows-msvc test_take_ownership_recursively -- --nocapture --ignored
 
   linux:
     runs-on: ubuntu-latest
