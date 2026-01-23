@@ -1,9 +1,8 @@
 pub mod helper;
 pub mod rcc;
-use crate::helper::{await_plan_results, directory_entries, var};
+use crate::helper::{directory_entries, run_scheduler, var};
 use crate::rcc::read_configuration_diagnostics;
-use anyhow::{Result as AnyhowResult, bail};
-use assert_cmd::cargo_bin;
+use anyhow::Result as AnyhowResult;
 use camino::{Utf8Path, Utf8PathBuf};
 #[cfg(windows)]
 use robotmk::config::UserSessionConfig;
@@ -15,19 +14,14 @@ use robotmk::config::{
 };
 use robotmk::results::results_directory;
 use robotmk::section::Host;
-use serde_json::to_string;
 #[cfg(windows)]
 use std::ffi::OsStr;
-use std::fs::{create_dir_all, remove_file, write};
+use std::fs::{create_dir_all, write};
 use std::path::Path;
 #[cfg(windows)]
 use std::process::Output;
-use std::time::Duration;
-use tokio::{
-    process::Command,
-    select,
-    time::{sleep, timeout},
-};
+#[cfg(windows)]
+use tokio::process::Command;
 
 #[tokio::test]
 #[ignore]
@@ -496,46 +490,6 @@ fn create_config(
             },
         ],
     }
-}
-
-async fn run_scheduler(
-    test_dir: &Utf8Path,
-    config: &Config,
-    n_seconds_run_max: u64,
-) -> AnyhowResult<()> {
-    let config_path = test_dir.join("config.json");
-    write(&config_path, to_string(&config)?)?;
-    let run_flag_path = test_dir.join("run_flag");
-    write(&run_flag_path, "")?;
-
-    let mut robotmk_cmd = Command::new(cargo_bin!("robotmk_scheduler"));
-    robotmk_cmd
-        .arg(config_path)
-        .arg("-vv")
-        .arg("--run-flag")
-        .arg(&run_flag_path);
-    let mut robotmk_child_proc = robotmk_cmd.spawn()?;
-
-    select! {
-        _ = await_plan_results(config) => {},
-        _ = robotmk_child_proc.wait() => {
-            bail!("Scheduler terminated unexpectedly")
-        },
-        _ = sleep(Duration::from_secs(n_seconds_run_max)) => {
-            if let Err(e) = remove_file(&run_flag_path) {
-                eprintln!("Removing run file failed: {e}");
-            }
-            bail!(format!("Not all plan result files appeared within {n_seconds_run_max} seconds"))
-        },
-    };
-    remove_file(&run_flag_path)?;
-    assert!(
-        timeout(Duration::from_secs(3), robotmk_child_proc.wait())
-            .await
-            .is_ok()
-    );
-
-    Ok(())
 }
 
 async fn assert_working_directory(
