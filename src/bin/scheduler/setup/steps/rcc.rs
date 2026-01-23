@@ -40,11 +40,13 @@ impl SetupStep for StepFilePermissions {
     }
 
     fn setup(&self) -> Result<(), api::Error> {
-        run_icacls_command([
-            self.target.as_str(),
-            "/grant",
-            &format!("{}:{}", &self.sid, self.icacls_permissions),
-        ])
+        run_icacls_command(
+            &self.target,
+            [
+                "/grant",
+                &format!("{}:{}", &self.sid, self.icacls_permissions),
+            ],
+        )
         .map_err(|err| {
             api::Error::new(
                 format!(
