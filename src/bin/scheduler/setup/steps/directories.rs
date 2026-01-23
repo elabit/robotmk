@@ -98,7 +98,7 @@ impl SetupStep for StepRobocorpHomeBase {
                 err,
             )
         })?;
-        run_icacls_command([self.target.as_str(), "/inheritancelevel:r"]).map_err(|err| {
+        run_icacls_command(&self.target, ["/inheritancelevel:r"]).map_err(|err| {
             api::Error::new(
                 format!(
                     "Failed to set remove permission inheritance for {}",
@@ -153,11 +153,10 @@ impl SetupStep for StepRobocorpHomeBaseReadAccess {
     }
 
     fn setup(&self) -> Result<(), api::Error> {
-        run_icacls_command([
-            self.target.as_str(),
-            "/grant",
-            &format!("{sid}:R", sid = self.user_name),
-        ])
+        run_icacls_command(
+            &self.target,
+            ["/grant", &format!("{sid}:R", sid = self.user_name)],
+        )
         .map_err(|err| {
             api::Error::new(
                 format!(

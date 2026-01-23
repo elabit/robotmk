@@ -3,26 +3,24 @@ use anyhow::{bail, Context};
 use camino::Utf8Path;
 use std::process::Command;
 
-pub fn run_icacls_command<'a>(arguments: impl IntoIterator<Item = &'a str>) -> anyhow::Result<()> {
-    run_command("icacls.exe", arguments)
+pub fn run_icacls_command<'a>(
+    target_path: &Utf8Path,
+    further_arguments: impl IntoIterator<Item = &'a str>,
+) -> anyhow::Result<()> {
+    let mut icacls_args = vec![make_long_path(target_path)];
+    icacls_args.extend(further_arguments.into_iter().map(|s| s.to_string()));
+    run_command("icacls.exe", icacls_args)
 }
 
 pub fn grant_full_access(sid: &str, target_path: &Utf8Path) -> anyhow::Result<()> {
-    let arguments = [
-        target_path.as_ref(),
-        "/grant",
-        &format!("{sid}:(OI)(CI)F"),
-        "/T",
-    ];
-    run_icacls_command(arguments).map_err(|e| {
+    run_icacls_command(target_path, ["/grant", &format!("{sid}:(OI)(CI)F"), "/T"]).map_err(|e| {
         let message = format!("Adjusting permissions of {target_path} for SID `{sid}` failed");
         e.context(message)
     })
 }
 
 pub fn reset_access(target_path: &Utf8Path) -> anyhow::Result<()> {
-    let arguments = [target_path.as_ref(), "/reset", "/T"];
-    run_icacls_command(arguments).map_err(|e| {
+    run_icacls_command(target_path, ["/reset", "/T"]).map_err(|e| {
         let message = format!("Resetting permissions of {target_path} failed");
         e.context(message)
     })
@@ -38,9 +36,13 @@ pub fn transfer_directory_ownership_to_admin_group_recursive(
     })
 }
 
-fn run_command<'a>(
-    program: &'a str,
-    arguments: impl IntoIterator<Item = &'a str>,
+fn make_long_path(path: &Utf8Path) -> String {
+    format!("\\\\?\\{}", path)
+}
+
+fn run_command(
+    program: &str,
+    arguments: impl IntoIterator<Item = impl AsRef<std::ffi::OsStr>>,
 ) -> anyhow::Result<()> {
     let mut command = Command::new(program);
     command.args(arguments);
@@ -59,4 +61,17 @@ fn run_command<'a>(
 
 fn run_takeown_command<'a>(arguments: impl IntoIterator<Item = &'a str>) -> anyhow::Result<()> {
     run_command("takeown.exe", arguments)
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    #[test]
+    fn test_make_long_path() {
+        assert_eq!(
+            make_long_path(Utf8Path::new(r"C:\some\normal\path")),
+            r"\\?\C:\some\normal\path"
+        );
+    }
 }
