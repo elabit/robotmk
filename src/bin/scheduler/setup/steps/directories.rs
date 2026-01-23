@@ -99,7 +99,7 @@ impl SetupStep for StepRobocorpHomeBase {
                 err,
             )
         })?;
-        run_icacls_command([self.target.as_str(), "/inheritancelevel:r"]).map_err(|err| {
+        run_icacls_command(&self.target, ["/inheritancelevel:r"]).map_err(|err| {
             api::Error::new(
                 format!(
                     "Failed to set remove permission inheritance for {}",
@@ -154,11 +154,10 @@ impl SetupStep for StepRobocorpHomeBaseReadAccess {
     }
 
     fn setup(&self) -> Result<(), api::Error> {
-        run_icacls_command([
-            self.target.as_str(),
-            "/grant",
-            &format!("{sid}:R", sid = self.user_name),
-        ])
+        run_icacls_command(
+            &self.target,
+            ["/grant", &format!("{sid}:R", sid = self.user_name)],
+        )
         .map_err(|err| {
             api::Error::new(
                 format!(
@@ -262,7 +261,7 @@ impl SetupStep for StepCondaBase {
                     err,
                 )
             })?;
-            run_icacls_command([self.target.as_str(), "/inheritancelevel:r"]).map_err(|err| {
+            run_icacls_command(&self.target, ["/inheritancelevel:r"]).map_err(|err| {
                 api::Error::new(
                     format!(
                         "Failed to remove permission inheritance for {target}",
@@ -271,8 +270,8 @@ impl SetupStep for StepCondaBase {
                     err,
                 )
             })?;
-            run_icacls_command([self.target.as_str(), "/grant", "*S-1-5-32-544:(OI)(CI)F"])
-                .map_err(|err| {
+            run_icacls_command(&self.target, ["/grant", "*S-1-5-32-544:(OI)(CI)F"]).map_err(
+                |err| {
                     api::Error::new(
                         format!(
                             "Failed to grant administrator group full access to {target}",
@@ -280,7 +279,8 @@ impl SetupStep for StepCondaBase {
                         ),
                         err,
                     )
-                })?;
+                },
+            )?;
         }
         Ok(())
     }
@@ -317,11 +317,10 @@ impl SetupStep for StepCondaBaseReadAndExecuteAccess {
     }
 
     fn setup(&self) -> Result<(), api::Error> {
-        run_icacls_command([
-            self.target.as_str(),
-            "/grant",
-            &format!("{}:(OI)(CI)RX", self.user_name),
-        ])
+        run_icacls_command(
+            &self.target,
+            ["/grant", &format!("{}:(OI)(CI)RX", self.user_name)],
+        )
         .map_err(|err| {
             api::Error::new(
                 format!(
