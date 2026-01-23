@@ -52,6 +52,8 @@ jobs:
           name: system_test_debug_information_windows
           path: C:\test_scheduler
 
+      - run: cargo test --target=x86_64-pc-windows-msvc test_take_ownership_recursively -- --nocapture --ignored
+
   linux:
     runs-on: ubuntu-latest
     steps:
