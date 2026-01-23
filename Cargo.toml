@@ -31,10 +31,12 @@ winsafe = { version = "0.0.23", features = [ "ole" ] }
 [dependencies.windows]
 version = "0.60.0"
 features = [
-    "Win32_System_Com",
-    "Win32_System_TaskScheduler",
-    "Win32_System_Ole",
     "Win32_Foundation",
+    "Win32_Security",
+    "Win32_Security_Authorization",
+    "Win32_System_Com",
+    "Win32_System_Ole",
+    "Win32_System_TaskScheduler",
     "Win32_System_Variant",
 ]
 
