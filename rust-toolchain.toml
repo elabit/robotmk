@@ -2,4 +2,4 @@
 # setting up the CI environment.
 
 [toolchain]
-channel = "stable"
+channel = "1.93"
