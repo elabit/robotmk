@@ -27,9 +27,9 @@ thiserror = "2.0.7"
 tokio = { version = "1.42.0", features = ["full"] }
 tokio-util = { version = "0.7.13", features = ["full"] }
 walkdir = "2.5.0"
-winsafe = { version = "0.0.22", features = [ "ole" ] }
+winsafe = { version = "0.0.23", features = [ "ole" ] }
 [dependencies.windows]
-version = "0.58.0"
+version = "0.60.0"
 features = [
     "Win32_System_Com",
     "Win32_System_TaskScheduler",
