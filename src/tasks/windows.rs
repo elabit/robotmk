@@ -11,7 +11,7 @@ use tokio::task::yield_now;
 use tokio_util::sync::CancellationToken;
 use windows::core::{Interface, Result as WinApiResult, BSTR, HRESULT};
 use windows::Win32::Foundation::VARIANT_FALSE;
-use windows::Win32::System::{Com, TaskScheduler};
+use windows::Win32::System::{Com, TaskScheduler, Variant::VARIANT};
 
 pub fn run_task(task_spec: &TaskSpec) -> AnyhowResult<Outcome<i32>> {
     debug!(
@@ -135,7 +135,12 @@ impl TaskManager {
         unsafe {
             let task_service: TaskScheduler::ITaskService =
                 Com::CoCreateInstance(&TaskScheduler::TaskScheduler, None, Com::CLSCTX_ALL)?;
-            task_service.Connect(None, None, None, None)?;
+            task_service.Connect(
+                &VARIANT::default(),
+                &VARIANT::default(),
+                &VARIANT::default(),
+                &VARIANT::default(),
+            )?;
             let task_folder = task_service.GetFolder(&BSTR::from("\\"))?;
             Ok(Self {
                 task_service,
@@ -171,10 +176,10 @@ impl TaskManager {
                 &BSTR::from(name),
                 &task_definition,
                 TaskScheduler::TASK_CREATE_OR_UPDATE.0,
-                None,
-                None,
+                &VARIANT::default(),
+                &VARIANT::default(),
                 TaskScheduler::TASK_LOGON_INTERACTIVE_TOKEN,
-                None,
+                &VARIANT::default(),
             )
         }
     }
@@ -189,7 +194,7 @@ impl TaskManager {
         let (name, running_task) = unsafe {
             let name = task.Name()?;
             debug!("Starting task {}", name);
-            (name, task.Run(None)?)
+            (name, task.Run(&VARIANT::default())?)
         };
         debug!("Waiting for task {name} to complete");
         let outcome = waited(
