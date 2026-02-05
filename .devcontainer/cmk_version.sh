@@ -36,20 +36,30 @@ function resolve_cmk_targets() {
     export CMK_VERSION_MM
     
     case "$CMK_VERSION_MM" in
+        2.5)
+            export CMK_DIR_CHECKS="local/lib/python3/cmk_addons/plugins/robotmk/agent_based"
+            export CMK_DIR_GRAPHING="local/lib/python3/cmk_addons/plugins/robotmk/graphing"
+            export CMK_DIR_CHECKMAN="local/lib/python3/cmk_addons/plugins/robotmk/checkman" 
+            # TODO: Verify if bakery path can be used in all other versions as well           
+            export CMK_DIR_BAKERY="local/lib/python3/cmk/base/cee/plugins/bakery"
+            ;;
         2.4)
             export CMK_DIR_CHECKS="local/lib/python3/cmk_addons/plugins/robotmk/agent_based"
             export CMK_DIR_GRAPHING="local/lib/python3/cmk_addons/plugins/robotmk/graphing"
             export CMK_DIR_CHECKMAN="local/lib/python3/cmk_addons/plugins/robotmk/checkman"            
+            export CMK_DIR_BAKERY="local/lib/check_mk/base/cee/plugins/bakery"
             ;;
         2.3)
             export CMK_DIR_CHECKS="local/lib/python3/cmk_addons/plugins/robotmk/agent_based"
             export CMK_DIR_GRAPHING="local/share/check_mk/web/plugins/metrics"
             export CMK_DIR_CHECKMAN="local/share/check_mk/checkman"
+            export CMK_DIR_BAKERY="local/lib/check_mk/base/cee/plugins/bakery"
             ;;
         2.2)            
             export CMK_DIR_CHECKS="local/lib/check_mk/base/plugins/agent_based"
             export CMK_DIR_GRAPHING="local/share/check_mk/web/plugins/metrics"
             export CMK_DIR_CHECKMAN="local/share/check_mk/checkman"
+            export CMK_DIR_BAKERY="local/lib/check_mk/base/cee/plugins/bakery"
             ;;
         *)
             # Unknown, try addons first
@@ -60,7 +70,7 @@ function resolve_cmk_targets() {
 
     # Stable paths across 2.2-2.4
     export CMK_DIR_AGENT_PLUGINS="local/share/check_mk/agents/plugins"
-    export CMK_DIR_BAKERY="local/lib/check_mk/base/cee/plugins/bakery"
+    
     export CMK_DIR_WATO="local/share/check_mk/web/plugins/wato"
     export CMK_DIR_IMAGES="local/share/check_mk/web/htdocs/images"
 }

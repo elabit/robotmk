@@ -49,7 +49,9 @@ Both flavours of Robotmk (CMK1 and 2) can be developed with Visual Studio Code a
 
 ### Build Devcontainer images
 
-Open `.devcontainer/devcontainer_img_versions.env` and add all versions of Checkmk you want to develop on to the `CMKVERSIONS` variable. (= All versions are a long quoted string, separated by newlines.)
+Open `.devcontainer/devcontainer_img_versions.env` and add all versions of Checkmk-cloud you want to develop on to the `CMKVERSIONS` variable. (= All versions are a long quoted string, separated by newlines.)
+
+See https://hub.docker.com/r/checkmk/check-mk-cloud/ for all available versions. 
 
 Example:
 

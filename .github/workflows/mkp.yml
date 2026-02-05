@@ -99,6 +99,32 @@ jobs:
             path: ${{ steps.cmkpkg.outputs.pkgfile }}
 
   # ////////////////////////////////////////////////////////////////////////              
+  build_cmk25:
+    name: Build Robotmk MKP (CMK v2.5)
+    runs-on: ubuntu-latest
+    container:
+      image: checkmk/check-mk-cloud:2.5.0-2025.11.04
+    steps:
+      - name: Install tools
+        run: apt update && apt-get -y install sudo jq tree hub
+      - name: Create Checkmk Site
+        run: /docker-entrypoint.sh /bin/true
+      - name: Checkout Robotmk repository
+        uses: actions/checkout@v2
+      - name: Link repository files into container
+        run: .devcontainer/linkfiles.sh full
+      - name: Update GITHUB_PATH
+        run: echo "/omd/sites/cmk/bin" >> $GITHUB_PATH
+      - name: Build MKP
+        run: .devcontainer/build.sh
+        id: cmkpkg
+      - name: Upload artifact
+        uses: actions/upload-artifact@v4
+        with:
+            name: ${{ steps.cmkpkg.outputs.artifactname }}
+            path: ${{ steps.cmkpkg.outputs.pkgfile }}            
+
+  # ////////////////////////////////////////////////////////////////////////              
   release:
     name: Release Robotmk MKP for all CMK versions
     runs-on: ubuntu-latest
@@ -106,6 +132,7 @@ jobs:
        - build_cmk22
       #- build_cmk23
        - build_cmk24 
+       - build_cmk25
     steps:
       - name: Install tools
         run: sudo apt update && sudo apt-get -y install hub
