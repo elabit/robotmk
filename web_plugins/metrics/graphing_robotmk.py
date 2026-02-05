@@ -210,8 +210,8 @@ def define_metrics_legacy():
     })
 
 
-# switch: 2.4, 2.3, 2.2
-if cmk_version.startswith(('2.4')):
+
+if cmk_version.startswith(('2.5', '2.4')):
     from cmk.graphing.v1 import Title
     from cmk.graphing.v1.graphs import Graph, MinimalRange
     from cmk.graphing.v1.metrics import Color, DecimalNotation, Metric, Unit, TimeNotation, StrictPrecision, Product, Constant

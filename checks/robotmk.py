@@ -26,8 +26,8 @@ except ImportError:
     from cmk.utils.version import get_general_version_infos
     cmk_version = get_general_version_infos()['version']
 
-# switch: 2.4, 2.3, 2.2
-if cmk_version.startswith(('2.4', '2.3')):
+
+if cmk_version.startswith(('2.5', '2.4', '2.3')):
     from cmk.agent_based.v2 import (
         AgentSection,
         CheckPlugin,
@@ -58,7 +58,7 @@ except ImportError:
     from cmk.utils.exceptions import MKGeneralException
 
 # replaced by build.sh
-ROBOTMK_VERSION = '1.5.1'
+ROBOTMK_VERSION = '1.6.0'
 DEFAULT_SVC_PREFIX = 'Robot Framework E2E $SUITEID$SPACE-$SPACE'
 
 
@@ -1457,7 +1457,7 @@ def html_to_text(html):
     html = re.sub("<br>|<p>", "\\n", html)
     return html
 
-if cmk_version.startswith(('2.4', '2.3')):
+if cmk_version.startswith(('2.5', '2.4', '2.3')):
     check_plugin_robotmk = CheckPlugin(
         name="robotmk",
         service_name="%s",

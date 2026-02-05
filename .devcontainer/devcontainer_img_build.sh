@@ -1,4 +1,4 @@
-#!/bin/bash
+#!/usr/bin/env bash
 # SPDX-FileCopyrightText: © 2022 ELABIT GmbH <mail@elabit.de>
 # SPDX-License-Identifier: GPL-3.0-or-later
 
@@ -18,60 +18,115 @@
 # $CMK_PY3_DEV_IMAGE                                                2.0.0p5        1d96bebf47a6   27 seconds ago   2.18GB
 # $CMK_PY3_DEV_IMAGE                                                1.6.0p25       599e8beeb9c7   10 minutes ago   1.93GB
 
-REGISTRY="registry.checkmk.com"
-ROOTDIR=$(dirname "$0")
+set -euo pipefail
 
-# Name of the final image
-CMK_PY3_DEV_IMAGE=cmk-python3-dev
-# Dockerfile for the final image
-DOCKERFILE_CMK_PY3_DEV=Dockerfile_cmk_py3_dev
+SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
+readonly SCRIPT_DIR
 
-# load Checkmk versions
-. $ROOTDIR/devcontainer_img_versions.env
+VERSION_FILE="${SCRIPT_DIR}/devcontainer_img_versions.env"
+readonly VERSION_FILE
 
-function main() {
+CMK_PY3_DEV_IMAGE="${CMK_PY3_DEV_IMAGE:-cmk-python3-dev}"
+readonly CMK_PY3_DEV_IMAGE
+
+DOCKERFILE_CMK_PY3_DEV="${DOCKERFILE_CMK_PY3_DEV:-Dockerfile_cmk_py3_dev}"
+readonly DOCKERFILE_CMK_PY3_DEV
+
+REPO_ROOT="$(cd "${SCRIPT_DIR}/.." && pwd)"
+readonly REPO_ROOT
+
+declare -a ALL_VERSIONS=()
+
+main() {
+    check_prerequisites
+    load_versions
     build_images
 }
 
-function image_exists() {
-    docker images | grep -E -q "$1"
+check_prerequisites() {
+    if ! command -v docker >/dev/null 2>&1; then
+        printf 'docker command not found in PATH.\n' >&2
+        exit 1
+    fi
 }
 
-function build_images() {
-    # See https://github.com/docker/compose/issues/8449#issuecomment-914174592
+load_versions() {
+    if [[ ! -f "${VERSION_FILE}" ]]; then
+        printf 'Configuration file %s not found.\n' "${VERSION_FILE}" >&2
+        exit 1
+    fi
+
+    # shellcheck source=.devcontainer/devcontainer_img_versions.env
+    source "${VERSION_FILE}"
+
+    if [[ -z "${CMKVERSIONS:-}" ]]; then
+        printf 'CMKVERSIONS is not defined in %s.\n' "${VERSION_FILE}" >&2
+        exit 1
+    fi
+
+    mapfile -t ALL_VERSIONS < <(printf '%s\n' "${CMKVERSIONS}")
+}
+
+image_exists() {
+    local image_name=$1
+    docker image inspect "${image_name}" >/dev/null 2>&1
+}
+
+prompt_download() {
+    local image_name=$1
+    local reply=""
+    if ! read -r -p "Download ${image_name}? [y/N]: " reply; then
+        return 1
+    fi
+    [[ ${reply} =~ ^[Yy]$ ]]
+}
+
+build_images() {
     export DOCKER_BUILDKIT=0
-    for VERSION in $CMKVERSIONS; do
-        IMAGE_NAME="checkmk/check-mk-cloud:$VERSION"
-        IMAGE_PATTERN="checkmk/check-mk-cloud.*$VERSION"
-        if image_exists $IMAGE_PATTERN; then
-            echo "Docker image $IMAGE_NAME is already available locally."
-        else
-            echo "Docker image $IMAGE_NAME is not yet available locally."
-            read -p "Download this image? (y/n)" -n 1 -r
-            echo
-            if [[ $REPLY =~ ^[Yy]$ ]]; then
-                docker pull $IMAGE_NAME
-                if [ $? -gt 0 ]; then
-                    echo "⛔️  ERROR: Download failed. Exiting."
-                    exit 1
-                else
-                    echo "✔️ Downloaded $IMAGE_NAME."
-                fi
-            else
-                echo "❌  Skipping image build for Checkmk version $VERSION."
-                continue
-            fi
-        fi
-        echo "Building now the local image $CMK_PY3_DEV_IMAGE:$VERSION from $DOCKERFILE_CMK_PY3_DEV ..."
-        echo "Calling: docker build -t $CMK_PY3_DEV_IMAGE:$VERSION -f $ROOTDIR/$DOCKERFILE_CMK_PY3_DEV --build-arg VARIANT=$VERSION ."
-        DOCKER_BUILDKIT=0 docker build -t $CMK_PY3_DEV_IMAGE:$VERSION -f $ROOTDIR/$DOCKERFILE_CMK_PY3_DEV --build-arg VARIANT=$VERSION .
-        if [ $? -eq 0 ]; then
-            echo "✅  Docker image $CMK_PY3_DEV_IMAGE:$VERSION has been built."
-        else
-            echo "⛔️  ERROR: Docker image $CMK_PY3_DEV_IMAGE:$VERSION could not be built."
-        fi
-        echo "----"
+    local version
+    for version in "${ALL_VERSIONS[@]}"; do
+        [[ -z "${version}" ]] && continue
+        build_single_image "${version}"
+        echo ----
+        echo ""
     done
 }
 
-main $@
+build_single_image() {
+    local version=$1
+    local image_name="checkmk/check-mk-cloud:${version}"
+    local target_image="${CMK_PY3_DEV_IMAGE}:${version}"
+
+    if image_exists "${image_name}"; then
+        printf 'Docker image %s is already available locally.\n' "${image_name}"
+    else
+        printf 'Docker image %s is not yet available locally.\n' "${image_name}"
+        if prompt_download "${image_name}"; then
+            if ! docker pull "${image_name}"; then
+                printf '[ERROR] Download failed for %s.\n' "${image_name}" >&2
+                exit 1
+            fi
+            printf 'Downloaded %s.\n' "${image_name}"
+        else
+            printf 'Skipping image build for Checkmk version %s.\n' "${version}"
+            return
+        fi
+    fi
+
+    printf 'Building local image %s from %s...\n' "${target_image}" "${DOCKERFILE_CMK_PY3_DEV}"
+    printf 'Calling: docker build -t %s -f %s/%s --build-arg VARIANT=%s %s\n' \
+        "${target_image}" "${SCRIPT_DIR}" "${DOCKERFILE_CMK_PY3_DEV}" "${version}" "${REPO_ROOT}"
+
+    if ! DOCKER_BUILDKIT=0 docker build \
+        -t "${target_image}" \
+        -f "${SCRIPT_DIR}/${DOCKERFILE_CMK_PY3_DEV}" \
+        --build-arg "VARIANT=${version}" \
+        "${REPO_ROOT}"; then
+        printf '[ERROR] Docker image %s could not be built.\n' "${target_image}" >&2
+        exit 1
+    fi
+
+    printf 'Docker image %s has been built.\n' "${target_image}"
+}
+
+main "$@"

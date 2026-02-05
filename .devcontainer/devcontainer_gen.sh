@@ -78,7 +78,7 @@ function main() {
     else
         mv "$TMP_FILE" "$TARGET_FILE"
     fi
-    
+    echo "Done. Generated $TARGET_FILE for Checkmk version $VERSION."
 
 
 }

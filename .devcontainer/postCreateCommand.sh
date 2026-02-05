@@ -56,7 +56,7 @@ if [ -z "${GITHUB_WORKSPACE-}" ]; then
     echo "■ Creating a dummyhost"
     echo "Create NOW an automation user with administrator rights / store the secret in clear text. Then press ENTER to continue."
     read -p "Press ENTER to continue..."
-    bash $WORKSPACE/.devcontainer/create_dummyhost_${CMK_VERSION_MM}.sh
+    bash $WORKSPACE/.devcontainer/create_dummyhost.sh "${CMK_VERSION_MM}"
     echo "✅ Dummyhost created."
     echo "■ Baking the agent"
     echo "Baking agent for $HOSTNAME ... "
