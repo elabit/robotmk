@@ -10,13 +10,13 @@
             "plugins/robotmk.py"
         ],
         "cmk_addons_plugins": [
-            "robotmk/agent_based/robotmk.py"
+            "robotmk/agent_based/robotmk.py",
+            "robotmk/graphing/graphing_robotmk.py"
         ],
         "lib": [
             "check_mk/base/cee/plugins/bakery/robotmk.py"
         ],
         "web": [
-            "plugins/metrics/graphing_robotmk.py",
             "plugins/wato/robotmk_wato_params_bakery.py",
             "plugins/wato/robotmk_wato_params_check.py",
             "plugins/wato/robotmk_wato_params_discovery.py",
@@ -24,7 +24,8 @@
             "htdocs/images/icons/robotmk80_dot.png"
         ]
     },
-    "version.packaged": "2.3.0",
-    "version.min_required": "2.3.0p1",
-    "version.usable_until": "2.3.20"
+    "version": "na",
+    "version.packaged": "na",
+    "version.min_required": "na",
+    "version.usable_until": "na"
 }

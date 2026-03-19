@@ -51,8 +51,8 @@ function resolve_cmk_targets() {
             ;;
         2.3)
             export CMK_DIR_CHECKS="local/lib/python3/cmk_addons/plugins/robotmk/agent_based"
-            export CMK_DIR_GRAPHING="local/share/check_mk/web/plugins/metrics"
-            export CMK_DIR_CHECKMAN="local/share/check_mk/checkman"
+            export CMK_DIR_GRAPHING="local/lib/python3/cmk_addons/plugins/robotmk/graphing"
+            export CMK_DIR_CHECKMAN="local/lib/python3/cmk_addons/plugins/robotmk/checkman"            
             export CMK_DIR_BAKERY="local/lib/check_mk/base/cee/plugins/bakery"
             ;;
         2.2)            
