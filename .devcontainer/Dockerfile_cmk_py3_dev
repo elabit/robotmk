@@ -1,5 +1,7 @@
 ARG VARIANT
-FROM checkmk/check-mk-cloud:$VARIANT
+ARG EDITION=check-mk-cloud
+FROM checkmk/${EDITION}:${VARIANT}
+
 
 # install python3 on the container
 RUN rm -rf /var/lib/apt/lists && apt update && apt upgrade -y

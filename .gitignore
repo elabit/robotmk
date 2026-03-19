@@ -31,3 +31,4 @@ nohup.out
 .vscode/settings.json
 agent_output/*
 !agent_output/.gitkeep
+tmp

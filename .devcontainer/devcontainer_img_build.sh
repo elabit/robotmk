@@ -94,7 +94,18 @@ build_images() {
 
 build_single_image() {
     local version=$1
-    local image_name="checkmk/check-mk-cloud:${version}"
+    local edition
+    
+    # Determine edition based on version
+    # Version 2.5+ uses check-mk-ultimate
+    # Below 2.5 uses check-mk-cloud
+    if [[ "${version}" == 2.5* || "${version}" == 2.6* ]]; then
+        edition="check-mk-ultimate"
+    else
+        edition="check-mk-cloud"
+    fi
+    
+    local image_name="checkmk/${edition}:${version}"
     local target_image="${CMK_PY3_DEV_IMAGE}:${version}"
 
     if image_exists "${image_name}"; then
@@ -114,13 +125,14 @@ build_single_image() {
     fi
 
     printf 'Building local image %s from %s...\n' "${target_image}" "${DOCKERFILE_CMK_PY3_DEV}"
-    printf 'Calling: docker build -t %s -f %s/%s --build-arg VARIANT=%s %s\n' \
-        "${target_image}" "${SCRIPT_DIR}" "${DOCKERFILE_CMK_PY3_DEV}" "${version}" "${REPO_ROOT}"
+    printf 'Calling: docker build -t %s -f %s/%s --build-arg VARIANT=%s --build-arg EDITION=%s %s\n' \
+        "${target_image}" "${SCRIPT_DIR}" "${DOCKERFILE_CMK_PY3_DEV}" "${version}" "${edition}" "${REPO_ROOT}"
 
     if ! DOCKER_BUILDKIT=0 docker build \
         -t "${target_image}" \
         -f "${SCRIPT_DIR}/${DOCKERFILE_CMK_PY3_DEV}" \
         --build-arg "VARIANT=${version}" \
+        --build-arg "EDITION=${edition}" \
         "${REPO_ROOT}"; then
         printf '[ERROR] Docker image %s could not be built.\n' "${target_image}" >&2
         exit 1

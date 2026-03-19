@@ -10,12 +10,20 @@ source "${SCRIPT_DIR}/cmk_version.sh"
 LINKTYPE=$1
 # ARG1 must be either "cmkonly" or "full" => linkfiles.sh
 if [ "$LINKTYPE" != "cmkonly" ] && [ "$LINKTYPE" != "full" ]; then
-    echo "ERROR: Argument must be either 'common' or 'full'."
+    echo "ERROR: Argument must be either 'cmkonly' or 'full'."
     exit 1
 fi
 
 
 echo "▹ WORKSPACE: $WORKSPACE"
+if [ -z "$CMK_VERSION_MM" ]; then
+    echo "ERROR: CMK_VERSION_MM environment variable is not set."
+    exit 1
+else
+    mkdir -p "$WORKSPACE/.devcontainer/tmp"
+    echo -n "$CMK_VERSION_MM" > "$WORKSPACE/.devcontainer/tmp/cmk_version_mm.txt"
+fi
+
 # This step ties the workspace files with the Devcontainer. lsyncd is used to synchronize files. 
 echo "▹ Linking the project files into the container (linkfiles.sh $LINKTYPE)..."
 /workspaces/robotmk/.devcontainer/linkfiles.sh $LINKTYPE
@@ -54,7 +62,8 @@ omd restart
 if [ -z "${GITHUB_WORKSPACE-}" ]; then
     echo "Preparing the dev setup (not in a Github Workflow):"
     echo "■ Creating a dummyhost"
-    echo "Create NOW an automation user with administrator rights / store the secret in clear text. Then press ENTER to continue."
+    echo "Open http://localhost:4999/cmk (cmkadmin/cmk) and create NOW an automation user with administrator rights."
+    echo "Store the secret in clear text and press ENTER to continue."
     read -p "Press ENTER to continue..."
     bash $WORKSPACE/.devcontainer/create_dummyhost.sh "${CMK_VERSION_MM}"
     echo "✅ Dummyhost created."
