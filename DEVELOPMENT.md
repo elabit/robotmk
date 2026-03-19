@@ -3,6 +3,25 @@
 This page explains step by step how to set up your development environment to debug and develop Robotmk.  
 Feel encouraged to contribute code!
 
+## Quick Start
+
+Robotmk uses [Task](https://taskfile.dev) to simplify all development workflows. After installing the prerequisites, you can:
+
+```bash
+# Show all available tasks
+task --list
+
+# Display the interactive quick start guide
+task quickstart
+
+# View detailed help for any task
+task <task-name> --summary
+```
+
+Most commands in this guide are available as task commands for convenience and consistency.
+
+---
+
 ## Preconditions
 
 ### Docker
@@ -24,10 +43,14 @@ When you open the Robotmk project for the first time in [Visual Studio Code](htt
 
 Robotmk uses [chag](https://raw.githubusercontent.com/mtdowling/chag/master/install.sh) to keep annotated tags and the CHANGELOG in sync.
 
+You can install chag using:
+
+    task setup:install-chag
+
 Examples:
 
-* Show entries of a special release: `chag contents --tag v1.0.2`
-* Create a Changelog entry for the `Unreleased` section: `chag update 1.0.4`
+* Show entries of a special release: `task ch:view VERSION=1.0.2`
+* Create a Changelog entry for the `Unreleased` section: `task ch:update VERSION=1.0.4`
   
 ### Github CLI tool
 
@@ -37,9 +60,55 @@ Install the CLI tools from <https://github.com/cli/cli>.
 
 After installation, authenticate to github. It will ask you about your authentication method, protocol, and present an authentication code which you should open in the opened Github web page.
 
-    gh auth login 
+    task setup:gh-auth
 
 After that you are fully authenticated in the CLI to GitHub.
+
+### Task (Taskfile)
+
+Robotmk provides a [Taskfile](Taskfile.yml) to simplify common development tasks. Task is a task runner / build tool that aims to be simpler and easier to use than GNU Make.
+
+The Taskfile includes all common development actions such as:
+* Building devcontainer images
+* Generating devcontainer configurations
+* Creating test hosts
+* Building MKP packages
+* Release management
+* And many more...
+
+#### Installation on Linux
+
+
+**Using snap:**
+```bash
+sudo snap install task --classic
+```
+
+#### Usage
+
+Once Task is installed, you can use it from the project root:
+
+```bash
+# List all available tasks
+task --list
+
+# Show the quick start guide
+task quickstart
+
+# Build devcontainer images
+task devcontainer:build-images
+
+# Generate devcontainer configuration for a specific CMK version
+task devcontainer:generate VERSION=2.4.0p12
+
+# Create a release
+task release VERSION=1.2.0
+
+# Get detailed help for any specific task
+task <task-name> --summary
+```
+
+All tasks are documented with descriptions and detailed summaries. The Taskfile serves as executable documentation for all development workflows described in this guide.
 
 ---
 
@@ -61,24 +130,24 @@ Example:
 
 After that, run the following command to build the required Docker images:
 
-    .devcontainer/devcontainer_img_build.sh
+    task devc:build-images
 
 * First it checks if the CMK Docker images are already available locally. If not, it connects to the [Checkmk Docker Registry](registry.checkmk.com) and downloads the images from there.
 * It then creates a new Docker image based on the CMK docker image (downloaded in step 1) and installs some more things (see `.devcontainer/Dockerfile_cmk_py3_dev`):
   * Python modules form `.devcontainer/requirements.txt`
   * some additional tools: `jq tree htop vim git telnet file ...`
 
-For each version you will get an image `cmk-python3-dev:VERSION`.
+For each version you will get an image `cmk-python3-dev:VERSION`:
+
+```
+...
+Successfully built 46092b9a95a3
+Successfully tagged cmk-python3-dev:2.4.0p12
+Docker image cmk-python3-dev:2.4.0p12 has been built.
+```
 
 The Robotmk devcontainers are started based on these images, depending on `${VARIANT}`.
-See `.devcontainer/Dockerfile` (which is referenced in `devcontainer.json`):
-
-```
-ARG VARIANT
-# Build the dev images with .devcontainer/build-devcontainer.sh !
-FROM --platform=linux/amd64 robotmk-cmk-python3:${VARIANT}
-
-```
+See `.devcontainer/Dockerfile` (which is referenced in `devcontainer.json`).
 
 ---
 
@@ -86,14 +155,22 @@ FROM --platform=linux/amd64 robotmk-cmk-python3:${VARIANT}
 
 To generate the devcontainer JSON file, execute the following command:
 
-    .devcontainer/devcontainer_gen.sh VERSION
+    task devc:generate
+
+It will ask interactively which version you want to generate the devcontainer for (from the versions configured in `.devcontainer/devcontainer_img_versions.env`).
 
 ```bash
-     bash .devcontainer/devcontainer_gen.sh 2.1.0p16
-     + Generating CMK devcontainer file ...
-     + Merging local devcontainer file for project robotmk ...
-     >>> .devcontainer/devcontainer.json for Checkmk version 2.1.0p16 created.
-     Container will start with name: 'robotmk-devc'
+$> task devc:generate
+task: [devc:generate] .devcontainer/devcontainer_gen.sh 
+No cmk version (arg1) specified. Select a version:
+1) 2.5.0-2026.03.05
+2) 2.4.0p12
+3) 2.3.0p45
+4) 2.2.0p32
+#? 1
+Selected version: 2.5.0-2026.03.05
++ Generating CMK devcontainer file ...
+Done. Generated /home/simonmeggle/Documents/01_dev/robotmk/.devcontainer/devcontainer.json for Checkmk version 2.5.0-2026.03.05.
 ```
 
 This reconfigures `.devcontainer/devcontainer.json` using `envsubst` and the template file in `.devcontainer/devcontainer_tpl.json`
@@ -106,6 +183,7 @@ Now it's time to run the container.
 
 In the VS Code terminal you see the CMK site starting.
 This takes some minutes.
+
 During this step, all relevant files for Robotmk get symlinked into the version specific folder of the CMK Docker container.
 
 **Don't try to install the Robotmk MKP into this container! All files are already there!**
@@ -124,10 +202,14 @@ This is sometimes a little bit unreliable and must be done manually:
 
 * Open <http://127.0.0.1:5000> and log in.
 * Create a new user "automation" (Admin), password is to store as plain text.
-* Run `.devcontainer/create_dummyhost.sh`:
-  * creates a host
-  * adds a bakery rule
-  * adds a monitoring rule (with graphs for all items)
+* Run:
+
+      task devc:create-dummyhost
+
+  This will:
+  * create a host
+  * add a bakery rule
+  * add a monitoring rule (with graphs for all items)
 * Connect to the container as root and execute `bake_and_install_agent_localhost` (bash alias)
   * bake a new agent for the new host
   * install the agent & Robotmk plugin
@@ -149,8 +231,11 @@ Also, only then the code completion (classes, functions, ...) works properly, be
 
 Debugging `robotmk.py` and `robotmk-runner.py` from the devcontainer is not straightforward, because from the context of the `cmk` user, you are not able to access the Robotmk YML and log files. But it is possible (and very useful), if just do the following steps:
 
-* Open a bash in the container
-* Execute as root: `/workspace/robotmk/scripts/docker_fix_agent_permissions.sh`. This script fixes the missing permissions to `/var/log/robotmk` and `/etc/check_mk/robotmk.yml`.
+* Fix the agent permissions:
+
+      task devc:fix-permissions
+
+  This script fixes the missing permissions to `/var/log/robotmk` and `/etc/check_mk/robotmk.yml`.
 
 (The required modules for robotmk were installed during `postCreateCommand.sh`)
 
@@ -246,18 +331,15 @@ Note: In newer CMK versions the bakery module is at `lib/python3/cmk/base/cee/ba
 
 ### Building a MKP inside of the Container
 
-To test how the Github workflow will build MKPs for Robotmk, you can run the build script within the container locally with
+To test how the Github workflow will build MKPs for Robotmk, you can run the build script within the container locally:
 
-    ./devcontainer/build.sh
+    task build:mkp
 
 The resulting MKP can be copied to the host system as follows:
 
-```
-CONTAINER=a596f322c2e8
-cd ~/Downloads
-docker exec $CONTAINER bash -c "mkdir -p /cmk-mkp; cp /workspaces/robotmk/*.mkp /cmk-mkp"
-docker cp $CONTAINER:/cmk-mkp .
-```
+    task build:copy-mkp CONTAINER=<container-id>
+
+To find your container ID, run `task docker:ps` or `docker ps`.
 
 ---
 
@@ -270,21 +352,29 @@ docker cp $CONTAINER:/cmk-mkp .
 The release workflow of Robotmk is divided into the following steps:
 
 * Make sure that the `develop` branch is clean (=everything is stashed/committed)
-* Execute `./release.sh release 1.2.0`, which
-  * executes `chag update` => converting unreleased entries in `CHANGELOG` to the new version
-  * replaces version number variables in Robotmk script files
-  * commits this change as version bump
-  * merges `develop` into `master`
-  * executes `chag tag --addv` => adds an annotated tag from the Changelog
-  * pushes to `master`
+* Execute:
+
+      task rel VERSION=1.2.0
+
+  This will:
+  * execute `chag update` => converting unreleased entries in `CHANGELOG` to the new version
+  * replace version number variables in Robotmk script files
+  * commit this change as version bump
+  * merge `develop` into `master`
+  * execute `chag tag --addv` => add an annotated tag from the Changelog
+  * push to `master`
 
 ### Unrelease
 
-* Execute `./release.sh unrelease 1.2.0`, which
-  * deletes the release from GitHub
-  * removes the tags
-  * checks out the develop branch
-  * uses `chag` to undo the last change to the `CHANGELOG`
+* Execute:
+
+      task rel:unrelease VERSION=1.2.0
+
+  This will:
+  * delete the release from GitHub
+  * remove the tags
+  * check out the develop branch
+  * use `chag` to undo the last change to the `CHANGELOG`
 
 ## File locations
 
@@ -311,7 +401,14 @@ Abbreviations:
 ### Opening a shell in the container
 
 VS Code already presents you a bash terminal as user `cmk`.
-In Order to open another bash as `root`, just execute `docker exec -it rmk-dev bash`
+
+To open another bash as `root`, use:
+
+    task docker:shell-root
+
+Or to open a shell as the `cmk` user:
+
+    task docker:shell
 
 Inside of the `root` bash, you can also open a preconfigured `tmux` terminal which allows to work with multiple panes.
 Shortcuts ("Ca" = Ctrl + a):
@@ -336,6 +433,30 @@ There are several CMK OMD administration tasks predefined in Tasks Chooser (exte
 * reload apache
 * inventory and reload core
 * restart core
+
+### Useful Task Commands
+
+Here are some helpful task commands for development:
+
+```bash
+# View container logs (useful for debugging startup issues)
+task docker:logs
+
+# View container logs in follow mode
+task docker:logs FOLLOW=true
+
+# List all running Robotmk containers
+task docker:ps
+
+# Show current devcontainer configuration
+task info:container
+
+# Show configured CMK versions
+task info:versions
+
+# Display file location mappings
+task info:file-locations
+```
 
 ### Troubleshooting
 

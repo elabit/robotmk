@@ -1,0 +1,164 @@
+version: '3'
+
+# Robotmk Development Task Runner
+# This Taskfile contains all development tasks mentioned in DEVELOPMENT.md
+# Usage: task <task-name>
+# List all tasks: task --list
+
+vars:
+  PROJECT_ROOT: '{{.USER_WORKING_DIR}}'
+  DEVCONTAINER_DIR: '.devcontainer'
+  CMK_VERSION_MM:
+    sh: cat {{.DEVCONTAINER_DIR}}/tmp/cmk_version_mm.txt 2>/dev/null || echo "unknown"
+  CONTAINER_NAME: 'robotmk-devc-cmk{{.CMK_VERSION_MM}}'
+  CMK_VERSIONS: |
+    2.4.0p12
+    2.3.0p37
+    2.2.0p32
+
+tasks:
+
+  # ============================================================================
+  # DEVCONTAINER SETUP
+  # ============================================================================
+
+  devc:build-images:
+    desc: Build all devcontainer Docker images for configured CMK versions
+    summary: |
+      Builds Docker images for Checkmk development environments.
+      
+      This task:
+      - Checks if CMK Docker images are available locally
+      - Downloads images from Checkmk Docker Registry if needed
+      - Creates cmk-python3-dev:VERSION images with additional tools
+      
+      Configure versions in .devcontainer/devcontainer_img_versions.env
+      See: https://hub.docker.com/r/checkmk/check-mk-cloud/
+    cmds:
+      - '{{.DEVCONTAINER_DIR}}/devcontainer_img_build.sh'
+
+  devc:generate:
+    desc: Generate devcontainer.json for a specific CMK version
+    summary: |
+      Generates the devcontainer configuration file for a specific CMK version.
+      
+      Usage: 
+        task devc:generate VERSION=2.4.0p12   # Generate for specific version
+        task devc:generate                    # interacitvely select version from configured versions
+      
+      This reconfigures .devcontainer/devcontainer.json using envsubst
+      and the template file in .devcontainer/devcontainer_tpl.json
+    cmds:
+      - '{{.DEVCONTAINER_DIR}}/devcontainer_gen.sh {{.VERSION}}'
+    preconditions:
+      - sh: test -f {{.DEVCONTAINER_DIR}}/devcontainer_tpl.json
+        msg: "Template file {{.DEVCONTAINER_DIR}}/devcontainer_tpl.json not found"
+
+  # ============================================================================
+  # BUILD & PACKAGE
+  # ============================================================================
+
+  build:
+    desc: Build Robotmk MKP packages inside the devcontainer
+    summary: |
+      Builds MKP (Checkmk Extension Packages) for Robotmk.
+      
+      This mimics the GitHub workflow build process locally.
+      The resulting packages will be created in the build/ directory.
+      
+      Prerequisites:
+      - Devcontainer must be running
+    cmds:
+      - '{{.DEVCONTAINER_DIR}}//build.sh'
+
+  # ============================================================================
+  # RELEASE MANAGEMENT
+  # ============================================================================
+
+  rel:
+    desc: Create a new release version
+    summary: |
+      Creates a new release of Robotmk.
+      
+      Usage: task rel VERSION=1.2.0
+      
+      This task:
+      - Executes 'chag update' to convert unreleased CHANGELOG entries
+      - Replaces version numbers in Robotmk script files
+      - Commits the change as a version bump
+      - Merges develop into master
+      - Adds an annotated tag from the Changelog
+      - Pushes to master
+      
+      Prerequisites:
+      - develop branch must be clean (all changes committed)
+      - chag must be installed
+      - gh CLI must be authenticated
+    cmds:
+      - ./release.sh release {{.VERSION}}
+    requires:
+      vars: [VERSION]
+    preconditions:
+      - sh: command -v chag
+        msg: "chag is not installed. See: https://github.com/mtdowling/chag"
+      - sh: command -v gh
+        msg: "GitHub CLI is not installed. See: https://github.com/cli/cli"
+      - sh: git diff-index --quiet HEAD --
+        msg: "Working directory is not clean. Please commit or stash your changes."
+
+  rel:unrelease:
+    desc: Rollback/withdraw a release
+    summary: |
+      Withdraws a release (useful for alpha/beta releases).
+      
+      Usage: task rel:unrelease VERSION=1.2.0
+      
+      This task:
+      - Deletes the release from GitHub
+      - Removes the tags
+      - Checks out the develop branch
+      - Uses chag to undo the last change to CHANGELOG
+      
+      Prerequisites:
+      - chag must be installed
+      - gh CLI must be authenticated
+    cmds:
+      - ./release.sh unrelease {{.VERSION}}
+    requires:
+      vars: [VERSION]
+    preconditions:
+      - sh: command -v chag
+        msg: "chag is not installed. See: https://github.com/mtdowling/chag"
+      - sh: command -v gh
+        msg: "GitHub CLI is not installed. See: https://github.com/cli/cli"
+
+
+  # ============================================================================
+  # DOCKER UTILITIES
+  # ============================================================================
+
+  docker:shell:
+    desc: Open a bash shell in the running devcontainer
+    summary: |
+      Opens an interactive bash shell in the devcontainer.
+      
+      Usage: 
+        task docker:shell                    # Opens shell as cmk user
+        task docker:shell USER=root          # Opens shell as root
+    cmds:
+      - docker exec -it {{.CONTAINER_NAME}} bash -c "su - {{.USER | default "cmk"}}"
+
+  docker:shell-root:
+    desc: Open a bash shell as root in the running devcontainer
+    summary: |
+      Opens an interactive bash shell as root in the devcontainer.
+    cmds:
+      - docker exec -it {{.CONTAINER_NAME}} bash
+
+
+
+
+  default:
+    desc: Show available tasks
+    cmds:
+      - task --list

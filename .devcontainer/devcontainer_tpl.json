@@ -13,6 +13,9 @@
 	"appPort": [
 		"4999:5000"
 	],
+	"runArgs": [
+		"--name", "$CONTAINER_NAME"
+	],
 	"customizations": {
 		"settings": {
 			"terminal.integrated.shell.linux": "/bin/bash",
