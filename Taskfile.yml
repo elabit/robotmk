@@ -22,7 +22,7 @@ tasks:
   # DEVCONTAINER SETUP
   # ============================================================================
 
-  devc:build-images:
+  devc:img:
     desc: Build all devcontainer Docker images for configured CMK versions
     summary: |
       Builds Docker images for Checkmk development environments.
@@ -37,14 +37,14 @@ tasks:
     cmds:
       - '{{.DEVCONTAINER_DIR}}/devcontainer_img_build.sh'
 
-  devc:generate:
+  devc:gen:
     desc: Generate devcontainer.json for a specific CMK version
     summary: |
       Generates the devcontainer configuration file for a specific CMK version.
       
       Usage: 
-        task devc:generate VERSION=2.4.0p12   # Generate for specific version
-        task devc:generate                    # interacitvely select version from configured versions
+        task devc:gen VERSION=2.4.0p12   # Generate for specific version
+        task devc:gen                    # interacitvely select version from configured versions
       
       This reconfigures .devcontainer/devcontainer.json using envsubst
       and the template file in .devcontainer/devcontainer_tpl.json
@@ -137,18 +137,18 @@ tasks:
   # DOCKER UTILITIES
   # ============================================================================
 
-  docker:shell:
+  docker:sh:
     desc: Open a bash shell in the running devcontainer
     summary: |
       Opens an interactive bash shell in the devcontainer.
       
       Usage: 
-        task docker:shell                    # Opens shell as cmk user
-        task docker:shell USER=root          # Opens shell as root
+        task docker:sh                    # Opens shell as cmk user
+        task docker:sh USER=root          # Opens shell as root
     cmds:
       - docker exec -it {{.CONTAINER_NAME}} bash -c "su - {{.USER | default "cmk"}}"
 
-  docker:shell-root:
+  docker:sh-root:
     desc: Open a bash shell as root in the running devcontainer
     summary: |
       Opens an interactive bash shell as root in the devcontainer.
