@@ -5,6 +5,7 @@
 # SPDX-License-Identifier: GPL-3.0-or-later
 # This file is part of the Robotmk project (https://www.robotmk.org)
 
+#x 
 import os
 import json, base64, zlib
 import re
@@ -45,10 +46,12 @@ if cmk_version.startswith(('2.5', '2.4', '2.3')):
         StringTable,
     )   
     HTML_LOG_DIR = "%s/%s" % (os.environ['OMD_ROOT'], 'var/robotmk/html_logs') 
+    CMK_V2_API = True
 elif cmk_version.startswith(('2.2')):
     from cmk.base.plugins.agent_based.agent_based_api.v1 import *
     from cmk.utils.exceptions import MKGeneralException
     HTML_LOG_DIR = "%s/%s" % (os.environ['OMD_ROOT'], 'var/robotmk')
+    CMK_V2_API = False
 else:
     raise ValueError(f"Unsupported Checkmk version: {cmk_version}")
 
@@ -80,9 +83,47 @@ ROBOTMK_KEYWORDS = {
 }
 
 
+def get_param_value(params, key, key_order, default=None, subdict="_data"):
+    """Helper function for CMK 2.5+
+    Read the value from the _data dict of the params object.
+    Return it as a list of tuples, where the tuple contains only the values, ordered by the order of the keys in key_order.
+    Return default, if the key is not found. 
+    Some params contain their data in a _data key, some not. With subdict you can specify where to look for the data. 
+    If subdict is None, look in the params object itself.
+    """
+    if subdict:
+        data = params.__dict__.get(subdict, {})
+    else:
+        data = params.__dict__
+    value = data.get(key, default)
+    if isinstance(value, dict):
+        return [tuple(value.get(k, "") for k in key_order)]
+    elif isinstance(value, list):
+        # list of dicts, return list of tuples
+        # verify that all items in key_order are present in the dicts, otherwise throw an exception
+        if not all(all(k in item for k in key_order) for item in value):
+            raise MKGeneralException(f"Invalid value for {key}. Expected a list of dicts with keys {key_order}.")
+        # if "level" is in the key_order, convert "level_0", "level_1", etc. to "0", "1", etc.
+        if "level" in key_order:
+            for item in value:
+                for k in key_order:
+                    if k in item and isinstance(item[k], str) and item[k].startswith("level_"):
+                        item[k] = item[k].split("_", 1)[1]
+        return [tuple(item.get(k, "") for k in key_order) for item in value]
+    else:
+        return value
+
+
 def parse_robotmk(params, string_table):
     keys_to_decode = ["xml", "htmllog"]
-    robot_discovery_settings = params.get("robot_discovery_settings", [])
+    # if robot_discovery_settings is a key in params, use it, otherwise get it from _data (for compatibility with both CMK 2.5+ and older versions)
+    if CMK_V2_API:
+        robot_discovery_settings = get_param_value(params, "robot_discovery_settings", key_order=["pattern", "level", "blacklist"], default=[])
+    else:
+        robot_discovery_settings = params.get("robot_discovery_settings", [])
+
+
+    
     try:
         st_joined = "".join([l[0] for l in string_table])
         st_dict = json.loads(st_joined)
@@ -115,12 +156,15 @@ def parse_robotmk(params, string_table):
             except Exception:
                 RobotItem.schema_version = 0
             xml_root_suite = xml.find("./suite")
-            setting = pattern_match(
+            
+            setting_tuple = pattern_match(
                 robot_discovery_settings, xml_root_suite.attrib["name"], (0, "")
             )
+            
+            
             discovery_setting = namedtuple(
                 "DiscoverySetting", "level blacklist_pattern"
-            )._make(setting)
+            )._make(setting_tuple)
             # now process the root suite
             st_dict["suites"][idx]["parsed"] = parse_suite_xml(
                 xml_root_suite, discovery_setting
@@ -136,8 +180,13 @@ def parse_robotmk(params, string_table):
 
 def discover_robotmk(params, section):
     info_dict, params_dict = parse_robotmk(params, section)
-    service_prefix = params.get("robot_service_prefix", [])
-    html_show_patterns = params_dict.get("htmllog", {})
+    if CMK_V2_API:
+        service_prefix = get_param_value(params, "robot_service_prefix", key_order=["pattern", "prefix"], default=[]) 
+        html_show_patterns = get_param_value(params, "htmllog", key_order=["last_log", "last_error_log"], default=[])
+    else:
+        service_prefix = params.get("robot_service_prefix", [])
+        html_show_patterns = params.get("htmllog", [])
+    
     is_piggyback_result = info_dict["runner"].get("is_piggyback_result", False)
     svc_label_robotmk_yes = ServiceLabel("robotmk", "yes")
     for root_suite in info_dict["suites"]:
@@ -165,7 +214,7 @@ def discover_robotmk(params, section):
 
     # Display the Robotmk meta service only on the "Robot" host. (for reporting overall runtimes, stale spool files etc.)
     if not is_piggyback_result:
-        svc_robotmk = params.get("robotmk_service_name", "Robotmk")
+        svc_robotmk = get_param_value(params, "robotmk_service_name", "Robotmk")
         svc_labels = [
             ServiceLabel("robotmk", "yes"),
             ServiceLabel("robotmk/type", "robotmk"),
@@ -175,8 +224,14 @@ def discover_robotmk(params, section):
 
 def check_robotmk(item, params, section):
     parsed_section, params_dict = parse_robotmk(params, section)
-    service_prefix = params.get("robot_service_prefix", [])
-    svc_robotmk = params_dict.get("robotmk_service_name", "Robotmk")
+    if CMK_V2_API:
+        service_prefix = get_param_value(params, "robot_service_prefix", key_order=["pattern", "prefix"], default=[]) 
+        svc_robotmk = get_param_value(params, "robotmk_service_name", "Robotmk")
+    else:
+        service_prefix = params.get("robot_service_prefix", [])
+        svc_robotmk = params_dict.get("robotmk_service_name", "Robotmk")    
+    
+    
     runner_assigned_host = parsed_section["runner"].get("assigned_host", [])
     # The "Robotmk" service
     if item == svc_robotmk:
@@ -633,10 +688,10 @@ class RobotItem(object):
         return int(end_millis - start_millis) / float(1000)
 
     # If the pattern for a WATO <setting> matches, return the value (if tuple) or True
-    def _get_pattern_value(self, setting, check_params):
+    def _get_pattern_value(self, setting, check_params, dict_keys=None):
         setting_keyname = getattr(self, "%s_dict_key" % setting)
         patterns = check_params.get(setting, {}).get(setting_keyname, [])
-        return pattern_match(patterns, self.name)
+        return pattern_match(patterns, self.name, dict_keys=dict_keys)
 
     def _set_node_info(self):
         self.result["name"] = self.name
@@ -769,7 +824,7 @@ class RobotItem(object):
     # state. Therefore, it can happen that a s/t/k is CRIT/WARN but the RF status is PASS.
     # Thresholds of 0 will be ignored.
     def _eval_node_cmk_runtime(self, check_params):
-        runtime_threshold = self._get_pattern_value("runtime_threshold", check_params)
+        runtime_threshold = self._get_pattern_value("runtime_threshold", check_params, dict_keys=["warn", "crit"])
         if bool(runtime_threshold):
             # CRITICAL threshold
             if runtime_threshold[1] > 0 and self.elapsed_time >= runtime_threshold[1]:
@@ -807,7 +862,7 @@ class RobotItem(object):
         # Ref #5LSK99
         # PERFDATA ---- Which elemens should produce performance data?
         # this_runtime_threshold = None
-        runtime_threshold = self._get_pattern_value("runtime_threshold", check_params)
+        runtime_threshold = self._get_pattern_value("runtime_threshold", check_params, dict_keys=["warn", "crit"])
         perfdata_wanted = self._get_pattern_value("perfdata_creation", check_params)
         # Only generate perfdata for RF PASS state.
         if perfdata_wanted and self.elapsed_time != None and self.status == "PASS":
@@ -907,7 +962,9 @@ class RobotItem(object):
 
     def _descending_allowed(self, depth_limit_inherited, check_params):
         # OUTPUT DEPTH --- how deep can we descend in nested suites/keywords?
-        depth_limit = self._get_pattern_value("output_depth", check_params)
+        depth_limit = self._get_pattern_value("output_depth", check_params, dict_keys=["depth"])
+        if type(depth_limit) == tuple:
+            depth_limit = depth_limit[0]
 
         # i = inherited depth limit
         # t = this depth limit
@@ -1227,7 +1284,12 @@ def assign_html_logs(svc_desc, info_dict, root_suite, html_show_patterns):
             #     suite_last_error_log.html -> ../$SUITE_last_error_log.html
             #     suite_last_log.html -> ../$SUITE_last_log.html
             for log in ["last_log", "last_error_log"]:
-                pattern = html_show_patterns.get(log, ".*")
+                # if html_show_patterns is list of tuples, pattern int he first iteration is the 
+                # first item, in the second iteration the second item, etc. 
+                if type(html_show_patterns[0]) == tuple:
+                    pattern = html_show_patterns[0][0] if log == "last_log" else html_show_patterns[0][1]
+                else:
+                    pattern = html_show_patterns.get(log, ".*")
                 if re.match(pattern, svc_desc):
                     svc_dir = "%s/%s/%s" % (HTML_LOG_DIR, host, svc_desc)
                     # shutil.rmtree(svc_dir, ignore_errors=True)
@@ -1359,17 +1421,27 @@ def quoted_listitems(inlist):
 # If list elements are tuples, all values from index 1
 # If list elements are patterns, return bool
 # If nothing matches return the default
-def pattern_match(patterns, name, default=None):
+def pattern_match(patterns, name, default=None, dict_keys=None):
     for elem in patterns:
         if type(elem) == tuple:
+            # old valuespecs (Pre 2.5)
             if re.match(elem[0], name):
                 if len(elem) == 2:
                     # only one value (2nd element) for this pattern
                     return elem[1]
                 else:
                     # more than 1 value (2nd and following) for this pattern (e.g. warn/crit thresholds) => return the list
-                    return elem[1:]
+                    return elem[1:]     
+        elif type(elem) == dict:
+            if not dict_keys:
+                # throw error if dict_keys is not set, because otherwise we do not know which value to return
+                raise ValueError("pattern_match: dict_keys must be set if patterns contain dicts")
+            # new valuespecs (2.5 and later) with dicts: if pattern matches, return the dict
+            if re.match(elem.get("pattern", ".*"), name):
+                # return a tuple containing the values of the dict in the order of dict_keys
+                return tuple(elem.get(key) for key in dict_keys)
         else:
+            # old valuespecs (Pre 2.5) without values, only patterns: return True if match
             if re.match(elem, name):
                 return True
     return default
@@ -1462,7 +1534,7 @@ if cmk_version.startswith(('2.5', '2.4', '2.3')):
         name="robotmk",
         service_name="%s",
         discovery_function=discover_robotmk,
-        discovery_ruleset_name="inventory_robotmk_rules",
+        discovery_ruleset_name="inventory_robotmk_rule",
         discovery_default_parameters={},
         check_function=check_robotmk,
         check_ruleset_name="robotmk",
@@ -1473,7 +1545,7 @@ elif cmk_version.startswith(('2.2')):
         name="robotmk",
         service_name="%s",
         discovery_function=discover_robotmk,
-        discovery_ruleset_name="inventory_robotmk_rules",
+        discovery_ruleset_name="inventory_robotmk_rule",
         discovery_ruleset_type=register.RuleSetType.MERGED,
         discovery_default_parameters={},
         check_function=check_robotmk,

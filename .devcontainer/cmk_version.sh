@@ -42,8 +42,8 @@ function resolve_cmk_targets() {
             export CMK_DIR_CHECKMAN="local/lib/python3/cmk_addons/plugins/robotmk/checkman"                    
             export CMK_DIR_BAKERY="local/lib/python3/cmk/base/cee/plugins/bakery"
             export CMK_FILE_WATO_BAKERY="local/lib/python3/cmk_addons/plugins/robotmk/rulesets/robotmk_wato_params_bakery.py"
-            export CMK_FILE_WATO_DISCOVERY="TODO"
-            export CMK_FILE_WATO_CHECK="TODO"
+            export CMK_FILE_WATO_DISCOVERY="local/lib/python3/cmk_addons/plugins/robotmk/rulesets/robotmk_wato_params_discovery.py"
+            export CMK_FILE_WATO_CHECK="local/lib/python3/cmk_addons/plugins/robotmk/rulesets/robotmk_wato_params_check.py"
             ;;
         2.4)
             export CMK_DIR_CHECKS="local/lib/python3/cmk_addons/plugins/robotmk/agent_based"
@@ -51,8 +51,8 @@ function resolve_cmk_targets() {
             export CMK_DIR_CHECKMAN="local/lib/python3/cmk_addons/plugins/robotmk/checkman"            
             export CMK_DIR_BAKERY="local/lib/check_mk/base/cee/plugins/bakery"
             export CMK_FILE_WATO_BAKERY="local/share/check_mk/web/plugins/wato/robotmk_wato_params_bakery.py"
-            export CMK_FILE_WATO_DISCOVERY="TODO"
-            export CMK_FILE_WATO_CHECK="TODO"
+            export CMK_FILE_WATO_DISCOVERY="local/share/check_mk/web/plugins/wato/robotmk_wato_params_discovery.py"
+            export CMK_FILE_WATO_CHECK="local/share/check_mk/web/plugins/wato/robotmk_wato_params_check.py"
             ;;
         2.3)
             export CMK_DIR_CHECKS="local/lib/python3/cmk_addons/plugins/robotmk/agent_based"
@@ -60,17 +60,8 @@ function resolve_cmk_targets() {
             export CMK_DIR_CHECKMAN="local/lib/python3/cmk_addons/plugins/robotmk/checkman"            
             export CMK_DIR_BAKERY="local/lib/check_mk/base/cee/plugins/bakery"
             export CMK_FILE_WATO_BAKERY="local/share/check_mk/web/plugins/wato/robotmk_wato_params_bakery.py"
-            export CMK_FILE_WATO_DISCOVERY="TODO"
-            export CMK_FILE_WATO_CHECK="TODO"
-            ;;
-        2.2)            
-            export CMK_DIR_CHECKS="local/lib/check_mk/base/plugins/agent_based"
-            export CMK_DIR_GRAPHING="local/share/check_mk/web/plugins/metrics"
-            export CMK_DIR_CHECKMAN="local/share/check_mk/checkman"
-            export CMK_DIR_BAKERY="local/lib/check_mk/base/cee/plugins/bakery"
-            export CMK_FILE_WATO_BAKERY="local/share/check_mk/web/plugins/wato/robotmk_wato_params_bakery.py"
-            export CMK_FILE_WATO_DISCOVERY="TODO"
-            export CMK_FILE_WATO_CHECK="TODO"
+            export CMK_FILE_WATO_DISCOVERY="local/share/check_mk/web/plugins/wato/robotmk_wato_params_discovery.py"
+            export CMK_FILE_WATO_CHECK="local/share/check_mk/web/plugins/wato/robotmk_wato_params_check.py"
             ;;
         *)
             # Unknown, try addons first
