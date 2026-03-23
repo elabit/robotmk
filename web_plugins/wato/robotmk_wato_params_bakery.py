@@ -1245,3 +1245,16 @@ else:
             valuespec=_valuespec_agent_config_robotmk,
         )
     )
+
+# Test imports when run standalone
+if __name__ == "__main__":
+    print(f"IS_CMK_25_OR_LATER: {IS_CMK_25_OR_LATER}")
+    if IS_CMK_25_OR_LATER:
+        print("✓ Successfully imported v1 API")
+        print(f"✓ Rule spec created: {rule_spec_robotmk_bakery.name}")
+    elif LEGACY_API_AVAILABLE:
+        print("✓ Successfully imported legacy API")
+        print("✓ Rule spec will be registered in GUI context")
+    else:
+        print("✗ No API available (likely standalone execution without GUI)")
+    print("File loads successfully!")
