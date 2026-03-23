@@ -86,7 +86,22 @@ class RMKSuite:
 
     @property
     def failed_handling(self):
-        return self.suite_dict.get("failed_handling", {})
+        """Get failed_handling dict and convert CMK 2.5 tuple format to dict"""
+        fh = self.suite_dict.get("failed_handling", {})
+        if not fh:
+            return {}
+        
+        # CMK 2.5 returns strategy as tuple: ('incremental', {'rerun_selection': {...}})
+        # Convert to dict format: {'name': 'incremental', 'rerun_selection': {...}}
+        if "strategy" in fh and isinstance(fh["strategy"], tuple):
+            strategy_name, strategy_params = fh["strategy"][0], fh["strategy"][1]
+            new_strategy = {"name": strategy_name}
+            if strategy_name == "incremental" and strategy_params:
+                new_strategy.update(strategy_params)
+            fh = dict(fh)  # Make a copy
+            fh["strategy"] = new_strategy
+        
+        return fh
 
     @property
     def suiteid(self):
@@ -124,10 +139,32 @@ class RMK:
         global_dict = self.cfg_dict["global"]
         suites_dict = self.cfg_dict["suites"]
         global_dict["execution_mode"] = self.execution_mode
-        global_dict["agent_output_encoding"] = conf["agent_output_encoding"]
-        global_dict["transmit_html"] = conf["transmit_html"]
+        
+        # CMK 2.5 may return tuples for CascadingDropdown without parameters
+        # Extract first element: ('zlib_codec', None) → 'zlib_codec'
+        agent_output_encoding = conf["agent_output_encoding"]
+        if isinstance(agent_output_encoding, tuple):
+            global_dict["agent_output_encoding"] = agent_output_encoding[0]
+        else:
+            global_dict["agent_output_encoding"] = agent_output_encoding
+        
+        # CMK 2.5 may pass "true"/"false" strings instead of booleans - normalize to boolean
+        transmit_html_val = conf["transmit_html"]
+        if isinstance(transmit_html_val, str):
+            global_dict["transmit_html"] = transmit_html_val.lower() == "true"
+        else:
+            global_dict["transmit_html"] = transmit_html_val
+        
         global_dict["log_level"] = conf["log_level"]
-        global_dict["log_rotation"] = conf["log_rotation"]
+        
+        # CMK 2.5 may return tuples for CascadingDropdown without parameters
+        # Extract first element: (7, None) → 7
+        log_rotation = conf["log_rotation"]
+        if isinstance(log_rotation, tuple):
+            global_dict["log_rotation"] = log_rotation[0]
+        else:
+            global_dict["log_rotation"] = log_rotation
+        
         global_dict["robotdir"] = conf["dirs"].get("robotdir", None)
         global_dict["outputdir"] = conf["dirs"].get("outputdir", None)
         global_dict["logdir"] = conf["dirs"].get("logdir", None)
@@ -212,6 +249,17 @@ def get_robotmk_files(conf) -> FileGenerator:
     # anything on it, there are strange changes ocurring while building the
     # packages of OS. A deepcopy solves this completely.
     config = RMK(copy.deepcopy(conf))
+    
+    # Checkmk 2.5+? hack - don't want to spend too much time on making the code compatible with all versions.
+    if  config.global_dict.get("log_rotation").startswith("value_"):
+        # extract the number 
+        config.global_dict["log_rotation"] = int(config.global_dict["log_rotation"].split("_")[1])
+    for suite in config.suites_dict.values():
+        # Remove empty lists from robot_params - iterate over list copy to avoid RuntimeError
+        for robot_param in list(suite.get("robot_params", {}).keys()):
+            if (isinstance(suite["robot_params"][robot_param], list) and len(suite["robot_params"][robot_param]) == 0) \
+                or (isinstance(suite["robot_params"][robot_param], str) and len(suite["robot_params"][robot_param]) == 0):
+                suite["robot_params"].pop(robot_param) 
     for base_os in [OS.LINUX, OS.WINDOWS]:
         controller_plugin = config.controller_plugin(base_os)
         runner_plugin = config.runner_plugin(base_os)
@@ -229,13 +277,12 @@ def get_robotmk_files(conf) -> FileGenerator:
 def _get_yml_lines(config) -> List[str]:
 
     header = (
-        "# This file is part of Robotmk, a module for the integration of Robot\n"
-        + "# framework test results into Checkmk.\n"
+        "# This file is part of Robotmk, a module for the integration of Robot Framework\n"
+        + "# test results into Checkmk.\n"
         + "#\n"
-        + "# https://robotmk.org\n"
-        + "# https://github.com/elabit/robotmk\n"
-        + "# https://robotframework.org/\n"
         + "# ROBOTMK VERSION: %s\n" % ROBOTMK_VERSION
+        + "# For support, training and consulting, please visit:\n"
+        + "# https://robotmk.org\n"
     )
     headerlist = header.split("\n")
     # PyYAML is very picky with Dict subclasses; add a representer to dump the data.

@@ -187,8 +187,18 @@ if IS_CMK_25_OR_LATER:
             self.kwargs = kwargs
         
         def _convert_to_25(self):
-            elements = [SingleChoiceElement(name=_safe_identifier(c[0]), title=_Title(str(c[1]))) for c in self.choices]
+            # Convert all choice values to safe identifiers for SingleChoiceElement names
+            # Note: Boolean values become "true"/"false" strings in CMK 2.5
+            elements = []
+            for c in self.choices:
+                choice_val = c[0]
+                choice_title = c[1]
+                element_name = _safe_identifier(choice_val)
+                elements.append(SingleChoiceElement(name=element_name, title=_Title(str(choice_title))))
+            
+            # Default value handling
             default_name = _safe_identifier(self.default_value) if self.default_value is not None else (elements[0].name if elements else "")
+            
             return _SingleChoice25(
                 title=_Title(str(self.title)) if self.title else None,
                 help_text=_Help(str(self.help)) if self.help else None,
@@ -197,7 +207,8 @@ if IS_CMK_25_OR_LATER:
             )
     
     class CascadingDropdown:
-        """Adapter: CascadingDropdown (old API) → CascadingSingleChoice (new API)"""
+        """Adapter: CascadingDropdown (old API) → CascadingSingleChoice (new API)
+        Always returns tuples in CMK 2.5; bakery script handles tuple extraction"""
         def __init__(self, title=None, help=None, choices=None, default_value=None, sorted=True, **kwargs):
             self.title = title
             self.help = help
@@ -206,6 +217,8 @@ if IS_CMK_25_OR_LATER:
             self.kwargs = kwargs
         
         def _convert_to_25(self):
+            # Always use CascadingSingleChoice, even for parameter-less choices
+            # The bakery script will extract values from tuples
             elements = []
             for choice in self.choices:
                 choice_id, choice_title = choice[0], choice[1]
@@ -264,7 +277,8 @@ if IS_CMK_25_OR_LATER:
                     )
     
     class Transform:
-        """Adapter: Transform - wraps valuespec and preserves transform functions"""
+        """Adapter: Transform - wraps valuespec and preserves transform functions
+        In CMK 2.5, transformations aren't directly supported, so we just return the converted form spec"""
         def __init__(self, valuespec, forth=None, back=None, **kwargs):
             self.valuespec = valuespec
             self.forth = forth
@@ -272,7 +286,9 @@ if IS_CMK_25_OR_LATER:
             self.kwargs = kwargs
         
         def _convert_to_25(self):
-            # In 2.5, migrations are handled differently, return the wrapped valuespec
+            # Convert the wrapped valuespec to form spec
+            # Note: forth/back transformations aren't supported in CMK 2.5's form specs
+            # The transformation will need to be handled elsewhere (e.g., in the bakery script)
             return self.valuespec._convert_to_25() if hasattr(self.valuespec, '_convert_to_25') else self.valuespec
     
     class Alternative:
@@ -757,7 +773,7 @@ _dict_el_suite_variablefile = (
     ),
 )
 
-_agent_config_testsuites_robotframework_params_dict = Dictionary(
+_agent_config_testsuites_robotframework_params_dict_base = Dictionary(
     title=_("Robot Framework parameters"),
     help=_(
         "The options here allow to specify the most common <b>commandline parameters</b> for Robot Framework.<br>"
@@ -827,6 +843,29 @@ _agent_config_testsuites_robotframework_params_dict = Dictionary(
             ),
         ),
     ],
+)
+
+# Wrap to filter empty defaults (empty lists, empty strings, empty dicts)
+def _filter_empty_robot_params(data):
+    """Remove empty values from robot_params to keep YAML clean"""
+    if not isinstance(data, dict):
+        return data
+    filtered = {}
+    for key, value in data.items():
+        # Keep non-empty values and the exitonfailure field (even if 'no')
+        if key == 'exitonfailure':
+            filtered[key] = value
+        elif isinstance(value, (list, dict, str)):
+            if value:  # Only include if not empty
+                filtered[key] = value
+        else:
+            filtered[key] = value
+    return filtered
+
+_agent_config_testsuites_robotframework_params_dict = Transform(
+    valuespec=_agent_config_testsuites_robotframework_params_dict_base,
+    forth=lambda x: x,  # No transformation needed when loading
+    back=_filter_empty_robot_params,  # Filter empty values when saving
 )
 
 _agent_config_testsuites_max_executions_selection_dict = Dictionary(
