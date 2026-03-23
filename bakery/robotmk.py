@@ -251,7 +251,7 @@ def get_robotmk_files(conf) -> FileGenerator:
     config = RMK(copy.deepcopy(conf))
     
     # Checkmk 2.5+? hack - don't want to spend too much time on making the code compatible with all versions.
-    if  config.global_dict.get("log_rotation").startswith("value_"):
+    if type(config.global_dict.get("log_rotation")) == str and config.global_dict.get("log_rotation").startswith("value_"):
         # extract the number 
         config.global_dict["log_rotation"] = int(config.global_dict["log_rotation"].split("_")[1])
     for suite in config.suites_dict.values():
