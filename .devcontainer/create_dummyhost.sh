@@ -8,11 +8,8 @@ set -euo pipefail
 SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 REPO_ROOT="$(cd "${SCRIPT_DIR}/.." && pwd)"
 
-CMK_VERSION_MM="${1:-}"
-if [[ -z "${CMK_VERSION_MM}" ]]; then
-    echo "Usage: $0 <cmk-version-mm>"
-    exit 1
-fi
+CMK_ETC_DIR=/omd/sites/cmk/etc/check_mk
+CMK_RULES_DIR=$WORKSPACE/.devcontainer/conf/checkmk
 
 SECRETFILE=/opt/omd/sites/cmk/var/check_mk/web/automation/automation.secret
 if [[ ! -r "${SECRETFILE}" ]]; then
@@ -56,17 +53,11 @@ else
     echo "+ robotmk agent config already in rules.mk ... "
 fi
 
-case "${CMK_VERSION_MM}" in
-    2.2)
-        # 2.2 already reloaded; nothing else to do.
-        ;;
-    2.3|2.4|2.5)
-        echo "+ Discovering ... "
-        cmk -IIv >/dev/null 2>&1
-        echo "+ Reloading CMK config ... "
-        cmk -R
-        ;;
-    *)
-        echo "WARNING: Unsupported CMK version '${CMK_VERSION_MM}'; skipping discovery." >&2
-        ;;
-esac
+echo "+ Adding ignore rules to $CMK_ETC_DIR/final.mk ... "
+cat $CMK_RULES_DIR/final.mk.txt > $CMK_ETC_DIR/final.mk
+
+
+echo "+ Discovering ... "
+cmk -IIv >/dev/null 2>&1
+echo "+ Reloading CMK config ... "
+cmk -R
