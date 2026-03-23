@@ -39,27 +39,38 @@ function resolve_cmk_targets() {
         2.5)
             export CMK_DIR_CHECKS="local/lib/python3/cmk_addons/plugins/robotmk/agent_based"
             export CMK_DIR_GRAPHING="local/lib/python3/cmk_addons/plugins/robotmk/graphing"
-            export CMK_DIR_CHECKMAN="local/lib/python3/cmk_addons/plugins/robotmk/checkman" 
-            # TODO: Verify if bakery path can be used in all other versions as well           
+            export CMK_DIR_CHECKMAN="local/lib/python3/cmk_addons/plugins/robotmk/checkman"                    
             export CMK_DIR_BAKERY="local/lib/python3/cmk/base/cee/plugins/bakery"
+            export CMK_FILE_WATO_BAKERY="local/lib/python3/cmk_addons/plugins/robotmk/rulesets/robotmk_wato_params_bakery.py"
+            export CMK_FILE_WATO_DISCOVERY="TODO"
+            export CMK_FILE_WATO_CHECK="TODO"
             ;;
         2.4)
             export CMK_DIR_CHECKS="local/lib/python3/cmk_addons/plugins/robotmk/agent_based"
             export CMK_DIR_GRAPHING="local/lib/python3/cmk_addons/plugins/robotmk/graphing"
             export CMK_DIR_CHECKMAN="local/lib/python3/cmk_addons/plugins/robotmk/checkman"            
             export CMK_DIR_BAKERY="local/lib/check_mk/base/cee/plugins/bakery"
+            export CMK_FILE_WATO_BAKERY="local/share/check_mk/web/plugins/wato/robotmk_wato_params_bakery.py"
+            export CMK_FILE_WATO_DISCOVERY="TODO"
+            export CMK_FILE_WATO_CHECK="TODO"
             ;;
         2.3)
             export CMK_DIR_CHECKS="local/lib/python3/cmk_addons/plugins/robotmk/agent_based"
             export CMK_DIR_GRAPHING="local/lib/python3/cmk_addons/plugins/robotmk/graphing"
             export CMK_DIR_CHECKMAN="local/lib/python3/cmk_addons/plugins/robotmk/checkman"            
             export CMK_DIR_BAKERY="local/lib/check_mk/base/cee/plugins/bakery"
+            export CMK_FILE_WATO_BAKERY="local/share/check_mk/web/plugins/wato/robotmk_wato_params_bakery.py"
+            export CMK_FILE_WATO_DISCOVERY="TODO"
+            export CMK_FILE_WATO_CHECK="TODO"
             ;;
         2.2)            
             export CMK_DIR_CHECKS="local/lib/check_mk/base/plugins/agent_based"
             export CMK_DIR_GRAPHING="local/share/check_mk/web/plugins/metrics"
             export CMK_DIR_CHECKMAN="local/share/check_mk/checkman"
             export CMK_DIR_BAKERY="local/lib/check_mk/base/cee/plugins/bakery"
+            export CMK_FILE_WATO_BAKERY="local/share/check_mk/web/plugins/wato/robotmk_wato_params_bakery.py"
+            export CMK_FILE_WATO_DISCOVERY="TODO"
+            export CMK_FILE_WATO_CHECK="TODO"
             ;;
         *)
             # Unknown, try addons first
@@ -68,11 +79,52 @@ function resolve_cmk_targets() {
             ;;
     esac
 
-    # Stable paths across 2.2-2.4
+    # Stable paths
     export CMK_DIR_AGENT_PLUGINS="local/share/check_mk/agents/plugins"
-    
     export CMK_DIR_WATO="local/share/check_mk/web/plugins/wato"
     export CMK_DIR_IMAGES="local/share/check_mk/web/htdocs/images"
+}
+
+# Define sync targets with their types (FOLDER or FILE)
+# Format: "workspace_path|target_path|type"
+function get_sync_targets() {
+    local -a targets=()
+    
+    # Robotmk check plugins - FOLDER sync
+    targets+=("checks|${CMK_DIR_CHECKS}|FOLDER")
+    
+    # Robotmk metrics/graphing - FOLDER sync
+    targets+=("web_plugins/metrics|${CMK_DIR_GRAPHING}|FOLDER")
+    
+    # Robotmk checkman - FOLDER sync
+    targets+=("checkman|${CMK_DIR_CHECKMAN}|FOLDER")
+    
+    # Robotmk bakery - FOLDER sync
+    targets+=("bakery|${CMK_DIR_BAKERY}|FOLDER")
+    
+    # WATO rules 
+    #targets+=("web_plugins/wato|local/share/check_mk/web/plugins/wato|FOLDER")
+
+    # WATO bakery ruleset - FILE sync
+    targets+=("web_plugins/wato/robotmk_wato_params_bakery.py|${CMK_FILE_WATO_BAKERY}|FILE")
+    # WATO discovery ruleset - FILE sync
+    targets+=("web_plugins/wato/robotmk_wato_params_discovery.py|${CMK_FILE_WATO_DISCOVERY}|FILE")
+    # WATO check ruleset - FILE sync
+    targets+=("web_plugins/wato/robotmk_wato_params_check.py|${CMK_FILE_WATO_CHECK}|FILE")
+
+
+    # Agent plugins - folder
+    targets+=("agents_plugins|${CMK_DIR_AGENT_PLUGINS}|FOLDER")
+
+    # Images/icons
+    targets+=("images|${CMK_DIR_IMAGES}|FOLDER")
+    
+    # Common files
+    targets+=("scripts/.site_bash_aliases|.bash_aliases|FILE")
+    targets+=("rf_tests|/usr/lib/check_mk_agent/robot|FOLDER")
+    targets+=("agent_output|var/check_mk/agent_output|FOLDER")    
+    
+    printf "%s\n" "${targets[@]}"
 }
 
 # Auto-resolve targets when script is sourced (for convenience)
@@ -87,3 +139,4 @@ fi
 # Export the functions for other scripts to use
 export -f detect_cmk_version
 export -f resolve_cmk_targets
+export -f get_sync_targets

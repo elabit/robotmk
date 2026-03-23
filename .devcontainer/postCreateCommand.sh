@@ -7,14 +7,6 @@
 SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 source "${SCRIPT_DIR}/cmk_version.sh"
 
-LINKTYPE=$1
-# ARG1 must be either "cmkonly" or "full" => linkfiles.sh
-if [ "$LINKTYPE" != "cmkonly" ] && [ "$LINKTYPE" != "full" ]; then
-    echo "ERROR: Argument must be either 'cmkonly' or 'full'."
-    exit 1
-fi
-
-
 echo "▹ WORKSPACE: $WORKSPACE"
 if [ -z "$CMK_VERSION_MM" ]; then
     echo "ERROR: CMK_VERSION_MM environment variable is not set."
@@ -24,9 +16,13 @@ else
     echo -n "$CMK_VERSION_MM" > "$WORKSPACE/.devcontainer/tmp/cmk_version_mm.txt"
 fi
 
-# This step ties the workspace files with the Devcontainer. lsyncd is used to synchronize files. 
-echo "▹ Linking the project files into the container (linkfiles.sh $LINKTYPE)..."
-/workspaces/robotmk/.devcontainer/linkfiles.sh $LINKTYPE
+# This step ties the workspace files with the Devcontainer. 
+echo "▹ Syncing the project files into the container..."
+/workspaces/robotmk/.devcontainer/linkfiles.sh
+
+# Start file watcher for real-time bidirectional sync
+echo "▹ Starting file watcher for real-time sync..."
+/workspaces/robotmk/.devcontainer/watch_sync.sh start
 
 # Tell bash to load aliases and functions
 echo "▹ Loading aliases and functions..."
