@@ -32,3 +32,4 @@ nohup.out
 agent_output/*
 !agent_output/.gitkeep
 tmp
+.github/copilot-instructions.md

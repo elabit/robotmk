@@ -43,14 +43,12 @@ When you open the Robotmk project for the first time in [Visual Studio Code](htt
 
 Robotmk uses [chag](https://raw.githubusercontent.com/mtdowling/chag/master/install.sh) to keep annotated tags and the CHANGELOG in sync.
 
-You can install chag using:
-
-    task setup:install-chag
+You can install chag manually following the instructions at the link above.
 
 Examples:
 
-* Show entries of a special release: `task ch:view VERSION=1.0.2`
-* Create a Changelog entry for the `Unreleased` section: `task ch:update VERSION=1.0.4`
+* Show entries of a special release: `chag contents 1.0.2`
+* Create a Changelog entry for the `Unreleased` section: `chag update 1.0.4`
   
 ### Github CLI tool
 
@@ -59,8 +57,6 @@ Authentication to GitHub is required if you want to release/unrelease.
 Install the CLI tools from <https://github.com/cli/cli>.
 
 After installation, authenticate to github. It will ask you about your authentication method, protocol, and present an authentication code which you should open in the opened Github web page.
-
-    task setup:gh-auth
 
 After that you are fully authenticated in the CLI to GitHub.
 
@@ -92,17 +88,14 @@ Once Task is installed, you can use it from the project root:
 # List all available tasks
 task --list
 
-# Show the quick start guide
-task quickstart
-
 # Build devcontainer images
-task devcontainer:build-images
+task devc:img
 
 # Generate devcontainer configuration for a specific CMK version
-task devcontainer:generate VERSION=2.4.0p12
+task devc:gen VERSION=2.4.0p12
 
 # Create a release
-task release VERSION=1.2.0
+task rel VERSION=1.2.0
 
 # Get detailed help for any specific task
 task <task-name> --summary
@@ -130,7 +123,7 @@ Example:
 
 After that, run the following command to build the required Docker images:
 
-    task devc:build-images
+    task devc:img
 
 * First it checks if the CMK Docker images are already available locally. If not, it connects to the [Checkmk Docker Registry](registry.checkmk.com) and downloads the images from there.
 * It then creates a new Docker image based on the CMK docker image (downloaded in step 1) and installs some more things (see `.devcontainer/Dockerfile_cmk_py3_dev`):
@@ -155,13 +148,13 @@ See `.devcontainer/Dockerfile` (which is referenced in `devcontainer.json`).
 
 To generate the devcontainer JSON file, execute the following command:
 
-    task devc:generate
+    task devc:gen
 
 It will ask interactively which version you want to generate the devcontainer for (from the versions configured in `.devcontainer/devcontainer_img_versions.env`).
 
 ```bash
-$> task devc:generate
-task: [devc:generate] .devcontainer/devcontainer_gen.sh 
+$> task devc:gen
+task: [devc:gen] .devcontainer/devcontainer_gen.sh 
 No cmk version (arg1) specified. Select a version:
 1) 2.5.0-2026.03.05
 2) 2.4.0p12
@@ -202,14 +195,7 @@ This is sometimes a little bit unreliable and must be done manually:
 
 * Open <http://127.0.0.1:5000> and log in.
 * Create a new user "automation" (Admin), password is to store as plain text.
-* Run:
-
-      task devc:create-dummyhost
-
-  This will:
-  * create a host
-  * add a bakery rule
-  * add a monitoring rule (with graphs for all items)
+* Manually create a test host through the Checkmk web interface
 * Connect to the container as root and execute `bake_and_install_agent_localhost` (bash alias)
   * bake a new agent for the new host
   * install the agent & Robotmk plugin
@@ -224,18 +210,25 @@ VS code displays by default only the files of the workspace (`/workspaces/robotm
 
 ![Adding OMD_ROOT as workspace folder in VS Code](./img/vs_code_add_folder.png)
 
+- open the file you want to debug (from the CMK context)
+- Select Interpreter for workspace "cmk": `/omd/sites/cmk/bin/python3`
+
 You can now add breakpoints to the scripts in this folder to debug them.  
 Also, only then the code completion (classes, functions, ...) works properly, because it works in the same Python context as Checkmk.
+
+### Debugging Rules
+
+Discovery Rule: 
+
+- 
+
+Do a `omd restart` if changes in the registration of rulesets are to be applied. 
 
 ### Debugging Robotmk agent plugins
 
 Debugging `robotmk.py` and `robotmk-runner.py` from the devcontainer is not straightforward, because from the context of the `cmk` user, you are not able to access the Robotmk YML and log files. But it is possible (and very useful), if just do the following steps:
 
-* Fix the agent permissions:
-
-      task devc:fix-permissions
-
-  This script fixes the missing permissions to `/var/log/robotmk` and `/etc/check_mk/robotmk.yml`.
+* Fix the agent permissions manually by adjusting file permissions for `/var/log/robotmk` and `/etc/check_mk/robotmk.yml`.
 
 (The required modules for robotmk were installed during `postCreateCommand.sh`)
 
@@ -333,13 +326,9 @@ Note: In newer CMK versions the bakery module is at `lib/python3/cmk/base/cee/ba
 
 To test how the Github workflow will build MKPs for Robotmk, you can run the build script within the container locally:
 
-    task build:mkp
+    task build
 
-The resulting MKP can be copied to the host system as follows:
-
-    task build:copy-mkp CONTAINER=<container-id>
-
-To find your container ID, run `task docker:ps` or `docker ps`.
+The resulting MKP will be created in the `build/` directory which is accessible from both the container and host system.
 
 ---
 
@@ -404,11 +393,11 @@ VS Code already presents you a bash terminal as user `cmk`.
 
 To open another bash as `root`, use:
 
-    task docker:shell-root
+    task docker:sh-root
 
 Or to open a shell as the `cmk` user:
 
-    task docker:shell
+    task docker:sh
 
 Inside of the `root` bash, you can also open a preconfigured `tmux` terminal which allows to work with multiple panes.
 Shortcuts ("Ca" = Ctrl + a):
@@ -439,23 +428,26 @@ There are several CMK OMD administration tasks predefined in Tasks Chooser (exte
 Here are some helpful task commands for development:
 
 ```bash
-# View container logs (useful for debugging startup issues)
-task docker:logs
+# List all available tasks
+task --list
 
-# View container logs in follow mode
-task docker:logs FOLLOW=true
+# Build devcontainer images
+task devc:img
 
-# List all running Robotmk containers
-task docker:ps
+# Generate devcontainer configuration
+task devc:gen
 
-# Show current devcontainer configuration
-task info:container
+# Build MKP packages
+task build
 
-# Show configured CMK versions
-task info:versions
+# Create a release
+task rel VERSION=x.y.z
 
-# Display file location mappings
-task info:file-locations
+# Open shell in container
+task docker:sh
+
+# Open shell as root in container
+task docker:sh-root
 ```
 
 ### Troubleshooting
