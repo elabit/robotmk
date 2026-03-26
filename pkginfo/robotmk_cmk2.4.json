@@ -24,7 +24,8 @@
             "htdocs/images/icons/robotmk80_dot.png"
         ]
     },
-    "version.packaged": "2.4.0",
-    "version.min_required": "2.3.0p1",
-    "version.usable_until": "2.4.20"
+    "version": "na",
+    "version.packaged": "na",
+    "version.min_required": "na",
+    "version.usable_until": "na"
 }

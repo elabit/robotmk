@@ -4,30 +4,384 @@
 # SPDX-License-Identifier: GPL-3.0-or-later
 # This file is part of the Robotmk project (https://www.robotmk.org)
 
-from cmk.gui.i18n import _
-from cmk.gui.valuespec import (
-    DropdownChoice,
-    Dictionary,
-    ListOf,
-    TextAscii,
-    Tuple,
-    CascadingDropdown,
-    Integer,
-    Transform,
-)
+# ============================================================================
+# Checkmk Version Detection and API Compatibility Layer
+# ============================================================================
 
-from cmk.gui.plugins.wato import (
-    rulespec_registry,
-    HostRulespec,
-)
+# Detect Checkmk version
+try:
+    from cmk.utils.paths import omd_root
+    from cmk.ccc import version
+    cmk_version = version.get_general_version_infos(omd_root)['version']
+except ImportError:
+    # Checkmk 2.2-2.4
+    from cmk.utils.version import get_general_version_infos
+    cmk_version = get_general_version_infos()['version']
 
-from cmk.gui.log import logger
+IS_CMK_25_OR_LATER = cmk_version.startswith('2.5') or cmk_version.startswith('2.6')
 
+if IS_CMK_25_OR_LATER:
+    # ========================================================================
+    # Checkmk 2.5+ Compatibility Layer
+    # ========================================================================
+    # Import new API
+    from cmk.rulesets.v1 import Title as _Title, Help as _Help, Label as _Label
+    from cmk.rulesets.v1.form_specs import (
+        DictElement,
+        Dictionary as _Dictionary25,
+        String as _String25,
+        Integer as _Integer25,
+        SingleChoice as _SingleChoice25,
+        CascadingSingleChoice as _CascadingSingleChoice25,
+        List as _List25,
+        FixedValue as _FixedValue25,
+        DefaultValue,
+        InputHint,
+        SingleChoiceElement,
+        CascadingSingleChoiceElement,
+    )
+    from cmk.rulesets.v1.rule_specs import AgentConfig, Topic
+    from cmk.gui.log import logger
+    # Import Tuple from unstable API for backward compatibility
+    try:
+        from cmk.gui.form_specs.unstable.legacy_converter import Tuple as _Tuple25
+    except ImportError:
+        # If unstable API not available, create a fallback
+        _Tuple25 = None
+    
+    # Translation wrapper
+    class _TextWrapper:
+        """Makes translated strings compatible with Title/Help/Label"""
+        def __init__(self, text):
+            self.text = str(text) if text is not None else ""
+        def __str__(self):
+            return self.text
+        def localize(self, *args, **kwargs):
+            return self.text
+    
+    def _(text):
+        """Translation function compatible with both APIs"""
+        return _TextWrapper(text)
+    
+    # Adapter classes: Old API → New API
+    class Dictionary:
+        """Adapter: Dictionary (old API) → Dictionary (new API)"""
+        def __init__(self, elements=None, title=None, help=None, optional_keys=None, **kwargs):
+            self.elements = elements or []
+            self.title = title
+            self.help = help
+            # Ensure optional_keys is always a list, never None or False
+            if optional_keys is None or optional_keys is False:
+                self.optional_keys = []
+            elif not isinstance(optional_keys, (list, tuple)):
+                self.optional_keys = list(optional_keys)
+            else:
+                self.optional_keys = optional_keys
+            self.kwargs = kwargs
+        
+        def _convert_to_25(self):
+            elements_dict = {}
+            for key, valuespec in self.elements:
+                form_spec = valuespec._convert_to_25() if hasattr(valuespec, '_convert_to_25') else valuespec
+                required = key not in self.optional_keys
+                elements_dict[key] = DictElement(parameter_form=form_spec, required=required)
+            
+            return _Dictionary25(
+                title=_Title(str(self.title)) if self.title else None,
+                help_text=_Help(str(self.help)) if self.help else None,
+                elements=elements_dict,
+            )
+    
+    class ListOf:
+        """Adapter: ListOf (old API) → List (new API)"""
+        def __init__(self, valuespec, title=None, help=None, add_label=None, movable=True, **kwargs):
+            self.valuespec = valuespec
+            self.title = title
+            self.help = help
+            self.kwargs = kwargs
+        
+        def _convert_to_25(self):
+            element_template = self.valuespec._convert_to_25() if hasattr(self.valuespec, '_convert_to_25') else self.valuespec
+            return _List25(
+                title=_Title(str(self.title)) if self.title else None,
+                help_text=_Help(str(self.help)) if self.help else None,
+                element_template=element_template,
+            )
+    
+    class ListOfStrings(ListOf):
+        """Adapter: ListOfStrings (old API) → List of Strings (new API)"""
+        def __init__(self, title=None, help=None, **kwargs):
+            # ListOfStrings in old API was ListOf with TextAscii as default valuespec
+            valuespec = TextAscii()
+            super().__init__(valuespec=valuespec, title=title, help=help, **kwargs)
+    
+    class TextAscii:
+        """Adapter: TextAscii (old API) → String (new API)"""
+        def __init__(self, title=None, help=None, allow_empty=True, size=None, default_value=None, **kwargs):
+            self.title = title
+            self.help = help
+            self.kwargs = kwargs
+        
+        def _convert_to_25(self):
+            return _String25(
+                title=_Title(str(self.title)) if self.title else None,
+                help_text=_Help(str(self.help)) if self.help else None,
+            )
+    
+    # Aliases
+    TextUnicode = TextAscii
+    MonitoredHostname = TextAscii
+    
+    class Integer:
+        """Adapter: Integer (old API) → Integer (new API)"""
+        def __init__(self, title=None, help=None, minvalue=None, maxvalue=None, default_value=None, **kwargs):
+            self.title = title
+            self.help = help
+            self.default_value = default_value
+            self.kwargs = kwargs
+        
+        def _convert_to_25(self):
+            return _Integer25(
+                title=_Title(str(self.title)) if self.title else None,
+                help_text=_Help(str(self.help)) if self.help else None,
+                prefill=DefaultValue(self.default_value) if self.default_value is not None else InputHint(0),
+            )
+    
+    class Age:
+        """Adapter: Age (old API) → Integer (new API) - represents seconds"""
+        def __init__(self, title=None, help=None, minvalue=None, maxvalue=None, default_value=None, **kwargs):
+            self.title = title
+            self.help = help
+            self.default_value = default_value
+            self.kwargs = kwargs
+        
+        def _convert_to_25(self):
+            return _Integer25(
+                title=_Title(str(self.title)) if self.title else None,
+                help_text=_Help(str(self.help)) if self.help else None,
+                prefill=DefaultValue(self.default_value) if self.default_value is not None else InputHint(0),
+            )
+    
+    def _safe_identifier(value):
+        """Convert a value to a safe Python identifier"""
+        if isinstance(value, bool):
+            # Use lowercase for booleans to avoid Python reserved keywords
+            return "true" if value else "false"
+        elif value is None:
+            return "none"
+        else:
+            # Convert to string and ensure it's a valid identifier
+            str_val = str(value)
+            # Replace invalid characters
+            if str_val and (str_val[0].isdigit() or not str_val.replace('_', '').isalnum()):
+                return f"value_{str_val.replace(' ', '_').replace('-', '_')}"
+            return str_val
+    
+    class DropdownChoice:
+        """Adapter: DropdownChoice (old API) → SingleChoice (new API)"""
+        def __init__(self, title=None, help=None, choices=None, default_value=None, sorted=True, **kwargs):
+            self.title = title
+            self.help = help
+            self.choices = choices or []
+            self.default_value = default_value
+            self.kwargs = kwargs
+        
+        def _convert_to_25(self):
+            # Convert all choice values to safe identifiers for SingleChoiceElement names
+            # Note: Boolean values become "true"/"false" strings in CMK 2.5
+            elements = []
+            for c in self.choices:
+                choice_val = c[0]
+                choice_title = c[1]
+                element_name = _safe_identifier(choice_val)
+                elements.append(SingleChoiceElement(name=element_name, title=_Title(str(choice_title))))
+            
+            # Default value handling
+            default_name = _safe_identifier(self.default_value) if self.default_value is not None else (elements[0].name if elements else "")
+            
+            return _SingleChoice25(
+                title=_Title(str(self.title)) if self.title else None,
+                help_text=_Help(str(self.help)) if self.help else None,
+                elements=elements,
+                prefill=DefaultValue(default_name),
+            )
+    
+    class CascadingDropdown:
+        """Adapter: CascadingDropdown (old API) → CascadingSingleChoice (new API)
+        Always returns tuples in CMK 2.5; bakery script handles tuple extraction"""
+        def __init__(self, title=None, help=None, choices=None, default_value=None, sorted=True, **kwargs):
+            self.title = title
+            self.help = help
+            self.choices = choices or []
+            self.default_value = default_value
+            self.kwargs = kwargs
+        
+        def _convert_to_25(self):
+            # Always use CascadingSingleChoice, even for parameter-less choices
+            # The bakery script will extract values from tuples
+            elements = []
+            for choice in self.choices:
+                choice_id, choice_title = choice[0], choice[1]
+                choice_valuespec = choice[2] if len(choice) > 2 else None
+                
+                if choice_valuespec:
+                    parameter_form = choice_valuespec._convert_to_25() if hasattr(choice_valuespec, '_convert_to_25') else choice_valuespec
+                else:
+                    # Use FixedValue(None) for choices without parameters
+                    parameter_form = _FixedValue25(value=None)
+                
+                elements.append(CascadingSingleChoiceElement(
+                    name=_safe_identifier(choice_id),
+                    title=_Title(str(choice_title)),
+                    parameter_form=parameter_form
+                ))
+            
+            # For prefill, use the safe identifier of the default value, or first element
+            default_name = _safe_identifier(self.default_value) if self.default_value is not None else (elements[0].name if elements else "")
+            return _CascadingSingleChoice25(
+                title=_Title(str(self.title)) if self.title else None,
+                help_text=_Help(str(self.help)) if self.help else None,
+                elements=elements,
+                prefill=DefaultValue(default_name),
+            )
+    
+    class Tuple:
+        """Adapter: Tuple (old API) → Tuple/List (new API)"""
+        def __init__(self, elements=None, title=None, help=None, orientation="vertical", **kwargs):
+            self.elements = elements or []
+            self.title = title
+            self.help = help
+            self.kwargs = kwargs
+        
+        def _convert_to_25(self):
+            converted = [e._convert_to_25() if hasattr(e, '_convert_to_25') else e for e in self.elements]
+            if _Tuple25 is not None:
+                # Use unstable Tuple if available
+                return _Tuple25(
+                    title=_Title(str(self.title)) if self.title else None,
+                    help_text=_Help(str(self.help)) if self.help else None,
+                    elements=converted,
+                )
+            else:
+                # Fallback: Convert to List (less ideal but works)
+                if len(converted) == 1:
+                    # Single element tuple - just return the element
+                    return converted[0]
+                else:
+                    # Multiple elements - wrap in List
+                    # Note: This changes semantics but is better than failing
+                    return _List25(
+                        title=_Title(str(self.title)) if self.title else None,
+                        help_text=_Help(str(self.help)) if self.help else None,
+                        element_template=converted[0] if converted else _String25(),
+                    )
+    
+    class Transform:
+        """Adapter: Transform - wraps valuespec and preserves transform functions
+        In CMK 2.5, transformations aren't directly supported, so we just return the converted form spec"""
+        def __init__(self, valuespec, forth=None, back=None, **kwargs):
+            self.valuespec = valuespec
+            self.forth = forth
+            self.back = back
+            self.kwargs = kwargs
+        
+        def _convert_to_25(self):
+            # Convert the wrapped valuespec to form spec
+            # Note: forth/back transformations aren't supported in CMK 2.5's form specs
+            # The transformation will need to be handled elsewhere (e.g., in the bakery script)
+            return self.valuespec._convert_to_25() if hasattr(self.valuespec, '_convert_to_25') else self.valuespec
+    
+    class Alternative:
+        """Adapter: Alternative (old API) → CascadingSingleChoice (new API)"""
+        def __init__(self, title=None, help=None, elements=None, style="dropdown", **kwargs):
+            self.title = title
+            self.help = help
+            self.elements = elements or []
+            self.style = style
+            self.kwargs = kwargs
+        
+        def _convert_to_25(self):
+            choice_elements = []
+            for idx, elem in enumerate(self.elements):
+                param_form = elem._convert_to_25() if hasattr(elem, '_convert_to_25') else elem
+                elem_title = getattr(elem, 'title', f"Option {idx + 1}")
+                choice_elements.append(CascadingSingleChoiceElement(
+                    name=f"option_{idx}",
+                    title=_Title(str(elem_title)),
+                    parameter_form=param_form
+                ))
+            
+            return _CascadingSingleChoice25(
+                title=_Title(str(self.title)) if self.title else None,
+                help_text=_Help(str(self.help)) if self.help else None,
+                elements=choice_elements,
+                prefill=DefaultValue("option_0") if choice_elements else DefaultValue(""),
+            )
+    
+    class FixedValue:
+        """Adapter: FixedValue (old API) → FixedValue (new API)"""
+        def __init__(self, value, title=None, totext=None, **kwargs):
+            self.value = value
+            self.title = title
+            self.totext = totext
+            self.kwargs = kwargs
+        
+        def _convert_to_25(self):
+            return _FixedValue25(
+                title=_Title(str(self.title)) if self.title else None,
+                help_text=_Help(str(self.totext)) if self.totext else None,
+                value=self.value,
+            )
+    
+    # Placeholder for old API registration - will be replaced at module end
+    class _MockRulespecRegistry:
+        def register(self, rulespec):
+            pass
+    
+    rulespec_registry = _MockRulespecRegistry()
+    
+    class HostRulespec:
+        """Placeholder for old HostRulespec"""
+        def __init__(self, **kwargs):
+            self.kwargs = kwargs
+    
+    class RulespecGroupMonitoringAgentsAgentPlugins:
+        """Placeholder for old group"""
+        pass
 
-from cmk.gui.cee.plugins.wato.agent_bakery.rulespecs.utils import (
-    RulespecGroupMonitoringAgentsAgentPlugins,
-)
+else:
+    # ========================================================================
+    # Checkmk < 2.5: Use old API directly
+    # ========================================================================
+    from cmk.gui.i18n import _
+    from cmk.gui.valuespec import (
+        DropdownChoice,
+        Dictionary,
+        ListOf,
+        TextAscii,
+        TextUnicode,
+        Tuple,
+        CascadingDropdown,
+        Integer,
+        Transform,
+        Alternative,
+        FixedValue,
+        Age,
+        MonitoredHostname,
+        ListOfStrings,
+    )
+    from cmk.gui.plugins.wato import (
+        rulespec_registry,
+        HostRulespec,
+    )
+    from cmk.gui.log import logger
+    from cmk.gui.cee.plugins.wato.agent_bakery.rulespecs.utils import (
+        RulespecGroupMonitoringAgentsAgentPlugins,
+    )
 
+# ============================================================================
+# Original Robotmk Configuration Code (Works with both APIs via adapters)
+# ============================================================================
 
 #   _           _
 #  | |         | |
@@ -70,39 +424,11 @@ class RMKConfig:
     @classmethod
     def wato_back(cls, data):
         """Convert the data structure coming from WATO and return the RMK dict"""
-        # logger.critical("WATO BACK -------")
-        # logger.critical(data)
-        # rmk_config = RMKConfig()
-        # rmk_config._cfg_dict = data
-
-        # rmk_config.execution_mode = data['execution_mode'][0]
-        # rmk_config.agent_output_encoding = data['agent_output_encoding']
-        # rmk_config.transmit_html = data['transmit_html']
-        # rmk_config.logging = data['logging']
-        # rmk_config.log_rotation = data['log_rotation']
-        # rmk_config.robotdir = data['dirs'].get('robotdir', None)
-        # rmk_config.outputdir = data['dirs'].get('outputdir', None)
         return data
-        return rmk_config.as_canonical_dict
 
     @classmethod
     def wato_forth(cls, data):
         """Convert the canonical data structure coming from the rule to present in WATO"""
-        # logger.critical("WATO FORTH -------")
-        # logger.critical(data)
-        # See Ref YEZDRT which demonstrates a new WATO field.
-        # The forth here checks if it is present in the loaded data and adds it, if not.
-        # if not 'transmit_html1' in data:
-        #     data['transmit_html1'] = True
-        # rmk_config = RMKConfig()
-        # rmk_config._cfg_dict = data
-        # logger.critical(rmk_config.execution_mode)
-        # logger.critical(rmk_config.agent_output_encoding)
-        # logger.critical(rmk_config.transmit_html)
-        # logger.critical(rmk_config.logging)
-        # logger.critical(rmk_config.log_rotation)
-        # logger.critical(rmk_config.robotdir)
-        # logger.critical(rmk_config.outputdir)
         return data
 
     @classmethod
@@ -191,12 +517,6 @@ _helptext_execution_mode_agent_serial = """
     <b>Use cases</b> for this mode:<br>
     In general, all Robot tests which can run headless and do not require a certain OS user."""
 _helptext_execution_mode_agent_parallel = """(not yet implemented)"""
-# The Checkmk agent starts the Robotmk <b>controller</b> as a normal check plugin (= in <i>agent check interval</i>).<br>
-# For each suite, the controller reads the individual <i>suite execution interval</i> and decides whether to start a dedicated plugin process in '<b>runner mode</b>', parametrized with the suite's name.<br>
-# Each runner writes its suite result into a state file. <br>
-# The controller does not wait for the runner processes to finish; it reads the most recent state files of all configured suites and generates the agent output to print it on STDOUT.<br>
-# <b>Use cases</b> for this mode: same as '<i>agent_serial</i>' - in addition, this mode makes sense on test clients which have the CPU/Mem resources for parallel test execution."""
-_helptext_execution_mode_agent_parallel = "This is only a placeholder for the parallel execution of RF suites. <b>Please choose another mode.</b>"
 _helptext_execution_mode_external = """
     The Checkmk agent starts the Robotmk <b>controller</b> as a <i>synchronous</i> check plugin in the <i>agent check interval</i>.<br><br>
     <b>Important note for Checkmk 1.6</b>: The rule <i>Deploy custom files with agent</i> (package <tt>robotmk-external</tt>) must be used to place the <b>runner</b> within the agent's <tt>bin</tt> directory (there is no other way in Checkmk 1 to deploy files to that folder).<br><br>
@@ -453,7 +773,7 @@ _dict_el_suite_variablefile = (
     ),
 )
 
-_agent_config_testsuites_robotframework_params_dict = Dictionary(
+_agent_config_testsuites_robotframework_params_dict_base = Dictionary(
     title=_("Robot Framework parameters"),
     help=_(
         "The options here allow to specify the most common <b>commandline parameters</b> for Robot Framework.<br>"
@@ -499,7 +819,6 @@ _agent_config_testsuites_robotframework_params_dict = Dictionary(
             ),
         ),
         _dict_el_suite_variablefile,
-        # dict_el_suite_customargs,
         _dict_el_suite_argsfile,
         (
             "exitonfailure",
@@ -526,6 +845,29 @@ _agent_config_testsuites_robotframework_params_dict = Dictionary(
     ],
 )
 
+# Wrap to filter empty defaults (empty lists, empty strings, empty dicts)
+def _filter_empty_robot_params(data):
+    """Remove empty values from robot_params to keep YAML clean"""
+    if not isinstance(data, dict):
+        return data
+    filtered = {}
+    for key, value in data.items():
+        # Keep non-empty values and the exitonfailure field (even if 'no')
+        if key == 'exitonfailure':
+            filtered[key] = value
+        elif isinstance(value, (list, dict, str)):
+            if value:  # Only include if not empty
+                filtered[key] = value
+        else:
+            filtered[key] = value
+    return filtered
+
+_agent_config_testsuites_robotframework_params_dict = Transform(
+    valuespec=_agent_config_testsuites_robotframework_params_dict_base,
+    forth=lambda x: x,  # No transformation needed when loading
+    back=_filter_empty_robot_params,  # Filter empty values when saving
+)
+
 _agent_config_testsuites_max_executions_selection_dict = Dictionary(
     help=_(
         """
@@ -543,7 +885,7 @@ _agent_config_testsuites_max_executions_selection_dict = Dictionary(
 )
 
 _agent_config_testsuites_failed_handling_max_iterations = Integer(
-    title=_("Maximum iteration attempts"),
+   title=_("Maximum iteration attempts"),
     help=_("The maximum number of suite executions (including the first attempt)"),
     minvalue=1,
     default_value=2,
@@ -630,8 +972,6 @@ def _gen_agent_config_dict_listof_testsuites(mode):
 def _agent_config_testsuites_failed_handling_forth(data):
     """This back/forth Transform changes the format in which the data are saved because CascadingDropdown produces a Tuple which cannot
     be written as YAML. It also helps to migrate from an older Robotmk version."""
-    # logger.critical(">>>>>>>> FORTH -----")
-    # logger.critical(data)
     if not "strategy" in data:
         # Data coming from an older Robotmk version (do not contain the strategy key)
         max_iterations = data.get("max_executions", 2)
@@ -669,16 +1009,12 @@ def _agent_config_testsuites_failed_handling_forth(data):
             "strategy": new_strategy_tuple,
         }
 
-    # logger.critical("<<<<<<<<<<<After forth")
-    # logger.critical(data)
     return new_data
 
 
 def _agent_config_testsuites_failed_handling_back(data):
     """This back/forth Transform changes the format in which the data are saved because CascadingDropdown produces a Tuple which cannot
     be written as YAML. It also helps to migrate from an older Robotmk version."""
-    # logger.critical(">>>>>>>> BACK -----")
-    # logger.critical(data)
     #  'strategy': ('incremental', {'rerun_selection': {'test': ['sdfsd']}})}
     strategy = data["strategy"]
     max_iterations = data["max_iterations"]
@@ -690,8 +1026,6 @@ def _agent_config_testsuites_failed_handling_back(data):
         rerun_selection = strategy[1]
         new_strategy.update(rerun_selection)
     new_data = {"max_iterations": max_iterations, "strategy": new_strategy}
-    # logger.critical("<<<<<<<<<<<After back")
-    # logger.critical(data)
 
     return new_data
 
@@ -834,17 +1168,6 @@ _dropdown_robotmk_execution_choices = CascadingDropdown(
                 ],
             ),
         ),
-        #  Tuple(help=_(_helptext_execution_mode_agent_serial),
-        #        elements=[
-        #            _gen_agent_config_dict_listof_testsuites("agent_serial"),
-        #            _agent_config_global_cache_time_agent_serial,
-        #            _agent_config_global_suites_execution_interval_agent_serial,
-        #        ])),
-        # ("agent_parallel", _("agent_parallel (no yet implemented)"),
-        #  Tuple(help=_(_helptext_execution_mode_agent_parallel),
-        #        elements=[
-        #            _gen_agent_config_dict_listof_testsuites("agent_parallel"),
-        #        ])),
         (
             "external",
             _("external"),
@@ -872,12 +1195,9 @@ def _valuespec_agent_config_robotmk():
             Dictionary(
                 title=_("Deploy the Robotmk plugin"),
                 elements=[
-                    # agent_serial, agent_parallel, external
                     ("execution_mode", _dropdown_robotmk_execution_choices),
                     ("agent_output_encoding", _dropdown_robotmk_output_encoding),
                     ("transmit_html", _dropdown_robotmk_transmit_html),
-                    # Ref YEZDRT (forth example)
-                    # ("transmit_html1", _dropdown_robotmk_transmit_html),
                     ("log_level", _dropdown_robotmk_logging),
                     ("log_rotation", _dropdown_robotmk_log_rotation),
                     ("dirs", _agent_config_dict_dirs),
@@ -893,10 +1213,48 @@ def _valuespec_agent_config_robotmk():
     )
 
 
-rulespec_registry.register(
-    HostRulespec(
-        group=RulespecGroupMonitoringAgentsAgentPlugins,
-        name="agent_config:robotmk",
-        valuespec=_valuespec_agent_config_robotmk,
+# ============================================================================
+# Registration - Version-specific
+# ============================================================================
+
+if IS_CMK_25_OR_LATER:
+    # For Checkmk 2.5+, register using the new API
+    def _parameter_form_robotmk():
+        """Convert the old-style valuespec to new API"""
+        # For CMK 2.5+, AgentConfig expects a Dictionary at the top level
+        # The old Alternative allowed "deploy" vs "don't deploy", but in 2.5
+        # the user simply doesn't create a rule if they don't want to deploy
+        old_valuespec = _valuespec_agent_config_robotmk()
+        
+        # Get the Dictionary from the first option of the Alternative (Deploy option)
+        first_option = old_valuespec.elements[0]
+        return first_option._convert_to_25()
+    
+    rule_spec_robotmk_bakery = AgentConfig(
+        name="robotmk",
+        title=_Title("Robotmk v1 Agent Plugin (Linux, Windows)"),
+        topic=Topic.GENERAL,
+        parameter_form=_parameter_form_robotmk,
     )
-)
+else:
+    # For Checkmk < 2.5, register using the old API
+    rulespec_registry.register(
+        HostRulespec(
+            group=RulespecGroupMonitoringAgentsAgentPlugins,
+            name="agent_config:robotmk",
+            valuespec=_valuespec_agent_config_robotmk,
+        )
+    )
+
+# Test imports when run standalone
+if __name__ == "__main__":
+    print(f"IS_CMK_25_OR_LATER: {IS_CMK_25_OR_LATER}")
+    if IS_CMK_25_OR_LATER:
+        print("✓ Successfully imported v1 API")
+        print(f"✓ Rule spec created: {rule_spec_robotmk_bakery.name}")
+    elif LEGACY_API_AVAILABLE:
+        print("✓ Successfully imported legacy API")
+        print("✓ Rule spec will be registered in GUI context")
+    else:
+        print("✗ No API available (likely standalone execution without GUI)")
+    print("File loads successfully!")

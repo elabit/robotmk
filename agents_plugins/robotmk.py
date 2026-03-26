@@ -278,31 +278,20 @@ class RMKConfig:
         robotmk_yml = Path(self.get_robotmk_var("agent_config_dir")).joinpath(
             self.get_robotmk_var("robotmk_yml")
         )
-        if os.access(robotmk_yml, os.R_OK):
-            # REPLACE LOG
-            # self.calling_cls.logdebug(
-            #     f'Reading configuration file {robotmk_yml}')
-            # TEST: Reading a valid robotmk.yml
+        if robotmk_yml.is_file():
             try:
                 with open(robotmk_yml, "r", encoding="utf-8") as stream:
                     robotmk_yml_config = yaml.safe_load(stream)
                 return robotmk_yml_config
             except yaml.YAMLError as exc:
-                # REPLACE LOG
-                # self.calling_cls.logerror("Error while parsing YAML file:")
-                # if hasattr(exc, 'problem_mark'):
-                # self.calling_cls.logerror(f'''Parser says: {str(exc.problem_mark)}
-                #         {str(exc.problem)} {str(exc.context)}''')
                 return {
                     "error": {
                         "read_robotmk_yml": f"robotmk.yml exists, but an error occurred while parsing the file! ({exc})"
                     }
                 }
         else:
-            # TEST: Valid config 100% from environment (-> Docker!)
-            # REPLACE LOG
-            # self.calling_cls.loginfo("No control file %s found. ")
-            return {}
+            print("No robotmk.yaml file found.")
+            sys.exit(1)
 
 
 class RMKState:

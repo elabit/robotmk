@@ -1,11 +1,19 @@
 ARG VARIANT
-FROM checkmk/check-mk-cloud:$VARIANT
+ARG EDITION=check-mk-cloud
+FROM checkmk/${EDITION}:${VARIANT}
+
 
 # install python3 on the container
 RUN rm -rf /var/lib/apt/lists && apt update && apt upgrade -y
 
 RUN export DEBIAN_FRONTEND=noninteractive \
-    && apt -y install --no-install-recommends python3-pip jq tree htop vim git telnet file less tmux gettext-base
+    && apt -y install --no-install-recommends python3-pip jq tree htop vim git telnet file less tmux gettext-base inotify-tools
+
+# Task
+RUN curl -1sLf 'https://dl.cloudsmith.io/public/task/task/setup.deb.sh' | bash && apt install task 
+
+# Chag
+RUN curl -s https://raw.githubusercontent.com/mtdowling/chag/master/install.sh | bash
 
 # install default python modules. 
 # Project dependencies can either be installed in postCreateCommend.sh (using the default Docker image)

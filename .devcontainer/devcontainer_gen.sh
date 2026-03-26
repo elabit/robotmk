@@ -78,8 +78,10 @@ function main() {
     else
         mv "$TMP_FILE" "$TARGET_FILE"
     fi
-    echo "Done. Generated $TARGET_FILE for Checkmk version $VERSION."
-
+    echo "Done."
+    echo "Generated $TARGET_FILE"
+    echo "(Checkmk version $VERSION)"
+    echo "Start the devcontainer with 'Remote-Containers: Reopen in Container' in VS Code."
 
 }
 

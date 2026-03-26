@@ -82,13 +82,20 @@ sed -i "s/ROBOTMK_VERSION =.*/ROBOTMK_VERSION = '$RMK_VERSION'/" $WORKSPACE/agen
 
 echo "---------------------------------------------"
 PACKAGEFILE_TEMPLATE=$WORKSPACE/pkginfo/robotmk_cmk$CMK_MM.json
+echo "Using package template: $PACKAGEFILE_TEMPLATE"
+if [ ! -f "$PACKAGEFILE_TEMPLATE" ]; then
+    echo "ERROR: Package template $PACKAGEFILE_TEMPLATE not found. Exiting."
+    exit 1
+fi
 echo "▹ Generating package infofile using the $PACKAGEFILE template"
 
+# calculate the next minor version from CMK_MM (e.g. 2.4 => 2.5) and use it as "version.min_required" in the package file, so that the package can only be installed on CMK versions >= 2.5.0p1
+CMK_MM_NEXT_MINOR=$(echo "$CMK_MM" | awk -F. '{print $1"."$2+1}')
 
 jq --arg version "$RMK_VERSION" \
    --arg version_packaged "$OMD_VER" \
    --arg version_min_required "${CMK_MM}.0p1" \
-   --arg version_usable_until "${CMK_MM}.200" \
+   --arg version_usable_until "${CMK_MM_NEXT_MINOR}.0b0" \
    '
    .version = $version
    | .["version.packaged"] = $version_packaged
