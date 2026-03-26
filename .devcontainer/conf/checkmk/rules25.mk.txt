@@ -1,0 +1,21 @@
+# BAKERY
+
+agent_config.setdefault('robotmk', [])
+agent_config['robotmk'] = [
+{'id': '600bebc2-5450-43c1-b515-9522959e5900', 'value': {'execution_mode': ('agent_serial', {'suites': [{'path': 'globetrack_tests/globetrack_app.robot'}], 'cache_time': 120, 'execution_interval': 60}), 'agent_output_encoding': ('zlib_codec', None), 'transmit_html': 'true', 'log_level': 'INFO', 'log_rotation': ('value_7', None), 'dirs': {'robotdir': '/usr/lib/check_mk_agent/robot', 'outputdir': '', 'logdir': ''}, 'cmk-match-type': 'dict'}, 'condition': {'host_name': ['$HOSTNAME']}, 'options': {'disabled': False}},
+] + agent_config['robotmk']
+
+# CHECK
+
+checkgroup_parameters.setdefault('robotmk', [])
+checkgroup_parameters['robotmk'] = [
+{'id': '40721ce9-1ef7-4e7a-808d-c27de965c33d', 'value': {'output_depth': {'output_depth_suites': [{'pattern': '.*', 'depth': 3}], 'output_depth_keywords': [{'pattern': '.*', 'depth': 5}]}, 'runtime_threshold': {'runtime_threshold_suites': [{'pattern': '.*', 'warn': 2.0, 'crit': 3.0}], 'runtime_threshold_tests': [{'pattern': '.*', 'warn': 2.0, 'crit': 3.0}], 'runtime_threshold_keywords': [{'pattern': '.*', 'warn': 2.0, 'crit': 3.0}], 'show_all_runtimes': 'yes'}, 'perfdata_creation': {'perfdata_creation_suites': ['.*'], 'perfdata_creation_tests': ['.*'], 'perfdata_creation_keywords': ['.*']}, 'show_submessages': True, 'show_kwmessages': True, 'includedate': True}, 'condition': {}, 'options': {'disabled': False}},
+] + checkgroup_parameters['robotmk']
+
+
+# DISCOVERY
+
+globals().setdefault('inventory_robotmk_rule', [])
+inventory_robotmk_rule = [
+{'id': 'b0bffb2c-6646-47a5-925b-cde8f31eba91', 'value': {'robot_discovery_settings': [{'pattern': '.*', 'level': 'level_1', 'blacklist': ''}], 'robot_service_prefix': [{'pattern': '.*', 'prefix': 'CUSTOM RF E2E $SUITEID$SPACE-$SPACE'}], 'robotmk_service_name': 'XY Robotmk', 'htmllog': {'last_log': '.*', 'last_error_log': '.*FOO'}}, 'condition': {}, 'options': {'disabled': False}},
+] + inventory_robotmk_rule

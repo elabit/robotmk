@@ -131,3 +131,4 @@ fi
 export -f detect_cmk_version
 export -f resolve_cmk_targets
 export -f get_sync_targets
+CMK_VERSION_MM=$(detect_cmk_version)

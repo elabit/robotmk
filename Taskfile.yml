@@ -155,6 +155,46 @@ tasks:
     cmds:
       - docker exec -it {{.CONTAINER_NAME}} bash
 
+  # ============================================================================
+  # TESTING
+  # ============================================================================
+
+  test:docker:
+    desc: Test Robotmk in a Docker container
+    summary: |
+      Runs the docker_test.sh script to test Robotmk in a container.
+      
+      Modes:
+        link - Mount workspace files directly (development mode)
+        mkp  - Install MKP package (testing mode)
+      
+      Usage:
+        task test:docker MODE=link                                    # Interactive version selection
+        task test:docker MODE=link VERSION=2.5.0-2026.03.05          # Specific version
+        task test:docker MODE=mkp MKP=build/robotmk.1.6.0-cmk2.5.mkp VERSION=2.5.0-2026.03.05
+      
+      Required Variables:
+        MODE       - Testing mode (link or mkp)
+      
+      Optional Variables:
+        VERSION    - CMK version (if omitted, interactive selection)
+        MKP        - Path to MKP file (required for mkp mode)
+        VERBOSE    - Set to "1" to enable verbose output
+    cmds:
+      - |
+        ARGS="--mode {{.MODE}}"
+        {{if .VERSION}}ARGS="$ARGS --cmkversion {{.VERSION}}"{{end}}
+        {{if .MKP}}ARGS="$ARGS --mkp {{.MKP}}"{{end}}
+        {{if eq .VERBOSE "1"}}ARGS="$ARGS --verbose"{{end}}
+        ./docker_test.sh $ARGS
+    requires:
+      vars: [MODE]
+    preconditions:
+      - sh: test -f ./docker_test.sh
+        msg: "docker_test.sh not found"
+      - sh: command -v docker
+        msg: "Docker is required to run this task"
+
 
 
 

@@ -62,6 +62,11 @@ if [ -z "${GITHUB_WORKSPACE-}" ]; then
     echo "Store the secret in clear text and press ENTER to continue."
     read -p "Press ENTER to continue..."
     bash $WORKSPACE/.devcontainer/create_dummyhost.sh "${CMK_VERSION_MM}"
+    # if the script fails, it will exit with a non-zero code and the following lines will not be executed.
+    if [ $? -ne 0 ]; then
+        echo "ERROR: Failed to create dummy host. Please check the output above for details."
+        exit 1
+    fi
     echo "✅ Dummyhost created."
     echo "■ Baking the agent"
     echo "Baking agent for $HOSTNAME ... "
