@@ -1,6 +1,6 @@
 use crate::termination::Terminate;
 use camino::{Utf8Path, Utf8PathBuf};
-use fs4::fs_std::FileExt;
+use fs4::FileExt;
 use log::debug;
 use std::fs::File;
 use std::io;
@@ -74,7 +74,7 @@ impl Locker {
         let lock_path = self.lock_path.clone();
         let file = with_cancellation(
             || {
-                file.lock_exclusive()
+                FileExt::lock(&file)
                     .map(|_| file)
                     .map_err(|e| LockerError::Exclusive(lock_path, e))
             },

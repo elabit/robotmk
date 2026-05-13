@@ -2,4 +2,6 @@
 # setting up the CI environment.
 
 [toolchain]
-channel = "stable"
+# The GitHub action runner images had 1.94 pre-installed at the time of writing, but we need 1.95.
+# Remove this later on.
+channel = "1.95.0"
