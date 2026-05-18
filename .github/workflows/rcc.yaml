@@ -6,7 +6,7 @@ on:
 
 env:
   RCC_REF: "v17.29.1_micromamba_v1.5.8_from_github"  # Update omd/Licenses.csv in the Checkmk repo when changing this.
-  GO_VERSION: "1.23.x"
+  GO_VERSION: "1.26"
   RUBY_VERSION: "2.7"
 
 jobs:
@@ -47,7 +47,7 @@ jobs:
         with:
           repository: elabit/rcc
           ref: ${{ env.RCC_REF }}
-      - uses: actions/setup-go@v5
+      - uses: actions/setup-go@v6
         with:
           go-version: ${{ env.GO_VERSION }}
       - uses: ruby/setup-ruby@v1
