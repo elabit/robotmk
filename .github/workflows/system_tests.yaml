@@ -35,7 +35,7 @@ jobs:
       # can cause CI failures, if "vctip.exe" does not terminate before `get_children` is called.
       # The following command is intended turn off telemetry via vctip.exe.
       - shell: pwsh
-        run: Get-ChildItem -Filter vctip.exe -Recurse "C:\\Program Files\\Microsoft Visual Studio\\2022\\Enterprise\\VC\\Tools\\MSVC" | rm
+        run: Get-ChildItem -Path "C:\Program Files\Microsoft Visual Studio\" -Recurse -Filter "vctip.exe" -File | Remove-Item
       - run: cargo test --target=x86_64-pc-windows-msvc --test test_plan_run --test test_agent_plugin -- --ignored
       - run: cargo run --example termination --target=x86_64-pc-windows-msvc -- system-python
       - run: cargo run --example termination --target=x86_64-pc-windows-msvc -- rcc C:\windows64\rcc.exe
