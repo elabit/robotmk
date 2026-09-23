@@ -20,7 +20,7 @@ jobs:
           # "There are four mutually exclusive sources of extra flags"
           rustflags: ""
       - run: cargo fmt -- --check
-      - run: cargo test --all-targets --target x86_64-unknown-linux-musl -- --skip test_scheduler
+      - run: cargo test --all-targets --target x86_64-unknown-linux-musl
       - run: cargo clippy --all-targets --target x86_64-unknown-linux-musl -- --deny warnings
       - run: cargo build --target x86_64-unknown-linux-musl
 
@@ -38,6 +38,6 @@ jobs:
           # "There are four mutually exclusive sources of extra flags"
           rustflags: ""
       - run: cargo fmt -- --check
-      - run: cargo test --all-targets --target x86_64-pc-windows-msvc -- --skip test_scheduler
+      - run: cargo test --all-targets --target x86_64-pc-windows-msvc
       - run: cargo clippy --all-targets --target x86_64-pc-windows-msvc -- --deny warnings
       - run: cargo build --target x86_64-pc-windows-msvc
