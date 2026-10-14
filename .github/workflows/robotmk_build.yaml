@@ -7,20 +7,15 @@ jobs:
   build_windows:
     runs-on: windows-latest
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v7
 
-      - uses: actions-rust-lang/setup-rust-toolchain@v1
+      - uses: actions-rust-lang/setup-rust-toolchain@v2
         with:
           target: x86_64-pc-windows-msvc
-          # By default, setup-rust-toolchain sets "-D warnings". As a side effect, the settings in
-          # .cargo/config.toml are ignored:
-          # https://doc.rust-lang.org/cargo/reference/config.html#buildrustflags
-          # "There are four mutually exclusive sources of extra flags"
-          rustflags: ""
 
       - run: cargo build --target=x86_64-pc-windows-msvc --release
 
-      - uses: actions/upload-artifact@v4
+      - uses: actions/upload-artifact@v7
         with:
           name: rmk_windows64
           path: |
@@ -31,24 +26,19 @@ jobs:
   build_linux:
     runs-on: ubuntu-latest
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v7
 
       - run: sudo apt-get update
       - run: sudo apt-get install -y musl-tools
-      - uses: actions-rust-lang/setup-rust-toolchain@v1
+      - uses: actions-rust-lang/setup-rust-toolchain@v2
         with:
           target: x86_64-unknown-linux-musl
-          # By default, setup-rust-toolchain sets "-D warnings". As a side effect, the settings in
-          # .cargo/config.toml are ignored:
-          # https://doc.rust-lang.org/cargo/reference/config.html#buildrustflags
-          # "There are four mutually exclusive sources of extra flags"
-          rustflags: ""
 
       - run: cargo build --target=x86_64-unknown-linux-musl --release
       - run: ldd target/x86_64-unknown-linux-musl/release/robotmk_scheduler | grep "statically linked"
       - run: ldd target/x86_64-unknown-linux-musl/release/robotmk_agent_plugin | grep "statically linked"
 
-      - uses: actions/upload-artifact@v4
+      - uses: actions/upload-artifact@v7
         with:
           name: rmk_linux64
           path: |

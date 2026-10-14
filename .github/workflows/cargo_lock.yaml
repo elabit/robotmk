@@ -7,8 +7,8 @@ jobs:
   cargo_update:
     runs-on: ubuntu-latest
     steps:
-      - uses: actions/checkout@v4 # Only implemented for `main` branch.
-      - uses: actions-rust-lang/setup-rust-toolchain@v1
+      - uses: actions/checkout@v7 # Only implemented for `main` branch.
+      - uses: actions-rust-lang/setup-rust-toolchain@v2
       - run: echo "BRANCH_NAME=automation/cargo_update$(date +%s)" >> "$GITHUB_OUTPUT"
         id: branch_name
       - run: git checkout -b ${{ steps.branch_name.outputs.BRANCH_NAME }}

@@ -19,7 +19,7 @@ jobs:
       - run: curl --location --output micromamba/micromamba "https://github.com/mamba-org/micromamba-releases/releases/download/${{ env.VERSION }}/micromamba-linux-64"
       - run: curl --location --output micromamba/micromamba.exe "https://github.com/mamba-org/micromamba-releases/releases/download/${{ env.VERSION }}/micromamba-win-64.exe"
       
-      - uses: actions/upload-artifact@v4
+      - uses: actions/upload-artifact@v7
         with:
           name: micromamba
           path: micromamba/
