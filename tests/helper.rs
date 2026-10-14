@@ -67,7 +67,7 @@ pub async fn await_plan_results(config: &Config) {
         .flat_map(|plan_group| {
             plan_group.plans.iter().map(|plan_config| {
                 plan_results_directory(&results_directory(&config.runtime_directory))
-                    .join(format!("{}.json", &plan_config.id))
+                    .join(format!("{}.json", plan_config.id))
             })
         })
         .collect();
