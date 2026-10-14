@@ -4,7 +4,7 @@ channels:
   - conda-forge
 
 dependencies:
-  - python=3.12
-  - pip=23.2
+  - python=3.14
+  - pip=26.2.1
   - pip:
-      - robotframework==7.0.1
+      - robotframework==7.5
