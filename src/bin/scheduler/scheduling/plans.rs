@@ -13,11 +13,11 @@ use std::fs::create_dir_all;
 pub fn run_plan(plan: &Plan) -> Result<PlanExecutionReport, Terminate> {
     info!(
         "Running plan {} ({})",
-        &plan.id,
+        plan.id,
         format_source_for_logging(&plan.source)
     );
     let report = produce_plan_results(plan)?;
-    info!("Plan {} finished", &plan.id);
+    info!("Plan {} finished", plan.id);
     Ok(report)
 }
 

@@ -21,7 +21,7 @@ pub fn format(
         record.module_path().unwrap_or("<unnamed>"),
         record.file().unwrap_or("<unnamed>"),
         record.line().unwrap_or(0),
-        &record.args()
+        record.args()
     )
 }
 

@@ -14,8 +14,8 @@ impl SetupStep for StepCopyBinary {
     fn label(&self) -> String {
         format!(
             "Copy micromamba binary: `{source}` -> {target}",
-            source = &self.source,
-            target = &self.target,
+            source = self.source,
+            target = self.target,
         )
     }
 

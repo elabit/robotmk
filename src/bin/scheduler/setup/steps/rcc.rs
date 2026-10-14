@@ -32,8 +32,8 @@ impl SetupStep for StepFilePermissions {
         format!(
             "Grant SID {sid} permissions `{permissions}` for {target}",
             sid = self.sid,
-            permissions = &self.icacls_permissions,
-            target = &self.target,
+            permissions = self.icacls_permissions,
+            target = self.target,
         )
     }
 
@@ -42,14 +42,14 @@ impl SetupStep for StepFilePermissions {
             &self.target,
             [
                 "/grant",
-                &format!("{}:{}", &self.sid, self.icacls_permissions),
+                &format!("{}:{}", self.sid, self.icacls_permissions),
             ],
         )
         .map_err(|err| {
             api::Error::new(
                 format!(
                     "Adjusting permissions of {} for SID `{}` failed",
-                    self.target, &self.sid
+                    self.target, self.sid
                 ),
                 err,
             )
@@ -93,8 +93,8 @@ impl SetupStep for StepRCCCommand {
     fn label(&self) -> String {
         format!(
             "Execute RCC with arguments `{arguments:?}` in session `{session}`",
-            arguments = &self.arguments,
-            session = &self.session,
+            arguments = self.arguments,
+            session = self.session,
         )
     }
 
@@ -178,7 +178,7 @@ impl StepDisableSharedHolotree {
 
 impl SetupStep for StepDisableSharedHolotree {
     fn label(&self) -> String {
-        format!("Disable shared holotree in session `{}`", &self.session)
+        format!("Disable shared holotree in session `{}`", self.session)
     }
 
     fn setup(&self) -> Result<(), api::Error> {
