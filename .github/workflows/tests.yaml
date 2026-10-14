@@ -7,18 +7,13 @@ jobs:
   linux:
     runs-on: ubuntu-latest
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v7
       - run: sudo apt-get update
       - run: sudo apt-get install -y musl-tools
-      - uses: actions-rust-lang/setup-rust-toolchain@v1
+      - uses: actions-rust-lang/setup-rust-toolchain@v2
         with:
           target: x86_64-unknown-linux-musl
           components: rustfmt, clippy
-          # By default, setup-rust-toolchain sets "-D warnings". As a side effect, the settings in
-          # .cargo/config.toml are ignored:
-          # https://doc.rust-lang.org/cargo/reference/config.html#buildrustflags
-          # "There are four mutually exclusive sources of extra flags"
-          rustflags: ""
       - run: cargo fmt -- --check
       - run: cargo test --all-targets --target x86_64-unknown-linux-musl
       - run: cargo clippy --all-targets --target x86_64-unknown-linux-musl -- --deny warnings
@@ -27,16 +22,11 @@ jobs:
   windows:
     runs-on: windows-latest
     steps:
-      - uses: actions/checkout@v4
-      - uses: actions-rust-lang/setup-rust-toolchain@v1
+      - uses: actions/checkout@v7
+      - uses: actions-rust-lang/setup-rust-toolchain@v2
         with:
           target: x86_64-pc-windows-msvc
           components: rustfmt, clippy
-          # By default, setup-rust-toolchain sets "-D warnings". As a side effect, the settings in
-          # .cargo/config.toml are ignored:
-          # https://doc.rust-lang.org/cargo/reference/config.html#buildrustflags
-          # "There are four mutually exclusive sources of extra flags"
-          rustflags: ""
       - run: cargo fmt -- --check
       - run: cargo test --all-targets --target x86_64-pc-windows-msvc
       - run: cargo clippy --all-targets --target x86_64-pc-windows-msvc -- --deny warnings

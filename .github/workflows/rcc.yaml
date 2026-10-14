@@ -16,8 +16,8 @@ jobs:
     outputs:
       rcc_yaml_changed: ${{ steps.filter.outputs.rcc_yaml }}
     steps:
-      - uses: actions/checkout@v4
-      - uses: dorny/paths-filter@v3
+      - uses: actions/checkout@v7
+      - uses: dorny/paths-filter@v4
         id: filter
         with:
           filters: |
@@ -30,7 +30,7 @@ jobs:
       cache_hit: ${{ steps.restore-from-cache.outputs.cache-hit }}
     steps:
       - id: restore-from-cache
-        uses: actions/cache/restore@v4
+        uses: actions/cache/restore@v6
         with:
           key: rcc-${{ env.RCC_REF }}-${{ env.GO_VERSION }}-${{ env.RUBY_VERSION }}
           path: build
@@ -43,11 +43,11 @@ jobs:
       - check_cache
     if: ${{ (needs.analyse_changes.outputs.rcc_yaml_changed == 'true') || (needs.check_cache.outputs.cache_hit != 'true') }}
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v7
         with:
           repository: elabit/rcc
           ref: ${{ env.RCC_REF }}
-      - uses: actions/setup-go@v6
+      - uses: actions/setup-go@v7
         with:
           go-version: ${{ env.GO_VERSION }}
       - uses: ruby/setup-ruby@v1
@@ -56,7 +56,7 @@ jobs:
       - run: CGO_ENABLED=0 rake build
       - run: rake test
       - run: file build/linux64/rcc | grep "statically linked"
-      - uses: actions/cache/save@v4
+      - uses: actions/cache/save@v6
         with:
           key: rcc-${{ env.RCC_REF }}-${{ env.GO_VERSION }}-${{ env.RUBY_VERSION }}
           path: build
@@ -70,12 +70,12 @@ jobs:
       always() &&
       (needs.build_and_cache.result == 'success' || needs.build_and_cache.result == 'skipped')
     steps:
-      - uses: actions/cache/restore@v4
+      - uses: actions/cache/restore@v6
         with:
           path: build
           key: rcc-${{ env.RCC_REF }}-${{ env.GO_VERSION }}-${{ env.RUBY_VERSION }}
           fail-on-cache-miss: true
-      - uses: actions/upload-artifact@v4
+      - uses: actions/upload-artifact@v7
         with:
           name: rcc
           path: build/

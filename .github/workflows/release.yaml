@@ -18,24 +18,24 @@ jobs:
     runs-on: ubuntu-latest
     needs: [tests, system_tests, rcc, micromamba, build_robotmk]
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v7
 
-      - uses: actions/download-artifact@v4
+      - uses: actions/download-artifact@v8
         with:
           name: rcc
           path: artifact/rcc/
 
-      - uses: actions/download-artifact@v4
+      - uses: actions/download-artifact@v8
         with:
           name: micromamba
           path: artifact/micromamba/
 
-      - uses: actions/download-artifact@v4
+      - uses: actions/download-artifact@v8
         with:
           name: rmk_windows64
           path: artifact/rmk_windows64/
 
-      - uses: actions/download-artifact@v4
+      - uses: actions/download-artifact@v8
         with:
           name: rmk_linux64
           path: artifact/rmk_linux64/
