@@ -6,7 +6,7 @@ on:
     branches:
       # Do not trigger on tags
       # https://stackoverflow.com/questions/68573888/how-can-i-not-execute-a-github-action-when-i-push-a-new-tag
-      "**"
+      - "**"
   pull_request:
   workflow_call: {}
 
