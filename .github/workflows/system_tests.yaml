@@ -7,6 +7,9 @@ on:
 jobs:
   windows:
     runs-on: windows-latest
+    env:
+      RCC_BINARY_PATH: C:\windows64\rcc.exe
+      MICROMAMBA_BINARY_PATH: C:\micromamba.exe
     steps:
       - uses: actions/checkout@v7
       - uses: actions-rust-lang/setup-rust-toolchain@v2
@@ -33,8 +36,8 @@ jobs:
         run: Get-ChildItem -Path "C:\Program Files\Microsoft Visual Studio\" -Recurse -Filter "vctip.exe" -File | Remove-Item
       - run: cargo test --target=x86_64-pc-windows-msvc --test test_plan_run --test test_agent_plugin -- --ignored
       - run: cargo run --example termination --target=x86_64-pc-windows-msvc -- system-python
-      - run: cargo run --example termination --target=x86_64-pc-windows-msvc -- rcc C:\windows64\rcc.exe
-      - run: cargo run --example termination --target=x86_64-pc-windows-msvc -- micromamba C:\micromamba.exe
+      - run: cargo run --example termination --target=x86_64-pc-windows-msvc -- rcc ${{ env.RCC_BINARY_PATH }}
+      - run: cargo run --example termination --target=x86_64-pc-windows-msvc -- micromamba ${{ env.MICROMAMBA_BINARY_PATH }}
 
       - run: mkdir C:\managed_robots
       - run: tar --create -z --directory tests\minimal_suite\ --file C:\managed_robots\minimal_suite.tar.gz *
@@ -42,8 +45,6 @@ jobs:
       - run: cargo test --target=x86_64-pc-windows-msvc --test test_scheduler -- --nocapture --ignored
         env:
           TEST_DIR: C:\test_scheduler
-          RCC_BINARY_PATH: C:\windows64\rcc.exe
-          MICROMAMBA_BINARY_PATH: C:\micromamba.exe
           MANAGED_ROBOT_ARCHIVE_PATH: C:\managed_robots\minimal_suite.tar.gz
           N_SECONDS_RUN_MAX: 900
           TEST_USER: test_user
@@ -56,8 +57,6 @@ jobs:
       - run: cargo test --target=x86_64-pc-windows-msvc --test test_scheduler_plan_mode -- --nocapture --ignored --test-threads=1
         env:
           TEST_DIR: C:\test_scheduler_plan_mode
-          RCC_BINARY_PATH: C:\windows64\rcc.exe
-          MICROMAMBA_BINARY_PATH: C:\micromamba.exe
           N_SECONDS_RUN_MAX: 900
       - uses: actions/upload-artifact@v7
         if: success() || failure()
@@ -69,19 +68,19 @@ jobs:
         run: Remove-Item -Recurse -Force -ErrorAction SilentlyContinue C:\robotmk_post_build_command_test
       - run: cargo test --target=x86_64-pc-windows-msvc --test test_conda_post_build_commands -- --nocapture --ignored
         env:
-          MICROMAMBA_BINARY_PATH: C:\micromamba.exe
           BUILD_TIMEOUT: 10
 
       - run:  cargo test --target=x86_64-pc-windows-msvc --test test_scheduler_long_paths -- --nocapture --ignored
         env:
-          RCC_BINARY_PATH: C:\windows64\rcc.exe
-          MICROMAMBA_BINARY_PATH: C:\micromamba.exe
           N_SECONDS_RUN_MAX: 900
 
       - run: cargo test --target=x86_64-pc-windows-msvc test_take_ownership_recursively -- --nocapture --ignored
 
   linux:
     runs-on: ubuntu-latest
+    env:
+      RCC_BINARY_PATH: /tmp/linux64/rcc
+      MICROMAMBA_BINARY_PATH: /tmp/micromamba
     steps:
       - uses: actions/checkout@v7
       - run: sudo apt-get update
@@ -100,27 +99,25 @@ jobs:
           path: /tmp/
       # file permissions are not retained during upload:
       # https://github.com/actions/upload-artifact?tab=readme-ov-file#permission-loss
-      - run: chmod +x /tmp/linux64/rcc
+      - run: chmod +x ${{ env.RCC_BINARY_PATH }}
       - uses: actions/download-artifact@v8
         with:
           name: micromamba
           path: /tmp/
       # file permissions are not retained during upload:
       # https://github.com/actions/upload-artifact?tab=readme-ov-file#permission-loss
-      - run: chmod +x /tmp/micromamba
+      - run: chmod +x ${{ env.MICROMAMBA_BINARY_PATH }}
 
       - run: cargo test --target=x86_64-unknown-linux-musl --test test_plan_run --test test_agent_plugin -- --ignored
       - run: cargo run --example termination --target=x86_64-unknown-linux-musl -- system-python
-      - run: cargo run --example termination --target=x86_64-unknown-linux-musl -- rcc /tmp/linux64/rcc
-      - run: cargo run --example termination --target=x86_64-unknown-linux-musl -- micromamba /tmp/micromamba
+      - run: cargo run --example termination --target=x86_64-unknown-linux-musl -- rcc ${{ env.RCC_BINARY_PATH }}
+      - run: cargo run --example termination --target=x86_64-unknown-linux-musl -- micromamba ${{ env.MICROMAMBA_BINARY_PATH }}
 
       - run: mkdir /tmp/managed_robots
       - run: tar --create --gzip --directory tests/minimal_suite/ --file /tmp/managed_robots/minimal_suite.tar.gz .
       - run: cargo test --target=x86_64-unknown-linux-musl --test test_scheduler -- --nocapture --ignored
         env:
           TEST_DIR: /tmp/test_scheduler
-          RCC_BINARY_PATH: /tmp/linux64/rcc
-          MICROMAMBA_BINARY_PATH: /tmp/micromamba
           MANAGED_ROBOT_ARCHIVE_PATH: /tmp/managed_robots/minimal_suite.tar.gz
           N_SECONDS_RUN_MAX: 600
       - uses: actions/upload-artifact@v7
@@ -132,8 +129,6 @@ jobs:
       - run: cargo test --target=x86_64-unknown-linux-musl --test test_scheduler_plan_mode -- --nocapture --ignored --test-threads=1
         env:
           TEST_DIR: /tmp/test_scheduler_plan_mode
-          RCC_BINARY_PATH: /tmp/linux64/rcc
-          MICROMAMBA_BINARY_PATH: /tmp/micromamba
           N_SECONDS_RUN_MAX: 600
       - uses: actions/upload-artifact@v7
         if: success() || failure()
@@ -144,7 +139,6 @@ jobs:
       - run: cargo test --target=x86_64-unknown-linux-musl --test test_ht_import_scheduler -- --nocapture --ignored
         env:
           TEST_DIR: /tmp/test_ht_import_scheduler
-          RCC_BINARY_PATH: /tmp/linux64/rcc
           N_SECONDS_RUN_MAX: 120
       - uses: actions/upload-artifact@v7
         if: success() || failure()
@@ -155,7 +149,6 @@ jobs:
       - run: cargo test --target=x86_64-unknown-linux-musl --test test_conda_from_archive_scheduler -- --nocapture --ignored
         env:
           TEST_DIR: /tmp/test_conda_from_archive_scheduler
-          MICROMAMBA_BINARY_PATH: /tmp/micromamba
           N_SECONDS_RUN_MAX: 120
       - uses: actions/upload-artifact@v7
         if: success() || failure()
@@ -166,5 +159,4 @@ jobs:
       - run: rm -rf /tmp/robotmk_post_build_command_test
       - run: cargo test --target=x86_64-unknown-linux-musl --test test_conda_post_build_commands -- --nocapture --ignored
         env:
-          MICROMAMBA_BINARY_PATH: /tmp/micromamba
           BUILD_TIMEOUT: 10
