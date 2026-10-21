@@ -4,30 +4,24 @@ on:
   workflow_call: {}
 
 jobs:
-  linux:
-    runs-on: ubuntu-latest
+  tests:
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+          - runner: ubuntu-latest
+            target: x86_64-unknown-linux-musl
+          - runner: windows-latest
+            target: x86_64-pc-windows-msvc
+    runs-on: ${{ matrix.runner }}
     steps:
       - uses: actions/checkout@v7
-      - run: sudo apt-get update
-      - run: sudo apt-get install -y musl-tools
+      - if: runner.os == 'Linux'
+        run: sudo apt-get update && sudo apt-get install -y musl-tools
       - uses: actions-rust-lang/setup-rust-toolchain@v2
         with:
-          target: x86_64-unknown-linux-musl
+          target: ${{ matrix.target }}
           components: rustfmt, clippy
       - run: cargo fmt -- --check
-      - run: cargo test --all-targets --target x86_64-unknown-linux-musl
-      - run: cargo clippy --all-targets --target x86_64-unknown-linux-musl -- --deny warnings
-      - run: cargo build --target x86_64-unknown-linux-musl
-
-  windows:
-    runs-on: windows-latest
-    steps:
-      - uses: actions/checkout@v7
-      - uses: actions-rust-lang/setup-rust-toolchain@v2
-        with:
-          target: x86_64-pc-windows-msvc
-          components: rustfmt, clippy
-      - run: cargo fmt -- --check
-      - run: cargo test --all-targets --target x86_64-pc-windows-msvc
-      - run: cargo clippy --all-targets --target x86_64-pc-windows-msvc -- --deny warnings
-      - run: cargo build --target x86_64-pc-windows-msvc
+      - run: cargo test --all-targets --target ${{ matrix.target }}
+      - run: cargo clippy --all-targets --target ${{ matrix.target }} -- --deny warnings
