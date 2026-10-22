@@ -12,7 +12,6 @@ on:
 
 jobs:
   tests:
-    if: always()
     uses: ./.github/workflows/tests.yaml
 
   build_robotmk:
