@@ -87,6 +87,7 @@ pub struct Plan {
     pub results_directory_locker: Locker,
     pub metadata: config::PlanMetadata,
     pub group_affiliation: GroupAffiliation,
+    pub machine_id: Option<String>,
 }
 
 #[derive(Clone, PartialEq, Debug)]
@@ -100,6 +101,7 @@ pub fn from_external_config(
     external_config: config::Config,
     cancellation_token: &CancellationToken,
     results_directory_locker: &Locker,
+    machine_id: Option<String>,
 ) -> (GlobalConfig, Vec<Plan>) {
     let working_directory = external_config.runtime_directory.join("working");
     let global_config = GlobalConfig {
@@ -239,6 +241,7 @@ pub fn from_external_config(
                     position_in_group: plan_index,
                     execution_interval: sequential_group.execution_interval,
                 },
+                machine_id: machine_id.clone(),
             });
         }
     }
@@ -499,6 +502,7 @@ mod tests {
             },
             &cancellation_token,
             &Locker::new("/config.json", Some(&cancellation_token)),
+            Some("426f61d315ae408796589657a55d53a1".into()),
         );
         assert_eq!(global_config.working_directory, "/working");
         assert_eq!(global_config.results_directory, "/results");
@@ -797,5 +801,11 @@ mod tests {
                 execution_interval: 600,
             }
         );
+        for plan in &plans {
+            assert_eq!(
+                plan.machine_id.as_deref(),
+                Some("426f61d315ae408796589657a55d53a1")
+            );
+        }
     }
 }

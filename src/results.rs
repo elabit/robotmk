@@ -74,6 +74,7 @@ pub struct PlanExecutionReport {
     pub rebot: Option<RebotOutcome>,
     pub config: AttemptsConfig,
     pub metadata: PlanMetadata,
+    pub machine_id: Option<String>,
 }
 
 impl WritePiggybackSection for PlanExecutionReport {

@@ -4,6 +4,7 @@ pub mod config;
 pub mod env;
 pub mod fs;
 pub mod lock;
+pub mod machine_id;
 pub mod plans;
 pub mod results;
 pub mod rf;

@@ -155,6 +155,7 @@ mod tests {
                 position_in_group: usize::default(),
                 execution_interval: u64::default(),
             },
+            machine_id: None,
         };
         let mut plan_ok = plan_bluerpint.clone();
         plan_ok.id = "ok".into();
