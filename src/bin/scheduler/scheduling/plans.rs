@@ -86,6 +86,7 @@ fn produce_plan_results(plan: &Plan) -> Result<PlanExecutionReport, Terminate> {
             n_attempts_max: plan.robot.n_attempts_max,
         },
         metadata: plan.metadata.clone(),
+        machine_id: plan.machine_id.clone(),
     })
 }
 

@@ -8,10 +8,11 @@ mod termination;
 
 use anyhow::{Context, Result as AnyhowResult};
 use clap::Parser;
-use log::info;
+use log::{info, warn};
 use logging::log_and_return_error;
 use robotmk::config::Config;
 use robotmk::lock::Locker;
+use robotmk::machine_id::machine_id;
 use robotmk::results::{SchedulerPhase, SetupFailure, SetupFailures};
 use robotmk::section::WriteSection;
 use robotmk::termination::Terminate;
@@ -43,6 +44,12 @@ fn run() -> Result<(), Terminate> {
     )?;
     info!("Configuration loaded");
 
+    let machine_id = machine_id();
+    match &machine_id {
+        Some(machine_id) => info!("Machine id: {machine_id}"),
+        None => warn!("Machine id could not be determined, plan results will not carry one"),
+    }
+
     let cancellation_token = termination::start_termination_control(args.run_flag)
         .context("Failed to set up termination control")?;
     info!("Termination control set up");
@@ -51,6 +58,7 @@ fn run() -> Result<(), Terminate> {
         external_config,
         &cancellation_token,
         &Locker::new(&args.config_path, Some(&cancellation_token)),
+        machine_id,
     );
 
     if global_config.cancellation_token.is_cancelled() {
