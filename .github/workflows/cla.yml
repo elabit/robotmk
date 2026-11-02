@@ -5,6 +5,12 @@ on:
   pull_request_target:
     types: [opened, closed, synchronize]
 
+permissions:
+  actions: write
+  contents: write
+  pull-requests: write
+  statuses: write
+
 jobs:
   CLAssistant:
     runs-on: ubuntu-latest
@@ -15,14 +21,12 @@ jobs:
         uses: contributor-assistant/github-action@v2.6.1
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-          # the below token should have repo scope and must be manually added by you in the repository's secret
-          PERSONAL_ACCESS_TOKEN: ${{ secrets.CMKRMK_PAT }}
         with:
           path-to-signatures: "version1/cla.json"
           path-to-document: "https://github.com/elabit/robotmk/blob/main/cla/cla.md" # e.g. a CLA or a DCO document
           # branch should not be protected
           branch: "cla"
-          allowlist: simonmeggle,SoloJacobs,racicLuka,jherbel,cmkrmk,dependabot[bot]
+          allowlist: simonmeggle,SoloJacobs,racicLuka,jherbel,dependabot[bot]
 
           #below are the optional inputs - If the optional inputs are not given, then default values will be taken
           #remote-organization-name: enter the remote organization name where the signatures should be stored (Default is storing the signatures in the same repository)
