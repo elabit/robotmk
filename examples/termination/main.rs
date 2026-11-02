@@ -50,7 +50,7 @@ fn main() -> AnyhowResult<()> {
 }
 
 fn system_main() -> AnyhowResult<()> {
-    let mut system = System::new();
+    let mut system = System::new()?;
     let current_pid = get_current_pid().unwrap();
     let cargo_manifest_dir = Utf8PathBuf::from(var("CARGO_MANIFEST_DIR")?);
     let test_dir = tempdir()?;
@@ -107,7 +107,7 @@ fn system_main() -> AnyhowResult<()> {
 }
 
 fn rcc_main(rcc_binary_path: Utf8PathBuf) -> AnyhowResult<()> {
-    let mut system = System::new();
+    let mut system = System::new()?;
     let current_pid = get_current_pid().unwrap();
     let cargo_manifest_dir = Utf8PathBuf::from(var("CARGO_MANIFEST_DIR")?);
     let test_dir = tempdir()?;
@@ -183,7 +183,7 @@ fn rcc_main(rcc_binary_path: Utf8PathBuf) -> AnyhowResult<()> {
 }
 
 fn micromamba_main(micromamba_binary_path: Utf8PathBuf) -> AnyhowResult<()> {
-    let mut system = System::new();
+    let mut system = System::new()?;
     let current_pid = get_current_pid().unwrap();
     let cargo_manifest_dir = Utf8PathBuf::from(var("CARGO_MANIFEST_DIR")?);
     let test_dir = tempdir()?;

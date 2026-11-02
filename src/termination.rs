@@ -1,3 +1,4 @@
+use log::error;
 use std::collections::HashSet;
 use std::fmt::Display;
 use std::future::Future;
@@ -69,7 +70,15 @@ where
 // non-direct children further down the tree to our child. However, Windows offers no API for this
 // (there is no SIGTERM on Windows), so we instead kill the entire tree.
 pub fn kill_process_tree(top_pid: &Pid) {
-    let mut system = System::new();
+    let mut system = match System::new() {
+        Ok(system) => system,
+        Err(error) => {
+            error!(
+                "Failed to query system information, cannot kill process tree of {top_pid}. Error message:\n{error:?}"
+            );
+            return;
+        }
+    };
     system.refresh_processes(ProcessesToUpdate::All, true);
     let processes = system.processes();
 
