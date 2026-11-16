@@ -110,7 +110,8 @@ impl CondaEnvironment {
             }
             Ok(Outcome::Completed(_exit_code)) => {
                 error!(
-                    "Plan {plan_id}: {build_step_label}: non-zero exit code, plan will be dropped"
+                    "Plan {plan_id}: {build_step_label}: non-zero exit code, plan will be dropped. See {stdio_location} for stdio logs",
+                    stdio_location = run_spec.runtime_base_path
                 );
                 BuildStepOutcome::Failure(BuildStepOutcomeFailure::Error(format!(
                     "{build_step_label}: non-zero exit code, see {stdio_location} for stdio logs",
