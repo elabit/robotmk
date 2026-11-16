@@ -72,7 +72,10 @@ impl RCCEnvironment {
                     info!("Environment import succeeded for plan {id}");
                 }
                 Ok(Outcome::Completed(_exit_code)) => {
-                    error!("Environment import not successful, plan {id} will be dropped");
+                    error!(
+                        "Environment import not successful, plan {id} will be dropped. See {} for stdio logs",
+                        self.build_runtime_directory
+                    );
                     return Ok(BuildOutcome::Error(format!(
                         "Environment import not successful, see {} for stdio logs",
                         self.build_runtime_directory
@@ -115,7 +118,10 @@ impl RCCEnvironment {
                 Ok(BuildOutcome::Success(duration))
             }
             Ok(Outcome::Completed(_exit_code)) => {
-                error!("Environment building not successful, plan {id} will be dropped");
+                error!(
+                    "Environment building not successful, plan {id} will be dropped. See {} for stdio logs",
+                    self.build_runtime_directory
+                );
                 Ok(BuildOutcome::Error(format!(
                     "Environment building not successful, see {} for stdio logs",
                     self.build_runtime_directory
