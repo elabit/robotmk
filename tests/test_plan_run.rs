@@ -29,6 +29,7 @@ fn test_rebot_run() -> AnyhowResult<()> {
         timeout: 10,
         cancellation_token: &CancellationToken::default(),
         output_directory: test_dir_path,
+        resource_attributes: &[],
     })?;
     assert_eq!(attempt_reports.len(), 1);
     let attempt_report = &attempt_reports[0];
@@ -59,6 +60,7 @@ fn test_timeout_process() -> AnyhowResult<()> {
         timeout: 1,
         cancellation_token: &CancellationToken::default(),
         output_directory: test_dir_path,
+        resource_attributes: &[],
     })?;
     assert_eq!(attempt_reports.len(), 1);
     let attempt_report = &attempt_reports[0];
@@ -67,5 +69,35 @@ fn test_timeout_process() -> AnyhowResult<()> {
     assert!(rebot.is_none());
     #[cfg(unix)]
     assert!(!resource.is_file());
+    Ok(())
+}
+
+#[test]
+#[ignore]
+fn test_resource_attributes_reach_robot() -> AnyhowResult<()> {
+    let test_dir = tempdir()?;
+    let test_dir_path = Utf8Path::from_path(test_dir.path()).unwrap();
+    let robot = Robot {
+        robot_target: "tests/resource_attributes/tasks.robot".into(),
+        n_attempts_max: 1,
+        command_line_args: vec![
+            "--variable".into(),
+            "EXPECTED:cmk.suite=a%2C%20b%3Dc%20100%25,cmk.attempt=1".into(),
+        ],
+        envs_rendered_obfuscated: vec![],
+        retry_strategy: RetryStrategy::Complete,
+    };
+    let (attempt_reports, _rebot) = run_attempts_with_rebot(&PlanRunSpec {
+        robot: &robot,
+        id: "test",
+        environment: &Environment::System(SystemEnvironment {}),
+        session: &Session::Current(CurrentSession {}),
+        timeout: 10,
+        cancellation_token: &CancellationToken::default(),
+        output_directory: test_dir_path,
+        resource_attributes: &[("cmk.suite", "a, b=c 100%".into())],
+    })?;
+    assert_eq!(attempt_reports.len(), 1);
+    assert_eq!(attempt_reports[0].outcome, AttemptOutcome::AllTestsPassed);
     Ok(())
 }

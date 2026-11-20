@@ -80,6 +80,7 @@ fn system_main() -> AnyhowResult<()> {
             timeout: 3,
             cancellation_token: &thread_token,
             output_directory: &test_dir_path,
+            resource_attributes: &[],
         })
     });
     while !flag_file.exists() {
@@ -161,6 +162,7 @@ fn rcc_main(rcc_binary_path: Utf8PathBuf) -> AnyhowResult<()> {
             timeout: 20,
             cancellation_token: &thread_token,
             output_directory: &test_dir_path,
+            resource_attributes: &[],
         })
     });
     while !flag_file.exists() {
@@ -245,6 +247,7 @@ fn micromamba_main(micromamba_binary_path: Utf8PathBuf) -> AnyhowResult<()> {
             timeout: 20,
             cancellation_token: &thread_token,
             output_directory: &test_dir_path,
+            resource_attributes: &[],
         })
     });
     while !flag_file.exists() {

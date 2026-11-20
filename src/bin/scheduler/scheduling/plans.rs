@@ -1,5 +1,6 @@
 use crate::internal_config::{Plan, Source};
 use crate::logging::TIMESTAMP_FORMAT;
+use robotmk::config::PlanMetadata;
 use robotmk::plans::{PlanRunSpec, run_attempts_with_rebot};
 use robotmk::results::{AttemptsConfig, PlanExecutionReport};
 
@@ -55,9 +56,8 @@ fn format_source_for_logging(source: &Source) -> String {
 
 fn produce_plan_results(plan: &Plan) -> Result<PlanExecutionReport, Terminate> {
     let timestamp = Timestamp::now();
-    let output_directory = plan
-        .working_directory
-        .join(timestamp.strftime(TIMESTAMP_FORMAT).to_string());
+    let run_id = timestamp.strftime(TIMESTAMP_FORMAT).to_string();
+    let output_directory = plan.working_directory.join(&run_id);
 
     create_dir_all(&output_directory).context(format!(
         "Failed to create directory for plan run: {output_directory}"
@@ -71,6 +71,11 @@ fn produce_plan_results(plan: &Plan) -> Result<PlanExecutionReport, Terminate> {
         timeout: plan.timeout,
         cancellation_token: &plan.cancellation_token,
         output_directory: &output_directory,
+        resource_attributes: &resource_attributes(
+            &plan.metadata,
+            plan.machine_id.as_deref(),
+            &run_id,
+        ),
     })
     .map_err(|cancelled| cancelled.into())
     .context_unrecoverable("Received termination signal while running plan")?;
@@ -90,9 +95,69 @@ fn produce_plan_results(plan: &Plan) -> Result<PlanExecutionReport, Terminate> {
     })
 }
 
+fn resource_attributes(
+    metadata: &PlanMetadata,
+    machine_id: Option<&str>,
+    plan_run_id: &str,
+) -> Vec<(&'static str, String)> {
+    let mut attributes = vec![
+        ("cmk.application", metadata.application.clone()),
+        ("cmk.suite", metadata.suite_name.clone()),
+        ("cmk.variant", metadata.variant.clone()),
+    ];
+    if let Some(machine_id) = machine_id {
+        attributes.push(("cmk.machine_id", machine_id.to_string()));
+    }
+    attributes.push(("cmk.plan_run_id", plan_run_id.to_string()));
+    attributes
+}
+
 #[cfg(test)]
 mod tests {
     use super::*;
+
+    #[test]
+    fn resource_attributes_with_machine_id() {
+        assert_eq!(
+            resource_attributes(
+                &PlanMetadata {
+                    application: "app".into(),
+                    suite_name: "suite".into(),
+                    variant: "".into(),
+                },
+                Some("machine"),
+                "run"
+            ),
+            [
+                ("cmk.application", "app".to_string()),
+                ("cmk.suite", "suite".to_string()),
+                ("cmk.variant", "".to_string()),
+                ("cmk.machine_id", "machine".to_string()),
+                ("cmk.plan_run_id", "run".to_string()),
+            ]
+        );
+    }
+
+    #[test]
+    fn resource_attributes_without_machine_id() {
+        assert_eq!(
+            resource_attributes(
+                &PlanMetadata {
+                    application: "app".into(),
+                    suite_name: "suite".into(),
+                    variant: "variant".into(),
+                },
+                None,
+                "run"
+            ),
+            [
+                ("cmk.application", "app".to_string()),
+                ("cmk.suite", "suite".to_string()),
+                ("cmk.variant", "variant".to_string()),
+                ("cmk.plan_run_id", "run".to_string()),
+            ]
+        );
+    }
 
     #[test]
     fn format_source_for_logging_manual() {
