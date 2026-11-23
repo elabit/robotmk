@@ -16,7 +16,7 @@ pub fn format(
     write!(
         w,
         "[{}] {} [{}] {}:{}: {}",
-        now.now_utc_owned().format(TIMESTAMP_FORMAT),
+        now.now_utc_owned().strftime(TIMESTAMP_FORMAT),
         record.level(),
         record.module_path().unwrap_or("<unnamed>"),
         record.file().unwrap_or("<unnamed>"),
