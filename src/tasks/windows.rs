@@ -258,7 +258,7 @@ fn build_task_script(task_name: &str, command_spec: &CommandSpec, paths: &Paths)
         set_envs,
         format!(
             "{} > {} 2> {}",
-            command_spec.to_command_string(),
+            command_spec.to_command_string().replace('%', "%%"),
             paths.stdout,
             paths.stderr
         ),
@@ -348,7 +348,9 @@ mod tests {
             .add_argument("mandatory")
             .add_argument("--some-flag")
             .add_argument("--some-option")
-            .add_argument("some-value");
+            .add_argument("some-value")
+            .add_argument("--variable")
+            .add_argument("X:100%");
         command_spec.add_plain_env("ABC", "123");
         command_spec.add_plain_env("SUITE", "My%20Suite");
         command_spec.add_obfuscated_env("RCC_REMOTE_ORIGIN", "http://1.com");
@@ -364,7 +366,7 @@ echo Robotmk: running task robotmk_task. Please do not close this window.
 set \"ABC=123\"
 set \"SUITE=My%%20Suite\"
 set \"RCC_REMOTE_ORIGIN=http://1.com\"
-\"C:\\\\somewhere\\\\rcc.exe\" \"mandatory\" \"--some-flag\" \"--some-option\" \"some-value\" > C:\\working\\plans\\my_plan\\123\\0.stdout 2> C:\\working\\plans\\my_plan\\123\\0.stderr\necho %errorlevel% > C:\\working\\plans\\my_plan\\123\\0.exit_code
+\"C:\\\\somewhere\\\\rcc.exe\" \"mandatory\" \"--some-flag\" \"--some-option\" \"some-value\" \"--variable\" \"X:100%%\" > C:\\working\\plans\\my_plan\\123\\0.stdout 2> C:\\working\\plans\\my_plan\\123\\0.stderr\necho %errorlevel% > C:\\working\\plans\\my_plan\\123\\0.exit_code
 endlocal"
         )
     }
