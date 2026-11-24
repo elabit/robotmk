@@ -8,7 +8,7 @@ use crate::results::BuildOutcome;
 use crate::session::{CurrentSession, Session};
 use crate::termination::Cancelled;
 
-use chrono::{DateTime, Utc};
+use jiff::Timestamp;
 use tokio_util::sync::CancellationToken;
 
 #[derive(Clone, Debug, PartialEq)]
@@ -23,7 +23,7 @@ impl Environment {
         &self,
         id: &str,
         session: &Session,
-        start_time: DateTime<Utc>,
+        start_time: Timestamp,
         cancellation_token: &CancellationToken,
     ) -> Result<BuildOutcome, Cancelled> {
         match self {

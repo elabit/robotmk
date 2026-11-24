@@ -7,7 +7,7 @@ use robotmk::session::Session;
 use robotmk::termination::Terminate;
 
 use camino::{Utf8Path, Utf8PathBuf};
-use chrono::Utc;
+use jiff::Timestamp;
 use log::info;
 use std::collections::HashMap;
 use tokio_util::sync::CancellationToken;
@@ -46,10 +46,10 @@ fn build_environment(
     build_stage_reporter: &mut BuildStageReporter,
 ) -> Result<BuildOutcome, Terminate> {
     info!("Processing plan {id}");
-    let start_time = Utc::now();
+    let start_time = Timestamp::now();
     build_stage_reporter.update(
         id,
-        EnvironmentBuildStage::InProgress(start_time.timestamp()),
+        EnvironmentBuildStage::InProgress(start_time.as_second()),
     )?;
     let outcome = environment.build(id, session, start_time, cancellation_token)?;
     if let BuildOutcome::NotNeeded = outcome {

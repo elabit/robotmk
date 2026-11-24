@@ -2,8 +2,8 @@ mod process_tree;
 
 use anyhow::Result as AnyhowResult;
 use camino::{Utf8Path, Utf8PathBuf};
-use chrono::Utc;
 use clap::{Parser, Subcommand};
+use jiff::Timestamp;
 use process_tree::check_tree_size;
 use robotmk::config::{
     CondaEnvironmentSource, HTTPProxyConfig, RetryStrategy, TlsCertificateValidation,
@@ -140,7 +140,12 @@ fn rcc_main(rcc_binary_path: Utf8PathBuf) -> AnyhowResult<()> {
     let session = Session::Current(CurrentSession {});
     assert!(matches!(
         rcc_environment
-            .build("unused_id", &session, Utc::now(), &CancellationToken::new())
+            .build(
+                "unused_id",
+                &session,
+                Timestamp::now(),
+                &CancellationToken::new()
+            )
             .unwrap(),
         BuildOutcome::Success(_),
     ));
@@ -219,7 +224,12 @@ fn micromamba_main(micromamba_binary_path: Utf8PathBuf) -> AnyhowResult<()> {
     let session = Session::Current(CurrentSession {});
     assert!(matches!(
         conda_environment
-            .build("unused_id", &session, Utc::now(), &CancellationToken::new())
+            .build(
+                "unused_id",
+                &session,
+                Timestamp::now(),
+                &CancellationToken::new()
+            )
             .unwrap(),
         BuildOutcome::Success(_),
     ));

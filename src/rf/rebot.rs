@@ -8,7 +8,7 @@ use crate::termination::{Cancelled, Outcome};
 use anyhow::Result as AnyhowResult;
 use base64::{Engine, engine::general_purpose};
 use camino::{Utf8Path, Utf8PathBuf};
-use chrono::Utc;
+use jiff::Timestamp;
 use log::error;
 use std::fs::{read, read_to_string};
 use tokio_util::sync::CancellationToken;
@@ -26,7 +26,7 @@ pub struct Rebot<'a> {
 
 impl Rebot<'_> {
     pub fn rebot(&self) -> Result<RebotOutcome, Cancelled> {
-        let timestamp = Utc::now().timestamp();
+        let timestamp = Timestamp::now().as_second();
         let outcome = match self.run() {
             Ok(outcome) => outcome,
             Err(error) => {

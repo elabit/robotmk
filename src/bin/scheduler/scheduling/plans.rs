@@ -4,7 +4,7 @@ use robotmk::plans::run_attempts_with_rebot;
 use robotmk::results::{AttemptsConfig, PlanExecutionReport};
 
 use anyhow::Context;
-use chrono::Utc;
+use jiff::Timestamp;
 use log::info;
 use robotmk::section::WritePiggybackSection;
 use robotmk::termination::{ContextUnrecoverable, Terminate};
@@ -54,10 +54,10 @@ fn format_source_for_logging(source: &Source) -> String {
 }
 
 fn produce_plan_results(plan: &Plan) -> Result<PlanExecutionReport, Terminate> {
-    let timestamp = Utc::now();
+    let timestamp = Timestamp::now();
     let output_directory = plan
         .working_directory
-        .join(timestamp.format(TIMESTAMP_FORMAT).to_string());
+        .join(timestamp.strftime(TIMESTAMP_FORMAT).to_string());
 
     create_dir_all(&output_directory).context(format!(
         "Failed to create directory for plan run: {output_directory}"
@@ -77,7 +77,7 @@ fn produce_plan_results(plan: &Plan) -> Result<PlanExecutionReport, Terminate> {
 
     Ok(PlanExecutionReport {
         plan_id: plan.id.clone(),
-        timestamp: timestamp.timestamp(),
+        timestamp: timestamp.as_second(),
         attempts: attempt_reports,
         rebot,
         config: AttemptsConfig {
