@@ -4,7 +4,7 @@ use crate::internal_config::{GlobalConfig, Plan};
 use crate::logging::log_and_return_error;
 
 use anyhow::anyhow;
-use chrono::Utc;
+use jiff::Timestamp;
 use log::info;
 use robotmk::termination::Terminate;
 use std::collections::HashMap;
@@ -131,7 +131,7 @@ async fn run_cleanup_job(cancellation_token: CancellationToken, plans: Vec<Plan>
 fn compute_start_time(execution_interval_secs: u64) -> Instant {
     let now = Instant::now();
     now.checked_add(Duration::from_millis(compute_start_time_offset_millis(
-        Utc::now().timestamp_millis() as u64,
+        Timestamp::now().as_millisecond() as u64,
         execution_interval_secs * 1000,
     )))
     .unwrap_or(now)

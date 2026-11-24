@@ -7,7 +7,7 @@ use crate::termination::{Cancelled, Outcome};
 
 use anyhow::anyhow;
 use camino::{Utf8Path, Utf8PathBuf};
-use chrono::{DateTime, Utc};
+use jiff::Timestamp;
 use log::{error, info};
 use tokio_util::sync::CancellationToken;
 
@@ -57,7 +57,7 @@ impl RCCEnvironment {
         &self,
         id: &str,
         session: &Session,
-        start_time: DateTime<Utc>,
+        start_time: Timestamp,
         cancellation_token: &CancellationToken,
     ) -> Result<BuildOutcome, Cancelled> {
         if let Some(catalog_ip) = &self.catalog_zip {
@@ -100,7 +100,11 @@ impl RCCEnvironment {
             }
         }
 
-        let elapsed: u64 = (Utc::now() - start_time).num_seconds().try_into().unwrap();
+        let elapsed: u64 = Timestamp::now()
+            .duration_since(start_time)
+            .as_secs()
+            .try_into()
+            .unwrap();
         if elapsed >= self.build_timeout {
             error!("Environment import timed out, plan {id} will be dropped");
             return Ok(BuildOutcome::Timeout);
@@ -114,7 +118,7 @@ impl RCCEnvironment {
         ) {
             Ok(Outcome::Completed(0)) => {
                 info!("Environment building succeeded for plan {id}");
-                let duration = (Utc::now() - start_time).num_seconds();
+                let duration = Timestamp::now().duration_since(start_time).as_secs();
                 Ok(BuildOutcome::Success(duration))
             }
             Ok(Outcome::Completed(_exit_code)) => {

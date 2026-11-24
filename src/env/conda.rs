@@ -8,8 +8,8 @@ use crate::termination::{Cancelled, Outcome};
 
 use anyhow::anyhow;
 use camino::{Utf8Path, Utf8PathBuf};
-use chrono::{DateTime, Utc};
 use flate2::read::GzDecoder;
+use jiff::Timestamp;
 use log::{error, info};
 use std::fs::File;
 use std::vec;
@@ -35,7 +35,7 @@ impl CondaEnvironment {
         &self,
         id: &str,
         session: &Session,
-        start_time: DateTime<Utc>,
+        start_time: Timestamp,
         cancellation_token: &CancellationToken,
     ) -> Result<BuildOutcome, Cancelled> {
         if let BuildStepOutcome::Failure(failure) = match self.source {
@@ -67,7 +67,7 @@ impl CondaEnvironment {
         }
 
         Ok(BuildOutcome::Success(
-            (Utc::now() - start_time).num_seconds(),
+            Timestamp::now().duration_since(start_time).as_secs(),
         ))
     }
 
@@ -221,7 +221,7 @@ impl CondaEnvironment {
         archive_path: &Utf8Path,
         id: &str,
         session: &Session,
-        start_time: DateTime<Utc>,
+        start_time: Timestamp,
         cancellation_token: &CancellationToken,
     ) -> BuildStepOutcome {
         info!("Extracting archive {archive_path} for plan {id}");
@@ -233,7 +233,11 @@ impl CondaEnvironment {
             )));
         }
 
-        let elapsed: u64 = (Utc::now() - start_time).num_seconds().try_into().unwrap();
+        let elapsed: u64 = Timestamp::now()
+            .duration_since(start_time)
+            .as_secs()
+            .try_into()
+            .unwrap();
         if elapsed >= self.build_timeout {
             error!("Environment import timed out, plan {id} will be dropped");
             return BuildStepOutcome::Failure(BuildStepOutcomeFailure::Timeout);
@@ -308,7 +312,7 @@ impl CondaEnvironment {
         post_build_command_specs: &[(String, CommandSpec)],
         plan_id: &str,
         session: &Session,
-        start_time: DateTime<Utc>,
+        start_time: Timestamp,
         cancellation_token: &CancellationToken,
     ) -> BuildStepOutcome {
         if post_build_command_specs.is_empty() {
@@ -317,7 +321,11 @@ impl CondaEnvironment {
         }
 
         for (command_name, command_spec) in post_build_command_specs {
-            let elapsed: u64 = (Utc::now() - start_time).num_seconds().try_into().unwrap();
+            let elapsed: u64 = Timestamp::now()
+                .duration_since(start_time)
+                .as_secs()
+                .try_into()
+                .unwrap();
             if elapsed >= self.build_timeout {
                 error!("Timeout while running post-build commands, plan {plan_id} will be dropped");
                 return BuildStepOutcome::Failure(BuildStepOutcomeFailure::Timeout);

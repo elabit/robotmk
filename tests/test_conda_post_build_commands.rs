@@ -1,7 +1,7 @@
 pub mod helper;
 use crate::helper::var;
 use camino::Utf8PathBuf;
-use chrono::Utc;
+use jiff::Timestamp;
 use robotmk::config::{CondaEnvironmentSource, HTTPProxyConfig, TlsCertificateValidation};
 use robotmk::env::{Environment, conda::CondaEnvironment};
 use robotmk::results::BuildOutcome;
@@ -42,7 +42,7 @@ fn test_conda_post_build_commands() -> anyhow::Result<()> {
     .build(
         "test_conda_post_build_commands",
         &Session::Current(CurrentSession {}),
-        Utc::now(),
+        Timestamp::now(),
         &CancellationToken::default(),
     )?;
 
