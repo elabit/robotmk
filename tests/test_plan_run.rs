@@ -2,7 +2,7 @@ use anyhow::Result as AnyhowResult;
 use camino::Utf8Path;
 use robotmk::config::RetryStrategy;
 use robotmk::env::{Environment, system::SystemEnvironment};
-use robotmk::plans::run_attempts_with_rebot;
+use robotmk::plans::{PlanRunSpec, run_attempts_with_rebot};
 use robotmk::results::AttemptOutcome;
 use robotmk::rf::robot::Robot;
 use robotmk::session::{CurrentSession, Session};
@@ -21,15 +21,15 @@ fn test_rebot_run() -> AnyhowResult<()> {
         envs_rendered_obfuscated: vec![],
         retry_strategy: RetryStrategy::Complete,
     };
-    let (attempt_reports, rebot) = run_attempts_with_rebot(
-        &robot,
-        "test",
-        &Environment::System(SystemEnvironment {}),
-        &Session::Current(CurrentSession {}),
-        10,
-        &CancellationToken::default(),
-        test_dir_path,
-    )?;
+    let (attempt_reports, rebot) = run_attempts_with_rebot(&PlanRunSpec {
+        robot: &robot,
+        id: "test",
+        environment: &Environment::System(SystemEnvironment {}),
+        session: &Session::Current(CurrentSession {}),
+        timeout: 10,
+        cancellation_token: &CancellationToken::default(),
+        output_directory: test_dir_path,
+    })?;
     assert_eq!(attempt_reports.len(), 1);
     let attempt_report = &attempt_reports[0];
     assert_eq!(attempt_report.index, 1);
@@ -51,15 +51,15 @@ fn test_timeout_process() -> AnyhowResult<()> {
         envs_rendered_obfuscated: vec![],
         retry_strategy: RetryStrategy::Complete,
     };
-    let (attempt_reports, rebot) = run_attempts_with_rebot(
-        &robot,
-        "test",
-        &Environment::System(SystemEnvironment {}),
-        &Session::Current(CurrentSession {}),
-        1,
-        &CancellationToken::default(),
-        test_dir_path,
-    )?;
+    let (attempt_reports, rebot) = run_attempts_with_rebot(&PlanRunSpec {
+        robot: &robot,
+        id: "test",
+        environment: &Environment::System(SystemEnvironment {}),
+        session: &Session::Current(CurrentSession {}),
+        timeout: 1,
+        cancellation_token: &CancellationToken::default(),
+        output_directory: test_dir_path,
+    })?;
     assert_eq!(attempt_reports.len(), 1);
     let attempt_report = &attempt_reports[0];
     assert_eq!(attempt_report.index, 1);
