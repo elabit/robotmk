@@ -10,15 +10,28 @@ use jiff::Timestamp;
 use log::{error, info};
 use tokio_util::sync::CancellationToken;
 
+pub struct PlanRunSpec<'a> {
+    pub robot: &'a Robot,
+    pub id: &'a str,
+    pub environment: &'a Environment,
+    pub session: &'a Session,
+    pub timeout: u64,
+    pub cancellation_token: &'a CancellationToken,
+    pub output_directory: &'a Utf8Path,
+}
+
 pub fn run_attempts_with_rebot(
-    robot: &Robot,
-    id: &str,
-    environment: &Environment,
-    session: &Session,
-    timeout: u64,
-    cancellation_token: &CancellationToken,
-    output_directory: &Utf8Path,
+    spec: &PlanRunSpec,
 ) -> Result<(Vec<AttemptReport>, Option<RebotOutcome>), Cancelled> {
+    let &PlanRunSpec {
+        robot,
+        id,
+        environment,
+        session,
+        cancellation_token,
+        output_directory,
+        ..
+    } = spec;
     let mut attempt_reports = vec![];
     let mut output_paths: Vec<Utf8PathBuf> = vec![];
 
@@ -26,15 +39,7 @@ pub fn run_attempts_with_rebot(
         info!("Plan {id}: running attempt {}", attempt.index);
         let attempt_index = attempt.index;
         let starttime = Timestamp::now();
-        let (outcome, output_path) = run_attempt(
-            id,
-            environment,
-            session,
-            timeout,
-            attempt,
-            cancellation_token,
-            output_directory,
-        )?;
+        let (outcome, output_path) = run_attempt(spec, attempt)?;
         let endtime = Timestamp::now();
         let success = matches!(&outcome, &AttemptOutcome::AllTestsPassed);
         attempt_reports.push(AttemptReport {
@@ -70,14 +75,18 @@ pub fn run_attempts_with_rebot(
 }
 
 fn run_attempt(
-    id: &str,
-    environment: &Environment,
-    session: &Session,
-    timeout: u64,
+    spec: &PlanRunSpec,
     attempt: Attempt,
-    cancellation_token: &CancellationToken,
-    output_directory: &Utf8Path,
 ) -> Result<(AttemptOutcome, Option<Utf8PathBuf>), Cancelled> {
+    let &PlanRunSpec {
+        id,
+        environment,
+        session,
+        timeout,
+        cancellation_token,
+        output_directory,
+        ..
+    } = spec;
     let log_message_start = format!("Plan {}, attempt {}", id, attempt.index);
 
     let run_outcome = match session

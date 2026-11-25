@@ -1,6 +1,6 @@
 use crate::internal_config::{Plan, Source};
 use crate::logging::TIMESTAMP_FORMAT;
-use robotmk::plans::run_attempts_with_rebot;
+use robotmk::plans::{PlanRunSpec, run_attempts_with_rebot};
 use robotmk::results::{AttemptsConfig, PlanExecutionReport};
 
 use anyhow::Context;
@@ -63,15 +63,15 @@ fn produce_plan_results(plan: &Plan) -> Result<PlanExecutionReport, Terminate> {
         "Failed to create directory for plan run: {output_directory}"
     ))?;
 
-    let (attempt_reports, rebot) = run_attempts_with_rebot(
-        &plan.robot,
-        &plan.id,
-        &plan.environment,
-        &plan.session,
-        plan.timeout,
-        &plan.cancellation_token,
-        &output_directory,
-    )
+    let (attempt_reports, rebot) = run_attempts_with_rebot(&PlanRunSpec {
+        robot: &plan.robot,
+        id: &plan.id,
+        environment: &plan.environment,
+        session: &plan.session,
+        timeout: plan.timeout,
+        cancellation_token: &plan.cancellation_token,
+        output_directory: &output_directory,
+    })
     .map_err(|cancelled| cancelled.into())
     .context_unrecoverable("Received termination signal while running plan")?;
 

@@ -11,7 +11,7 @@ use robotmk::config::{
 use robotmk::env::{
     Environment, conda::CondaEnvironment, rcc::RCCEnvironment, system::SystemEnvironment,
 };
-use robotmk::plans::run_attempts_with_rebot;
+use robotmk::plans::{PlanRunSpec, run_attempts_with_rebot};
 use robotmk::results::BuildOutcome;
 use robotmk::rf::robot::Robot;
 use robotmk::session::{CurrentSession, Session};
@@ -72,15 +72,15 @@ fn system_main() -> AnyhowResult<()> {
     let token = CancellationToken::new();
     let thread_token = token.clone();
     let running = thread::spawn(move || {
-        run_attempts_with_rebot(
-            &robot,
-            "test",
-            &Environment::System(SystemEnvironment {}),
-            &Session::Current(CurrentSession {}),
-            3,
-            &thread_token,
-            &test_dir_path,
-        )
+        run_attempts_with_rebot(&PlanRunSpec {
+            robot: &robot,
+            id: "test",
+            environment: &Environment::System(SystemEnvironment {}),
+            session: &Session::Current(CurrentSession {}),
+            timeout: 3,
+            cancellation_token: &thread_token,
+            output_directory: &test_dir_path,
+        })
     });
     while !flag_file.exists() {
         // Wait for all children to be created
@@ -153,15 +153,15 @@ fn rcc_main(rcc_binary_path: Utf8PathBuf) -> AnyhowResult<()> {
     let token = CancellationToken::new();
     let thread_token = token.clone();
     let running = thread::spawn(move || {
-        run_attempts_with_rebot(
-            &robot,
-            "test",
-            &rcc_environment,
-            &session,
-            20,
-            &thread_token,
-            &test_dir_path,
-        )
+        run_attempts_with_rebot(&PlanRunSpec {
+            robot: &robot,
+            id: "test",
+            environment: &rcc_environment,
+            session: &session,
+            timeout: 20,
+            cancellation_token: &thread_token,
+            output_directory: &test_dir_path,
+        })
     });
     while !flag_file.exists() {
         // Wait for all children to be created
@@ -237,15 +237,15 @@ fn micromamba_main(micromamba_binary_path: Utf8PathBuf) -> AnyhowResult<()> {
     let token = CancellationToken::new();
     let thread_token = token.clone();
     let running = thread::spawn(move || {
-        run_attempts_with_rebot(
-            &robot,
-            "test",
-            &conda_environment,
-            &session,
-            20,
-            &thread_token,
-            &test_dir_path,
-        )
+        run_attempts_with_rebot(&PlanRunSpec {
+            robot: &robot,
+            id: "test",
+            environment: &conda_environment,
+            session: &session,
+            timeout: 20,
+            cancellation_token: &thread_token,
+            output_directory: &test_dir_path,
+        })
     });
     while !flag_file.exists() {
         // Wait for all children to be created
